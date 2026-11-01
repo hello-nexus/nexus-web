@@ -46,6 +46,9 @@ const HYSTERESIS = 0.04;
 // How many times better the opposite ink must contrast than the theme's own
 // ink before a widget flips. 1 is the plain crossover; higher is stickier.
 const THEME_INK_BIAS = 2;
+// Weight of each new once-a-second luminance sample in the per-host average
+// (about a 3 s time constant), so a one-tick plasma spike cannot flip the ink.
+const LUMINANCE_SMOOTHING = 0.28;
 const GRID_COLUMNS = 32;
 const TICK_MS = 1000;
 // Frames a tick waits for a paced shader to draw before it skips; a covered shader never draws.
@@ -75,13 +78,32 @@ function crossover(themeInk: Ink | null): number {
     : Math.sqrt(flat / THEME_INK_BIAS) - offset;
 }
 
-/** themeInk is the ink the panel theme itself uses; null picks purely by contrast. */
+/**
+ * themeInk is the ink the panel theme itself uses; null picks purely by
+ * contrast with a symmetric hysteresis band. With a themeInk, leaving it takes
+ * the biased crossover and coming back takes the neutral one, so the ink
+ * stays put while the backdrop wanders between the two.
+ */
 export function pickInk(luminance: number, previous: Ink | null, themeInk: Ink | null = null): Ink {
-  const base = crossover(themeInk);
-  const threshold = previous === 'light'
-    ? base + HYSTERESIS
-    : previous === 'dark' ? base - HYSTERESIS : base;
+  if (!themeInk) {
+    const threshold = previous === 'light'
+      ? CROSSOVER + HYSTERESIS
+      : previous === 'dark' ? CROSSOVER - HYSTERESIS : CROSSOVER;
+    return luminance > threshold ? 'dark' : 'light';
+  }
+  const leaving = !previous || previous === themeInk;
+  const threshold = leaving ? crossover(themeInk) : CROSSOVER;
   return luminance > threshold ? 'dark' : 'light';
+}
+
+const smoothed = new WeakMap<HTMLElement, number>();
+
+/** Per-host moving average of the sampled luminance; the first sample seeds it. */
+export function smoothLuminance(host: HTMLElement, sample: number): number {
+  const prev = smoothed.get(host);
+  const next = prev == null ? sample : prev + LUMINANCE_SMOOTHING * (sample - prev);
+  smoothed.set(host, next);
+  return next;
 }
 
 /**
@@ -307,6 +329,7 @@ function endFade(host: HTMLElement) {
 export function clearInks(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>('[data-ink], [data-ink-fade]').forEach(el => {
     endFade(el);
+    smoothed.delete(el);
     delete el.dataset.ink;
   });
 }
@@ -335,7 +358,14 @@ export function stampInk(host: HTMLElement, ink: Ink) {
   host.dataset.ink = ink;
 }
 
+const seenThemeInk = new WeakMap<HTMLElement, Ink>();
+
 function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: BackdropSampler, themeInk: Ink) {
+  // A theme switch re-fills the cards, so the averaged history no longer applies.
+  if (seenThemeInk.get(root) !== themeInk) {
+    seenThemeInk.set(root, themeInk);
+    root.querySelectorAll<HTMLElement>('[data-ink]').forEach(el => { smoothed.delete(el); });
+  }
   if (!grid) {
     clearInks(root);
     return;
@@ -360,7 +390,7 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
     );
     if (luminance == null) return;
     const prev = host.dataset.ink;
-    const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null, themeInk);
+    const ink = pickInk(smoothLuminance(host, luminance), prev === 'light' || prev === 'dark' ? prev : null, themeInk);
     stampInk(host, ink);
   });
 }

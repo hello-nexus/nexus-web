@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { clearInks, customTextVars, normalizeTextColorMode, pickInk, stampInk, regionLuminance, relativeLuminance } from './textColor';
+import { clearInks, customTextVars, normalizeTextColorMode, pickInk, smoothLuminance, stampInk, regionLuminance, relativeLuminance } from './textColor';
 
 function solidGrid(width: number, height: number, [r, g, b]: [number, number, number]) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -34,25 +34,62 @@ describe('pickInk', () => {
 });
 
 describe('pickInk theme bias', () => {
-  it('keeps white ink on a dark theme until the backdrop is really bright', () => {
-    expect(pickInk(0.22, null)).toBe('dark');
+  it('dark theme: leaves white late and returns at the neutral crossover', () => {
     expect(pickInk(0.22, null, 'light')).toBe('light');
     expect(pickInk(0.22, 'light', 'light')).toBe('light');
-    expect(pickInk(0.6, 'light', 'light')).toBe('dark');
-    expect(pickInk(0.2, 'dark', 'light')).toBe('light');
+    expect(pickInk(0.28, 'light', 'light')).toBe('dark');
+    expect(pickInk(0.2, 'dark', 'light')).toBe('dark');
+    expect(pickInk(0.17, 'dark', 'light')).toBe('light');
   });
 
-  it('keeps black ink on a light theme until the backdrop is really dark', () => {
-    expect(pickInk(0.14, null)).toBe('light');
+  it('light theme: leaves black late and returns at the neutral crossover', () => {
     expect(pickInk(0.14, null, 'dark')).toBe('dark');
     expect(pickInk(0.14, 'dark', 'dark')).toBe('dark');
-    expect(pickInk(0.02, 'dark', 'dark')).toBe('light');
-    expect(pickInk(0.2, 'light', 'dark')).toBe('dark');
+    expect(pickInk(0.1, 'dark', 'dark')).toBe('light');
+    expect(pickInk(0.16, 'light', 'dark')).toBe('light');
+    expect(pickInk(0.19, 'light', 'dark')).toBe('dark');
   });
 
-  it('follows a theme switch', () => {
+  it('keeps the symmetric hysteresis band without a theme ink', () => {
+    expect(pickInk(0.22, null)).toBe('dark');
+    expect(pickInk(0.2, 'light')).toBe('light');
+    expect(pickInk(0.2, 'dark')).toBe('dark');
+    expect(pickInk(0.25, 'light')).toBe('dark');
+    expect(pickInk(0.1, 'dark')).toBe('light');
+  });
+
+  it('follows a theme switch on the next pick', () => {
     expect(pickInk(0.22, 'light', 'light')).toBe('light');
     expect(pickInk(0.22, 'light', 'dark')).toBe('dark');
+  });
+});
+
+describe('smoothLuminance', () => {
+  it('seeds with the first sample', () => {
+    const host = document.createElement('div');
+    expect(smoothLuminance(host, 0.4)).toBe(0.4);
+  });
+
+  it('does not let a single-tick spike flip the ink', () => {
+    const host = document.createElement('div');
+    smoothLuminance(host, 0.15);
+    smoothLuminance(host, 0.15);
+    const spiked = smoothLuminance(host, 0.5);
+    expect(spiked).toBeLessThan(0.274);
+    expect(pickInk(spiked, 'light', 'light')).toBe('light');
+  });
+
+  it('settles on a sustained change and resets on clearInks', () => {
+    const host = document.createElement('div');
+    const root = document.createElement('div');
+    root.appendChild(host);
+    host.dataset.ink = 'light';
+    smoothLuminance(host, 0.1);
+    let v = 0;
+    for (let i = 0; i < 20; i++) v = smoothLuminance(host, 0.5);
+    expect(v).toBeGreaterThan(0.49);
+    clearInks(root);
+    expect(smoothLuminance(host, 0.1)).toBe(0.1);
   });
 });
 
