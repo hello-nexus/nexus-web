@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, postPanelHostMessage } from './panelHostBridge';
+import { collectHitRects, frostMessage, hitTestMessage, onHostRequestHitTest, panelHostIsWindows, postPanelHostMessage } from './panelHostBridge';
 
 /** A computed comma-separated CSS list as trimmed items. */
 function cssList(value: string | undefined): string[] {
@@ -145,6 +145,14 @@ export function usePanelFrost(active: boolean, percent: number, seeThrough: bool
   };
   const releaseRef = useRef(release);
   releaseRef.current = release;
+  // A Windows plate's acrylic ignores a window region, so DWM's corner rounding is its only shape: cards take that
+  // radius (PanelApp.module.scss). On <html> so the drag clone portaled to <body> matches; before the send effect so it measures the new radius.
+  const windowsPlates = active && seeThrough && percent > 0 && panelHostIsWindows();
+  useEffect(() => {
+    if (!windowsPlates) return undefined;
+    document.documentElement.setAttribute('data-host-frost', 'windows');
+    return () => document.documentElement.removeAttribute('data-host-frost');
+  }, [windowsPlates]);
   useEffect(() => {
     if (!active) {
       releaseRef.current();

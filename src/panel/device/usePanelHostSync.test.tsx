@@ -251,6 +251,30 @@ describe('usePanelFrost', () => {
     await flush();
     expect(frosts()).toHaveLength(0);
   });
+
+  it('marks the document while Windows plates frost the cards, and clears it when frost stops', () => {
+    const html = document.documentElement;
+    const view = renderHook(({ pct }) => usePanelFrost(true, pct, true, false, rootRef, 'a'), { initialProps: { pct: 70 } });
+    expect(html.getAttribute('data-host-frost')).toBe('windows');
+    view.rerender({ pct: 0 });
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+    view.rerender({ pct: 40 });
+    view.unmount();
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+  });
+
+  it('leaves the document unmarked for an opaque panel and for the macOS host', () => {
+    const html = document.documentElement;
+    const opaque = renderHook(() => usePanelFrost(true, 70, false, false, rootRef, 'a'));
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+    opaque.unmount();
+    delete (window as unknown as Record<string, unknown>).chrome;
+    (window as unknown as Record<string, unknown>).webkit = { messageHandlers: { nexusPanel: { postMessage: () => {} } } };
+    const mac = renderHook(() => usePanelFrost(true, 70, true, false, rootRef, 'a'));
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+    mac.unmount();
+    delete (window as unknown as Record<string, unknown>).webkit;
+  });
 });
 
 describe('usePanelActivatable', () => {

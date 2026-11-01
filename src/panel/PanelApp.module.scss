@@ -615,6 +615,13 @@
   --panel-card-radius: 0px;
 }
 
+// DWM's rounded window corner, 8px at 96 DPI and scaled with DPI as CSS px are:
+// the only shape a Windows frost plate can take (usePanelFrost).
+:global(html[data-host-frost='windows']) .panelRoot[data-surface]:not([data-widget-padding='none']),
+:global(html[data-host-frost='windows']) .dragOverlayHost[data-surface] {
+  --panel-card-radius: 8px;
+}
+
 .panelRoot[data-surface='desktop'] {
   --panel-columns: 16;
   --panel-rows: 8;

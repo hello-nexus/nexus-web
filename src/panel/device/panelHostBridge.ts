@@ -47,6 +47,11 @@ function hostPoster(): { post: (msg: PanelHostMessage) => void } | null {
   return null;
 }
 
+/** True inside the Windows kiosk (WebView2). */
+export function panelHostIsWindows(): boolean {
+  return typeof window !== 'undefined' && Boolean((window as unknown as PanelBridgeWindow).chrome?.webview);
+}
+
 /** True when a kiosk host is listening; a browser tab has none. */
 export function panelHostAvailable(): boolean {
   return hostPoster() !== null;
