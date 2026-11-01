@@ -10,7 +10,7 @@ vi.mock('../widgets/marketplaceRegistry', () => ({
 }));
 
 import { installGlobalErrorReporting, reportError, resetErrorReportingForTests } from './errorReporting';
-import { reportAppError, resetAppErrorReportingForTests, type AppErrorPath } from './appErrorReporting';
+import { reportAppError, resetAppErrorReportingForTests, workerFaultError, type AppErrorPath } from './appErrorReporting';
 
 type Item = Record<string, unknown>;
 const items = (): Item[] => postService.mock.calls.flatMap((c) => (c[1] as { body: { errors: Item[] } }).body.errors);
@@ -115,5 +115,20 @@ describe('reportAppError', () => {
     reportAppError('com.test.app', 'worker-error', 'boom');
     await flush();
     expect(postService).not.toHaveBeenCalled();
+  });
+});
+
+describe('workerFaultError', () => {
+  it('names a worker that failed to load when the event has no detail', () => {
+    const err = workerFaultError({ message: '', filename: '', lineno: 0 });
+    expect(err.name).toBe('WorkerError');
+    expect(err.message).toMatch(/failed to load/);
+    expect(err.stack).not.toContain('undefined');
+  });
+
+  it('keeps a real message with its location', () => {
+    const err = workerFaultError({ message: 'boom', filename: 'blob:x', lineno: 7 });
+    expect(err.message).toBe('boom');
+    expect(err.stack).toContain('blob:x:7');
   });
 });
