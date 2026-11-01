@@ -572,6 +572,7 @@
   "cooling.guard.banner.floor": "Le CPU est à {temp} °C, près de sa limite de {limit} °C. Nexus augmente la vitesse des ventilateurs.",
   "cooling.guard.banner.tripLimit": "Le CPU a atteint {temp} °C, près de sa limite de {limit} °C. Tous les ventilateurs tournent à 100%.",
   "cooling.guard.banner.tripLoss": "Le CPU chauffe sous faible charge ({temp} °C, limite {limit} °C), ce qui indique une perte de refroidissement. Tous les ventilateurs tournent à 100%.",
+  "cooling.guard.banner.tripPartial": "Le CPU est à {temp} °C, près de sa limite de {limit} °C. Nexus envoie 100 % aux ventilateurs, mais certains ne répondent pas. Vérifiez les ventilateurs et leurs branchements.",
   "cooling.guard.description": "Augmente la vitesse des ventilateurs quand le CPU approche de sa température maximale, quelles que soient vos courbes.",
   "cooling.guard.error.keep": "Impossible de conserver la correction.",
   "cooling.guard.error.limit": "Impossible de modifier la limite de température du CPU.",

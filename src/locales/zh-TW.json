@@ -572,6 +572,7 @@
   "cooling.guard.banner.floor": "CPU 目前 {temp} °C，已接近 {limit} °C 的上限。Nexus 正在提高風扇轉速。",
   "cooling.guard.banner.tripLimit": "CPU 已達到 {temp} °C，接近 {limit} °C 的上限。所有風扇皆以 100% 運轉。",
   "cooling.guard.banner.tripLoss": "CPU 在低負載下升溫（{temp} °C，上限 {limit} °C），表示散熱可能失效。所有風扇皆以 100% 運轉。",
+  "cooling.guard.banner.tripPartial": "CPU 溫度為 {temp} °C,已接近 {limit} °C 的上限。Nexus 已對風扇送出 100% 轉速指令,但部分風扇沒有回應。請檢查風扇及其連接。",
   "cooling.guard.description": "當 CPU 接近最高溫度時提高風扇轉速，不論曲線如何設定。",
   "cooling.guard.error.keep": "無法保留修復。",
   "cooling.guard.error.limit": "無法變更 CPU 溫度上限。",

@@ -572,6 +572,7 @@
   "cooling.guard.banner.floor": "A CPU está a {temp} °C, perto do limite de {limit} °C. O Nexus está a aumentar a velocidade das ventoinhas.",
   "cooling.guard.banner.tripLimit": "A CPU atingiu {temp} °C, perto do limite de {limit} °C. Todas as ventoinhas estão a 100%.",
   "cooling.guard.banner.tripLoss": "A CPU aquece com pouca carga ({temp} °C, limite {limit} °C), o que indica perda de refrigeração. Todas as ventoinhas estão a 100%.",
+  "cooling.guard.banner.tripPartial": "O CPU está a {temp} °C, perto do limite de {limit} °C. O Nexus envia 100% às ventoinhas, mas algumas não respondem. Verifique as ventoinhas e as ligações.",
   "cooling.guard.description": "Aumenta a velocidade das ventoinhas quando a CPU se aproxima da temperatura máxima, independentemente das suas curvas.",
   "cooling.guard.error.keep": "Não foi possível manter a correção.",
   "cooling.guard.error.limit": "Não foi possível alterar o limite de temperatura da CPU.",

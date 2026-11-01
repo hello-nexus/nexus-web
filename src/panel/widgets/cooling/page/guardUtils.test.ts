@@ -29,6 +29,11 @@ describe('guardBannerKey', () => {
     expect(guardBannerKey(trip('cooling-loss'))).toBe('cooling.guard.banner.tripLoss');
   });
 
+  it('does not claim full speed when a driven fan is not responding', () => {
+    const trip = guard({ state: 'tripped', fansNotResponding: true, lastTrip: { atUtcMs: 1, peakC: 90, reason: 'limit', escalated: false } });
+    expect(guardBannerKey(trip)).toBe('cooling.guard.banner.tripPartial');
+  });
+
   it('rounds the temperature and limit into the text', () => {
     expect(guardBannerText(guard({ state: 'floor' }), t)).toBe('cooling.guard.banner.floor|temp=70,limit=95');
   });

@@ -344,6 +344,8 @@ export interface GuardResponse {
   detectedLimitSource?: GuardLimitSource | null;
   limitOverrideC?: number | null;
   sinceUtcMs: number | null;
+  /** The guard is driving fans but one with a tach stays at 0 RPM or writes are not landing. */
+  fansNotResponding?: boolean;
   lastTrip: GuardLastTrip | null;
   heal: HealState;
   /** The engine watchdog handed the fans to the BIOS. */
