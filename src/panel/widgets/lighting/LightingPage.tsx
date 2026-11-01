@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
@@ -53,7 +53,6 @@ import { Badge } from '../../../components/common/Badge/Badge';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useOnboardingHint } from '../../../hooks/useOnboardingHint';
-import { InfoTooltip } from '../../../components/common/InfoTooltip/InfoTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -167,8 +166,6 @@ interface LayoutHistorySnapshot {
 }
 
 const PIN_HINT_SELECTOR = `[data-coachmark="${LIGHTING_PIN_HINT_ID}"]`;
-const GAME_SYNC_REMOVED_TAB_KEY = 'game-sync-removed';
-const GAME_SYNC_NOTICE_HINT_ID = 'game-sync-removed-notice';
 
 // The modes a tab press can pin selected cards to; Off always changes the global mode.
 const PINNABLE_MODES: ReadonlySet<string> = new Set(['static', 'animate', 'screen', 'gif']);
@@ -243,7 +240,7 @@ const VIEW_2D = '2d' as const;
 const VIEW_3D = '3d' as const;
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate, accountUsername = null }: LightingViewProps) {
   const { t, language } = useTranslation();
-  const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused, gameSyncRemovedNotice } = useLightingSync(serviceOnline, activeProfileId);
+  const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
   // gpuCanSwitch is true whenever the Settings picker has something to choose
   // (a second card, or CPU rendering offered), so the shortcut never lands on
   // a tab with no GPU control. Offered only for a
@@ -255,7 +252,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     onSectionNavigate?.('settings', { settingsTab: 'lighting-cooling', settingsAnchor: 'set-render-gpu' });
   }, [onSectionNavigate]);
   const isWindows = platform === 'windows';
-  const gameSyncNoticeHint = useOnboardingHint(GAME_SYNC_NOTICE_HINT_ID, isWindows && gameSyncRemovedNotice);
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const { recordColor, recordAnimation } = useLightingRecents();
   const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
@@ -2477,19 +2473,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         ) : undefined,
       };
     }),
-    // Removal notice for upgraders: delete with its hint id, locale keys and tests after the next production release.
-    ...(isWindows && gameSyncRemovedNotice && gameSyncNoticeHint.dismissed === false ? [{
-      key: GAME_SYNC_REMOVED_TAB_KEY,
-      label: t('lighting.mode.gamesync'),
-      icon: <Gamepad2 size={14} />,
-      disabled: true,
-      trailing: (
-        <InfoTooltip
-          message={t('lighting.gameSync.removedNotice')}
-          action={{ label: t('lighting.gameSync.removeTab'), onClick: gameSyncNoticeHint.dismiss }}
-        />
-      ),
-    }] : [])];
+  ];
   // The strip marks the mode tab while lighting is off - it is the tab Off now
   // lives on. Every other mode still marks its own tab.
   const activeTabKey = !synced ? undefined
@@ -2530,7 +2514,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // The cards a press on `key` changes, outlined on hover and pulsed on press: with a selection
   // and a pinnable mode, the cards it pins; otherwise the global reach.
   const tabPressReach = useCallback((key: string): Set<string> | undefined => {
-    if (key === GAME_SYNC_REMOVED_TAB_KEY) return undefined;
     // Off: the press starts the mode for every card, whatever is selected.
     if (mode === 'none' && key !== 'none') return pressReach(visibleDevices, pins, new Set());
     if (selectedDeviceIds.size > 0 && PINNABLE_MODES.has(key)) {
