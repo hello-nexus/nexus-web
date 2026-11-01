@@ -3,7 +3,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reportAppError = vi.fn();
-vi.mock('../../telemetry/appErrorReporting', () => ({ reportAppError: (...a: unknown[]) => reportAppError(...a) }));
+vi.mock('../../telemetry/appErrorReporting', async (orig) => ({
+  ...(await orig<typeof import('../../telemetry/appErrorReporting')>()),
+  reportAppError: (...a: unknown[]) => reportAppError(...a),
+}));
 
 let renderResult: Promise<void> = new Promise(() => {});
 vi.mock('@quilted/threads', () => ({
@@ -53,6 +56,13 @@ describe('SDK app error routing in the sandbox host', () => {
     expect([id, path]).toEqual(['com.test.app', 'worker-error']);
     expect(err.message).toBe('x is not a function');
     expect(err.stack).toContain('blob:app:7');
+  });
+
+  it('names a worker that failed to load instead of reporting an empty message', async () => {
+    const w = await spawn();
+    w.emit('error', { message: '', filename: '', lineno: 0 });
+    const err = reportAppError.mock.calls[0][2] as Error;
+    expect(err.message).toMatch(/failed to load/);
   });
 
   it('reports a failed render', async () => {

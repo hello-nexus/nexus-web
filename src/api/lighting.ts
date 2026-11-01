@@ -115,8 +115,6 @@ export const fetchLightingStatus = () =>
 export interface CurrentSyncResponse {
   sync: string;
   paused: boolean;
-  /** True on installs upgraded from a version that shipped Game Sync. */
-  gameSyncRemovedNotice?: boolean;
 }
 
 export const fetchCurrentSync = () =>
@@ -225,6 +223,8 @@ export const startAnimate = (
   persist = true,
   // Sent only when the user changed a sensor pick, so a service that predates the field sees an unchanged body.
   sensors?: Record<string, SensorBinding>,
+  // True only from simple mode, where the service shows a sweep's whole pattern on every device.
+  simple = false,
 ) =>
   postService('/lighting/animate/headless-start', {
     effect, speed, noise: 0, filter: 'none', intensity, scheme: [], hue, sat: 0,
@@ -232,7 +232,12 @@ export const startAnimate = (
     params: params ? Object.entries(params).map(([name, value]) => ({ name, value })) : [],
     persist,
     ...(sensors && Object.keys(sensors).length > 0 ? { sensors } : {}),
+    ...(simple ? { simple } : {}),
   });
+
+/** Changes only the running animate effect's simple-mode mapping and stores it; the look and unsaved edits are untouched. */
+export const setAnimateSimple = (simple: boolean) =>
+  postService('/lighting/animate/simple', { simple });
 
 export interface StudioLiveResponse {
   error?: boolean;

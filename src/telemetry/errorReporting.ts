@@ -189,11 +189,12 @@ function isAppKind(kind: ErrorKind): boolean {
 
 // recoveryTried: true, or the reason a stale-chunk recovery did not reload (it leads the stored context so the cap cannot cut it).
 export function reportError(error: unknown, kind: ErrorKind, context?: string, recoveryTried: boolean | string = false, app?: AppErrorSource): void {
-  if (!recoveryTried && installed && staleChunkMessageOf(error)) {
+  const staleMessage = !recoveryTried && installed ? staleChunkMessageOf(error) : null;
+  if (staleMessage !== null) {
     // A reload onto a new build makes the error moot; otherwise report it as usual.
     const entry: Held = { error, kind, context };
     held.add(entry);
-    void recoverFromStaleChunkNow().then((outcome) => {
+    void recoverFromStaleChunkNow(staleMessage).then((outcome) => {
       // Already reported by pagehide.
       if (!held.delete(entry) || outcome === 'reloaded') return;
       reportError(error, kind, context, outcome);
@@ -253,14 +254,15 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
   }
 }
 
-function staleChunkMessageOf(error: unknown): boolean {
-  if (reporting) return false;
+function staleChunkMessageOf(error: unknown): string | null {
+  if (reporting) return null;
   // describe() reads error getters, which may raise error events themselves.
   reporting = true;
   try {
-    return isStaleChunkMessage(describe(error).own);
+    const own = describe(error).own;
+    return isStaleChunkMessage(own) ? own : null;
   } catch {
-    return false;
+    return null;
   } finally {
     reporting = false;
   }

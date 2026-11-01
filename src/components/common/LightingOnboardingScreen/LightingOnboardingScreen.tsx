@@ -15,6 +15,7 @@ import {
   fetchAnimateSettings,
   saveAnimateTemplates,
   startAnimate,
+  setAnimateSimple,
   startStatic,
   type LightingDevice,
 } from '../../../api/lighting';
@@ -218,9 +219,9 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       }
       const slot0 = bundle.slots[SIMPLE_SLOT];
       const state = simpleAnimationState(slot0, false);
-      await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, mode === 'simple');
     });
-  }, [applyPick]);
+  }, [applyPick, mode]);
 
   // The simple page's palette path: Static owns the output first, then every
   // device is pinned to the color.
@@ -279,6 +280,8 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     try {
       // A device detected after the color was picked follows the global color.
       await pickChainRef.current;
+      // The pick may predate the mode choice; the running sweep has to follow the chosen one.
+      if (pick === RAINBOW) await setAnimateSimple(mode === 'simple').catch(() => {});
       updateUiSettings({ lightingDashboardMode: mode });
       const result = await completeLightingOnboarding();
       if (result?.lightingCompleted) {
