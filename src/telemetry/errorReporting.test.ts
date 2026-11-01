@@ -11,10 +11,10 @@ vi.mock('../lib/buildReloadWatcher', async (orig) => ({
   isReloadingForBuild: () => reloading.value,
 }));
 
-const recoverNow = vi.fn(async (): Promise<string> => 'noop');
+const recoverNow = vi.fn<(message?: string) => Promise<string>>(async () => 'noop');
 vi.mock('../lib/staleChunkRecovery', async (orig) => ({
   ...(await orig<typeof import('../lib/staleChunkRecovery')>()),
-  recoverFromStaleChunkNow: (...a: unknown[]) => recoverNow(...(a as [])),
+  recoverFromStaleChunkNow: (message?: string) => recoverNow(message),
 }));
 
 import {

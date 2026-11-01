@@ -1,12 +1,12 @@
-import { checkOnce, liveDeps, loadedEntry, reloadForBuild, type CheckResult } from './buildReloadWatcher';
+import { checkOnce, extractAssets, liveDeps, loadedEntry, reloadForBuild, type CheckResult } from './buildReloadWatcher';
 
-// A service update swaps the hashed assets under an already-open page, so the
-// next lazy import or stylesheet preload of a removed chunk fails. Reloading
-// picks up the new entry, but only once the build watcher's check confirms a
-// different entry is served and every asset it references is fetchable: a
-// stopped service or a deploy caught mid-copy must not turn into a blind
-// reload. At most one reload happens per window, and none when the loop-guard
-// stamp cannot be stored.
+// A lazy import or stylesheet preload fails either because a service update
+// swapped the hashed assets (a new build) or because one fetch missed
+// transiently on the same build. Either way a reload repairs the route, but
+// only once index.html and every asset it references are fetchable: a stopped
+// service or a deploy caught mid-copy must not turn into a reload onto an
+// error page with no JS left to recover. Reloads are rate-limited per tab and
+// never happen when their stamp cannot be stored.
 const STAMP_KEY = 'nexus_stale_chunk_reload_at';
 const SAME_STAMP_KEY = 'nexus_stale_chunk_same_reload_at';
 export const STALE_CHUNK_RELOAD_LOCK_MS = 60_000;
@@ -20,7 +20,7 @@ export function isStaleChunkMessage(message: string): boolean {
   return STALE_CHUNK_RE.test(message);
 }
 
-// Other engines omit the URL, which leaves 'same' final.
+// WebKit's "Importing a module script failed." carries no URL, which leaves 'same' final.
 export function staleChunkAssetPath(message: string, pageHref: string): string | null {
   const raw = /(?:Unable to preload CSS for|dynamically imported module:)\s*(\S+)/i.exec(message)?.[1];
   if (!raw) return null;
@@ -42,7 +42,7 @@ export type RecoverOutcome = 'reloaded' | CheckResult | 'loop-guard' | 'timeout'
 
 export type ProbeResult = 'ok' | 'missing' | 'unreachable';
 
-// A reload that survives this window without fixing the failure means the failure is real.
+// A same-build failure recurring inside this window after a reload is real, so it is reported instead of reloading again.
 export const SAME_BUILD_RELOAD_LOCK_MS = 10 * 60_000;
 
 // Transient causes only: a final one ('disabled', 'same', 'locked') would just wait for nothing.
@@ -59,8 +59,10 @@ export interface RecoverDeps {
   writeStamp: (at: number) => boolean;
   readSameStamp: () => number;
   writeSameStamp: (at: number) => boolean;
-  // Whether the failed asset is served right now.
-  probe: (path: string) => Promise<ProbeResult>;
+  // Whether the failed asset is served right now; aborts the request when the signal fires.
+  probe: (path: string, signal: AbortSignal) => Promise<ProbeResult>;
+  // Whether index.html and every asset it references are served right now.
+  entryOk: () => Promise<boolean>;
   reload: () => void;
   sleep: (ms: number) => Promise<void>;
 }
@@ -79,14 +81,16 @@ async function checkWithTimeout(deps: RecoverDeps): Promise<CheckResult | 'timeo
   }
 }
 
-// Vite's preload helper never retries a failed stylesheet and a failed React.lazy stays rejected, so only a reload repairs the route.
 async function probeAssets(deps: RecoverDeps, paths: string[]): Promise<ProbeResult[]> {
   return Promise.all(paths.map(async (path): Promise<ProbeResult> => {
+    const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([
-        deps.probe(path),
-        new Promise<ProbeResult>((resolve) => { timer = setTimeout(() => resolve('unreachable'), STALE_CHUNK_CHECK_TIMEOUT_MS); }),
+        deps.probe(path, abort.signal),
+        new Promise<ProbeResult>((resolve) => {
+          timer = setTimeout(() => { abort.abort(); resolve('unreachable'); }, STALE_CHUNK_CHECK_TIMEOUT_MS);
+        }),
       ]);
     } catch {
       return 'unreachable';
@@ -94,6 +98,20 @@ async function probeAssets(deps: RecoverDeps, paths: string[]): Promise<ProbeRes
       clearTimeout(timer);
     }
   }));
+}
+
+async function entryOkWithTimeout(deps: RecoverDeps): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      deps.entryOk(),
+      new Promise<false>((resolve) => { timer = setTimeout(() => resolve(false), STALE_CHUNK_CHECK_TIMEOUT_MS); }),
+    ]);
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // 'reloaded' when a reload was triggered, so the caller can swallow the error;
@@ -113,6 +131,9 @@ export async function recoverFromStaleChunk(deps: RecoverDeps, assets: () => str
       const probed = await probeAssets(deps, paths);
       if (probed.includes('missing')) result = 'asset-missing';
       else if (probed.includes('unreachable')) result = 'asset-unreachable';
+      // Chrome names the top-level chunk even when a nested static dep is the missing one, so the whole entry is checked too.
+      else if (!(await entryOkWithTimeout(deps))) result = 'asset-unreachable';
+      // Vite's preload helper never retries a failed stylesheet and a failed React.lazy stays rejected, so only a reload repairs the route.
       else { result = 'reloaded'; sameBuild = true; }
     }
     if (!RETRYABLE.has(result)) break;
@@ -145,9 +166,19 @@ export function liveRecoverDeps(): RecoverDeps {
     writeSameStamp: (at) => {
       try { sessionStorage.setItem(SAME_STAMP_KEY, String(at)); return true; } catch { return false; }
     },
-    probe: async (path) => {
+    entryOk: async () => {
+      if (!loaded) return false;
       try {
-        const r = await fetch(path, { method: 'HEAD', cache: 'no-store' });
+        const deps = liveDeps(loaded);
+        const res = await deps.fetchText('/index.html');
+        return res.ok && await deps.assetsOk(extractAssets(res.text));
+      } catch {
+        return false;
+      }
+    },
+    probe: async (path, signal) => {
+      try {
+        const r = await fetch(path, { method: 'HEAD', cache: 'no-store', signal });
         if (r.ok) return 'ok';
         return r.status >= 500 ? 'unreachable' : 'missing';
       } catch {

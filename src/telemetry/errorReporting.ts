@@ -254,7 +254,6 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string, r
   }
 }
 
-// The error's own message when it is a stale-chunk failure, else null.
 function staleChunkMessageOf(error: unknown): string | null {
   if (reporting) return null;
   // describe() reads error getters, which may raise error events themselves.

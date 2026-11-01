@@ -38,6 +38,7 @@ function makeDeps(over: Partial<RecoverDeps> & { stamp?: number } = {}) {
     readSameStamp: () => 0,
     writeSameStamp: vi.fn(() => true),
     probe: vi.fn(async () => 'ok' as const),
+    entryOk: vi.fn(async () => true),
     reload: vi.fn(),
     sleep: vi.fn(async () => {}),
     ...rest,
@@ -216,7 +217,7 @@ describe('recoverFromStaleChunk on an unchanged build', () => {
   it('reloads when the failed asset is served now, since a failed lazy import or stylesheet is never retried', async () => {
     const deps = makeDeps({ check: same() });
     expect(await recoverFromStaleChunk(deps, assets)).toBe('reloaded');
-    expect(deps.probe).toHaveBeenCalledWith('/assets/DevicesPage-LG0.css');
+    expect(deps.probe).toHaveBeenCalledWith('/assets/DevicesPage-LG0.css', expect.any(AbortSignal));
     expect(deps.writeSameStamp).toHaveBeenCalledWith(1_000_000);
     expect(deps.reload).toHaveBeenCalledTimes(1);
   });
@@ -252,6 +253,43 @@ describe('recoverFromStaleChunk on an unchanged build', () => {
     const deps = makeDeps({ check: same(), readSameStamp: () => 1_000_000 - (SAME_BUILD_RELOAD_LOCK_MS - 1) });
     expect(await recoverFromStaleChunk(deps, assets)).toBe('same-build-guard');
     expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('does not reload while index.html or an entry asset is unreachable, even when the failed chunk is served', async () => {
+    const deps = makeDeps({ check: same(), entryOk: vi.fn(async () => false) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-unreachable');
+    expect(deps.entryOk).toHaveBeenCalledTimes(STALE_CHUNK_RETRY_DELAYS_MS.length + 1);
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('does not check the entry when the failed asset is missing', async () => {
+    const deps = makeDeps({ check: same(), probe: vi.fn(async () => 'missing' as const) });
+    await recoverFromStaleChunk(deps, assets);
+    expect(deps.entryOk).not.toHaveBeenCalled();
+  });
+
+  it('reports instead of reloading again when the chunk and entry are served but the import still fails after a reload', async () => {
+    let stamp = 0;
+    const deps = makeDeps({
+      check: same(),
+      readSameStamp: () => stamp,
+      writeSameStamp: vi.fn((at: number) => { stamp = at; return true; }),
+    });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('reloaded');
+    deps.readStamp = () => 0;
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('same-build-guard');
+    expect(deps.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts the probe request when it times out', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const deps = makeDeps({ check: same(), probe: vi.fn((_p: string, s: AbortSignal) => { signal = s; return new Promise<never>(() => {}); }) });
+    const pending = recoverFromStaleChunk(deps, assets);
+    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS * (STALE_CHUNK_RETRY_DELAYS_MS.length + 1));
+    expect(await pending).toBe('asset-unreachable');
+    expect(signal?.aborted).toBe(true);
+    vi.useRealTimers();
   });
 
   it('keeps reporting same when the message names no asset', async () => {
