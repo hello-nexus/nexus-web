@@ -26,7 +26,9 @@ import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
-import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
+import { getLianLiWirelessLighting, getLianLiWirelessState, setLianLiWirelessChainLighting, type LianLiWirelessFan } from '../../../api/lianli-wireless';
+import { deviceTypeKey, lianLiWirelessDeviceAnchor } from '../../../components/views/DevicePage/LianLiWirelessFansTab';
+import { unboundWirelessCards, unboundWirelessFans } from './page/unboundWireless';
 import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
 import { WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
 import { getHydroShift2Lighting, setHydroShift2Lighting } from '../../../api/hydroshift2';
@@ -390,6 +392,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       ]);
     });
   }, []);
+  // Wireless devices on the air but bound to no controller: no lighting card exists for them until bound.
+  const [unboundWireless, setUnboundWireless] = useState<LianLiWirelessFan[]>([]);
+  const unboundSeq = useRef(0);
+  const refreshUnboundWireless = useCallback(async () => {
+    const seq = ++unboundSeq.current;
+    const state = await getLianLiWirelessState().catch(() => null);
+    if (seq === unboundSeq.current) setUnboundWireless(unboundWirelessFans(state));
+  }, []);
+  useEffect(() => {
+    if (!serviceOnline) { unboundSeq.current++; setUnboundWireless([]); }
+  }, [serviceOnline]);
+  const unboundWirelessDevices = useMemo(
+    () => unboundWirelessCards(unboundWireless, f => t(`devices.lianli-wireless.${deviceTypeKey(f.devType, f.fanType)}` as Parameters<typeof t>[0])),
+    [unboundWireless, t],
+  );
   const hasFlexDevice = devices.some(d => d.id.startsWith(LIANLI_FLEX_CHANNEL_PREFIX));
   useEffect(() => {
     if (hasFlexDevice) void refreshWirelessPresets();
@@ -1812,22 +1829,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (!serviceOnline) return;
     void refreshLianLiModes();
     void refreshWirelessPresets();
+    void refreshUnboundWireless();
     void refreshOwnEffects();
-  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshOwnEffects]);
+  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshUnboundWireless, refreshOwnEffects]);
 
   useEffect(() => {
     const onFocus = () => {
       if (!serviceOnline) return;
       void refreshLianLiModes();
       void refreshWirelessPresets();
+      void refreshUnboundWireless();
       void refreshOwnEffects();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshOwnEffects]);
+  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshUnboundWireless, refreshOwnEffects]);
 
   useTopicCallback('devices', serviceOnline, () => {
     void refreshDevices();
+    void refreshUnboundWireless();
   });
 
   const prevScanningRef = useRef(rgb.scanning);
@@ -3068,6 +3088,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               void (ownEffectIds.has(id) ? handleOwnEffectTakeControl(id) : handleWirelessTakeControl(id));
             }}
             onOpenDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
+            unboundWireless={unboundWirelessDevices}
+            onOpenWirelessBinding={onSectionNavigate ? mac => onSectionNavigate('device', { deviceKey: 'curated-lianli-wireless', scrollAnchors: [lianLiWirelessDeviceAnchor(mac)] }) : undefined}
             zoneSizeDeviceIds={zoneSizeDeviceIds}
             onOpenZoneSizes={() => onSectionNavigate?.('devices', { tab: 'available' })}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}

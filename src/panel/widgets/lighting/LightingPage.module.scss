@@ -1185,6 +1185,12 @@
     &:hover { border-color: var(--border-strong); }
   }
 
+  &.deviceCardNeedsBinding {
+    cursor: pointer;
+
+    &:hover { border-color: var(--warn-line); }
+  }
+
   // Dim the device name + meta when the toggle is off. The card itself keeps
   // full opacity so the state chip naming the reason stays legible.
   &.deviceCardPoweredOff {
