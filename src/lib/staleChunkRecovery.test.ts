@@ -38,7 +38,7 @@ function makeDeps(over: Partial<RecoverDeps> & { stamp?: number } = {}) {
     readSameStamp: () => 0,
     writeSameStamp: vi.fn(() => true),
     probe: vi.fn(async () => 'ok' as const),
-    entryOk: vi.fn(async () => true),
+    entryOk: vi.fn(async () => 'ok' as const),
     reload: vi.fn(),
     sleep: vi.fn(async () => {}),
     ...rest,
@@ -256,10 +256,29 @@ describe('recoverFromStaleChunk on an unchanged build', () => {
   });
 
   it('does not reload while index.html or an entry asset is unreachable, even when the failed chunk is served', async () => {
-    const deps = makeDeps({ check: same(), entryOk: vi.fn(async () => false) });
+    const deps = makeDeps({ check: same(), entryOk: vi.fn(async () => 'unreachable' as const) });
     expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-unreachable');
     expect(deps.entryOk).toHaveBeenCalledTimes(STALE_CHUNK_RETRY_DELAYS_MS.length + 1);
     expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('reports a missing entry asset at once without the backoff', async () => {
+    const deps = makeDeps({ check: same(), entryOk: vi.fn(async () => 'missing' as const) });
+    expect(await recoverFromStaleChunk(deps, assets)).toBe('asset-missing');
+    expect(deps.entryOk).toHaveBeenCalledTimes(1);
+    expect(deps.sleep).not.toHaveBeenCalled();
+    expect(deps.reload).not.toHaveBeenCalled();
+  });
+
+  it('aborts the entry check when it times out', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const deps = makeDeps({ check: same(), entryOk: vi.fn((s: AbortSignal) => { signal = s; return new Promise<never>(() => {}); }) });
+    const pending = recoverFromStaleChunk(deps, assets);
+    await vi.advanceTimersByTimeAsync(STALE_CHUNK_CHECK_TIMEOUT_MS * (STALE_CHUNK_RETRY_DELAYS_MS.length + 1));
+    expect(await pending).toBe('asset-unreachable');
+    expect(signal?.aborted).toBe(true);
+    vi.useRealTimers();
   });
 
   it('does not check the entry when the failed asset is missing', async () => {

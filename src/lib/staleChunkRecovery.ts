@@ -61,8 +61,8 @@ export interface RecoverDeps {
   writeSameStamp: (at: number) => boolean;
   // Whether the failed asset is served right now; aborts the request when the signal fires.
   probe: (path: string, signal: AbortSignal) => Promise<ProbeResult>;
-  // Whether index.html and every asset it references are served right now.
-  entryOk: () => Promise<boolean>;
+  // Whether index.html and every asset it references are served right now; aborts its requests when the signal fires.
+  entryOk: (signal: AbortSignal) => Promise<ProbeResult>;
   reload: () => void;
   sleep: (ms: number) => Promise<void>;
 }
@@ -81,36 +81,35 @@ async function checkWithTimeout(deps: RecoverDeps): Promise<CheckResult | 'timeo
   }
 }
 
-async function probeAssets(deps: RecoverDeps, paths: string[]): Promise<ProbeResult[]> {
-  return Promise.all(paths.map(async (path): Promise<ProbeResult> => {
-    const abort = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([
-        deps.probe(path, abort.signal),
-        new Promise<ProbeResult>((resolve) => {
-          timer = setTimeout(() => { abort.abort(); resolve('unreachable'); }, STALE_CHUNK_CHECK_TIMEOUT_MS);
-        }),
-      ]);
-    } catch {
-      return 'unreachable';
-    } finally {
-      clearTimeout(timer);
-    }
-  }));
-}
-
-async function entryOkWithTimeout(deps: RecoverDeps): Promise<boolean> {
+// Aborts the request behind `run` when the timeout wins.
+async function probeWithTimeout(run: (signal: AbortSignal) => Promise<ProbeResult>): Promise<ProbeResult> {
+  const abort = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      deps.entryOk(),
-      new Promise<false>((resolve) => { timer = setTimeout(() => resolve(false), STALE_CHUNK_CHECK_TIMEOUT_MS); }),
+      run(abort.signal),
+      new Promise<ProbeResult>((resolve) => {
+        timer = setTimeout(() => { abort.abort(); resolve('unreachable'); }, STALE_CHUNK_CHECK_TIMEOUT_MS);
+      }),
     ]);
   } catch {
-    return false;
+    return 'unreachable';
   } finally {
     clearTimeout(timer);
+  }
+}
+
+function worst(results: ProbeResult[]): ProbeResult {
+  return results.includes('missing') ? 'missing' : results.includes('unreachable') ? 'unreachable' : 'ok';
+}
+
+async function headStatus(path: string, signal: AbortSignal): Promise<ProbeResult> {
+  try {
+    const r = await fetch(path, { method: 'HEAD', cache: 'no-store', signal });
+    if (r.ok) return 'ok';
+    return r.status >= 500 ? 'unreachable' : 'missing';
+  } catch {
+    return 'unreachable';
   }
 }
 
@@ -128,11 +127,11 @@ export async function recoverFromStaleChunk(deps: RecoverDeps, assets: () => str
     result = checked === 'reload' ? 'reloaded' : checked;
     const paths = result === 'same' ? [...new Set(assets())] : [];
     if (paths.length > 0) {
-      const probed = await probeAssets(deps, paths);
-      if (probed.includes('missing')) result = 'asset-missing';
-      else if (probed.includes('unreachable')) result = 'asset-unreachable';
-      // Chrome names the top-level chunk even when a nested static dep is the missing one, so the whole entry is checked too.
-      else if (!(await entryOkWithTimeout(deps))) result = 'asset-unreachable';
+      const probed = worst(await Promise.all(paths.map((path) => probeWithTimeout((signal) => deps.probe(path, signal)))));
+      // extractAssets sees only index.html's assets, so a lazy chunk's missing nested dep still passes here; the one reload then hits same-build-guard.
+      const entry = probed === 'ok' ? await probeWithTimeout((signal) => deps.entryOk(signal)) : probed;
+      if (entry === 'missing') result = 'asset-missing';
+      else if (entry === 'unreachable') result = 'asset-unreachable';
       // Vite's preload helper never retries a failed stylesheet and a failed React.lazy stays rejected, so only a reload repairs the route.
       else { result = 'reloaded'; sameBuild = true; }
     }
@@ -166,25 +165,17 @@ export function liveRecoverDeps(): RecoverDeps {
     writeSameStamp: (at) => {
       try { sessionStorage.setItem(SAME_STAMP_KEY, String(at)); return true; } catch { return false; }
     },
-    entryOk: async () => {
-      if (!loaded) return false;
+    entryOk: async (signal) => {
+      if (!loaded) return 'unreachable';
       try {
-        const deps = liveDeps(loaded);
-        const res = await deps.fetchText('/index.html');
-        return res.ok && await deps.assetsOk(extractAssets(res.text));
-      } catch {
-        return false;
-      }
-    },
-    probe: async (path, signal) => {
-      try {
-        const r = await fetch(path, { method: 'HEAD', cache: 'no-store', signal });
-        if (r.ok) return 'ok';
-        return r.status >= 500 ? 'unreachable' : 'missing';
+        const res = await fetch('/index.html', { cache: 'no-store', signal });
+        if (!res.ok) return res.status >= 500 ? 'unreachable' : 'missing';
+        return worst(await Promise.all(extractAssets(await res.text()).map((path) => headStatus(path, signal))));
       } catch {
         return 'unreachable';
       }
     },
+    probe: (path, signal) => headStatus(path, signal),
     reload: reloadForBuild,
     sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
   };
