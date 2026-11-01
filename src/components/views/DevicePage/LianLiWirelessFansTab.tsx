@@ -5,6 +5,7 @@ import { SettingRow, SettingToggle, type SettingState } from '../../common/Setti
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
+import { Notice } from '../../common/Notice/Notice';
 import {
   bindLianLiWirelessFan,
   unbindLianLiWirelessFan,
@@ -257,6 +258,10 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
 
   return (
     <>
+      {/* HoverTooltip never opens on touch, so the lock reason is also written out. */}
+      {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
+        <Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice>
+      )}
       {!wired && <SettingsSection
         title={t('devices.lianli-wireless.connectionSection')}
         boxClassName={styles.sectionBox}
@@ -298,10 +303,6 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
         title={t(wired ? 'devices.lianli-flex.devicesSection' : 'devices.lianli-wireless.devicesSection')}
         boxClassName={styles.sectionBox}
       >
-        {/* HoverTooltip never opens on touch, so the lock reason is also written out. */}
-        {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
-          <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.pairingLockedNote')}</p>
-        )}
         {loaded && (state.fans.length > 0
           ? state.fans.map(fan => (
             <DeviceRow
