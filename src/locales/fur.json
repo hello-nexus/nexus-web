@@ -572,7 +572,7 @@
   "cooling.guard.banner.floor": "Il CPU al è a {temp} °C, dongje dal so limit di {limit} °C. Nexus al sta alçant la velocitât dai ventilatôrs.",
   "cooling.guard.banner.tripLimit": "Il CPU al à rivât a {temp} °C, dongje dal so limit di {limit} °C. Ducj i ventilatôrs a van al 100%.",
   "cooling.guard.banner.tripLoss": "Il CPU si scjalde cun cjamp bas ({temp} °C, limit {limit} °C), ce che al mostre un refredament pierdût. Ducj i ventilatôrs a van al 100%.",
-  "cooling.guard.banner.tripPartial": "La CPU e je a {temp} °C, dongje dal so limit di {limit} °C. Nexus al mande il 100% ai ventulons, ma cualchidun nol rispuint. Controle i ventulons e i lôr colegaments.",
+  "cooling.guard.banner.tripPartial": "La CPU e je a {temp} °C (limit {limit} °C). Nexus al mande il 100% ai ventulons, ma cualchidun nol rispuint. Controle i ventulons e i lôr colegaments.",
   "cooling.guard.description": "Al alce la velocitât dai ventilatôrs cuant che il CPU si svicine a la temperadure massime, ce che a disin lis tôs curvis.",
   "cooling.guard.error.keep": "Impussibil mantignî la coression.",
   "cooling.guard.error.limit": "Impussibil cambiâ il limit di temperadure dal CPU.",

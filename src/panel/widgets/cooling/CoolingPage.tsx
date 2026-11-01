@@ -1339,9 +1339,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const disconnected = new Set(
       channels.filter(isFanDisconnected).map(c => c.id),
     );
+    // A saved assignment for a fan that is not enumerated right now is kept on purpose; it is not a fan in use.
+    const present = new Set(channels.map(c => c.id));
     const m = new Map<string, number>();
     for (const [fanId, fs] of Object.entries(fanStates)) {
-      if (fs.curveId && !disconnected.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
+      if (fs.curveId && present.has(fanId) && !disconnected.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
     }
     return m;
   }, [fanStates, channels]);

@@ -572,7 +572,7 @@
   "cooling.guard.banner.floor": "La CPU è a {temp} °C, vicina al limite di {limit} °C. Nexus sta aumentando la velocità delle ventole.",
   "cooling.guard.banner.tripLimit": "La CPU ha raggiunto {temp} °C, vicino al limite di {limit} °C. Tutte le ventole girano al 100%.",
   "cooling.guard.banner.tripLoss": "La CPU si scalda con carico basso ({temp} °C, limite {limit} °C), segno di un raffreddamento perso. Tutte le ventole girano al 100%.",
-  "cooling.guard.banner.tripPartial": "La CPU è a {temp} °C, vicina al limite di {limit} °C. Nexus invia il 100% alle ventole, ma alcune non rispondono. Controlla le ventole e i collegamenti.",
+  "cooling.guard.banner.tripPartial": "La CPU è a {temp} °C (limite {limit} °C). Nexus invia il 100% alle ventole, ma alcune non rispondono. Controlla le ventole e i collegamenti.",
   "cooling.guard.description": "Aumenta la velocità delle ventole quando la CPU si avvicina alla temperatura massima, qualunque cosa dicano le tue curve.",
   "cooling.guard.error.keep": "Impossibile mantenere la correzione.",
   "cooling.guard.error.limit": "Impossibile modificare il limite di temperatura della CPU.",

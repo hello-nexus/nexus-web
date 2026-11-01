@@ -572,7 +572,7 @@
   "cooling.guard.banner.floor": "CPU {temp} °C, {limit} °C sınırına yakın. Nexus fan hızlarını artırıyor.",
   "cooling.guard.banner.tripLimit": "CPU {temp} °C'ye ulaştı, {limit} °C sınırına yakın. Tüm fanlar %100'de çalışıyor.",
   "cooling.guard.banner.tripLoss": "CPU düşük yükte ısınıyor ({temp} °C, sınır {limit} °C); bu, soğutmanın kaybolduğunu gösterir. Tüm fanlar %100'de çalışıyor.",
-  "cooling.guard.banner.tripPartial": "CPU {temp} °C seviyesinde, {limit} °C sınırına yakın. Nexus fanlara %100 gönderiyor, ancak bazıları yanıt vermiyor. Fanları ve bağlantılarını kontrol edin.",
+  "cooling.guard.banner.tripPartial": "CPU {temp} °C seviyesinde (sınır {limit} °C). Nexus fanlara %100 gönderiyor, ancak bazıları yanıt vermiyor. Fanları ve bağlantılarını kontrol edin.",
   "cooling.guard.description": "CPU azami sıcaklığına yaklaştığında, eğrileriniz ne derse desin fan hızlarını artırır.",
   "cooling.guard.error.keep": "Düzeltme korunamadı.",
   "cooling.guard.error.limit": "CPU sıcaklık sınırı değiştirilemedi.",

@@ -1680,6 +1680,7 @@ function PreviewThermalGuardPanel() {
   const states: GuardResponse[] = [
     { ...PREVIEW_GUARD, state: 'floor', guardTempC: 84 },
     { ...PREVIEW_GUARD, state: 'tripped', guardTempC: 93, lastTrip: trip('limit', false) },
+    { ...PREVIEW_GUARD, state: 'tripped', guardTempC: 93, fansNotResponding: true, lastTrip: trip('cooling-loss', false) },
     { ...PREVIEW_GUARD, state: 'escalated', guardTempC: 94, lastTrip: trip('cooling-loss', true) },
     { ...PREVIEW_GUARD, watchdogLatched: true },
     {

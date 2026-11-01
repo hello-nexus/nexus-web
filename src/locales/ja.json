@@ -572,7 +572,7 @@
   "cooling.guard.banner.floor": "CPU は {temp} °C で、上限の {limit} °C に近づいています。Nexus がファン速度を上げています。",
   "cooling.guard.banner.tripLimit": "CPU が {temp} °C に達し、上限の {limit} °C に近づきました。すべてのファンが 100% で動作しています。",
   "cooling.guard.banner.tripLoss": "低負荷なのに CPU の温度が上がっています ({temp} °C、上限 {limit} °C)。冷却が失われている可能性があります。すべてのファンが 100% で動作しています。",
-  "cooling.guard.banner.tripPartial": "CPUは{temp} °Cで、上限の{limit} °Cに近づいています。Nexusはファンに100%を指示していますが、応答していないファンがあります。ファンと接続を確認してください。",
+  "cooling.guard.banner.tripPartial": "CPU は {temp} °C です（上限 {limit} °C）。Nexus はファンに 100% を指示していますが、応答していないファンがあります。ファンと接続を確認してください。",
   "cooling.guard.description": "CPU が最高温度に近づくと、カーブの設定に関係なくファン速度を上げます。",
   "cooling.guard.error.keep": "修正を維持できませんでした。",
   "cooling.guard.error.limit": "CPU 温度の上限を変更できませんでした。",

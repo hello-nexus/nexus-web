@@ -576,7 +576,7 @@
   "cooling.guard.banner.floor": "Procesor ma {temp} °C, blisko limitu {limit} °C. Nexus zwiększa prędkość wentylatorów.",
   "cooling.guard.banner.tripLimit": "Procesor osiągnął {temp} °C, blisko limitu {limit} °C. Wszystkie wentylatory pracują na 100%.",
   "cooling.guard.banner.tripLoss": "Procesor nagrzewa się przy niskim obciążeniu ({temp} °C, limit {limit} °C), co wskazuje na utratę chłodzenia. Wszystkie wentylatory pracują na 100%.",
-  "cooling.guard.banner.tripPartial": "Procesor ma {temp} °C, blisko limitu {limit} °C. Nexus wysyła 100% do wentylatorów, ale niektóre nie odpowiadają. Sprawdź wentylatory i ich połączenia.",
+  "cooling.guard.banner.tripPartial": "Procesor ma {temp} °C (limit {limit} °C). Nexus wysyła 100% do wentylatorów, ale niektóre nie odpowiadają. Sprawdź wentylatory i ich połączenia.",
   "cooling.guard.description": "Zwiększa prędkość wentylatorów, gdy procesor zbliża się do maksymalnej temperatury, niezależnie od Twoich krzywych.",
   "cooling.guard.error.keep": "Nie udało się zachować naprawy.",
   "cooling.guard.error.limit": "Nie udało się zmienić limitu temperatury procesora.",

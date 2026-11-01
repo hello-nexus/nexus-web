@@ -572,7 +572,7 @@
   "cooling.guard.banner.floor": "De CPU zit op {temp} °C, dicht bij de limiet van {limit} °C. Nexus verhoogt de ventilatorsnelheid.",
   "cooling.guard.banner.tripLimit": "De CPU bereikte {temp} °C, dicht bij de limiet van {limit} °C. Alle ventilatoren draaien op 100%.",
   "cooling.guard.banner.tripLoss": "De CPU warmt op bij lage belasting ({temp} °C, limiet {limit} °C), wat wijst op verloren koeling. Alle ventilatoren draaien op 100%.",
-  "cooling.guard.banner.tripPartial": "De CPU zit op {temp} °C, dicht bij de limiet van {limit} °C. Nexus stuurt 100% naar de ventilatoren, maar sommige reageren niet. Controleer de ventilatoren en hun aansluitingen.",
+  "cooling.guard.banner.tripPartial": "De CPU zit op {temp} °C (limiet {limit} °C). Nexus stuurt 100% naar de ventilatoren, maar sommige reageren niet. Controleer de ventilatoren en hun aansluitingen.",
   "cooling.guard.description": "Verhoogt de ventilatorsnelheid wanneer de CPU de maximumtemperatuur nadert, wat je curves ook zeggen.",
   "cooling.guard.error.keep": "De reparatie kon niet worden behouden.",
   "cooling.guard.error.limit": "De CPU-temperatuurlimiet kon niet worden gewijzigd.",
