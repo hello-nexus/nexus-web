@@ -8,6 +8,7 @@ import { ZoneCard, ZoneCardStack, zoneCardSelectable, zoneCardUnavailable, type 
 import { pinStripPick } from '../pins';
 import type { Pin } from '../../../../api/lighting';
 import { type LedPick } from './DeviceLedStrip';
+import { UNBOUND_WIRELESS_PREFIX } from './unboundWireless';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
@@ -146,7 +147,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   /** Wireless devices not bound to this PC, as muted cards after the list; they hold no lighting. */
   unboundWireless?: readonly LightingDevice[];
   /** Opens the wireless controller page, where those are bound. */
-  onOpenWirelessBinding?: () => void;
+  onOpenWirelessBinding?: (mac: string) => void;
   /** User-made groups, in display order. */
   groups?: DeviceGroup[];
   /** Absent leaves the rail ungroupable (no drag between groups, no add button). */
@@ -574,7 +575,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       onTogglePower={() => {}}
       onToggleControlled={() => {}}
       onOpenSettings={() => {}}
-      onOpenBinding={onOpenWirelessBinding}
+      onOpenBinding={onOpenWirelessBinding ? () => onOpenWirelessBinding(d.id.slice(UNBOUND_WIRELESS_PREFIX.length)) : undefined}
     />
   ));
 

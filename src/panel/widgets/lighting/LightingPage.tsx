@@ -27,7 +27,7 @@ import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLa
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, getLianLiWirelessState, setLianLiWirelessChainLighting, type LianLiWirelessFan } from '../../../api/lianli-wireless';
-import { deviceTypeKey } from '../../../components/views/DevicePage/LianLiWirelessFansTab';
+import { deviceTypeKey, lianLiWirelessDeviceAnchor } from '../../../components/views/DevicePage/LianLiWirelessFansTab';
 import { unboundWirelessCards, unboundWirelessFans } from './page/unboundWireless';
 import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
 import { WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
@@ -3092,7 +3092,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             }}
             onOpenDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
             unboundWireless={unboundWirelessDevices}
-            onOpenWirelessBinding={onSectionNavigate ? () => onSectionNavigate('device', { deviceKey: 'curated-lianli-wireless' }) : undefined}
+            onOpenWirelessBinding={onSectionNavigate ? mac => onSectionNavigate('device', { deviceKey: 'curated-lianli-wireless', scrollAnchors: [lianLiWirelessDeviceAnchor(mac)] }) : undefined}
             zoneSizeDeviceIds={zoneSizeDeviceIds}
             onOpenZoneSizes={() => onSectionNavigate?.('devices', { tab: 'available' })}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}

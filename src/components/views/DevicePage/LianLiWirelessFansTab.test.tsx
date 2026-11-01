@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, lianLiWirelessDeviceAnchor } from './LianLiWirelessFansTab';
+import { requestSearchScroll, useSearchAnchorScroller } from '../../../search/scroll';
 import type { LianLiWirelessState } from '../../../api/lianli-wireless';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -472,5 +473,30 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
       render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} />);
     });
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
+  });
+});
+
+describe('LianLiWirelessFansTab deep link', () => {
+  function Harness({ state }: { state: LianLiWirelessState | null }) {
+    useSearchAnchorScroller();
+    return <LianLiWirelessFansTab state={state} refresh={vi.fn().mockResolvedValue(undefined)} />;
+  }
+  const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false, masterMac: '' };
+  const rowOf = () => document.querySelector<HTMLElement>(`[data-search-anchor="${lianLiWirelessDeviceAnchor('AABBCCDDEEFF')}"]`);
+
+  it('shines the targeted row once the state loads after the request, then clears it', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    const { rerender } = render(<Harness state={null} />);
+    requestSearchScroll(lianLiWirelessDeviceAnchor('AABBCCDDEEFF'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(rowOf()).toBeNull();
+    rerender(<Harness state={{ ...wirelessState, fans: [boundFan, unbound] }} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(rowOf()).toHaveClass('nexus-search-anchor-active');
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('.nexus-search-anchor-active')).toHaveLength(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+    expect(rowOf()).not.toHaveClass('nexus-search-anchor-active');
   });
 });

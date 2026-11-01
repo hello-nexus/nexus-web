@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { Power, PowerOff, Ban, Blend, Eye, Keyboard, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, ChevronRight, MousePointerClick, Paintbrush, Pencil, Pin, PinOff, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Power, PowerOff, Ban, Blend, Eye, Keyboard, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, MousePointerClick, Paintbrush, Pencil, Pin, PinOff, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -666,7 +666,7 @@ export function ZoneCard({
         onOpenBinding ? styles.deviceCardNeedsBinding : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        showAppStrip || showFailingStrip ? styles.deviceCardWithStrip : '',
+        showAppStrip || showFailingStrip || onOpenBinding ? styles.deviceCardWithStrip : '',
         stacked ? styles.deviceCardStacked : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
@@ -743,10 +743,7 @@ export function ZoneCard({
       </div>
       <div className={styles.deviceMetaRow}>
         {onOpenBinding ? (
-          <>
-            <Badge label={t('lighting.devices.needsBinding')} icon={<Link2Off size={11} />} compact filled color="var(--warn)" />
-            <ChevronRight size={16} aria-hidden />
-          </>
+          null
         ) : firmwareControlled ? (
           <HoverTooltip
             body={t(device.devicePageReason === 'argbInput' ? 'lighting.devices.devicePageArgbTooltip' : device.devicePageReason === 'firmware' ? 'lighting.devices.devicePageFirmwareTooltip' : 'lighting.devices.firmwareTooltip')}
@@ -865,6 +862,7 @@ export function ZoneCard({
       </div>
       </div>
       {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
+      {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} />}
       {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
       {menuEnabled && (
         <MenuArrowButton

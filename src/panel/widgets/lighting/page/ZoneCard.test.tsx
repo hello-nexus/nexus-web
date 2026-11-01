@@ -1327,5 +1327,9 @@ describe('ZoneCard needs-binding state', () => {
     fireEvent.keyDown(card, { key: 'Enter' });
     fireEvent.keyDown(card, { key: ' ' });
     expect(open).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByText('lighting.devices.needsBinding').closest('button')!);
+    expect(open).toHaveBeenCalledTimes(4);
+    expect(document.querySelectorAll(`.${styles.deviceControlledByWarn}`)).toHaveLength(1);
+    expect(card.className).toContain(styles.deviceCardWithStrip);
   });
 });

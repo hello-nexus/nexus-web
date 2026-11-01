@@ -1015,7 +1015,7 @@ describe('DevicePanel unbound wireless cards', () => {
     expect(shared!.contains(screen.getByText('Strip one'))).toBe(false);
     expect(shared!.contains(screen.getByText('Strimer 24-Pin'))).toBe(true);
     fireEvent.click(card());
-    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith('BB');
   });
 
   it('falls back to the end of the list when no device of that controller is bound', () => {

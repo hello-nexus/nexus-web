@@ -1185,9 +1185,8 @@
     &:hover { border-color: var(--border-strong); }
   }
 
-  // Full opacity so the warning badge reads; the dashed edge and chevron mark it as a way in, not a lighting card.
+  // Full opacity so the warning badge reads.
   &.deviceCardNeedsBinding {
-    border-style: dashed;
     cursor: pointer;
 
     &:hover { border-color: var(--warn-line); }

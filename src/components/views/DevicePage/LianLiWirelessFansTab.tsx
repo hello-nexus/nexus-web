@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactElement } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
-import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { SettingsSection, SettingsBlock } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -69,6 +69,9 @@ const PWM_FOLLOW_MOTHERBOARD = 6;
 function followsMotherboard(fan: LianLiWirelessFan): boolean {
   return fan.pwm.slice(0, Math.max(fan.fanCount, 1)).some(v => v === PWM_FOLLOW_MOTHERBOARD);
 }
+
+/** Deep-link anchor of a device's row on the Devices tab. */
+export const lianLiWirelessDeviceAnchor = (mac: string) => `lianli-wireless-device-${mac}`;
 
 /** dev_type (+ fan sub-family) -> i18n key naming the device, so the list says
  *  what each paired device is instead of calling everything a fan. */
@@ -260,7 +263,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
     <>
       {/* HoverTooltip never opens on touch, so the lock reason is also written out. */}
       {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
-        <Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice>
+        <SettingsBlock><Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice></SettingsBlock>
       )}
       {!wired && <SettingsSection
         title={t('devices.lianli-wireless.connectionSection')}
@@ -407,6 +410,7 @@ function DeviceRow({
 
   return (
     <SettingRow
+      anchorId={lianLiWirelessDeviceAnchor(fan.mac)}
       label={typeLabel}
       description={details}
       state={bindState}
