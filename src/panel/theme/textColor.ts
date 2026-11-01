@@ -360,16 +360,8 @@ function applyInks(root: HTMLElement, grid: SampleGrid | null, sampler: Backdrop
     );
     if (luminance == null) return;
     const prev = host.dataset.ink;
-<<<<<<< HEAD
     const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null, themeInk);
-    if (prev !== ink) {
-      if (prev) fadeInk(host);
-      host.dataset.ink = ink;
-    }
-=======
-    const ink = pickInk(luminance, prev === 'light' || prev === 'dark' ? prev : null);
     stampInk(host, ink);
->>>>>>> adaptive-ink-fade
   });
 }
 
