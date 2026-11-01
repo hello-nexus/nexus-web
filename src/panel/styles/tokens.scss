@@ -271,8 +271,8 @@
 @media (prefers-reduced-motion: no-preference) {
   .panel-root [data-ink-fade],
   .panel-root [data-ink-fade] * {
-    transition: color 0.18s ease-out, fill 0.18s ease-out, stroke 0.18s ease-out,
-      background-color 0.18s ease-out, border-color 0.18s ease-out !important;
+    transition: color var(--ease) ease-out, fill var(--ease) ease-out, stroke var(--ease) ease-out,
+      background-color var(--ease) ease-out, border-color var(--ease) ease-out !important;
   }
 }
 
