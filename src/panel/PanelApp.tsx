@@ -2012,7 +2012,8 @@ export function PanelContent({
     seeThrough,
     Boolean(activeDragId || lockDragging),
     rootRef,
-    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+    // The gap is the widget padding: changing it moves and resizes every card without resizing the root.
+    `${activePageIndex}:${touch.ctxMenu?.seq ?? 0}:${runtimeGrid.columns}x${runtimeGrid.rows}:${runtimeGrid.gap}:${frostGeometry}`,
     resolvedThemeMode,
   );
   // Every sheet (widget edit, catalog, panel settings, pairing) can hold a text field.
@@ -2920,6 +2921,7 @@ export function PanelContent({
               fixedWidth={dragSnapshot.width}
               fixedHeight={dragSnapshot.height}
               showLabels={effectiveTheme.widgetLabels}
+              flush={!isSingleWidgetSurface(surface) && effectiveTheme.widgetPadding <= 0}
               onSlot={handleDragOverlaySlot}
             />
           );

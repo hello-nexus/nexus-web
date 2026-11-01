@@ -122,6 +122,19 @@ describe('usePanelFrost', () => {
     cell.remove();
   });
 
+  it('re-measures when the signature changes, so a padding change moves the plates with the cards', async () => {
+    const cell = mountCard();
+    const card = cell.firstElementChild as HTMLElement;
+    const { rerender } = renderHook(({ sig }) => usePanelFrost(true, 70, true, false, rootRef, sig), { initialProps: { sig: 'gap8' } });
+    await flush();
+    card.getBoundingClientRect = () => ({ left: 0, top: 0, right: 120, bottom: 110 }) as DOMRect;
+    rerender({ sig: 'gap0' });
+    await flush();
+    expect(frosts()).toHaveLength(2);
+    expect(frosts()[1]).toMatchObject({ rects: [{ x: 0, y: 0, w: 120, h: 110 }] });
+    cell.remove();
+  });
+
   it('sends none when the panel is not see-through, and again on a host request', async () => {
     const cell = mountCard();
     renderHook(() => usePanelFrost(true, 70, false, false, rootRef, 'a'));
