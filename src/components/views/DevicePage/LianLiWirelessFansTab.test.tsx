@@ -162,6 +162,25 @@ describe('LianLiWirelessFansTab', () => {
       expect(hint.id).not.toBe('');
     });
 
+    it('says why Bind is disabled with a visible note and a tooltip on the wrapper', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...on, fans: [boundFan, unbound] });
+      expect(screen.getByText('devices.lianli-wireless.pairingLockedNote')).toBeInTheDocument();
+      const wrapper = screen.getByRole('button', { name: 'devices.lianli-wireless.bind' }).parentElement as HTMLElement;
+      fireEvent.pointerEnter(wrapper);
+      await act(async () => { vi.advanceTimersByTime(1000); });
+      expect(screen.getByRole('tooltip')).toHaveTextContent('devices.lianli-wireless.pairingLockedNote');
+    });
+
+    it('shows no lock note while unlocked or when every device is bound', async () => {
+      const unbound = { ...boundFan, mac: 'AABBCCDDEEFF', boundToUs: false };
+      await renderTab({ ...off, fans: [boundFan, unbound] });
+      expect(screen.queryByText('devices.lianli-wireless.pairingLockedNote')).not.toBeInTheDocument();
+      cleanup();
+      await renderTab({ ...on, fans: [boundFan] });
+      expect(screen.queryByText('devices.lianli-wireless.pairingLockedNote')).not.toBeInTheDocument();
+    });
+
     it('disables Unbind of a wired-owned unit still bound to this radio while locked, like any other bound fan', async () => {
       const wiredBound = { ...boundFan, wiredOwned: true };
       await renderTab({ ...on, fans: [wiredBound] });

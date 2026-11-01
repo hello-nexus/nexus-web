@@ -318,6 +318,7 @@ export function ZoneCard({
   appStrip,
   onOpenAppStrip,
   onOpenFixLighting,
+  onOpenBinding,
 }: {
   device: LightingDevice;
   /** Deep-link anchor the card answers to; see CollapsibleSection's searchAnchor. */
@@ -416,6 +417,8 @@ export function ZoneCard({
   onOpenAppStrip?: () => void;
   /** Opens the Fix lighting flow from the not-responding strip. */
   onOpenFixLighting?: () => void;
+  /** Marks a wireless device that is not bound to this PC: a muted card with no lighting controls whose press opens the controller page to bind it. */
+  onOpenBinding?: () => void;
 }) {
   const { t, language } = useTranslation();
   const unpinHintId = useId();
@@ -449,7 +452,7 @@ export function ZoneCard({
   // Same gate as the action-icon row: the onboarding grid exposes no per-device
   // controls. A firmware-owned card offers only its device page, take control
   // and the naming and grouping rows, so it opts in when one of those exists.
-  const menuEnabled = !toggleMode && !selectOnly
+  const menuEnabled = !toggleMode && !selectOnly && !onOpenBinding
     && (firmwareControlled ? !!onTakeControl || !!onOpenDevicePage || renameEnabled || !!groupMove : true);
 
   // Persistent marker for a card that is not in its default state, so the
@@ -633,12 +636,18 @@ export function ZoneCard({
     <div
       ref={drag?.ref ?? (() => {})}
       style={drag?.style ?? {}}
-      role={toggleable ? 'switch' : undefined}
+      role={toggleable ? 'switch' : onOpenBinding ? 'button' : undefined}
       aria-checked={toggleable ? controlled : undefined}
-      aria-label={toggleable ? displayName ?? device.name : undefined}
+      aria-label={toggleable ? displayName ?? device.name : onOpenBinding ? `${displayName ?? device.name}, ${t('lighting.devices.needsBinding')}` : undefined}
       data-search-anchor={anchorId}
-      tabIndex={toggleable ? 0 : undefined}
-      onKeyDown={toggleable ? e => {
+      tabIndex={toggleable || onOpenBinding ? 0 : undefined}
+      onKeyDown={onOpenBinding ? e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenBinding();
+        }
+      } : toggleable ? e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           // Keep Enter from bubbling to the modal stack's document listener,
@@ -663,6 +672,7 @@ export function ZoneCard({
       ].filter(Boolean).join(' ')}
       data-menu-arrow-host={menuEnabled || undefined}
       onClick={e => {
+        if (onOpenBinding) { onOpenBinding(); return; }
         if (!clickable) return;
         // Toggle mode is how an un-driven device gets turned back on, so it
         // runs before the Nexus-Control gate rather than after it.
@@ -731,7 +741,9 @@ export function ZoneCard({
         )}
       </div>
       <div className={styles.deviceMetaRow}>
-        {firmwareControlled ? (
+        {onOpenBinding ? (
+          <Badge label={t('lighting.devices.needsBinding')} icon={<Link2Off size={11} />} compact color="var(--text-dim)" />
+        ) : firmwareControlled ? (
           <HoverTooltip
             body={t(device.devicePageReason === 'argbInput' ? 'lighting.devices.devicePageArgbTooltip' : device.devicePageReason === 'firmware' ? 'lighting.devices.devicePageFirmwareTooltip' : 'lighting.devices.firmwareTooltip')}
             side="top"
@@ -870,7 +882,7 @@ export function ZoneCard({
   // waiting for its LED counts says so in its label.
   return (
     <>
-      {unavailable && !onOpenZoneSizes && !needsLedCounts
+      {unavailable && !onOpenZoneSizes && !needsLedCounts && !onOpenBinding
         ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
         : card}
       {menuAt && (
