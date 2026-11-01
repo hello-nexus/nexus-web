@@ -2003,7 +2003,8 @@ export function PanelContent({
     clickThrough,
     hitFull,
     rootRef,
-    `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${frostGeometry}`,
+    // The gap (widget padding) moves the cards; on Windows the input region is also the window region, so a stale one clips them.
+    `${activePageIndex}:${paginatedLayout.pages.length}:${touch.ctxMenu?.seq ?? 0}:${effectiveTheme.backdrop}:${runtimeGrid.columns}x${runtimeGrid.rows}:${runtimeGrid.gap}:${frostGeometry}`,
   );
   // The host blurs the desktop behind the cards: CSS cannot sample it.
   usePanelFrost(
