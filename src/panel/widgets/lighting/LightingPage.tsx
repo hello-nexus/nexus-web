@@ -265,9 +265,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const modeMenuAnchorRef = useRef<HTMLDivElement | null>(null);
   const closeModeMenu = useCallback(() => setModeMenuOpen(false), []);
+  // A running effect keeps the mapping it was started with, so a user's mode switch restarts it with the new one.
+  const reapplyMappingRef = useRef<(toSimple: boolean) => void>(() => {});
   const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
     updateUiSettings({ lightingDashboardMode: next });
-  }, [updateUiSettings]);
+    if ((next === 'simple') !== simpleDashboard) reapplyMappingRef.current(next === 'simple');
+  }, [updateUiSettings, simpleDashboard]);
   // Keeps the output socket open; the canvas paints its frames from ledFrameStore.
   const lightingStream = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
@@ -2124,22 +2127,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   resumeLightingRef.current = handleModeChange;
 
-  // A running effect keeps the mapping it was started with, so a dashboard switch re-starts it with the new one.
-  const reapplyMappingRef = useRef<() => void>(() => {});
-  reapplyMappingRef.current = () => {
-    if (mode !== 'animate') return;
-    const key = canonicalSimpleKey(rawSync);
-    if (!(EFFECTS.some(e => e.key === key) || isCustomEffectKey(key))) return;
-    const state = stateFor(key);
-    void startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, simpleDashboard).catch(() => {});
-  };
-  const mappingModeRef = useRef(simpleDashboard);
-  useEffect(() => {
-    if (mappingModeRef.current === simpleDashboard) return;
-    mappingModeRef.current = simpleDashboard;
-    reapplyMappingRef.current();
-  }, [simpleDashboard]);
-
   // Once the profile's lighting has loaded, the requested effect becomes the Animation effect.
   useEffect(() => {
     const key = openIntentRef.current;
@@ -2282,6 +2269,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   pausedRef.current = paused;
   const simpleReversedRef = useRef(simpleReversed);
   simpleReversedRef.current = simpleReversed;
+  // Restarts from the committed preset, never the live edit buffer, and keeps a reversed simple sweep reversed.
+  reapplyMappingRef.current = (toSimple: boolean) => {
+    if (mode !== 'animate') return;
+    const key = canonicalSimpleKey(rawSync);
+    const bundle = committedTemplates[key];
+    if (!bundle || bundle.slots.length === 0) return;
+    const slot = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
+    const base = bundle.slots[slot];
+    const state = !toSimple && isSimpleAnimation(key) && slot === SIMPLE_SLOT
+      ? simpleAnimationState(base, simpleReversedRef.current)
+      : base;
+    void startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, toSimple).catch(() => {});
+  };
 
   // Simple mode runs the first preset of a regular effect: this moves the
   // effect's selection there (saved, and awaited, only when it was elsewhere,

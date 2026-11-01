@@ -442,42 +442,61 @@ describe('LightingPage simple mode', () => {
   });
 
   describe('switching the dashboard mode', () => {
-    function Switch({ to }: { to: 'simple' | 'advanced' }) {
-      const { update } = useUiSettings();
-      return <button data-testid="switch" onClick={() => update({ lightingDashboardMode: to })} />;
-    }
-    function renderWithSwitch(to: 'simple' | 'advanced') {
-      return render(
-        <UiSettingsProvider>
-          <Switch to={to} />
-          <LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />
-        </UiSettingsProvider>,
-      );
+    const slot = (speed: number) => ({ speed, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} });
+    const templates = { rainbow: { selected: 0, slots: [slot(50), slot(61), slot(62), slot(63)] } };
+    const starts = () => vi.mocked(lightingApi.startAnimate);
+
+    async function openMenuAndPick(trigger: string, entry: string) {
+      fireEvent.click(await screen.findByRole('tab', { name: trigger }));
+      fireEvent.click((await screen.findAllByText(entry)).at(-1)!);
     }
 
-    it('re-starts the running effect as advanced when leaving simple mode', async () => {
-      syncState.mode = 'animate';
-      syncState.rawSync = 'rainbow';
-      renderWithSwitch('advanced');
-      vi.mocked(lightingApi.startAnimate).mockClear();
-      fireEvent.click(screen.getByTestId('switch'));
-      await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith(
-        'rainbow', expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
-        expect.any(Number), expect.any(Number), expect.anything(), true, undefined, false,
-      ));
+    beforeEach(() => {
+      vi.mocked(lightingApi.fetchAnimateSettings).mockResolvedValue({ effect: 'rainbow', states: {}, templates } as never);
     });
 
-    it('re-starts the running effect as simple when entering simple mode', async () => {
+    it('restarts a reversed simple sweep as advanced, still reversed', async () => {
+      syncState.mode = 'animate';
+      syncState.rawSync = 'rainbow';
+      renderPage();
+      await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
+      fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
+      await waitFor(() => expect(starts()).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined, true));
+      starts().mockClear();
+      await openMenuAndPick('uiMode.simpleMode', 'uiMode.advancedMode');
+      await waitFor(() => expect(starts()).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined, false));
+    });
+
+    it('restarts the running effect as simple when entering simple mode', async () => {
       localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
       syncState.mode = 'animate';
       syncState.rawSync = 'rainbow';
-      renderWithSwitch('simple');
-      vi.mocked(lightingApi.startAnimate).mockClear();
-      fireEvent.click(screen.getByTestId('switch'));
-      await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith(
-        'rainbow', expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
-        expect.any(Number), expect.any(Number), expect.anything(), true, undefined, true,
-      ));
+      renderPage();
+      await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
+      starts().mockClear();
+      await openMenuAndPick('uiMode.advancedMode', 'uiMode.simpleMode');
+      await waitFor(() => expect(starts()).toHaveBeenCalledWith('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined, true));
+    });
+
+    it('sends nothing when the toggle happens outside animate mode', async () => {
+      syncState.mode = 'static';
+      renderPage();
+      await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
+      starts().mockClear();
+      await openMenuAndPick('uiMode.simpleMode', 'uiMode.advancedMode');
+      await new Promise(r => setTimeout(r, 30));
+      expect(starts()).not.toHaveBeenCalled();
+    });
+
+    it('sends nothing when the preference arrives from the server', async () => {
+      syncState.mode = 'animate';
+      syncState.rawSync = 'rainbow';
+      renderPage();
+      await waitFor(() => expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled());
+      starts().mockClear();
+      window.dispatchEvent(new StorageEvent('storage', { key: 'nexus_settings', newValue: JSON.stringify({ general: { lightingDashboardMode: 'advanced' } }) }));
+      await new Promise(r => setTimeout(r, 30));
+      expect(starts()).not.toHaveBeenCalled();
     });
   });
 });
