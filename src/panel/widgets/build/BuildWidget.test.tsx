@@ -16,6 +16,7 @@ const h = vi.hoisted(() => ({
   caseId: vi.fn(),
   preview: vi.fn(),
   onCaseSignal: null as null | (() => void),
+  service: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
@@ -25,7 +26,7 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 vi.mock('./BuildPreviewSeed', () => ({ default: ({ caseId }: { caseId: string }) => <div data-testid="seed" data-case={caseId} /> }));
 vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../app/windowActions', () => ({ isMacAppShell: () => h.macShell }));
-vi.mock('../../../api/service', () => ({ pingService: () => h.ping() }));
+vi.mock('../../../api/service', () => ({ pingService: () => h.ping(), fetchService: (path: string) => h.service(path) }));
 vi.mock('../../../api/systemPreview', () => ({
   SYSTEM_PREVIEW_CHANGED_EVENT: 'nexus-system-preview-changed',
   SYSTEM_CASE_TOPIC: 'system/case',
@@ -54,6 +55,7 @@ describe('BuildWidget', () => {
     h.ping.mockReset().mockResolvedValue({ platform: 'windows' });
     h.caseId.mockReset().mockResolvedValue(null);
     h.preview.mockReset().mockResolvedValue({ kind: 'none' });
+    h.service.mockReset().mockResolvedValue(null);
     vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:preview-${++urlCounter}`);
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   });
@@ -62,9 +64,10 @@ describe('BuildWidget', () => {
     vi.restoreAllMocks();
   });
 
-  it('2x2 without a case shows the silhouette and no text', async () => {
+  it('2x2 without a case shows the open-air system and no text', async () => {
     const { container } = await renderWidget('2x2');
-    expect(container.querySelector('[data-view="no-case"] svg')).not.toBeNull();
+    expect(container.querySelector('[data-view="no-case"] img[data-open-air]')).not.toBeNull();
+    expect(container.querySelector('svg')).toBeNull();
     expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
   });
 
@@ -87,7 +90,7 @@ describe('BuildWidget', () => {
     h.ping.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BuildWidget widget={widget('4x4')} />);
     expect(container.querySelector('[data-view="loading"] svg')).not.toBeNull();
-    expect(container.querySelectorAll('[data-view="loading"] > span').length).toBe(2);
+    expect(container.querySelectorAll('[data-view="loading"] span').length).toBe(2);
   });
 
   it('shows only the preview image when one is stored', async () => {
@@ -99,7 +102,7 @@ describe('BuildWidget', () => {
     expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
   });
 
-  it('a dev-tools tile with a case and no image mounts the seed for that case; no case, an image, or a release build mounts none', async () => {
+  it('a tile with a case and no image mounts the seed for that case, in release builds too; no case or an image mounts none', async () => {
     h.devTools = true;
     h.caseId.mockResolvedValue('hyte-y70');
     const seeded = await renderWidget('4x4');
@@ -117,7 +120,7 @@ describe('BuildWidget', () => {
     h.devTools = false;
     h.caseId.mockResolvedValue('hyte-y70');
     await renderWidget('4x4');
-    expect(screen.queryByTestId('seed')).toBeNull();
+    expect(screen.getByTestId('seed').getAttribute('data-case')).toBe('hyte-y70');
   });
 
   it('a Y70 case with no stored image shows the stock image in both themes, still seeds, and the stored image replaces it', async () => {
@@ -361,5 +364,34 @@ describe('useBuildPreview', () => {
     await flush();
     unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-1');
+  });
+
+  describe('spec rows', () => {
+    const specs = {
+      pcName: 'PC', osBuild: '', processor: 'AMD Ryzen 7 9800X3D', motherboard: 'Gigabyte B850I AORUS PRO', memory: '32 GB DDR5-5600',
+      storage: '1.82 TB NVMe', graphicsCard: 'NVIDIA GeForce RTX 5080', primaryGpu: 'NVIDIA GeForce RTX 5080', monitor: '', soundCard: '', networkCard: '',
+    };
+    const serve = () => h.service.mockImplementation(async (path: string) => (path === '/system/specs' ? specs : path === '/system/devices' ? { devices: [{ category: 'cooler', vendor: 'Corsair', model: 'H150i' }] } : null));
+
+    it('2x2 lists no specs', async () => {
+      serve();
+      const { container } = await renderWidget('2x2');
+      expect(container.querySelector('li')).toBeNull();
+      expect(h.service).not.toHaveBeenCalled();
+    });
+
+    it('4x2 lists processor, graphics card and memory beside the image', async () => {
+      serve();
+      const { container } = await renderWidget('4x2');
+      const rows = Array.from(container.querySelectorAll('li')).map((li) => li.textContent);
+      expect(rows).toEqual(['devices.specs.row.processorAMD Ryzen 7 9800X3D', 'devices.specs.row.graphicsCardNVIDIA GeForce RTX 5080', 'devices.specs.row.memory32 GB DDR5-5600']);
+    });
+
+    it('4x4 adds storage, board and the detected cooler', async () => {
+      serve();
+      const { container } = await renderWidget('4x4');
+      expect(container.querySelectorAll('li')).toHaveLength(6);
+      expect(container.textContent).toContain('Corsair H150i');
+    });
   });
 });

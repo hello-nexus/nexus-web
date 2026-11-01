@@ -7,7 +7,7 @@ export const buildApp: AppManifest = {
     type: 'build',
     i18nKey: 'panel.widget.build',
     icon: Hammer,
-    sizes: ['2x2', '4x4'],
+    sizes: ['2x2', '4x2', '4x4'],
     defaultSize: '2x2',
     supportsImmersive: { portrait: false, landscape: false },
     hasConfig: false,
