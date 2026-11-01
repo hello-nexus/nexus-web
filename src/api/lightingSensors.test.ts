@@ -51,3 +51,14 @@ describe('shader source', () => {
     expect(peekShaderSource('fx-test')?.params.map(p => p.name)).toEqual(['u_a_level']);
   });
 });
+
+describe('simple mode flag on the wire', () => {
+  it('is sent only by a simple-mode start', async () => {
+    const simple = stubFetch();
+    await startAnimate('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined, true);
+    expect(simple().simple).toBe(true);
+    const advanced = stubFetch();
+    await startAnimate('rainbow', 50, 1, 0, 0, 1, 1, {}, true);
+    expect(advanced()).not.toHaveProperty('simple');
+  });
+});

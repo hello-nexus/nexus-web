@@ -218,7 +218,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       }
       const slot0 = bundle.slots[SIMPLE_SLOT];
       const state = simpleAnimationState(slot0, false);
-      await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+      await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, true);
     });
   }, [applyPick]);
 

@@ -253,7 +253,7 @@ describe('LightingPage simple mode', () => {
     });
     fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 50, 1, 0, 0, 1, 1, {}, true, undefined);
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 50, 1, 0, 0, 1, 1, {}, true, undefined, true);
     });
     expect(vi.mocked(lightingApi.setLightingDeviceControlled)).not.toHaveBeenCalled();
     // One shared canvas: nothing is pinned for it.
@@ -277,7 +277,7 @@ describe('LightingPage simple mode', () => {
     });
     fireEvent.click(container.querySelector('[data-effect-key="sharplines"]') as HTMLButtonElement);
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 30, 1, 0, 0, 1, 1, { u_density: 4 }, true, undefined);
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', 30, 1, 0, 0, 1, 1, { u_density: 4 }, true, undefined, true);
     });
     await waitFor(() => {
       expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled();
@@ -293,7 +293,7 @@ describe('LightingPage simple mode', () => {
     renderPage();
     fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
     await waitFor(() => {
-      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined);
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', -50, 1, 0, 0, 1, 1, {}, true, undefined, true);
     });
     // The sign is the running state: no template is written for it.
     expect(vi.mocked(lightingApi.saveAnimateTemplates)).not.toHaveBeenCalled();
@@ -325,7 +325,7 @@ describe('LightingPage simple mode', () => {
     releaseSave();
     await waitFor(() => expect(order).toContain('start'));
     expect(order).toEqual(['save', 'saved', 'start']);
-    expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', -30, 1, 0, 0, 1, 1, {}, true, undefined);
+    expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sharplines', -30, 1, 0, 0, 1, 1, {}, true, undefined, true);
   });
 
   const savedBundle = (selected: number) => {
@@ -350,7 +350,7 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => expect(vi.mocked(lightingApi.saveAnimateTemplates)).toHaveBeenCalled());
     // Rainbow is already on its first preset: it starts at once.
     fireEvent.click(container.querySelector('[data-effect-key="rainbow"]') as HTMLButtonElement);
-    await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined));
+    await waitFor(() => expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('rainbow', 50, 1, 0, 0, 1, 1, {}, true, undefined, true));
     releaseSave();
     await new Promise(r => setTimeout(r, 20));
     const started = vi.mocked(lightingApi.startAnimate).mock.calls.map(c => c[0]);
