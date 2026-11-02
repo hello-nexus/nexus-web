@@ -72,14 +72,12 @@
   overflow: hidden;
 }
 
-// The BUILD logo sits in the tile's top-right corner, out of the specs' flow, on the tile's content padding.
+// The BUILD logo sits in the tile's top-right corner, out of the specs' flow, over them, on the tile's content padding.
 .mark {
   position: absolute;
   top: var(--tile-pad);
   right: var(--tile-pad);
   display: block;
-  // The clearance below and beside the logo that the specs keep; it is part of the box, so the box's size is the whole reserve.
-  padding: 0 0 var(--space-sm) var(--space-sm);
 
   // A step smaller than the body type.
   > span {
