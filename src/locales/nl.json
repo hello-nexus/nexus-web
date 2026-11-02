@@ -464,7 +464,7 @@
   "cooling.case3d.stat.net": "Netto",
   "cooling.case3d.stats.label": "Schatting van de luchtstroom",
   "cooling.case3d.unsupported.hint": "De luchtstroomweergave ondersteunt voorlopig de HYTE Y70, de HYTE Y50 en de HYTE X50. Kies in Build een ervan als je behuizing.",
-  "cooling.case3d.unsupported.title": "De luchtstroomweergave heeft een Y70, Y50 of X50 nodig",
+  "cooling.case3d.unsupported.title": "Luchtstroom heeft een compatibele behuizing nodig",
   "cooling.case3d.viewSwitch": "Koelingsweergave",
   "cooling.curve.auto.deadband": "Dode zone",
   "cooling.curve.auto.deadband.help": "Hoever onder het doel nog als dichtbij genoeg geldt, zodat de ventilatoren niet worden aangepast voor een fractie van een graad.",

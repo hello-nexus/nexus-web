@@ -17,6 +17,14 @@
   padding: 0 0.35rem;
   border-radius: var(--radius-pill);
   @include text-caption;
+  // Idle and hover: the label's own color (text-dim, then text) on the neutral track.
   background: var(--border);
   color: inherit;
+}
+
+// On the solid accent chip the label is --accent-text, so the pill inverts: that same
+// contrast-paired color as the fill and the accent as the text, readable on any accent.
+:global(.chip-active) .pill {
+  background: var(--accent-text);
+  color: var(--accent);
 }

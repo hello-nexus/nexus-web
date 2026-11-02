@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { ViewSwitch } from './ViewSwitch';
 
@@ -24,5 +26,11 @@ describe('ViewSwitch', () => {
     expect(a.getAttribute('aria-checked')).toBe('false');
     fireEvent.click(a);
     expect(onChange).toHaveBeenCalledWith('2d');
+  });
+
+  it('inverts the pill on the active chip with the accent tokens, and never hardcodes a color', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/components/common/ViewSwitch/ViewSwitch.module.scss'), 'utf8');
+    expect(css).toMatch(/:global\(\.chip-active\) \.pill\s*\{[^}]*background: var\(--accent-text\);[^}]*color: var\(--accent\);/);
+    expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgb\(/);
   });
 });
