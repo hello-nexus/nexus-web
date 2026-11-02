@@ -72,11 +72,12 @@
   overflow: hidden;
 }
 
-// The BUILD logo sits above the specs; margins, not flex gap, which needs a newer Chromium than the panels' floor.
+// The BUILD logo sits in the tile's top-right corner, out of the specs' flow, on the tile's content padding.
 .mark {
-  flex: none;
+  position: absolute;
+  top: var(--tile-pad);
+  right: var(--tile-pad);
   display: block;
-  margin-bottom: var(--space-lg);
 }
 
 .specs {

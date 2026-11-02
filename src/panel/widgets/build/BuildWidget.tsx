@@ -45,7 +45,12 @@ interface BuildWidgetViewProps {
   rows?: BuildSpecRow[];
   /** Told how many CSS px across the picture's box is, once it settles after a mount, a resize or a scale change. */
   onImageWidth?: (cssWidth: number) => void;
+  /** Temporary, for comparing the two looks: dim (muted) or full (primary). */
+  logoTone?: 'muted' | 'primary';
 }
+
+// The corner logo's type size in CSS px, 0.8 of the body size (16px).
+const LOGO_FONT_PX = 12.8;
 
 // A tile is scaled by a transform, which a resize observer does not report, so the box is read again on a few later
 // frames; a burst of reads settles before it is reported.
@@ -151,8 +156,10 @@ function useScopeTheme() {
   return { ref, theme };
 }
 
-export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
+export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth, logoTone = 'muted' }: BuildWidgetViewProps) {
   const { t } = useTranslation();
+  const markRef = useRef<HTMLSpanElement>(null);
+  const [markReserve, setMarkReserve] = useState(0);
   // The layout is known from the tile's size, not from the spec rows having loaded, so the first report is already the final square.
   const wide = sizeShowsSpecs(size);
   const withSpecs = rows.length > 0;
@@ -163,6 +170,12 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
   const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
+  // On the tall tile the specs keep clear of the corner logo: equal room above and below, so they stay centered.
+  const tall = size === '4x4';
+  useLayoutEffect(() => {
+    const mark = markRef.current;
+    setMarkReserve(mark && withSpecs ? mark.offsetHeight + 8 : 0);
+  }, [withSpecs]);
   const generic = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
@@ -177,8 +190,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {generic && <DrawingImage className={styles.image} src={scope.theme === 'light' ? genericLight : genericDark} generic />}
       </div>
       {withSpecs && (
-        <div className={styles.side}>
-          <span className={styles.mark} aria-hidden="true"><BuildLogo /></span>
+        <div className={styles.side} style={tall && markReserve > 0 ? { padding: `${markReserve}px 0 ${markReserve}px var(--space-lg)` } : undefined}>
           <ul className={styles.specs}>
             {rows.map((row) => (
               <li key={row.key} className={styles.spec}>
@@ -193,6 +205,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         </div>
       )}
       </div>
+      {withSpecs && <span ref={markRef} className={styles.mark} aria-hidden="true"><BuildLogo tone={logoTone} fontSize={LOGO_FONT_PX} /></span>}
     </div>
   );
 }

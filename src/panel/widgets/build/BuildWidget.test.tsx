@@ -180,15 +180,15 @@ describe('BuildWidget', () => {
     const SPECS = { pcName: 'x', osBuild: '', processor: 'AMD Ryzen 7 9800X3D', motherboard: 'B850I', memory: '32 GB DDR5-5600', storage: '1.82 TB NVMe', graphicsCard: 'RTX 5080', primaryGpu: 'NVIDIA GeForce RTX 5080', monitor: '', soundCard: '', networkCard: '' };
     beforeEach(() => { h.specs = SPECS; });
 
-    it('sits above the specs list on 4x2 and 4x4, hidden from assistive tech', async () => {
+    it('sits in the tile corner, outside the specs column, on 4x2 and 4x4, hidden from assistive tech', async () => {
       for (const size of ['4x2', '4x4'] as const) {
         const { container, unmount } = await renderWidget(size);
         const label = [...container.querySelectorAll('[aria-hidden="true"]')].find((el) => el.textContent === 'panel.widget.build.badge');
         const list = container.querySelector('ul');
         expect(label).toBeDefined();
         expect(list).not.toBeNull();
-        expect(label!.compareDocumentPosition(list!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(label!.parentElement).toBe(list!.parentElement);
+        expect(label!.parentElement).not.toBe(list!.parentElement);
+        expect(label!.closest('ul')).toBeNull();
         unmount();
       }
     });
