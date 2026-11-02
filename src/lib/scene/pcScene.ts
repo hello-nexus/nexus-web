@@ -334,13 +334,7 @@ function chamferedGeometry(size: Vec3, chamfers: SceneChamfer[]): ConvexGeometry
   return new ConvexGeometry(points);
 }
 
-/**
- * How much of the case a static image draws. full is every part and detail; boxes is the case outline with each part as a
- * plain box; fans adds one circle per fan; parts adds the board's small parts and a hub circle in each fan.
- */
-export type SceneDetail = 'full' | 'boxes' | 'fans' | 'parts';
-
-function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial, detail: SceneDetail = 'full'): Object3D[] {
+function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial): Object3D[] {
   const axisIndex = { x: 0, y: 1, z: 2 }[ring.axis];
   const inPlane = [0, 1, 2].filter((i) => i !== axisIndex);
   // Fans line up along the face's longer edge.
@@ -360,21 +354,18 @@ function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial, det
     // Card fans count from the bracket end, the max end along the card.
     center[along] = offsets ? box.min[along] + box.size[along] - offsets[i] : box.min[along] + (box.size[along] * (i + 0.5)) / count;
     center[across] = box.min[across] + box.size[across] / 2;
-    const simple = detail !== 'full';
     const spokes = new LineSegmentsGeometry().setPositions(Array.from({ length: 5 }, (_, k) => {
       const a = (k * 2 * Math.PI) / 5;
       return [Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3, 0, Math.cos(a + 0.5) * r * 0.92, Math.sin(a + 0.5) * r * 0.92, 0];
     }).flat());
-    if (!simple) {
-      const blades = new LineSegments2(spokes, material);
-      if (ring.axis === 'x') blades.rotation.y = Math.PI / 2;
-      if (ring.axis === 'y') blades.rotation.x = Math.PI / 2;
-      blades.position.set(center[0], center[1], center[2]);
-      blades.renderOrder = 1;
-      if (material.dashed) blades.computeLineDistances();
-      out.push(blades);
-    }
-    for (const radius of detail === 'fans' ? [r] : [r, r * 0.3]) {
+    const blades = new LineSegments2(spokes, material);
+    if (ring.axis === 'x') blades.rotation.y = Math.PI / 2;
+    if (ring.axis === 'y') blades.rotation.x = Math.PI / 2;
+    blades.position.set(center[0], center[1], center[2]);
+    blades.renderOrder = 1;
+    if (material.dashed) blades.computeLineDistances();
+    out.push(blades);
+    for (const radius of [r, r * 0.3]) {
       const points = new EllipseCurve(0, 0, radius, radius).getPoints(radius > 20 ? 56 : 24);
       const geometry = new LineGeometry().setPositions(points.flatMap((p) => [p.x, p.y, 0]));
       const loop = new Line2(geometry, material);
@@ -394,19 +385,11 @@ export function boxShape(box: SceneBox): BufferGeometry {
   return box.plate ? plateGeometry(box) : box.faces ? solidGeometry(box) : box.rings ? loftGeometry(box) : box.chamfers ? chamferedGeometry(box.size, box.chamfers) : new BoxGeometry(...box.size);
 }
 
-export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, detail: SceneDetail = 'full', solidLines = false): Group {
+export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, solidLines = false): Group {
   const group = new Group();
   const [D, W, H] = layout.size;
   group.position.set(-D / 2, -H / 2, -W / 2);
-  const simple = detail !== 'full';
-  // A simplified image outlines the case with its chamfered shell, or a plain box when the layout has none.
-  const outline: SceneBox[] = simple && !layout.boxes.some((b) => b.role === 'structure' && b.chamfers) ? [{ slot: 'case', role: 'structure', min: [0, 0, 0], size: [D, H, W] }] : [];
-  for (const box of [...outline, ...layout.boxes]) {
-    if (simple) {
-      if (box.role === 'structure' && !box.chamfers && !outline.includes(box)) continue;
-      if (box.role === 'glass') continue;
-      if (box.role === 'detail' && detail !== 'parts') continue;
-    }
+  for (const box of layout.boxes) {
     // A static image leaves out the interaction layer: fan slot ghosts, the limit planes shown on highlight, the floor grid.
     if (staticView && (box.role === 'ghost' || box.role === 'limit')) continue;
     // The cooling view draws its own fan rings, interactive and colored by direction, in place of the case's.
@@ -420,7 +403,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     node.position.set(box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2);
     node.rotation.y = box.rotationY ?? 0;
     const local: SceneBox = { ...box, min: [-box.size[0] / 2, -box.size[1] / 2, -box.size[2] / 2] };
-    const shape = simple && (box.role === 'part' || box.role === 'detail') ? new BoxGeometry(...box.size) : boxShape(box);
+    const shape = boxShape(box);
     const solid = box.role === 'part' || box.role === 'detail';
     // A loft's or solid's winding follows its outline's direction and a plate is seen from both sides, so both sides draw.
     const side = box.rings || box.faces || box.plate ? { side: DoubleSide } : {};
@@ -470,7 +453,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
         dimmable?.materials.push(ringMaterial);
         dimmable?.base.push(style.opacity);
       }
-      if (detail !== 'boxes') node.add(...fanRings(local, box.fans, ringMaterial, detail));
+      node.add(...fanRings(local, box.fans, ringMaterial));
     }
     if (box.role === 'limit') dimmables.push({ id, materials: [], base: [], node });
     group.add(node);
@@ -490,8 +473,8 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       dimmables.push({ id: CASE_ID, materials: [wash.material], base: [0] });
     }
   }
-  for (const line of simple ? [] : layout.lines) {
-    const faint = line.role === 'detail';
+  for (const line of layout.lines) {
+    const detail = line.role === 'detail';
     if (line.ribbon && line.points.length >= 2) {
       const { width, thickness, across } = line.ribbon;
       const data = ribbonData(line.points, across, width, thickness);
@@ -524,8 +507,8 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       group.add(tube);
       continue;
     }
-    const opacity = faint ? 0.4 : 0.8;
-    const material = lineMaterial({ color: palette.part, width: faint ? 1 : 1.4, opacity, dashed: false, face: 0 }, materials);
+    const opacity = detail ? 0.4 : 0.8;
+    const material = lineMaterial({ color: palette.part, width: detail ? 1 : 1.4, opacity, dashed: false, face: 0 }, materials);
     dimmables.push({ id: line.slot, materials: [material], base: [opacity] });
     const points = curve ? curve.getPoints(32) : line.points.map((p) => new Vector3(...p));
     const tube = new Line2(new LineGeometry().setPositions(points.flatMap((p) => [p.x, p.y, p.z])), material);

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { isStaleSize, previewSizeFor, setPreviewSize, usePreviewSize } from '../../../components/views/BuildPage/previewSize';
 import { useTranslation } from '../../../lib/i18n';
 import { DrawingImage } from './DrawingImage';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
@@ -35,6 +36,14 @@ function labelVariant(): LabelVariant {
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
+// Case and size pairs whose image was redrawn once already.
+const resized = new Set<string>();
+
+/** Test seam. */
+export function resetResizedPreviews(): void {
+  resized.clear();
+}
+
 interface BuildWidgetViewProps {
   view: BuildWidgetView;
   size: string;
@@ -43,6 +52,52 @@ interface BuildWidgetViewProps {
   stock?: boolean;
   /** Spec rows listed beside the image; empty leaves the image alone. */
   rows?: BuildSpecRow[];
+  /** Told how many CSS px across the picture's box is, once it settles after a mount, a resize or a scale change. */
+  onImageWidth?: (cssWidth: number) => void;
+}
+
+// A tile is scaled by a transform, which a resize observer does not report, so the box is read again on a few later
+// frames; a burst of reads settles before it is reported.
+const MEASURE_DELAYS_MS = [400, 1200];
+const MEASURE_SETTLE_MS = 250;
+
+/** The width of the picture box inside its padding, in the CSS px the user sees (transform scale included), reported once settled. */
+function useImageWidth(report: ((cssWidth: number) => void) | undefined) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reportRef = useRef(report);
+  reportRef.current = report;
+  const enabled = report !== undefined;
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) return undefined;
+    let settle: number | undefined;
+    let first = true;
+    const measure = () => {
+      const scale = el.offsetWidth > 0 ? el.getBoundingClientRect().width / el.offsetWidth : 1;
+      const style = getComputedStyle(el);
+      const inner = (el.offsetWidth - parseFloat(style.paddingLeft || '0') - parseFloat(style.paddingRight || '0')) * scale;
+      if (!(inner > 0)) return;
+      window.clearTimeout(settle);
+      if (first) {
+        first = false;
+        reportRef.current?.(inner);
+        return;
+      }
+      settle = window.setTimeout(() => reportRef.current?.(inner), MEASURE_SETTLE_MS);
+    };
+    measure();
+    const timers = MEASURE_DELAYS_MS.map((ms) => window.setTimeout(measure, ms));
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      window.clearTimeout(settle);
+      timers.forEach(window.clearTimeout);
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [enabled]);
+  return ref;
 }
 
 // The tile is not interactive itself: the dashboard cell's click-through opens the Build page.
@@ -62,8 +117,9 @@ function useScopeTheme() {
   return { ref, theme };
 }
 
-export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [] }: BuildWidgetViewProps) {
+export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
   const { t } = useTranslation();
+  const mediaRef = useImageWidth(onImageWidth);
   const scope = useScopeTheme();
   const showStock = stock && view === 'no-preview';
   // No case yet: the parts stand open-air, drawn by the same scene code as the case image.
@@ -73,7 +129,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
       <div className={styles.body} data-specs={rows.length > 0 ? '' : undefined}>
-      <div className={styles.media}>
+      <div ref={mediaRef} className={styles.media}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
@@ -111,11 +167,28 @@ export function BuildWidget({ widget }: WidgetProps) {
   if (preview) view = !DEV_TOOLS && isMacAppShell() ? 'mac' : 'no-case';
   else view = selectBuildWidgetView({ isMac, loaded: live.loaded, caseId: live.caseId, previewUrl: live.previewUrl });
   const rows = useBuildSpecs(!preview && isMac === false, widget.size);
-  const seed = !preview && view === 'no-preview' && live.caseId;
+  // The image is drawn by the portal at the size this tile shows it in, so the lines meet the screen pixel for pixel.
+  const wanted = usePreviewSize();
+  const measuring = !preview && isMac === false;
+  const onImageWidth = measuring ? (cssWidth: number) => setPreviewSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
+  // A stored image of another size (an older large one, or a tile that was scaled) is drawn again once per size, so a portal that ignores the size cannot loop.
+  const staleKey = live.caseId && wanted ? `${live.caseId}|${wanted}` : null;
+  const stale = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, wanted ?? 0) && !resized.has(staleKey);
+  const [staleSeed, setStaleSeed] = useState<{ key: string; url: string | null } | null>(null);
+  useEffect(() => {
+    if (stale && staleKey && staleSeed?.key !== staleKey) setStaleSeed({ key: staleKey, url: live.previewUrl });
+  }, [stale, staleKey, staleSeed, live.previewUrl]);
+  useEffect(() => {
+    if (staleSeed && live.previewUrl !== staleSeed.url) {
+      resized.add(staleSeed.key);
+      setStaleSeed(null);
+    }
+  }, [live.previewUrl, staleSeed]);
+  const seed = !preview && (view === 'no-preview' || stale) && live.caseId;
   return (
     <>
-      <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} stock={isY70CaseId(live.caseId)} rows={rows} />
-      {seed && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seed} /></Suspense>}
+      <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} stock={isY70CaseId(live.caseId)} rows={rows} onImageWidth={onImageWidth} />
+      {seed && <Suspense fallback={null}><BuildPreviewSeed key={`${seed}|${wanted ?? ''}`} caseId={seed} size={wanted} /></Suspense>}
     </>
   );
 }

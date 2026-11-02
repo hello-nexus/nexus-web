@@ -12,9 +12,23 @@ interface PreviewState {
   loaded: boolean;
   caseId: string | null;
   previewUrl: string | null;
+  /** How many pixels across the stored image is; null when there is none or its header could not be read. */
+  previewWidth: number | null;
 }
 
-const EMPTY: PreviewState = { loaded: false, caseId: null, previewUrl: null };
+const EMPTY: PreviewState = { loaded: false, caseId: null, previewUrl: null, previewWidth: null };
+
+/** The width in pixels a PNG declares in its header; null for anything else. */
+export async function readPngWidth(blob: Blob): Promise<number | null> {
+  try {
+    const head = new DataView(await blob.slice(0, 24).arrayBuffer());
+    if (head.byteLength < 24 || head.getUint32(0) !== 0x89504e47 || head.getUint32(12) !== 0x49484452) return null;
+    const width = head.getUint32(16);
+    return width > 0 ? width : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Whether the host PC runs macOS. Null only until the first ping settles; a failed ping reads as not macOS and keeps retrying (backoff and on focus) until the service answers. */
 export function useHostIsMac(enabled: boolean): boolean | null {
@@ -78,6 +92,7 @@ export function useBuildPreview(enabled: boolean): PreviewState {
     let lastStart = Number.NEGATIVE_INFINITY;
     let currentUrl: string | null = null;
     let currentEtag: string | null = null;
+    let currentWidth: number | null = null;
 
     const refresh = async () => {
       const run = ++seq;
@@ -87,18 +102,22 @@ export function useBuildPreview(enabled: boolean): PreviewState {
         const [caseId, preview] = await Promise.all([fetchSystemCaseId(), fetchSystemPreview(currentEtag)]);
         if (cancelled || run !== seq) return;
         if (preview.kind === 'error') {
-          setState(prev => ({ loaded: true, caseId: caseId ?? prev.caseId, previewUrl: prev.previewUrl }));
+          setState(prev => ({ loaded: true, caseId: caseId ?? prev.caseId, previewUrl: prev.previewUrl, previewWidth: prev.previewWidth }));
           return;
         }
+        const width = preview.kind === 'image' ? await readPngWidth(preview.blob) : null;
+        if (cancelled || run !== seq) return;
         const previous = currentUrl;
         if (preview.kind === 'image') {
           currentUrl = URL.createObjectURL(preview.blob);
           currentEtag = preview.etag;
+          currentWidth = width;
         } else if (preview.kind === 'none') {
           currentUrl = null;
           currentEtag = null;
+          currentWidth = null;
         }
-        setState({ loaded: true, caseId, previewUrl: currentUrl });
+        setState({ loaded: true, caseId, previewUrl: currentUrl, previewWidth: currentWidth });
         if (previous && previous !== currentUrl) URL.revokeObjectURL(previous);
       } catch {
         if (!cancelled && run === seq) setState(prev => ({ ...prev, loaded: true }));

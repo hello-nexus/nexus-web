@@ -1,5 +1,5 @@
 // A snapshot the Build portal never produced (offline, a portal error, a timeout) is not retried on every launch: the
-// failure is kept for a day, per case and setup, and a changed setup is a new attempt.
+// failure is kept for a day, per case, setup and image size, and a changed one is a new attempt.
 
 const KEY = 'nexus.buildSeed.failed';
 export const SEED_RETRY_MS = 24 * 60 * 60 * 1000;
@@ -15,8 +15,8 @@ const read = (): Failures => {
   }
 };
 
-/** What one attempt is keyed by: the case and the setup the layout was resolved from. */
-export const seedAttemptKey = (caseId: string, layoutKey: string): string => `${caseId}|${layoutKey}`;
+/** What one attempt is keyed by: the case, the setup the layout was resolved from, and the image size asked for (a new size is a new attempt). */
+export const seedAttemptKey = (caseId: string, layoutKey: string, size?: number | null): string => (size ? `${caseId}|${layoutKey}|${size}` : `${caseId}|${layoutKey}`);
 
 /** True while a failure for this attempt is younger than a day. */
 export function seedFailedRecently(attempt: string, now: number = Date.now()): boolean {

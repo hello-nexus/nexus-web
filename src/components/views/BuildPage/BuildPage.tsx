@@ -21,6 +21,7 @@ import { relaySceneExport } from './buildScene';
 import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import { buildMachine, fetchMachineCaseState, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice, type BuildMachine } from './buildMachine';
 import { resolveBuildOrigin } from './buildOrigin';
+import { usePreviewSize } from './previewSize';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = resolveBuildOrigin();
@@ -140,6 +141,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   const canSyncSetup = (DEV_TOOLS || headless?.syncSetup === true) && !isRemoteOrigin;
   // A headless frame saves the preview only when its host asked; the host decided it is offered.
   const canSavePreview = !isRemoteOrigin && (headless ? headless.preview === true : DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
+  const previewSize = usePreviewSize();
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
@@ -409,6 +411,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
       // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
       ...(canSavePreview ? { canSavePreview: true } : {}),
+      // How many pixels across the dashboard tile shows the image; the portal draws it at that size. Absent until a tile measured itself.
+      ...(canSavePreview && previewSize !== null ? { previewSize } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     };
@@ -419,7 +423,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
     lastHelloSentRef.current = serialized;
     post(payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- theme/locale changes post their own delta message below; this only needs to re-run on a new page or on late-arriving machine/games data
-  }, [ready, helloNonce, machineKey, layoutKey, gamesKey, canSavePreview, post]);
+  }, [ready, helloNonce, machineKey, layoutKey, gamesKey, canSavePreview, previewSize, post]);
 
   const prevThemeRef = useRef(resolvedTheme);
   useEffect(() => {

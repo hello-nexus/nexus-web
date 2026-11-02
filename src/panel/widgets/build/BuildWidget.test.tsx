@@ -1,9 +1,10 @@
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget, PanelWidgetSize } from '../../types';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
 import { isDashboardClickthroughType } from '../../engine/panelLayoutHelpers';
-import { BuildWidget } from './BuildWidget';
+import { BuildWidget, resetResizedPreviews } from './BuildWidget';
+import { getPreviewSize, resetPreviewSize, setPreviewSize } from '../../../components/views/BuildPage/previewSize';
 import { FOCUS_COALESCE_MS, PING_RETRY_MIN_MS, useBuildPreview, useHostIsMac } from './useBuildPreview';
 
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -17,13 +18,20 @@ const h = vi.hoisted(() => ({
   preview: vi.fn(),
   onCaseSignal: null as null | (() => void),
   service: vi.fn(),
+  specs: null as unknown,
 }));
+
+// A test that sets specs gets them without the module's session cache, which would leak into later tests.
+vi.mock('../../../hooks/useSystemSpecs', async (importActual) => {
+  const actual = await importActual<typeof import('../../../hooks/useSystemSpecs')>();
+  return { ...actual, useSystemSpecs: (enabled: boolean) => { const real = actual.useSystemSpecs(enabled); return h.specs ? { specs: enabled ? h.specs as typeof real.specs : null } : real; } };
+});
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopicCallback: (_topic: string, _enabled: boolean, cb: () => void) => { h.onCaseSignal = cb; },
 }));
 
-vi.mock('./BuildPreviewSeed', () => ({ default: ({ caseId }: { caseId: string }) => <div data-testid="seed" data-case={caseId} /> }));
+vi.mock('./BuildPreviewSeed', () => ({ default: ({ caseId, size }: { caseId: string; size?: number | null }) => <div data-testid="seed" data-case={caseId} data-size={size ?? ''} /> }));
 vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
 vi.mock('../../../app/windowActions', () => ({ isMacAppShell: () => h.macShell }));
 vi.mock('../../../api/service', () => ({ pingService: () => h.ping(), fetchService: (path: string) => h.service(path) }));
@@ -50,6 +58,9 @@ describe('BuildWidget', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     urlCounter = 0;
+    resetPreviewSize();
+    resetResizedPreviews();
+    h.specs = null;
     h.macShell = false;
     h.devTools = false;
     h.ping.mockReset().mockResolvedValue({ platform: 'windows' });
@@ -60,6 +71,7 @@ describe('BuildWidget', () => {
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   });
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -151,10 +163,100 @@ describe('BuildWidget', () => {
     expect(view.container.querySelector('svg:not([role="img"])')).not.toBeNull();
   });
 
-  it('shows the BUILD label above the specs on wide tiles only, hidden from assistive tech', async () => {
-    const { container, unmount } = await renderWidget('2x2');
-    expect(container.querySelector('[aria-hidden="true"]:not(svg)')?.textContent ?? '').not.toBe('panel.widget.build.badge');
-    unmount();
+  describe('the BUILD label', () => {
+    const SPECS = { pcName: 'x', osBuild: '', processor: 'AMD Ryzen 7 9800X3D', motherboard: 'B850I', memory: '32 GB DDR5-5600', storage: '1.82 TB NVMe', graphicsCard: 'RTX 5080', primaryGpu: 'NVIDIA GeForce RTX 5080', monitor: '', soundCard: '', networkCard: '' };
+    beforeEach(() => { h.specs = SPECS; });
+
+    it('sits above the specs list on 4x2 and 4x4, hidden from assistive tech', async () => {
+      for (const size of ['4x2', '4x4'] as const) {
+        const { container, unmount } = await renderWidget(size);
+        const label = container.querySelector('[aria-hidden="true"][data-variant]');
+        const list = container.querySelector('ul');
+        expect(label?.textContent).toBe('panel.widget.build.badge');
+        expect(list).not.toBeNull();
+        expect(label!.compareDocumentPosition(list!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(label!.parentElement).toBe(list!.parentElement);
+        unmount();
+      }
+    });
+
+    it('is absent on 2x2, which is the image alone', async () => {
+      const { container } = await renderWidget('2x2');
+      expect(container.querySelector('[data-variant]')).toBeNull();
+      expect(container.querySelector('ul')).toBeNull();
+      expect(container.textContent).not.toContain('panel.widget.build.badge');
+    });
+  });
+
+  describe('the preview size handshake', () => {
+    const header = (width: number) => {
+      const bytes = new Uint8Array(24);
+      new DataView(bytes.buffer).setUint32(0, 0x89504e47);
+      new DataView(bytes.buffer).setUint32(12, 0x49484452);
+      new DataView(bytes.buffer).setUint32(16, width);
+      return { kind: 'image', blob: new Blob([bytes], { type: 'image/png' }), etag: `w${width}` };
+    };
+    const changed = () => act(async () => { window.dispatchEvent(new CustomEvent('nexus-system-preview-changed')); await vi.advanceTimersByTimeAsync(0); });
+
+    it('the tile reports its picture box in device pixels over the share the drawing fills', async () => {
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(120);
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 120 } as DOMRect);
+      vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(2);
+      await renderWidget('4x2');
+      expect(getPreviewSize()).toBe(267);
+    });
+
+    it('an image far from the wanted size is drawn again, once, and the seed is told the size', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(1024));
+      setPreviewSize(270);
+      await renderWidget('4x4');
+      expect(screen.getByTestId('seed').getAttribute('data-size')).toBe('270');
+      h.preview.mockResolvedValue(header(270));
+      await changed();
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('a portal that ignores the size and sends the large image again is not asked a second time', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(1024));
+      setPreviewSize(270);
+      await renderWidget('4x4');
+      expect(screen.getByTestId('seed')).toBeTruthy();
+      h.preview.mockResolvedValue({ ...header(1024), etag: 'again' });
+      await changed();
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('a change of the wanted size draws it again', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(270));
+      setPreviewSize(270);
+      await renderWidget('4x4');
+      expect(screen.queryByTestId('seed')).toBeNull();
+      await act(async () => { setPreviewSize(540); await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByTestId('seed').getAttribute('data-size')).toBe('540');
+    });
+
+    it('an image of the right size, or a size nobody measured, mounts no seed', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(1024));
+      const unmeasured = await renderWidget('4x4');
+      expect(screen.queryByTestId('seed')).toBeNull();
+      unmeasured.unmount();
+      h.preview.mockResolvedValue(header(280));
+      setPreviewSize(270);
+      await renderWidget('4x4');
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('an image whose header cannot be read is kept as it is', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(image());
+      setPreviewSize(270);
+      await renderWidget('4x4');
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
   });
 
   it('names the tile in its accessible text', async () => {

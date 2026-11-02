@@ -26,20 +26,21 @@ export function resetPreviewSeed(): void {
 }
 
 /** Frames Build out of sight so it renders and stores the case image; the tile unmounts this once the image lands. */
-export function BuildPreviewSeed({ caseId }: { caseId: string }) {
+export function BuildPreviewSeed({ caseId, size = null }: { caseId: string; size?: number | null }) {
+  const triedKey = size ? `${caseId}|${size}` : caseId;
   const [id] = useState(() => Symbol('build-preview-seed'));
   const [active, setActive] = useState(false);
-  const [stopped, setStopped] = useState(() => tried.has(caseId));
+  const [stopped, setStopped] = useState(() => tried.has(triedKey));
   const { machine, key } = useBuildMachine(!stopped);
-  const attempt = key === null ? null : seedAttemptKey(caseId, key);
+  const attempt = key === null ? null : seedAttemptKey(caseId, key, size);
 
   // A failure kept from an earlier launch holds this one off, so an offline or failing portal is not framed on every start.
   useEffect(() => {
     if (attempt !== null && seedFailedRecently(attempt)) {
-      tried.add(caseId);
+      tried.add(triedKey);
       setStopped(true);
     }
-  }, [attempt, caseId]);
+  }, [attempt, triedKey]);
 
   const [wake, setWake] = useState(0);
   useEffect(() => {
@@ -64,12 +65,12 @@ export function BuildPreviewSeed({ caseId }: { caseId: string }) {
   useEffect(() => {
     if (!ready) return undefined;
     const timer = window.setTimeout(() => {
-      tried.add(caseId);
+      tried.add(triedKey);
       if (attempt !== null) recordSeedFailure(attempt);
       setStopped(true);
     }, SEED_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [ready, caseId, attempt]);
+  }, [ready, triedKey, attempt]);
 
   const headless = useMemo<HeadlessBuild | null>(() => (ready && machine && key !== null
     ? {
@@ -78,12 +79,12 @@ export function BuildPreviewSeed({ caseId }: { caseId: string }) {
       preview: true,
       onResolved: () => {},
       onUnavailable: () => {
-        tried.add(caseId);
+        tried.add(triedKey);
         if (attempt !== null) recordSeedFailure(attempt);
         setStopped(true);
       },
     }
-    : null), [ready, machine, key, caseId, attempt]);
+    : null), [ready, machine, key, triedKey, attempt]);
 
   return headless ? <BuildPage headless={headless} /> : null;
 }
