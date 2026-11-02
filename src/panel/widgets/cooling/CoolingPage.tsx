@@ -162,6 +162,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       guard={thermalGuard.guard}
       onUndo={() => { void thermalGuard.undo(); }}
       onKeep={() => { void thermalGuard.keep(); }}
+      onRestore={() => { void thermalGuard.restore(); }}
+      restoring={thermalGuard.restoring}
       error={latestError(saveError, thermalGuard.error)}
     />
   );

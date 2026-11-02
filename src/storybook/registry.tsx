@@ -725,7 +725,7 @@ function PreviewNotice() {
         <NoticeSecondary>A dimmer line gives the cause.</NoticeSecondary>
       </Notice>
       <Notice tone="critical" role="alert">
-        <span>Critical: the fans were handed back to the BIOS.</span>
+        <span>Critical: all fans are running at full speed.</span>
       </Notice>
     </div>
   );
@@ -3064,7 +3064,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ThermalGuardPanel', category: 'cards',
     filePath: 'src/panel/widgets/cooling/page/ThermalGuardPanel.tsx',
-    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or handed them back to the BIOS (escalated), a banner when the engine watchdog latched the fans to the BIOS, and the post-heal notice with Undo and Keep (Keep is the primary action). The switch lives in Settings. With the guard off the block shows nothing (last row).',
+    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or held them at full speed after the CPU kept heating (escalated), a banner when the engine watchdog latched cooling mode (all fans at full speed), and the post-heal notice with Undo and Keep (Keep is the primary action). The switch lives in Settings. With the guard off the block shows nothing (last row).',
     Preview: PreviewThermalGuardPanel,
   },
   {
