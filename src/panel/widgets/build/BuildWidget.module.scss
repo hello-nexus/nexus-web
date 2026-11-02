@@ -78,6 +78,13 @@
   top: var(--tile-pad);
   right: var(--tile-pad);
   display: block;
+  // The clearance below and beside the logo that the specs keep; it is part of the box, so the box's size is the whole reserve.
+  padding: 0 0 var(--space-sm) var(--space-sm);
+
+  // A step smaller than the body type.
+  > span {
+    font-size: var(--type-small);
+  }
 }
 
 .specs {

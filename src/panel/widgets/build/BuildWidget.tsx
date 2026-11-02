@@ -14,6 +14,7 @@ import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState'
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
 import { sizeShowsSpecs, type BuildSpecRow } from './buildSpecRows';
+import { specsClearance, type LogoClearance } from './logoReserve';
 import { isY70CaseId } from './y70Cases';
 import { NO_CASE_KEY } from './seedAttempts';
 import y70Dark from './assets/y70-touch-dark.png';
@@ -46,9 +47,6 @@ interface BuildWidgetViewProps {
   /** Told how many CSS px across the picture's box is, once it settles after a mount, a resize or a scale change. */
   onImageWidth?: (cssWidth: number) => void;
 }
-
-// The corner logo's type size in CSS px, 0.8 of the body size (16px).
-const LOGO_FONT_PX = 12.8;
 
 // A tile is scaled by a transform, which a resize observer does not report, so the box is read again on a few later
 // frames; a burst of reads settles before it is reported.
@@ -157,7 +155,8 @@ function useScopeTheme() {
 export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
   const { t } = useTranslation();
   const markRef = useRef<HTMLSpanElement>(null);
-  const [markReserve, setMarkReserve] = useState(0);
+  const specsRef = useRef<HTMLUListElement>(null);
+  const [clearance, setClearance] = useState<LogoClearance & { markWidth: number }>({ top: 0, narrowFirst: false, markWidth: 0 });
   // The layout is known from the tile's size, not from the spec rows having loaded, so the first report is already the final square.
   const wide = sizeShowsSpecs(size);
   const withSpecs = rows.length > 0;
@@ -168,12 +167,28 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
   const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
-  // On the tall tile the specs keep clear of the corner logo: equal room above and below, so they stay centered.
-  const tall = size === '4x4';
+  // The specs keep clear of the corner logo: room is added above them only as far as centering alone would leave them under it, and when the column is too full for that the first row stops short of the logo.
   useLayoutEffect(() => {
     const mark = markRef.current;
-    setMarkReserve(mark && withSpecs ? mark.offsetHeight + 8 : 0);
-  }, [withSpecs]);
+    const body = geometry.bodyRef.current;
+    const list = specsRef.current;
+    if (!mark || !body || !list || !withSpecs) {
+      setClearance({ top: 0, narrowFirst: false, markWidth: 0 });
+      return undefined;
+    }
+    const measure = () => {
+      // The column is the body, which centers the specs. The mark's box includes its clearance, and all three are read in layout px, so a transform scale does not skew them.
+      const next = { ...specsClearance(mark.offsetTop + mark.offsetHeight - body.offsetTop, body.offsetHeight, list.offsetHeight), markWidth: mark.offsetWidth };
+      setClearance((prev) => (Math.abs(prev.top - next.top) < 0.5 && prev.narrowFirst === next.narrowFirst && prev.markWidth === next.markWidth ? prev : next));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(mark);
+    observer.observe(body);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [withSpecs, geometry.bodyRef]);
   const generic = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
@@ -188,10 +203,10 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {generic && <DrawingImage className={styles.image} src={scope.theme === 'light' ? genericLight : genericDark} generic />}
       </div>
       {withSpecs && (
-        <div className={styles.side} style={tall && markReserve > 0 ? { padding: `${markReserve}px 0 ${markReserve}px var(--space-lg)` } : undefined}>
-          <ul className={styles.specs}>
-            {rows.map((row) => (
-              <li key={row.key} className={styles.spec}>
+        <div className={styles.side} style={clearance.top > 0 ? { paddingTop: clearance.top } : undefined}>
+          <ul ref={specsRef} className={styles.specs}>
+            {rows.map((row, index) => (
+              <li key={row.key} className={styles.spec} style={index === 0 && clearance.narrowFirst ? { paddingRight: clearance.markWidth } : undefined}>
                 <span className={styles.specLabel} aria-hidden="true">{t(row.labelKey)}</span>
                 <span className={styles.srOnly}>{t(row.fullKey)}</span>
                 <HoverTooltip title={t(row.fullKey)} body={row.full} side="top">
@@ -203,7 +218,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         </div>
       )}
       </div>
-      {withSpecs && <span ref={markRef} className={styles.mark} aria-hidden="true"><BuildLogo tone="muted" fontSize={LOGO_FONT_PX} /></span>}
+      {withSpecs && <span ref={markRef} className={styles.mark} aria-hidden="true"><BuildLogo tone="muted" /></span>}
     </div>
   );
 }

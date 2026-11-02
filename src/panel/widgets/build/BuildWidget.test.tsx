@@ -193,6 +193,49 @@ describe('BuildWidget', () => {
       }
     });
 
+    it('reserves room above the specs only as far as the logo needs, on both wide sizes', async () => {
+      // jsdom has no layout: every box is 40 high at offset 0, so the logo ends at 40 and the frame has no free height beyond the specs.
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(40);
+      vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(0);
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(24);
+      for (const size of ['4x2', '4x4'] as const) {
+        const { container, unmount } = await renderWidget(size);
+        const side = container.querySelector('ul')!.parentElement!;
+        // Free height is zero, so the reserve is capped at zero and the last row is never pushed out.
+        expect(side.style.paddingTop).toBe('');
+        expect(side.style.paddingBottom).toBe('');
+        // Nowhere to lift the first row, so it stops short of the logo's width; the others keep the full width.
+        const items = container.querySelectorAll('li');
+        expect((items[0] as HTMLElement).style.paddingRight).toBe('24px');
+        expect((items[1] as HTMLElement).style.paddingRight).toBe('');
+        unmount();
+      }
+    });
+
+    it('adds the reserve when the column has the free height to spare', async () => {
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+        if (this.tagName === 'UL') return 20;
+        if (this.className.includes('body')) return 100;
+        return 30;
+      });
+      vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(0);
+      const { container } = await renderWidget('4x2');
+      // Logo bottom 30, free 80: 2 * 30 - 80 is below zero, so none is needed.
+      expect(container.querySelector('ul')!.parentElement!.style.paddingTop).toBe('');
+      expect((container.querySelector('li') as HTMLElement).style.paddingRight).toBe('');
+      vi.restoreAllMocks();
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+        if (this.tagName === 'UL') return 60;
+        if (this.className.includes('body')) return 100;
+        return 30;
+      });
+      vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(0);
+      const tight = await renderWidget('4x4');
+      // Logo bottom 30, free 40: 2 * 30 - 40 = 20, within the free height.
+      expect(tight.container.querySelector('ul')!.parentElement!.style.paddingTop).toBe('20px');
+      expect((tight.container.querySelector('li') as HTMLElement).style.paddingRight).toBe('');
+    });
+
     it('is absent on 2x2, which is the image alone', async () => {
       const { container } = await renderWidget('2x2');
       expect(container.querySelector('ul')).toBeNull();
