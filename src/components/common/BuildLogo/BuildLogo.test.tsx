@@ -33,6 +33,11 @@ describe('BuildLogo', () => {
     expect(svg.getAttribute('aria-label')).toBe('Build');
   });
 
+  it('defaults to the pure white or black contrast tone', () => {
+    const svg = render(<BuildLogo />).container.querySelector('svg')!;
+    expect(svg.getAttribute('class')).toMatch(/contrast/);
+  });
+
   it('uses currentColor ink from a neutral token, never the accent', () => {
     const svg = render(<BuildLogo />).container.querySelector('svg')!;
     expect(svg.getAttribute('fill')).toBe('currentColor');

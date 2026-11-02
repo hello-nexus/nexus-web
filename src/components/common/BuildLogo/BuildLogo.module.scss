@@ -1,7 +1,16 @@
-// Neutral by design: a muted or primary text token, never the accent, so it reads in dark and light.
+// Neutral by design, never the accent: pure white on the dark theme and pure black on the light one by default,
+// or a text token when asked.
 .logo {
   display: block;
   flex: none;
+}
+
+.contrast {
+  color: #fff;
+}
+
+:global([data-theme='light']) .contrast {
+  color: #000;
 }
 
 .muted {

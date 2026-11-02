@@ -26,11 +26,6 @@
   justify-content: center;
 }
 
-// The small tile keeps the bottom-left corner for the logo: the image scales down to leave its height and a small gap.
-.widget[data-size='2x2'] {
-  padding-bottom: calc(var(--space-md) + var(--build-logo-height) + var(--space-sm));
-}
-
 // Image on the left, one row per spec on the right.
 .widget[data-specs] {
   flex-direction: row;
@@ -116,10 +111,10 @@
   }
 }
 
-// The BUILD logo sits in the tile's bottom-left corner; the logo itself is the shared component.
+// The BUILD logo sits directly above the case image, left-aligned with it; the shared component draws it.
 .logoSlot {
-  position: absolute;
-  left: var(--space-md);
-  bottom: var(--space-md);
+  flex: none;
+  align-self: flex-start;
+  margin-bottom: var(--space-sm);
   pointer-events: none;
 }

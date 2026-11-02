@@ -151,7 +151,7 @@ describe('BuildWidget', () => {
     expect(view.container.querySelector('svg:not([role="img"])')).not.toBeNull();
   });
 
-  it('carries the BUILD logo bottom-left in every view and size, hidden from assistive tech', async () => {
+  it('carries the BUILD logo above the image in every view and size, hidden from assistive tech', async () => {
     for (const size of ['2x2', '4x2', '4x4'] as const) {
       const { container, unmount } = await renderWidget(size);
       const slot = container.querySelector('[aria-hidden="true"] svg[role="img"]');

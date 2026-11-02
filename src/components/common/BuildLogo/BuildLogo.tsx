@@ -10,8 +10,8 @@ export const SMALL_CAP_HEIGHT_PX = 12;
 interface BuildLogoProps {
   /** The drawing's height in CSS px; the width follows the logo's proportions. */
   height?: number;
-  /** muted is the quiet default; primary is the body text color. Never the accent. */
-  tone?: 'muted' | 'primary';
+  /** contrast is pure white on dark and pure black on light (the default); muted and primary follow the text tokens. Never the accent. */
+  tone?: 'contrast' | 'muted' | 'primary';
   /** The accessible name; a host with its own translations passes it. Defaults to the app's BUILD string. */
   label?: string;
   className?: string;
@@ -23,13 +23,13 @@ export function logoCutFor(height: number): 'small' | 'full' {
 }
 
 /** The BUILD logo (a rounded sign with the name knocked out and a screw on each side), drawn inline in a neutral theme color. A quiet identifier, not a button. */
-export function BuildLogo({ height = 24, tone = 'muted', label, className }: BuildLogoProps) {
+export function BuildLogo({ height = 24, tone = 'contrast', label, className }: BuildLogoProps) {
   const { t } = useTranslation();
   const cut = logoCutFor(height) === 'small' ? LOGO_SMALL : LOGO_FULL;
   const [, , w, h] = cut.viewBox.split(' ').map(Number);
   return (
     <svg
-      className={[styles.logo, tone === 'primary' ? styles.primary : styles.muted, className].filter(Boolean).join(' ')}
+      className={[styles.logo, styles[tone], className].filter(Boolean).join(' ')}
       viewBox={cut.viewBox}
       height={height}
       width={(height * w) / h}
