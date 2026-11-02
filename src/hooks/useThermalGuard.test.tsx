@@ -34,7 +34,7 @@ const hook = {
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.pendingEnabled != null ? ` pending:${h.pendingEnabled ? 'on' : 'off'}` : ''}</span><span data-testid="lint">{h.pendingLintWarnings == null ? 'none' : String(h.pendingLintWarnings)}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError, h.ackError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.pendingEnabled != null ? ` pending:${h.pendingEnabled ? 'on' : 'off'}` : ''}</span><span data-testid="restoring">{String(h.restoring)}</span><span data-testid="lint">{h.pendingLintWarnings == null ? 'none' : String(h.pendingLintWarnings)}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError, h.ackError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
 }
 const mount = (online = true) => render(<Harness online={online} />);
 
@@ -270,6 +270,46 @@ describe('useThermalGuard', () => {
     await act(async () => { ok = await handle.current!.restore(); });
     expect(ok).toBe(false);
     await screen.findByText('cooling.guard.error.restore');
+  });
+
+  it('a thrown restore request sets the inline error and reports false', async () => {
+    mount();
+    api.restoreGuardCurves.mockRejectedValue(new Error('network'));
+    let ok = true;
+    await act(async () => { ok = await handle.current!.restore(); });
+    expect(ok).toBe(false);
+    await screen.findByText('cooling.guard.error.restore');
+    expect(screen.getByTestId('restoring').textContent).toBe('false');
+  });
+
+  it('flags restoring while the request is pending', async () => {
+    mount();
+    const d = deferred<GuardResponse>();
+    api.restoreGuardCurves.mockReturnValue(d.promise);
+    let pending!: Promise<boolean>;
+    act(() => { pending = handle.current!.restore(); });
+    expect(screen.getByTestId('restoring').textContent).toBe('true');
+    await act(async () => { d.resolve(guard('normal')); await pending; });
+    expect(screen.getByTestId('restoring').textContent).toBe('false');
+  });
+
+  it('a poll without restoreAvailable clears a restore error', async () => {
+    mount();
+    api.restoreGuardCurves.mockResolvedValue(null);
+    await act(async () => { await handle.current!.restore(); });
+    await screen.findByText('cooling.guard.error.restore');
+    api.fetchGuard.mockResolvedValue({ ...guard('normal'), restoreAvailable: false });
+    await act(async () => { await handle.current!.refresh(); });
+    expect(screen.queryByText('cooling.guard.error.restore')).toBeNull();
+  });
+
+  it('a poll that still offers restore keeps the restore error', async () => {
+    mount();
+    api.restoreGuardCurves.mockResolvedValue(null);
+    await act(async () => { await handle.current!.restore(); });
+    api.fetchGuard.mockResolvedValue({ ...guard('tripped'), restoreAvailable: true });
+    await act(async () => { await handle.current!.refresh(); });
+    expect(screen.getByText('cooling.guard.error.restore')).toBeTruthy();
   });
 
   it('sends the hazard-warning switch as its own request', async () => {

@@ -209,7 +209,8 @@ export function useThermalGuard(serviceOnline: boolean) {
   const restore = useCallback(async (): Promise<boolean> => {
     setRestoring(true);
     try {
-      const res = await restoreGuardCurves();
+      // A thrown fetch counts as a refusal; the button's caller discards the promise.
+      const res = await restoreGuardCurves().catch(() => null);
       if (!res || res.error || !res.state) {
         setError(newGuardError(tRef.current('cooling.guard.error.restore'), 'restore'));
         return false;
