@@ -156,7 +156,7 @@ function useScopeTheme() {
   return { ref, theme };
 }
 
-export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth, logoTone = 'primary' }: BuildWidgetViewProps) {
+export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth, logoTone = 'muted' }: BuildWidgetViewProps) {
   const { t } = useTranslation();
   const markRef = useRef<HTMLSpanElement>(null);
   const [markReserve, setMarkReserve] = useState(0);
