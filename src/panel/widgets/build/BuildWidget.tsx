@@ -45,8 +45,6 @@ interface BuildWidgetViewProps {
   rows?: BuildSpecRow[];
   /** Told how many CSS px across the picture's box is, once it settles after a mount, a resize or a scale change. */
   onImageWidth?: (cssWidth: number) => void;
-  /** Temporary, for comparing the two looks: dim (muted) or full (primary). */
-  logoTone?: 'muted' | 'primary';
 }
 
 // The corner logo's type size in CSS px, 0.8 of the body size (16px).
@@ -156,7 +154,7 @@ function useScopeTheme() {
   return { ref, theme };
 }
 
-export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth, logoTone = 'muted' }: BuildWidgetViewProps) {
+export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
   const { t } = useTranslation();
   const markRef = useRef<HTMLSpanElement>(null);
   const [markReserve, setMarkReserve] = useState(0);
@@ -205,7 +203,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         </div>
       )}
       </div>
-      {withSpecs && <span ref={markRef} className={styles.mark} aria-hidden="true"><BuildLogo tone={logoTone} fontSize={LOGO_FONT_PX} /></span>}
+      {withSpecs && <span ref={markRef} className={styles.mark} aria-hidden="true"><BuildLogo tone="muted" fontSize={LOGO_FONT_PX} /></span>}
     </div>
   );
 }
