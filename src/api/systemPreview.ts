@@ -37,8 +37,9 @@ export async function fetchSystemPreview(etag?: string | null): Promise<SystemPr
   }
 }
 
-export async function putSystemPreview(caseId: string, png: ArrayBuffer): Promise<boolean> {
-  const res = await putServiceBytes(`/system/preview?caseId=${encodeURIComponent(caseId)}`, new Uint8Array(png), 'image/png');
+/** Stores the PC's image; a null case id is a PC with no case chosen. */
+export async function putSystemPreview(caseId: string | null, png: ArrayBuffer): Promise<boolean> {
+  const res = await putServiceBytes(caseId === null ? '/system/preview' : `/system/preview?caseId=${encodeURIComponent(caseId)}`, new Uint8Array(png), 'image/png');
   return res !== null;
 }
 

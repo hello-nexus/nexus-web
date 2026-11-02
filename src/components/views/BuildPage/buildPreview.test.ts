@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./noCasePreview', () => ({ saveNoCasePreview: vi.fn() }));
 vi.mock('../../../api/systemPreview', () => ({
   putSystemPreview: vi.fn(),
   notifySystemPreviewChanged: vi.fn(),
@@ -8,7 +7,6 @@ vi.mock('../../../api/systemPreview', () => ({
 
 import { notifySystemPreviewChanged, putSystemPreview } from '../../../api/systemPreview';
 import { relayPreviewSave } from './buildPreview';
-import { saveNoCasePreview } from './noCasePreview';
 
 describe('relayPreviewSave', () => {
   beforeEach(() => vi.resetAllMocks());
@@ -21,12 +19,11 @@ describe('relayPreviewSave', () => {
     expect(notifySystemPreviewChanged).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the png in the host for a PC with no case and signals the widget, without calling the service', async () => {
-    vi.mocked(saveNoCasePreview).mockReturnValue(true);
+  it('stores the png for a PC with no case through the same route and signals the widget', async () => {
+    vi.mocked(putSystemPreview).mockResolvedValue(true);
     const png = new Uint8Array([1, 2, 3]).buffer;
     expect(await relayPreviewSave(null, png)).toBe(true);
-    expect(saveNoCasePreview).toHaveBeenCalledWith(png);
-    expect(putSystemPreview).not.toHaveBeenCalled();
+    expect(putSystemPreview).toHaveBeenCalledWith(null, png);
     expect(notifySystemPreviewChanged).toHaveBeenCalledTimes(1);
   });
 

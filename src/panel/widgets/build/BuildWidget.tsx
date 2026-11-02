@@ -26,6 +26,7 @@ const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
 // How often, and when last, each case's image was redrawn by this context.
 const redrawn = new Map<string, RedrawRecord>();
+const NO_CASE_KEY = 'no-case';
 
 /** Test seam. */
 export function resetResizedPreviews(): void {
@@ -211,7 +212,9 @@ export function BuildWidget({ widget }: WidgetProps) {
   const onImageWidth = measuring ? (cssWidth: number) => reportSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
   // A stored image outside the window around a size that has held still is drawn again, within a small budget per case (see `mayRedraw`).
   const settled = useSettled(wanted, SEED_SETTLE_MS);
-  const staleKey = live.caseId && settled ? `${live.caseId}|${settled}` : null;
+  // A PC with no case chosen has its own image, redrawn by the same rule under its own key.
+  const caseKey = live.caseId ?? NO_CASE_KEY;
+  const staleKey = settled ? `${caseKey}|${settled}` : null;
   const tooFar = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0);
   const [redrawing, setRedrawing] = useState<string | null>(null);
   // After the portal's save, nothing is decided until the refreshed image has landed: its width is what is judged.
@@ -221,11 +224,10 @@ export function BuildWidget({ widget }: WidgetProps) {
   }, [holdUrl, live.previewUrl]);
   const [due, setDue] = useState(0);
   useEffect(() => {
-    const caseId = live.caseId;
-    if (!tooFar || !staleKey || !caseId || redrawing !== null || holdUrl !== null) return undefined;
-    const record = redrawn.get(caseId);
+    if (!tooFar || !staleKey || redrawing !== null || holdUrl !== null) return undefined;
+    const record = redrawn.get(caseKey);
     if (mayRedraw(record, Date.now())) {
-      redrawn.set(caseId, { count: (record?.count ?? 0) + 1, last: Date.now() });
+      redrawn.set(caseKey, { count: (record?.count ?? 0) + 1, last: Date.now() });
       setRedrawing(staleKey);
       return undefined;
     }
@@ -233,7 +235,7 @@ export function BuildWidget({ widget }: WidgetProps) {
     // Still too far once the interval has passed: look again then.
     const timer = window.setTimeout(() => setDue((n) => n + 1), Math.max(0, REDRAW_INTERVAL_MS - (Date.now() - record.last)));
     return () => window.clearTimeout(timer);
-  }, [tooFar, staleKey, live.caseId, redrawing, holdUrl, due]);
+  }, [tooFar, staleKey, caseKey, redrawing, holdUrl, due]);
   // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change, or when what is stored is no longer too far off.
   useEffect(() => {
     if (redrawing === null) return undefined;
@@ -244,7 +246,7 @@ export function BuildWidget({ widget }: WidgetProps) {
   }, [redrawing, tooFar, live.previewUrl]);
   const stale = redrawing !== null;
   // A PC with no case chosen is framed too (a null case), so its open-air picture is drawn without the Build page having been opened.
-  const seedCase: string | null | false = !preview && ((view === 'no-preview' || stale) && live.caseId ? live.caseId : view === 'no-case' ? null : false);
+  const seedCase: string | null | false = preview ? false : (view === 'no-preview' || stale) ? live.caseId : view === 'no-case' ? null : false;
   const seed = seedCase === false ? false : (seedCase ?? 'no-case');
   return (
     <>

@@ -4,7 +4,6 @@ import type { PanelWidget, PanelWidgetSize } from '../../types';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
 import { isDashboardClickthroughType } from '../../engine/panelLayoutHelpers';
 import { BuildWidget, resetResizedPreviews } from './BuildWidget';
-import { saveNoCasePreview } from '../../../components/views/BuildPage/noCasePreview';
 import { getPreviewSize, previewSizeFor, registerPreviewSize, resetPreviewSize } from '../../../components/views/BuildPage/previewSize';
 import { FOCUS_COALESCE_MS, PING_RETRY_MIN_MS, useBuildPreview, useHostIsMac } from './useBuildPreview';
 
@@ -62,7 +61,6 @@ describe('BuildWidget', () => {
     resetPreviewSize();
     resetResizedPreviews();
     h.specs = null;
-    localStorage.clear();
     h.macShell = false;
     h.devTools = false;
     h.ping.mockReset().mockResolvedValue({ platform: 'windows' });
@@ -103,20 +101,13 @@ describe('BuildWidget', () => {
     expect(container.querySelector('[data-view="no-case"] img[data-open-air]')).not.toBeNull();
   });
 
-  it('no case with a snapshot the portal drew for the open PC shows that snapshot, not the placeholder, and mounts no seed', async () => {
-    saveNoCasePreview(new Uint8Array([137, 80, 78, 71]).buffer);
+  it('no case with a snapshot the service holds for it shows that snapshot, not the placeholder, and mounts no seed', async () => {
+    h.preview.mockResolvedValue(image());
     const { container } = await renderWidget('4x2');
     expect(container.querySelector('[data-view="preview"]')).not.toBeNull();
     expect(container.querySelector('img[data-open-air]')).toBeNull();
     expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:preview-1');
     expect(screen.queryByTestId('seed')).toBeNull();
-  });
-
-  it('a snapshot kept for no case is ignored once a case is chosen', async () => {
-    saveNoCasePreview(new Uint8Array([1, 2, 3]).buffer);
-    h.caseId.mockResolvedValue('hyte-y70');
-    const { container } = await renderWidget('4x2');
-    expect(container.querySelector('[data-view="no-preview"]')).not.toBeNull();
   });
 
   it('shows only the preview image when one is stored', async () => {
@@ -313,6 +304,18 @@ describe('BuildWidget', () => {
       registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.getByTestId('seed').getAttribute('data-size')).toBe('270');
+      h.preview.mockResolvedValue(header(270));
+      await changed();
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('the image of a PC with no case is drawn again at the wanted size by the same rule, with the seed told no case', async () => {
+      h.preview.mockResolvedValue(header(1024));
+      registerPreviewSize('test', 270);
+      await renderWidget('4x4');
+      const seed = screen.getByTestId('seed');
+      expect(seed.getAttribute('data-case')).toBeNull();
+      expect(seed.getAttribute('data-size')).toBe('270');
       h.preview.mockResolvedValue(header(270));
       await changed();
       expect(screen.queryByTestId('seed')).toBeNull();
