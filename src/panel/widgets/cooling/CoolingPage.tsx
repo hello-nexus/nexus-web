@@ -2028,7 +2028,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </aside>
         <div className={styles.curveCol}>
           {view3d ? (
-            <ErrorBoundary label={t('cooling.view.airflow')} resetKey="airflow" fallback={null} onError={() => setCase3dFailed(true)}>
+            <ErrorBoundary label={t('cooling.view.airflow')} resetKey={VIEW_3D} fallback={null} onError={() => setCase3dFailed(true)}>
             <Suspense fallback={null}>
             <CoolingAutoResolve>
               {autoResolve => (
