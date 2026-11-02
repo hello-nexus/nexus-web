@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "In questo case non sono installate ventole.",
   "cooling.case3d.noneLinked": "Nessuna ventola associata",
   "cooling.case3d.position.bottom": "Inferiore",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Frontale",
   "cooling.case3d.position.frontLeft": "Frontale sinistra",
   "cooling.case3d.position.frontRight": "Frontale destra",

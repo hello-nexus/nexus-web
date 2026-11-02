@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "No fans are installed in this case.",
   "cooling.case3d.noneLinked": "No fan linked",
   "cooling.case3d.position.bottom": "Bottom",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Front",
   "cooling.case3d.position.frontLeft": "Front left",
   "cooling.case3d.position.frontRight": "Front right",

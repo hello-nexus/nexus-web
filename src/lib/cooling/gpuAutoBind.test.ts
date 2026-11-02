@@ -31,7 +31,8 @@ describe('the Y70 box with an estimated GPU and no case fans', () => {
     const effective = withDefaultBindings([], layout.fanSlots, channels(1858));
     expect(effective.find(b => b.channelId === '/gpu-nvidia/0/control/1')?.slotKeys).toEqual(['gpu:fan:0']);
     expect(effective.find(b => b.channelId === '/gpu-nvidia/0/control/2')?.slotKeys).toEqual(['gpu:fan:1', 'gpu:fan:2']);
-    expect(effective.some(b => b.slotKeys.some(k => !k.startsWith('gpu:fan:')))).toBe(false);
+    // The box's own air cooler fan is simulated beside the card's.
+    expect(effective.some(b => b.slotKeys.some(k => !k.startsWith('gpu:fan:') && !k.startsWith('cpu:fan:')))).toBe(false);
   });
 
   it('blows at the live GPU fan speed and counts as installed', () => {
@@ -40,7 +41,7 @@ describe('the Y70 box with an estimated GPU and no case fans', () => {
     const speeds = slotSpeeds(layout.fanSlots, effective, channels(1858));
     for (const k of gpuKeys) expect(speeds.get(k)?.fraction).toBeGreaterThan(0.7);
     const collapsed = collapseMounts(layout, boundSlotKeys(effective, channels(1858))).layout;
-    expect(collapsed.fanSlots.filter(s => s.taken === 'fan').map(s => s.key)).toEqual(gpuKeys);
+    expect(collapsed.fanSlots.filter(s => s.taken === 'fan').map(s => s.key)).toEqual([...gpuKeys, 'cpu:fan:0']);
   });
 
   it('reads stopped GPU fans as idle', () => {
@@ -51,7 +52,7 @@ describe('the Y70 box with an estimated GPU and no case fans', () => {
 
   it('keeps empty case mounts unbound, so a Y70 with no case fans shows only the GPU fans', () => {
     const effective = withDefaultBindings([], layout.fanSlots, channels(1858));
-    expect(effective.flatMap(b => b.slotKeys).filter(k => !k.startsWith('gpu:'))).toEqual([]);
+    expect(effective.flatMap(b => b.slotKeys).filter(k => !k.startsWith('gpu:') && !k.startsWith('cpu:'))).toEqual([]);
     const speeds = slotSpeeds(layout.fanSlots, effective, channels(1858));
     const model = lumpedModel(layout.fanSlots, [], speeds, slotDirections(layout.fanSlots, {}));
     expect(model.fanCount).toBe(0);
