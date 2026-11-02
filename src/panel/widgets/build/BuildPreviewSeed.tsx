@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BuildPage, type HeadlessBuild } from '../../../components/views/BuildPage/BuildPage';
 import { useBuildMachine } from '../../../components/views/BuildPage/buildMachine';
-import { clearSeedFailures, recordSeedFailure, seedAttemptKey, seedFailedRecently } from './seedAttempts';
-
-const NO_CASE_KEY = 'no-case';
+import { clearSeedFailures, NO_CASE_KEY, recordSeedFailure, seedAttemptKey, seedFailedRecently } from './seedAttempts';
 
 /** Past this the try counts as failed. */
 export const SEED_TIMEOUT_MS = 60_000;

@@ -15,9 +15,10 @@ import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
 import { sizeShowsSpecs, type BuildSpecRow } from './buildSpecRows';
 import { isY70CaseId } from './y70Cases';
+import { NO_CASE_KEY } from './seedAttempts';
 import y70Dark from './assets/y70-touch-dark.png';
 import y70Light from './assets/y70-touch-light.png';
-// Every part draws in the accent, so one image serves both themes.
+// Rendered ahead of time by the Build portal's renderer (scripts/render-widget-fallbacks.mjs there), one picture per theme because the case lines are the theme's ink.
 import openFrameDark from './assets/open-frame-dark.png?inline';
 import openFrameLight from './assets/open-frame-light.png?inline';
 import genericDark from './assets/generic-case-dark.png?inline';
@@ -28,7 +29,6 @@ const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
 // How often, and when last, each case's image was redrawn by this context.
 const redrawn = new Map<string, RedrawRecord>();
-const NO_CASE_KEY = 'no-case';
 
 /** Test seam. */
 export function resetResizedPreviews(): void {
@@ -249,7 +249,7 @@ export function BuildWidget({ widget }: WidgetProps) {
   const stale = redrawing !== null;
   // A PC with no case chosen is framed too (a null case), so its open-air picture is drawn without the Build page having been opened.
   const seedCase: string | null | false = preview ? false : (view === 'no-preview' || stale) ? live.caseId : view === 'no-case' ? null : false;
-  const seed = seedCase === false ? false : (seedCase ?? 'no-case');
+  const seed = seedCase === false ? false : (seedCase ?? NO_CASE_KEY);
   return (
     <>
       <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} stock={isY70CaseId(live.caseId)} rows={rows} onImageWidth={onImageWidth} />
