@@ -420,6 +420,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const kind = speed > 0 ? (p.direction === 'intake' ? OPENING_INTAKE : OPENING_EXHAUST) : p.porousBox ? OPENING_NONE : OPENING_VENT;
     for (const c of cells.annulus) {
       const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
+      // A cooler fan's ring reaches past the heatsink: a solid neighbor outside the cooler box stays shut.
+      if (p.slot.position === 'cpu' && solid[c] && !coolerBoxes.some(b => boxContains(b, layoutMm(i, j, k), 0))) continue;
       solid[c] = 0;
       if (onCaseShell(i, j, k) && kind !== OPENING_NONE) opening[c] = kind;
       if (speed > 0 && !solid[c]) {

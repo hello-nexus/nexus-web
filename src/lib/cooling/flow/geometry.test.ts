@@ -370,17 +370,31 @@ describe('a fan carves only what it should', () => {
   const generic = (layout: CaseLayout): CaseLayout => ({ ...layout, caseModel: undefined });
   const solidAtRam = (layout: CaseLayout) => isSolidAt(buildFlowScene(inputOf(layout), LOW), [312, 300, 125]);
 
+  it('keeps the memory in the cooler fan\'s half-depth outside its box solid', () => {
+    const dimm = { slot: 'ram', role: 'part', min: [309.7, 240, 150], size: [17, 120, 50] };
+    const scene = buildFlowScene(inputOf(generic(y70([dimm]))), LOW);
+    expect(isSolidAt(scene, [318, 290, 175])).toBe(true);
+    expect(isSolidAt(scene, [325, 290, 175])).toBe(true);
+  });
+
   it('leaves the memory beside a tower cooler fan solid', () => {
     expect(fanGeometries(y70([ram])).some(g => g.slot.position === 'cpu')).toBe(true);
     expect(solidAtRam(generic(y70([ram])))).toBe(true);
   });
 
-  it('still opens a card by its own running fan', () => {
-    const layout = y70([horizontalGpu], []);
-    const gpuFan = layout.fanSlots.find(s => s.position === 'gpu')!;
-    // A point on the blade ring, off the solid hub.
-    const c = gpuFan.box!.min.map((v, i) => v + gpuFan.box!.size[i] / 2) as [number, number, number];
-    c[0] += gpuFan.box!.size[0] * 0.3;
-    expect(isSolidAt(buildFlowScene(inputOf(layout), LOW), c)).toBe(false);
+  it('still opens a solid part beyond the card fan\'s half-depth but within its clearance', () => {
+    const probeOf = (layout: CaseLayout): [number, number, number] => {
+      const f = layout.fanSlots.find(s => s.position === 'gpu')!;
+      const c = f.box!.min.map((v, i) => v + f.box!.size[i] / 2) as [number, number, number];
+      // On the blade ring, 20 mm above the card's face (the fan's half-depth is the card's 20 mm), inside the 30 mm clearance.
+      c[0] += f.box!.size[0] * 0.3;
+      c[1] += f.box!.size[1] / 2 + 20;
+      return c;
+    };
+    const base = y70([horizontalGpu], []);
+    const p = probeOf(base);
+    const shroud = { slot: 'psu', role: 'part', min: [p[0] - 10, p[1] - 8, p[2] - 10], size: [20, 16, 20] };
+    const layout = y70([horizontalGpu, shroud], []);
+    expect(isSolidAt(buildFlowScene(inputOf(layout), LOW), p)).toBe(false);
   });
 });
