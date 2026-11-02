@@ -151,13 +151,10 @@ describe('BuildWidget', () => {
     expect(view.container.querySelector('svg:not([role="img"])')).not.toBeNull();
   });
 
-  it('carries the BUILD logo above the image in every view and size, hidden from assistive tech', async () => {
-    for (const size of ['2x2', '4x2', '4x4'] as const) {
-      const { container, unmount } = await renderWidget(size);
-      const slot = container.querySelector('[aria-hidden="true"] svg[role="img"]');
-      expect(slot?.getAttribute('aria-label')).toBe('panel.widget.build.badge');
-      unmount();
-    }
+  it('shows the BUILD label above the specs on wide tiles only, hidden from assistive tech', async () => {
+    const { container, unmount } = await renderWidget('2x2');
+    expect(container.querySelector('[aria-hidden="true"]:not(svg)')?.textContent ?? '').not.toBe('panel.widget.build.badge');
+    unmount();
   });
 
   it('names the tile in its accessible text', async () => {

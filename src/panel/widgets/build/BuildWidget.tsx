@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { DrawingImage } from './DrawingImage';
-import { BuildLogo } from '../../../components/common/BuildLogo/BuildLogo';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { isMacAppShell } from '../../../app/windowActions';
@@ -20,9 +19,19 @@ import y70Light from './assets/y70-touch-light.png';
 import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
 
-// The BUILD logo's drawing height in px, in the tile's own scaled units, and which edge of the tile it sits on.
-const LOGO_HEIGHT = 26;
-export const BADGE_POSITION: 'top' | 'bottom' = 'bottom';
+// Temporary exploration switch: the BUILD label's look, read from a dev override so one bundle shoots every variant.
+export const LABEL_VARIANTS = ['plain', 'outline-1-tight', 'outline-15-pill', 'outline-1-loose', 'outline-1-tight-dim', 'outline-15-tight'] as const;
+export type LabelVariant = (typeof LABEL_VARIANTS)[number];
+export const LABEL_VARIANT_KEY = 'nexus.dev.buildLabel';
+function labelVariant(): LabelVariant {
+  try {
+    const raw = localStorage.getItem(LABEL_VARIANT_KEY);
+    if (raw && (LABEL_VARIANTS as readonly string[]).includes(raw)) return raw as LabelVariant;
+  } catch {
+    // Storage is unusable; the default stays.
+  }
+  return 'outline-1-tight';
+}
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
@@ -61,9 +70,8 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
-    <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-badge={BADGE_POSITION}>
+    <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
-      <span className={styles.badge} aria-hidden="true"><BuildLogo height={LOGO_HEIGHT} tone="muted" /></span>
       <div className={styles.body} data-specs={rows.length > 0 ? '' : undefined}>
       <div className={styles.media}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
@@ -73,17 +81,20 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {silhouette && <BuildCaseSilhouette />}
       </div>
       {rows.length > 0 && (
-        <ul className={styles.specs}>
-          {rows.map((row) => (
-            <li key={row.key} className={styles.spec}>
-              <span className={styles.specLabel} aria-hidden="true">{t(row.labelKey)}</span>
-              <span className={styles.srOnly}>{t(row.fullKey)}</span>
-              <HoverTooltip title={t(row.fullKey)} body={row.full} side="top">
-                <span className={styles.specValue}>{row.value}</span>
-              </HoverTooltip>
-            </li>
-          ))}
-        </ul>
+        <div className={styles.side}>
+          <span className={styles.label} data-variant={labelVariant()} aria-hidden="true">{t('panel.widget.build.badge')}</span>
+          <ul className={styles.specs}>
+            {rows.map((row) => (
+              <li key={row.key} className={styles.spec}>
+                <span className={styles.specLabel} aria-hidden="true">{t(row.labelKey)}</span>
+                <span className={styles.srOnly}>{t(row.fullKey)}</span>
+                <HoverTooltip title={t(row.fullKey)} body={row.full} side="top">
+                  <span className={styles.specValue}>{row.value}</span>
+                </HoverTooltip>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       </div>
     </div>

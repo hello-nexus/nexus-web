@@ -7,33 +7,13 @@
   min-height: 0;
   position: relative;
   box-sizing: border-box;
-  padding: 12px;
+  // Room between the content and every tile edge, the same on all sides and at every size.
+  --tile-pad: 20px;
+  padding: var(--tile-pad);
   display: flex;
   flex-direction: column;
   align-items: center;
-  // The badge's own margin from the tile edge is the tile's padding; this is the clear gap between it and the content.
-  gap: var(--space-md);
   color: var(--text-dim);
-}
-
-// The BUILD badge sits at the middle of one edge of the tile (BADGE_POSITION), in every size and state; the content takes
-// the height that is left.
-.badge {
-  flex: none;
-  pointer-events: none;
-}
-
-.widget[data-badge='bottom'] {
-  // The gap under the badge matches the gap the content leaves above it.
-  padding-bottom: var(--space-lg);
-
-  .badge {
-    order: 2;
-  }
-}
-
-.widget[data-badge='top'] {
-  padding-top: var(--space-lg);
 }
 
 .body {
@@ -50,6 +30,9 @@
 }
 
 .media {
+  // The picture's own breathing room inside its square, a share of the width so it is even on all sides.
+  box-sizing: border-box;
+  padding: 9%;
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -61,7 +44,7 @@
 }
 
 // Wide tiles: the case image in a square on the left, as large as the content allows (two cells wide at most, derived from the
-// content's own box and the grid gap, so it holds at any scale and shrinks to leave the badge its height); the rest of
+// content's own box and the grid gap, so it holds at any scale); the rest of
 // the width is the specs. Browsers without container units fall back to 40%.
 .body[data-specs] {
   flex-direction: row;
@@ -72,26 +55,83 @@
   }
 
   @supports (width: 1cqw) {
-    --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2));
+    // Half the width less the tile padding the 2x2 content also gives up, so the square equals the 2x2 content at every width.
+    --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2 - var(--tile-pad)));
 
     .media {
       flex-basis: var(--left-region);
       width: var(--left-region);
+      // A percentage would be of the whole body's width here, so the inset is taken from the square itself.
+      padding: calc(var(--left-region) * 0.09);
     }
   }
 }
 
-.specs {
+.side {
   flex: 1 1 0;
   min-width: 0;
+  padding: 0 0 0 var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  overflow: hidden;
+}
+
+// The BUILD label is set like the Cooling widget's mode label (SILENT): same size, weight, tracking and ink.
+.label {
+  flex: none;
+  box-sizing: border-box;
+  font: 700 16px/1 var(--panel-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+
+  &:not([data-variant='plain']) {
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 4px 8px;
+  }
+
+  &[data-variant='outline-1-tight'] {
+    padding: 4px 8px;
+  }
+
+  &[data-variant='outline-15-pill'] {
+    border-width: 1.5px;
+    border-radius: 999px;
+    padding: 4px 12px;
+  }
+
+  &[data-variant='outline-1-loose'] {
+    border-radius: 6px;
+    padding: 8px 14px;
+  }
+
+  &[data-variant='outline-1-tight-dim'] {
+    color: var(--text-dim);
+    padding: 3px 6px;
+  }
+
+  &[data-variant='outline-15-tight'] {
+    border-width: 1.5px;
+    padding: 4px 8px;
+  }
+}
+
+.specs {
+  width: 100%;
+  min-width: 0;
   margin: 0;
-  padding: 0 0 0 var(--space-md);
+  padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: var(--space-sm);
-  overflow: hidden;
 }
 
 // The short type label sits above the name.
