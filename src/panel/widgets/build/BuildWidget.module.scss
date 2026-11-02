@@ -79,20 +79,21 @@
   overflow: hidden;
 }
 
-// The BUILD label is set like the Cooling widget's mode label (SILENT): same size, weight, tracking and ink.
+// The BUILD label is set like the Cooling widget's mode label (SILENT): the same size, weight and ink and the label mixin's
+// tracking, which is 0.02em tighter than SILENT's raw value (the style ratchet takes tokens and mixins only).
 .label {
   flex: none;
   box-sizing: border-box;
-  font: 700 16px/1 var(--panel-font);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  @include text-label;
+  font-family: var(--panel-font);
+  font-size: var(--type-body);
   color: var(--text);
   white-space: nowrap;
   pointer-events: none;
 
   &:not([data-variant='plain']) {
     border: 1px solid currentColor;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 4px 8px;
   }
 
@@ -102,12 +103,12 @@
 
   &[data-variant='outline-15-pill'] {
     border-width: 1.5px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 4px 12px;
   }
 
   &[data-variant='outline-1-loose'] {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 8px 14px;
   }
 
