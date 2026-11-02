@@ -4,8 +4,10 @@ export type BuildSpecKey = 'cpu' | 'gpu' | 'ram' | 'storage' | 'motherboard' | '
 
 export interface BuildSpecRow {
   key: BuildSpecKey;
-  /** An existing translation key; the row's label. */
+  /** The short label shown beside the value. */
   labelKey: string;
+  /** The full type name, for the tooltip and assistive tech; an existing translation key. */
+  fullKey: string;
   value: string;
 }
 
@@ -15,13 +17,22 @@ export interface BuildSpecInputs {
   coolers: string[];
 }
 
-const LABEL_KEYS: Record<BuildSpecKey, string> = {
+const FULL_KEYS: Record<BuildSpecKey, string> = {
   cpu: 'devices.specs.row.processor',
   gpu: 'devices.specs.row.graphicsCard',
   ram: 'devices.specs.row.memory',
   storage: 'devices.specs.row.storage',
   motherboard: 'devices.specs.row.motherboard',
   cooler: 'monitoring.detailed.cooler',
+};
+
+const LABEL_KEYS: Record<BuildSpecKey, string> = {
+  cpu: 'panel.widget.build.spec.cpu',
+  gpu: 'panel.widget.build.spec.gpu',
+  ram: 'panel.widget.build.spec.ram',
+  storage: 'panel.widget.build.spec.storage',
+  motherboard: 'panel.widget.build.spec.motherboard',
+  cooler: 'panel.widget.build.spec.cooler',
 };
 
 const KEYS_BY_SIZE: Record<string, BuildSpecKey[]> = {
@@ -56,6 +67,6 @@ export function buildSpecRows({ specs, coolers }: BuildSpecInputs, size: string)
   };
   return keys.flatMap((key) => {
     const value = values[key]?.trim();
-    return value ? [{ key, labelKey: LABEL_KEYS[key], value }] : [];
+    return value ? [{ key, labelKey: LABEL_KEYS[key], fullKey: FULL_KEYS[key], value }] : [];
   });
 }

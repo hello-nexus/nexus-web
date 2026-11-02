@@ -32,6 +32,14 @@ describe('buildSpecRows', () => {
     expect(buildSpecRows({ specs: { ...specs, memory: '  ' }, coolers: [] }, '4x2').map((r) => r.key)).toEqual(['cpu', 'gpu']);
   });
 
+  it('pairs each short label with the full type name', () => {
+    expect(buildSpecRows({ specs, coolers: [] }, '4x2').map((r) => [r.labelKey, r.fullKey])).toEqual([
+      ['panel.widget.build.spec.cpu', 'devices.specs.row.processor'],
+      ['panel.widget.build.spec.gpu', 'devices.specs.row.graphicsCard'],
+      ['panel.widget.build.spec.ram', 'devices.specs.row.memory'],
+    ]);
+  });
+
   it('sizeShowsSpecs matches the sizes that list rows', () => {
     expect(['2x2', '4x2', '4x4'].map(sizeShowsSpecs)).toEqual([false, true, true]);
   });
