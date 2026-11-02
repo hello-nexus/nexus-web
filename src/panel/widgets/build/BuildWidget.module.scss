@@ -25,12 +25,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  // The content's own box is the unit the left region is cut from.
-  container-type: size;
 }
 
 .media {
-  // The picture's own breathing room inside its square, a share of the width so it is even on all sides.
+  // The picture's own breathing room inside its square, a share of the width so it is even on all sides. A wide tile sets its own in px once measured.
   box-sizing: border-box;
   padding: 9%;
   flex: 1;
@@ -43,9 +41,8 @@
   justify-content: center;
 }
 
-// Wide tiles: the case image in a square on the left, as large as the content allows (two cells wide at most, derived from the
-// content's own box and the grid gap, so it holds at any scale); the rest of
-// the width is the specs. Browsers without container units fall back to 40%.
+// Wide tiles: the case image in a square on the left, the rest of the width the specs. The square's side is measured in script
+// (the 2x2 content), which needs no container units; until then the image takes a share of the width.
 .body[data-specs] {
   flex-direction: row;
 
@@ -53,18 +50,15 @@
     flex: 0 0 40%;
     height: 100%;
   }
+}
 
-  @supports (width: 1cqw) {
-    // Half the width less the tile padding the 2x2 content also gives up, so the square equals the 2x2 content at every width.
-    --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2 - var(--tile-pad)));
-
-    .media {
-      flex-basis: var(--left-region);
-      width: var(--left-region);
-      // A percentage would be of the whole body's width here, so the inset is taken from the square itself.
-      padding: calc(var(--left-region) * 0.09);
-    }
-  }
+// Measures the grid gap, which the square's side is cut from.
+.gapProbe {
+  position: absolute;
+  width: var(--panel-gap, 0px);
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .side {
@@ -75,12 +69,11 @@
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: var(--space-lg);
   overflow: hidden;
 }
 
 // The BUILD label is set like the Cooling widget's mode label (SILENT): the same size, weight and ink and the label mixin's
-// tracking, which is 0.02em tighter than SILENT's raw value (the style ratchet takes tokens and mixins only).
+// tracking, which is a little tighter than SILENT's raw value (the style ratchet takes tokens and mixins only).
 .label {
   flex: none;
   box-sizing: border-box;
@@ -90,6 +83,8 @@
   color: var(--text);
   white-space: nowrap;
   pointer-events: none;
+  // Margins, not flex gap, which needs a newer Chromium than the panels' floor.
+  margin-bottom: var(--space-lg);
   border: 1.5px solid currentColor;
   border-radius: var(--radius-sm);
   padding: 4px 8px;

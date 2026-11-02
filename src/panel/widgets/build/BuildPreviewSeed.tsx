@@ -31,6 +31,8 @@ export function BuildPreviewSeed({ caseId, size = null }: { caseId: string; size
   const [id] = useState(() => Symbol('build-preview-seed'));
   const [active, setActive] = useState(false);
   const [stopped, setStopped] = useState(() => tried.has(triedKey));
+  // A new size is a new attempt.
+  useEffect(() => { setStopped(tried.has(triedKey)); }, [triedKey]);
   const { machine, key } = useBuildMachine(!stopped);
   const attempt = key === null ? null : seedAttemptKey(caseId, key, size);
 

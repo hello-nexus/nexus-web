@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { isStaleSize, previewSizeFor, setPreviewSize, usePreviewSize } from '../../../components/views/BuildPage/previewSize';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { isStaleSize, previewSizeFor, usePreviewSize, usePreviewSizeReporter } from '../../../components/views/BuildPage/previewSize';
+import { SYSTEM_PREVIEW_CHANGED_EVENT } from '../../../api/systemPreview';
 import { useTranslation } from '../../../lib/i18n';
 import { DrawingImage } from './DrawingImage';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
@@ -46,27 +47,57 @@ interface BuildWidgetViewProps {
 // frames; a burst of reads settles before it is reported.
 const MEASURE_DELAYS_MS = [400, 1200];
 const MEASURE_SETTLE_MS = 250;
+// How long the wanted size must hold still before a stored image is judged against it, so a resize drag redraws at most once.
+const SEED_SETTLE_MS = 1500;
+// The share of the picture's square left empty on each side; the stylesheet's own inset is the same until the tile is measured.
+const INSET = 0.09;
 
-/** The width of the picture box inside its padding, in the CSS px the user sees (transform scale included), reported once settled. */
-function useImageWidth(report: ((cssWidth: number) => void) | undefined) {
-  const ref = useRef<HTMLDivElement>(null);
+/** The value once it has held still for `ms`; the first value is taken at once. */
+function useSettled<T>(value: T, ms: number): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    if (value === settled) return undefined;
+    const timer = window.setTimeout(() => setSettled(value), ms);
+    return () => window.clearTimeout(timer);
+  }, [value, settled, ms]);
+  return settled;
+}
+
+/**
+ * The tile's geometry, measured in JS so it holds on browsers without container units: on a wide tile the side of the picture's
+ * square (the 2x2 content: the body's height, or half its width less the gap and the tile padding), and the width of the
+ * picture itself in the CSS px the user sees (transform scale included), reported once settled.
+ */
+function useTileGeometry(wide: boolean, report: ((cssWidth: number) => void) | undefined) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const gapRef = useRef<HTMLSpanElement>(null);
+  const [side, setSide] = useState<number | null>(null);
   const reportRef = useRef(report);
   reportRef.current = report;
-  const enabled = report !== undefined;
-  useEffect(() => {
-    const el = ref.current;
-    if (!enabled || !el) return undefined;
+  const reporting = report !== undefined;
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return undefined;
     let settle: number | undefined;
     let first = true;
     const measure = () => {
-      const scale = el.offsetWidth > 0 ? el.getBoundingClientRect().width / el.offsetWidth : 1;
-      const style = getComputedStyle(el);
-      const inner = (el.offsetWidth - parseFloat(style.paddingLeft || '0') - parseFloat(style.paddingRight || '0')) * scale;
-      if (!(inner > 0)) return;
+      const width = body.offsetWidth;
+      const height = body.offsetHeight;
+      if (!(width > 0 && height > 0)) return;
+      const scale = body.getBoundingClientRect().width / width;
+      let box = width;
+      if (wide) {
+        const gap = gapRef.current?.offsetWidth ?? 0;
+        const pad = parseFloat(getComputedStyle(body.parentElement ?? body).paddingLeft) || 0;
+        box = Math.max(0, Math.min(height, (width - gap) / 2 - pad));
+      }
+      setSide(wide ? box : null);
+      const inner = box * (1 - 2 * INSET) * scale;
+      if (!reportRef.current || !(inner > 0)) return;
       window.clearTimeout(settle);
       if (first) {
         first = false;
-        reportRef.current?.(inner);
+        reportRef.current(inner);
         return;
       }
       settle = window.setTimeout(() => reportRef.current?.(inner), MEASURE_SETTLE_MS);
@@ -74,16 +105,29 @@ function useImageWidth(report: ((cssWidth: number) => void) | undefined) {
     measure();
     const timers = MEASURE_DELAYS_MS.map((ms) => window.setTimeout(measure, ms));
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
-    observer?.observe(el);
+    observer?.observe(body);
     window.addEventListener('resize', measure);
+    // A change of the device pixel ratio alone (a window moved to another display) fires no resize.
+    let ratio: MediaQueryList | null = null;
+    const watchRatio = () => {
+      ratio?.removeEventListener('change', onRatio);
+      ratio = typeof window.matchMedia === 'function' ? window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`) : null;
+      ratio?.addEventListener('change', onRatio);
+    };
+    function onRatio() {
+      watchRatio();
+      measure();
+    }
+    watchRatio();
     return () => {
       window.clearTimeout(settle);
       timers.forEach(window.clearTimeout);
       observer?.disconnect();
       window.removeEventListener('resize', measure);
+      ratio?.removeEventListener('change', onRatio);
     };
-  }, [enabled]);
-  return ref;
+  }, [wide, reporting]);
+  return { bodyRef, gapRef, side };
 }
 
 // The tile is not interactive itself: the dashboard cell's click-through opens the Build page.
@@ -105,17 +149,21 @@ function useScopeTheme() {
 
 export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
   const { t } = useTranslation();
-  const mediaRef = useImageWidth(onImageWidth);
+  const wide = rows.length > 0;
+  const geometry = useTileGeometry(wide, onImageWidth);
   const scope = useScopeTheme();
   const showStock = stock && view === 'no-preview';
   // No case yet: the parts stand open-air, drawn by the same scene code as the case image.
   const isOpenAir = view === 'no-case';
+  // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
+  const mediaStyle: CSSProperties | undefined = wide && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
-      <div className={styles.body} data-specs={rows.length > 0 ? '' : undefined}>
-      <div ref={mediaRef} className={styles.media}>
+      <div ref={geometry.bodyRef} className={styles.body} data-specs={wide ? '' : undefined}>
+      {wide && <span ref={geometry.gapRef} className={styles.gapProbe} aria-hidden="true" />}
+      <div className={styles.media} style={mediaStyle}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
@@ -155,26 +203,26 @@ export function BuildWidget({ widget }: WidgetProps) {
   const rows = useBuildSpecs(!preview && isMac === false, widget.size);
   // The image is drawn by the portal at the size this tile shows it in, so the lines meet the screen pixel for pixel.
   const wanted = usePreviewSize();
+  const reportSize = usePreviewSizeReporter();
   const measuring = !preview && isMac === false;
-  const onImageWidth = measuring ? (cssWidth: number) => setPreviewSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
-  // A stored image of another size (an older large one, or a tile that was scaled) is drawn again once per size, so a portal that ignores the size cannot loop.
-  const staleKey = live.caseId && wanted ? `${live.caseId}|${wanted}` : null;
-  const stale = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, wanted ?? 0) && !resized.has(staleKey);
-  const [staleSeed, setStaleSeed] = useState<{ key: string; url: string | null } | null>(null);
+  const onImageWidth = measuring ? (cssWidth: number) => reportSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
+  // A stored image that is too small, or far too large, for a size that has held still is drawn again once per case and size, so a portal that ignores the size cannot loop.
+  const settled = useSettled(wanted, SEED_SETTLE_MS);
+  const staleKey = live.caseId && settled ? `${live.caseId}|${settled}` : null;
+  const stale = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0) && !resized.has(staleKey);
+  const [, setEnded] = useState(0);
+  // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change.
   useEffect(() => {
-    if (stale && staleKey && staleSeed?.key !== staleKey) setStaleSeed({ key: staleKey, url: live.previewUrl });
-  }, [stale, staleKey, staleSeed, live.previewUrl]);
-  useEffect(() => {
-    if (staleSeed && live.previewUrl !== staleSeed.url) {
-      resized.add(staleSeed.key);
-      setStaleSeed(null);
-    }
-  }, [live.previewUrl, staleSeed]);
+    if (!stale || !staleKey) return undefined;
+    const done = () => { resized.add(staleKey); setEnded((n) => n + 1); };
+    window.addEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
+    return () => window.removeEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
+  }, [stale, staleKey]);
   const seed = !preview && (view === 'no-preview' || stale) && live.caseId;
   return (
     <>
       <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} stock={isY70CaseId(live.caseId)} rows={rows} onImageWidth={onImageWidth} />
-      {seed && <Suspense fallback={null}><BuildPreviewSeed key={`${seed}|${wanted ?? ''}`} caseId={seed} size={wanted} /></Suspense>}
+      {seed && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seed} size={settled ?? wanted} /></Suspense>}
     </>
   );
 }

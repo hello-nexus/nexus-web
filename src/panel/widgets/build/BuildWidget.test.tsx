@@ -4,7 +4,7 @@ import type { PanelWidget, PanelWidgetSize } from '../../types';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
 import { isDashboardClickthroughType } from '../../engine/panelLayoutHelpers';
 import { BuildWidget, resetResizedPreviews } from './BuildWidget';
-import { getPreviewSize, resetPreviewSize, setPreviewSize } from '../../../components/views/BuildPage/previewSize';
+import { getPreviewSize, previewSizeFor, registerPreviewSize, resetPreviewSize } from '../../../components/views/BuildPage/previewSize';
 import { FOCUS_COALESCE_MS, PING_RETRY_MIN_MS, useBuildPreview, useHostIsMac } from './useBuildPreview';
 
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -182,7 +182,7 @@ describe('BuildWidget', () => {
 
     it('is absent on 2x2, which is the image alone', async () => {
       const { container } = await renderWidget('2x2');
-            expect(container.querySelector('ul')).toBeNull();
+      expect(container.querySelector('ul')).toBeNull();
       expect(container.textContent).not.toContain('panel.widget.build.badge');
     });
   });
@@ -197,18 +197,71 @@ describe('BuildWidget', () => {
     };
     const changed = () => act(async () => { window.dispatchEvent(new CustomEvent('nexus-system-preview-changed')); await vi.advanceTimersByTimeAsync(0); });
 
+    // The picture box of a tile as the script sees it: the body's layout size, and its rendered size under a transform.
+    const sizeBody = (layout: { width: number; height: number }, rendered = layout.width) => {
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(layout.width);
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(layout.height);
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: rendered } as DOMRect);
+    };
+
     it('the tile reports its picture box in device pixels over the share the drawing fills', async () => {
-      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(120);
-      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 120 } as DOMRect);
+      sizeBody({ width: 120, height: 120 });
       vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(2);
-      await renderWidget('4x2');
-      expect(getPreviewSize()).toBe(267);
+      await renderWidget('2x2');
+      expect(getPreviewSize()).toBe(previewSizeFor(120 * 0.82, 2));
+    });
+
+    it('measures through a transform scale, where the rendered box differs from the layout box', async () => {
+      sizeBody({ width: 120, height: 120 }, 240);
+      vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(1);
+      await renderWidget('2x2');
+      expect(getPreviewSize()).toBe(previewSizeFor(120 * 0.82 * 2, 1));
+    });
+
+    it('measures again when only the device pixel ratio changes', async () => {
+      sizeBody({ width: 120, height: 120 });
+      let ratio = 1;
+      vi.spyOn(window, 'devicePixelRatio', 'get').mockImplementation(() => ratio);
+      let onChange: (() => void) | null = null;
+      vi.stubGlobal('matchMedia', () => ({ addEventListener: (_: string, cb: () => void) => { onChange = cb; }, removeEventListener: () => {} }));
+      await renderWidget('2x2');
+      expect(getPreviewSize()).toBe(previewSizeFor(120 * 0.82, 1));
+      ratio = 2;
+      await act(async () => { onChange?.(); await vi.advanceTimersByTimeAsync(300); });
+      expect(getPreviewSize()).toBe(previewSizeFor(120 * 0.82, 2));
+      vi.unstubAllGlobals();
+    });
+
+    it('two tiles of different sizes publish the largest and fall back to the other when it goes, never overwriting in turn', async () => {
+      const widths: Record<string, number> = { '2x2': 120, '4x2': 600 };
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-specs') ? widths['4x2'] : widths['2x2']; });
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-specs') ? 200 : 120; });
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) { return { width: this.hasAttribute('data-specs') ? widths['4x2'] : widths['2x2'] } as DOMRect; });
+      vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(2);
+      h.specs = { pcName: 'x', osBuild: '', processor: 'AMD Ryzen 7 9800X3D', motherboard: 'B850I', memory: '32 GB DDR5-5600', storage: '1.82 TB NVMe', graphicsCard: 'RTX 5080', primaryGpu: 'NVIDIA GeForce RTX 5080', monitor: '', soundCard: '', networkCard: '' };
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(540));
+      const small = await renderWidget('2x2');
+      const smallSize = previewSizeFor(120 * 0.82, 2);
+      expect(getPreviewSize()).toBe(smallSize);
+      const wide = await renderWidget('4x2');
+      const wideSize = previewSizeFor(200 * 0.82, 2);
+      expect(wideSize).toBeGreaterThan(smallSize!);
+      expect(getPreviewSize()).toBe(wideSize);
+      // A stored image that fits the larger size fits both tiles: neither asks for a redraw, and nothing alternates.
+      await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+      expect(screen.queryByTestId('seed')).toBeNull();
+      expect(getPreviewSize()).toBe(wideSize);
+      wide.unmount();
+      expect(getPreviewSize()).toBe(smallSize);
+      small.unmount();
+      expect(getPreviewSize()).toBeNull();
     });
 
     it('an image far from the wanted size is drawn again, once, and the seed is told the size', async () => {
       h.caseId.mockResolvedValue('hyte-y70');
       h.preview.mockResolvedValue(header(1024));
-      setPreviewSize(270);
+      registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.getByTestId('seed').getAttribute('data-size')).toBe('270');
       h.preview.mockResolvedValue(header(270));
@@ -219,10 +272,11 @@ describe('BuildWidget', () => {
     it('a portal that ignores the size and sends the large image again is not asked a second time', async () => {
       h.caseId.mockResolvedValue('hyte-y70');
       h.preview.mockResolvedValue(header(1024));
-      setPreviewSize(270);
+      registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.getByTestId('seed')).toBeTruthy();
-      h.preview.mockResolvedValue({ ...header(1024), etag: 'again' });
+      // The service answers 304 for the same bytes, so the stored image and its URL do not change; the portal's save still ends the attempt.
+      h.preview.mockResolvedValue({ kind: 'unchanged' });
       await changed();
       expect(screen.queryByTestId('seed')).toBeNull();
     });
@@ -230,10 +284,13 @@ describe('BuildWidget', () => {
     it('a change of the wanted size draws it again', async () => {
       h.caseId.mockResolvedValue('hyte-y70');
       h.preview.mockResolvedValue(header(270));
-      setPreviewSize(270);
+      registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.queryByTestId('seed')).toBeNull();
-      await act(async () => { setPreviewSize(540); await vi.advanceTimersByTimeAsync(0); });
+      await act(async () => { registerPreviewSize('test', 540); await vi.advanceTimersByTimeAsync(0); });
+      // A resize drag does not redraw while it moves: the size has to hold still first.
+      expect(screen.queryByTestId('seed')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(1600); });
       expect(screen.getByTestId('seed').getAttribute('data-size')).toBe('540');
     });
 
@@ -244,7 +301,7 @@ describe('BuildWidget', () => {
       expect(screen.queryByTestId('seed')).toBeNull();
       unmeasured.unmount();
       h.preview.mockResolvedValue(header(280));
-      setPreviewSize(270);
+      registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.queryByTestId('seed')).toBeNull();
     });
@@ -252,7 +309,7 @@ describe('BuildWidget', () => {
     it('an image whose header cannot be read is kept as it is', async () => {
       h.caseId.mockResolvedValue('hyte-y70');
       h.preview.mockResolvedValue(image());
-      setPreviewSize(270);
+      registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.queryByTestId('seed')).toBeNull();
     });

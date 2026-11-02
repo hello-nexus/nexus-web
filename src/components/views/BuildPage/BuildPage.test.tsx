@@ -2,7 +2,7 @@ import { act, cleanup, render, renderHook, screen } from '@testing-library/react
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BuildPage, BUILD_ORIGIN, sanitizeBuildPath } from './BuildPage';
 import { useBuildFrameHistory } from './buildNav';
-import { resetPreviewSize, setPreviewSize } from './previewSize';
+import { registerPreviewSize, resetPreviewSize } from './previewSize';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { FpsGameSummary } from '../../../api/fps';
 
@@ -742,18 +742,18 @@ describe('BuildPage preview relay', () => {
   });
 
   it('carries previewSize in hello and sends a fresh hello when it changes, not for noise', () => {
-    setPreviewSize(270);
+    registerPreviewSize('tile', 270);
     const { postSpy } = readyFrame();
     expect(helloPosts(postSpy)[0].previewSize).toBe(270);
-    act(() => setPreviewSize(274));
+    act(() => registerPreviewSize('tile', 274));
     expect(helloPosts(postSpy)).toHaveLength(1);
-    act(() => setPreviewSize(540));
+    act(() => registerPreviewSize('tile', 540));
     expect(helloPosts(postSpy)).toHaveLength(2);
     expect(helloPosts(postSpy)[1].previewSize).toBe(540);
   });
 
   it('does not offer previewSize where no preview is offered', () => {
-    setPreviewSize(270);
+    registerPreviewSize('tile', 270);
     h.isRemoteOrigin = true;
     const { postSpy } = readyFrame();
     expect(helloPosts(postSpy)[0]).not.toHaveProperty('previewSize');

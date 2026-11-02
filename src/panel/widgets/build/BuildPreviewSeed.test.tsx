@@ -125,4 +125,32 @@ describe('BuildPreviewSeed', () => {
     expect(view.queryByTestId('frame')).toBeNull();
     expect(h.frames).toHaveLength(0);
   });
+
+  it('keeps the failure memory per image size: a timed-out size does not hold off another', async () => {
+    const first = render(<BuildPreviewSeed caseId="y70" size={270} />);
+    await flush();
+    await act(async () => { await vi.advanceTimersByTimeAsync(SEED_TIMEOUT_MS + 1); });
+    expect(first.queryByTestId('frame')).toBeNull();
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70', 270))).toBe(true);
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70', 540))).toBe(false);
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70'))).toBe(false);
+    first.unmount();
+    const same = render(<BuildPreviewSeed caseId="y70" size={270} />);
+    await flush();
+    expect(same.queryByTestId('frame')).toBeNull();
+    same.unmount();
+    const other = render(<BuildPreviewSeed caseId="y70" size={540} />);
+    await flush();
+    expect(other.queryByTestId('frame')).not.toBeNull();
+  });
+
+  it('a mounted seed that is given a new size is a new attempt', async () => {
+    const view = render(<BuildPreviewSeed caseId="y70" size={270} />);
+    await flush();
+    act(() => h.frames.at(-1)!.onUnavailable());
+    expect(view.queryByTestId('frame')).toBeNull();
+    view.rerender(<BuildPreviewSeed caseId="y70" size={540} />);
+    await flush();
+    expect(view.queryByTestId('frame')).not.toBeNull();
+  });
 });
