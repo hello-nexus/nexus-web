@@ -340,6 +340,48 @@ describe('Slider mixed', () => {
     render(<Slider value={40} min={0} max={100} ariaLabel="Level" trackFill onChange={() => {}} />);
     const range = screen.getByRole('slider', { name: 'Level' });
     expect(range).not.toHaveAttribute('data-mixed');
-    expect(range.style.getPropertyValue('--slider-fill-end')).toBe('40%');
+    expect(range.style.getPropertyValue('--slider-fill-end')).toBe('calc(7px + (100% - 14px) * 0.4)');
+  });
+});
+
+// The thumb's centre stops half a thumb (14px) short of each end of the track, so a value sits
+// that far along the thumb's path. The fill and the zero tick follow it.
+describe('Slider positions on the thumb path', () => {
+  const path = (fraction: number) => `calc(7px + (100% - 14px) * ${fraction})`;
+
+  it('starts a centre-out fill where the thumb sits at 0 when 0 is not the middle', () => {
+    render(<Slider value={-5} min={-25} max={75} ariaLabel="Gain" onChange={() => {}} />);
+    const range = screen.getByRole('slider', { name: 'Gain' });
+    expect(range.style.getPropertyValue('--slider-fill-start')).toBe(path(0.2));
+    expect(range.style.getPropertyValue('--slider-fill-end')).toBe(path(0.25));
+  });
+
+  it('puts the zero tick in a box beside the range, inset to the thumb path', () => {
+    const { container } = render(<Slider value={10} min={-20} max={6} ariaLabel="Gain" zeroMarker onChange={() => {}} />);
+    const range = screen.getByRole('slider', { name: 'Gain' });
+    const tick = container.querySelector<HTMLElement>('span[style*="left"]');
+    expect(tick?.style.left).toContain('76.9');
+    expect(tick?.parentElement).not.toBe(range.parentElement);
+    expect(tick?.parentElement?.parentElement).toBe(range.parentElement);
+  });
+});
+
+describe('Slider vertical', () => {
+  it('renders the label, a range with the track length, and the value', () => {
+    const { container } = render(
+      <Slider orientation="vertical" length={120} label="48" value={3} min={-20} max={6} zeroMarker formatValue={v => `${v} dB`} onChange={() => {}} />,
+    );
+    const range = screen.getByRole('slider', { name: '48' });
+    expect(range).toHaveValue('3');
+    expect(screen.getByText('3 dB')).toBeInTheDocument();
+    expect((container.firstChild as HTMLElement).style.getPropertyValue('--slider-vertical-length')).toBe('120px');
+  });
+
+  it('places the zero tick from the bottom and reports changes', () => {
+    const onChange = vi.fn();
+    const { container } = render(<Slider orientation="vertical" label="64" value={0} min={-20} max={6} zeroMarker onChange={onChange} />);
+    expect(container.querySelector<HTMLElement>('span[style*="bottom"]')).not.toBeNull();
+    fireEvent.change(screen.getByRole('slider', { name: '64' }), { target: { value: '2' } });
+    expect(onChange).toHaveBeenCalledWith(2, false);
   });
 });

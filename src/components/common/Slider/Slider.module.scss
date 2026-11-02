@@ -138,6 +138,67 @@ $inline-gap: 0.5rem;
   font-style: italic;
 }
 
+/* The thumb's path: its centre stops half a thumb (14px wide, global.scss) short of
+   each end of the track. The zero tick, band and marker are placed in it. No `inset`:
+   the Q60 panel is Chromium 83. */
+.scale {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  right: 7px;
+  pointer-events: none;
+}
+
+.scaleVertical {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+/* Vertical: the range is laid out at the track length and turned a quarter, so min is at the
+   bottom. A rotated range works on the Chromium 83 panel, where writing-mode on ranges does not. */
+.vertical {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: auto;
+}
+
+.verticalLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.verticalTrack {
+  position: relative;
+  width: 40px;
+  height: var(--slider-vertical-length);
+
+  .range {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--slider-vertical-length);
+    transform: translate(-50%, -50%) rotate(-90deg);
+  }
+}
+
+.zeroTickVertical {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 2px;
+  background: var(--text-dim);
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+  border-radius: var(--radius-sm);
+  opacity: 0.8;
+}
+
 .zeroTick {
   position: absolute;
   top: 50%;
