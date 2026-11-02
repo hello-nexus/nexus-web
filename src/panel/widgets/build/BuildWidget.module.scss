@@ -111,10 +111,10 @@
   }
 }
 
-// The BUILD logo sits directly above the case image, left-aligned with it; the shared component draws it.
+// The BUILD logo sits directly above the case image, centered on it; the shared component draws it.
 .logoSlot {
   flex: none;
-  align-self: flex-start;
+  align-self: center;
   margin-bottom: var(--space-sm);
   pointer-events: none;
 }
