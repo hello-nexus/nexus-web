@@ -1574,7 +1574,8 @@ export function PanelContent({
   const y70OnTop = glassSurface === 'y70' && !displayBound && kioskBehavior ? panelTheme.prefs?.panel?.alwaysOnTop : undefined;
   const layeredOnTop = displayRecord ? displayRecord.alwaysOnTop ?? true : y70OnTop;
   // The in-panel menu offers it only on generic displays; the device page edits it for known families.
-  const menuAlwaysOnTop = genericDisplay ? layeredOnTop : undefined;
+  // The Linux kiosk host has no on-top support, so the menu entry would do nothing there.
+  const menuAlwaysOnTop = genericDisplay && serviceStatus.ping?.platform !== 'linux' ? layeredOnTop : undefined;
   // A solid generic display is never on top (its clicks would reach hidden windows); the stored choice waits.
   const onTopBlocked = genericDisplay && backdrop !== 'desktop';
   const effectiveOnTop = menuAlwaysOnTop === true && !onTopBlocked;

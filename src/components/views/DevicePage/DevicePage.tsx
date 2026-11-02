@@ -75,13 +75,15 @@ interface DevicePageProps {
   deviceKey: string;
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  /** The service host's platform, empty until the ping lands. */
+  platform?: string;
   onOpenFirmware?: () => void;
   onSectionNavigate?: DashboardSectionNavigate;
   /** Reports the name of the device this page resolved for `deviceKey`, for the top bar. */
   onTitleChange?: (deviceKey: string, title: string | undefined) => void;
 }
 
-export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate, onTitleChange }: DevicePageProps) {
+export function DevicePage({ deviceKey, serviceOnline, connectionState, platform = '', onOpenFirmware, onSectionNavigate, onTitleChange }: DevicePageProps) {
   const { t } = useTranslation();
   const { push } = useToast();
   const { unified, controlDevice, turnedOffMonitorKeys } = useUnifiedDevices(serviceOnline);
@@ -214,7 +216,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
       )}
       <div className={holdBody ? styles.bodyHeld : styles.bodyShown}>
         <DeviceDetectingContext.Provider value={reportWaiting}>
-          <DeviceBody device={device} controlDevice={controlDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />
+          <DeviceBody device={device} controlDevice={controlDevice} platform={platform} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />
         </DeviceDetectingContext.Provider>
       </div>
     </>
@@ -224,13 +226,14 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 interface DeviceBodyProps {
   device: UnifiedDevice;
   controlDevice: (id: string, nextEnabled: boolean) => Promise<unknown>;
+  platform: string;
   onOpenFirmware?: () => void;
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }: DeviceBodyProps) {
+function DeviceBody({ device, controlDevice, platform, onOpenFirmware, onSectionNavigate }: DeviceBodyProps) {
   if (device.kind === 'panel' && device.panelDevice && device.curatedId === 'asus-glacial-lcd') {
-    return <GlacialPanelRoute key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
+    return <GlacialPanelRoute key={device.key} device={device.panelDevice} platform={platform} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.kind === 'panel' && device.panelDevice) {
@@ -241,7 +244,7 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
     // the previous device, so the new page paints at the old device's
     // scale until the tree is torn down. Remounting rebuilds the iframe
     // against the new device's canvas/DPR.
-    return <PanelDevicePage key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
+    return <PanelDevicePage key={device.key} device={device.panelDevice} platform={platform} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'keeb') {

@@ -153,6 +153,15 @@ describe('PanelDevicePage Y70 always on top', () => {
     expect(toggle).not.toBeChecked();
   });
 
+  it('hides the toggle on a Linux host, whose kiosk host has no on-top support', async () => {
+    servePrefs({ reserveMonitor: true, alwaysOnTop: true });
+    render(<PanelDevicePage device={DEVICE} platform="linux" />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
+    expect(screen.queryByRole('switch', { name: TOGGLE_LABEL })).not.toBeInTheDocument();
+  });
+
   it('hides the toggle when the host predates the setting', async () => {
     servePrefs({ reserveMonitor: false });
     render(<PanelDevicePage device={DEVICE} />);

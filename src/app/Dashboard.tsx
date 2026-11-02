@@ -1023,6 +1023,7 @@ export function Dashboard() {
           deviceKey={subtab ?? ''}
           serviceOnline={online}
           connectionState={status.state}
+          platform={status.ping?.platform}
           onTitleChange={onDeviceTitle}
           onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
           onSectionNavigate={(target, payload) => {
