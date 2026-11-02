@@ -3505,7 +3505,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'BuildLogo', category: 'status',
     filePath: 'src/components/common/BuildLogo/BuildLogo.tsx',
-    description: 'The BUILD logo: the name in the label style inside a rounded outline, the same as the Cooling widget\'s SILENT label. Primary text color by default, with contrast (pure white on dark, pure black on light) and muted tones on request, never the accent. fontSize sizes the type, and the padding, corner radius and stroke scale with it so every size has the same proportions. The Build widget shows it above the specs; the Build site header, footer and the in-app open-in-browser button use the same component.',
+    description: 'The BUILD logo: the name in the label style inside a rounded outline, the same as the Cooling widget\'s SILENT label. Primary text color by default, with contrast (pure white on dark, pure black on light) and muted tones on request, never the accent. fontSize sizes the type, and the padding, corner radius and stroke scale with it so every size has the same proportions. The Build widget shows it muted, a step smaller, in the top-right corner of its wide tiles, with the specs kept clear of it; the Build site header, footer and the in-app open-in-browser button use the same component.',
     Preview: PreviewBuildLogo,
   },
   {
