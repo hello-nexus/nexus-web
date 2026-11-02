@@ -11,7 +11,7 @@ import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { SidebarDevicesSection } from './SidebarDevicesSection';
 import { ICON_SIZE } from './sidebarNav';
-import { BUILD_APP_KEY, withBuildRow } from './buildEntry';
+import { BUILD_APP_KEY, pinAtRenderedIndex, stripBuildFromArrangement, withBuildRow } from './buildEntry';
 import {
   DASHBOARD_APP_KEY,
   appendRecent,
@@ -111,7 +111,7 @@ export function SidebarColumn({
   const navItem = (key: string) => {
     const meta = getSidebarAppMeta(key);
     if (!meta) return [];
-    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined }];
+    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined, fixed: key === BUILD_APP_KEY }];
   };
   const items = withBuildRow(tail).flatMap(navItem);
 
@@ -187,8 +187,7 @@ export function SidebarColumn({
   // unpinned, which keeps the one collapsed slot.
   const handleArrange = ({ pinned: pinnedIn, lower: lowerIn }: { pinned: string[]; lower: string[] }) => {
     // Build rides in the sortable list but is positioned by withBuildRow.
-    const pinned = pinnedIn.filter(k => k !== BUILD_APP_KEY);
-    const lower = lowerIn.filter(k => k !== BUILD_APP_KEY);
+    const { pinned, lower } = stripBuildFromArrangement({ pinned: pinnedIn, lower: lowerIn });
     const patch: { pinnedSidebarApps?: string[]; sidebarAppOrder?: string[] } = {};
     if (!sameOrder(pinned, tail)) patch.pinnedSidebarApps = pinned;
     // Docking only removes a key; the saved order changes when a row moves
@@ -251,11 +250,7 @@ export function SidebarColumn({
   const handlePinDrop = (insertionIndex: number) => {
     if (!draggingPinnableType || !isPinnableAppKey(draggingPinnableType)) return;
     if (tail.includes(draggingPinnableType)) return;
-    // The index counts rendered rows, which include the Build row.
-    const next = withBuildRow(tail);
-    const idx = Math.max(0, Math.min(insertionIndex, next.length));
-    next.splice(idx, 0, draggingPinnableType);
-    update({ pinnedSidebarApps: next.filter(k => k !== BUILD_APP_KEY) });
+    update({ pinnedSidebarApps: pinAtRenderedIndex(tail, draggingPinnableType, insertionIndex) });
     setRecents(storedRecentsRaw.filter(k => k !== draggingPinnableType));
   };
 

@@ -23,6 +23,8 @@ interface NavItem {
   readonly icon: ReactNode;
   // Pre-resolved tooltip; when set, renders the same disabled glyph as a device row's Nexus Control off (SidebarDevicesSection).
   readonly offTooltip?: string;
+  // A fixed row is neither draggable (pointer or keyboard) nor movable by the arrangement.
+  readonly fixed?: boolean;
 }
 
 interface ExtraNavItem {
@@ -201,7 +203,7 @@ const uniformVerticalStrategy: SortingStrategy = ({ activeIndex, activeNodeRect,
 
 function SortableRow(props: RowProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id: props.item.key, disabled: props.hidden });
+    useSortable({ id: props.item.key, disabled: props.hidden ? true : props.item.fixed ? { draggable: true } : false });
   const style: React.CSSProperties = {
     // Translate only: dnd-kit scales the dragged row to the rect it hovers, and
     // over the one-pixel separator that flattens the row out of sight.

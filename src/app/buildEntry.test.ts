@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { withBuildRow } from './buildEntry';
+import { pinAtRenderedIndex, stripBuildFromArrangement, withBuildRow } from './buildEntry';
 import { sanitizeAppOrder } from './sidebarAppKeys';
 
 describe('withBuildRow', () => {
@@ -26,5 +26,20 @@ describe('withBuildRow', () => {
 describe('sanitizeAppOrder', () => {
   it('drops a stored build slot', () => {
     expect(sanitizeAppOrder(['frames', 'build', 'settings'])).toEqual(['frames', 'settings']);
+  });
+});
+
+describe('arrangement helpers', () => {
+  it('strips Build from both zones so neighbours keep their dropped order', () => {
+    expect(stripBuildFromArrangement({ pinned: ['monitoring', 'diagnostics', 'app', 'build', 'store'], lower: ['build', 'frames'] }))
+      .toEqual({ pinned: ['monitoring', 'diagnostics', 'app', 'store'], lower: ['frames'] });
+  });
+
+  it('pins at a rendered index that counts the Build row', () => {
+    const tail = ['monitoring', 'diagnostics', 'store'];
+    // rendered: monitoring, diagnostics, build, store; index 3 is between Build and store.
+    expect(pinAtRenderedIndex(tail, 'app', 3)).toEqual(['monitoring', 'diagnostics', 'app', 'store']);
+    // index 1 is between monitoring and diagnostics.
+    expect(pinAtRenderedIndex(tail, 'app', 1)).toEqual(['monitoring', 'app', 'diagnostics', 'store']);
   });
 });

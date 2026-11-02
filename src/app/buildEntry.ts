@@ -21,3 +21,22 @@ export function withBuildRow(tail: readonly string[]): string[] {
   }
   return [...rest.slice(0, at), BUILD_APP_KEY, ...rest.slice(at)];
 }
+
+// Normalizes a drop result from the sortable sidebar. Build rides in the list
+// as a fixed row but is never persisted: it is stripped from both zones, so a
+// row dropped on either side of it keeps its place relative to the other apps
+// and Build is re-slotted by withBuildRow.
+export function stripBuildFromArrangement(next: { pinned: readonly string[]; lower: readonly string[] }): { pinned: string[]; lower: string[] } {
+  return {
+    pinned: next.pinned.filter(k => k !== BUILD_APP_KEY),
+    lower: next.lower.filter(k => k !== BUILD_APP_KEY),
+  };
+}
+
+// Inserts a dragged-in app at a rendered-row index (which counts the Build
+// row) and returns the persisted tail without Build.
+export function pinAtRenderedIndex(tail: readonly string[], key: string, renderedIndex: number): string[] {
+  const rows = withBuildRow(tail);
+  rows.splice(Math.max(0, Math.min(renderedIndex, rows.length)), 0, key);
+  return rows.filter(k => k !== BUILD_APP_KEY);
+}

@@ -5,7 +5,6 @@ import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 import { BUILD_APP_KEY } from '../../app/buildEntry';
-import { APP_REGISTRY } from '../widgets/registry';
 import { marketplaceIdFromType } from '../../widgets/marketplaceRegistry';
 import type { WeatherLocation } from '../../api/weather';
 import { weatherPlaceRouteTab } from '../widgets/weather/WeatherLocationList';
@@ -37,11 +36,10 @@ export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
-  // Click-through needs a tile to click through from: a page-only key (Store, Frames) is
-  // clickable only when APP_REGISTRY holds a tile for it (Build), so a stale layout
-  // naming a tile-less one is not.
+  // Click-through needs a tile to click through from. Build has a tile but is not
+  // pinnable, so it is admitted by key; a page-only key (Store, Frames) has no tile.
   if (type === BUILD_APP_KEY) return true;
-  return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
+  return isPinnableAppKey(type) && !isPageOnlyAppKey(type);
 }
 
 /** Sub-route a widget's open carries so the page lands on the widget's own state; undefined when it has none. */
