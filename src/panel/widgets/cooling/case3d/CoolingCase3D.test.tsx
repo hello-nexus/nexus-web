@@ -576,6 +576,23 @@ describe('CoolingCase3D airflow controls', () => {
     expect(onMode).toHaveBeenLastCalledWith('airflow');
   });
 
+  it('overlays the temperature legend on the canvas, so showing or hiding it leaves the toolbar as it is', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const canvas = screen.getByRole('img', { name: 'cooling.case3d.canvas' });
+    const legend = () => screen.queryByRole('group', { name: /cooling\.case3d\.flow\.legend/ });
+    const toolbar = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
+    const row = toolbar.parentElement as HTMLElement;
+    expect(legend()).not.toBeNull();
+    expect(canvas.parentElement!.contains(legend())).toBe(true);
+    expect(row.contains(legend())).toBe(false);
+    const before = row.children.length;
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText('cooling.case3d.flow.mode.case'));
+    expect(legend()).toBeNull();
+    expect(row.children.length).toBe(before);
+  });
+
   it('opens in the remembered mode', () => {
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
