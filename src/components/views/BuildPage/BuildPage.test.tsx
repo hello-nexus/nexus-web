@@ -231,7 +231,7 @@ describe('BuildPage', () => {
       render(<BuildPage path="/builder" onOpenCooling={onOpenCooling} />);
       const iframe = getIframe();
       act(() => postFromFrame(iframe, { type: 'nexus-build:open-cooling' }));
-      expect(h.updateUi).toHaveBeenCalledWith({ coolingView3d: true });
+      expect(h.updateUi).toHaveBeenCalledWith({ coolingView3d: true, coolingDashboardMode: 'advanced' });
       expect(onOpenCooling).toHaveBeenCalledTimes(1);
       act(() => postFromFrame(iframe, { type: 'nexus-build:open-cooling' }, 'https://evil.example'));
       expect(onOpenCooling).toHaveBeenCalledTimes(1);
@@ -248,7 +248,7 @@ describe('BuildPage', () => {
       h.coolingEnabled = true;
       render(<BuildPage path="/builder" />);
       act(() => postFromFrame(getIframe(), { type: 'nexus-build:open-cooling' }));
-      expect(h.updateUi).not.toHaveBeenCalledWith({ coolingView3d: true });
+      expect(h.updateUi).not.toHaveBeenCalledWith(expect.objectContaining({ coolingView3d: true }));
     });
   });
 

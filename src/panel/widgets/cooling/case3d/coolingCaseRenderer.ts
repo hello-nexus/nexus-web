@@ -50,6 +50,8 @@ export interface CaseSceneRenderer {
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
   readonly flowSupported: boolean;
+  /** The orbit camera, so a caller can read the view the user left. */
+  readonly camera: PerspectiveCamera;
 }
 
 /** A click that lands on a fan slot or on nothing; x and y are CSS pixels inside the canvas. */
@@ -205,7 +207,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   };
 
   // The case is Build's own scene (lib/scene/pcScene), built from the same layout; the fans are this view's overlay.
-  const buildStatic = (l: CaseLayout) => {
+  const buildStatic = (l: CaseLayout, refit: boolean) => {
     clearCase();
     const palette: Palette = scenePalette(canvas);
     const [D, W, H] = l.size;
@@ -216,7 +218,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     holder.add(group);
     staticGroup.add(holder);
     lineMaterials.forEach(m => m.resolution.set(canvas.clientWidth, canvas.clientHeight));
-    fit(l);
+    if (refit) fit(l);
   };
 
   const buildFans = (state: CaseSceneState) => {
@@ -339,10 +341,12 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (state.layout !== layout) {
         const previous = layout;
         layout = state.layout;
-        buildStatic(state.layout);
-        // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
         const extents = caseExtents(state.layout);
-        if (!flowLayer || !previous || caseExtents(previous).some((v, i) => v !== extents[i])) {
+        const reshaped = !previous || caseExtents(previous).some((v, i) => v !== extents[i]);
+        // The camera frames the case once and again only for a different case shape: a fan edit or radiator move rebuilds the layout object but keeps the view.
+        buildStatic(state.layout, reshaped);
+        // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
+        if (!flowLayer || reshaped) {
           flowLayer?.dispose();
           flowInput = null;
           const [ex, ey, ez] = extents;
@@ -382,6 +386,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       spanListener = listener;
       if (flowLayer) flowLayer.onSpan = listener;
     },
+    camera,
     get flowSupported() {
       return flowLayer?.supported ?? true;
     },

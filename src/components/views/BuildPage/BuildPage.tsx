@@ -160,10 +160,10 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, onOpenCooling
   const onOpenLightingRef = useRef(onOpenLighting);
   useEffect(() => { onOpenLightingRef.current = onOpenLighting; }, [onOpenLighting]);
   const coolingEnabled = settings.featureCoolingEnabled;
-  // Cooling opens on its 3D airflow view, which is the stored choice of that page.
+  // Cooling opens on its 3D airflow view, which is the stored choice of that page. Simple mode has no airflow view, so it moves to Advanced.
   const openCooling = useCallback(() => {
     if (!onOpenCooling) return;
-    updateUi({ coolingView3d: true });
+    updateUi({ coolingView3d: true, coolingDashboardMode: 'advanced' });
     onOpenCooling();
   }, [updateUi, onOpenCooling]);
   const openCoolingRef = useRef(openCooling);
