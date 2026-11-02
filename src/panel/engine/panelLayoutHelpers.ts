@@ -4,6 +4,7 @@ import { snapDropCell } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
+import { BUILD_APP_KEY } from '../../app/buildEntry';
 import { APP_REGISTRY } from '../widgets/registry';
 import { marketplaceIdFromType } from '../../widgets/marketplaceRegistry';
 import type { WeatherLocation } from '../../api/weather';
@@ -39,6 +40,7 @@ export function isDashboardClickthroughType(type: string): type is DashboardWidg
   // Click-through needs a tile to click through from: a page-only key (Store, Frames) is
   // clickable only when APP_REGISTRY holds a tile for it (Build), so a stale layout
   // naming a tile-less one is not.
+  if (type === BUILD_APP_KEY) return true;
   return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 

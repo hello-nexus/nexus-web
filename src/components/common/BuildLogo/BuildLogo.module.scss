@@ -13,7 +13,7 @@
   pointer-events: none;
   // Padding is in em of the type size, with the proportions the small header logo has; the corner radius is in em too (set in
   // the component), so every size is rounded the same relative to its height. The stroke grows with the size but never drops below its smallest weight.
-  border: max(1.5px, 0.09375em) solid currentColor;
+  border: 0.1674em solid currentColor;
   padding: 0.3em 0.6em;
 }
 

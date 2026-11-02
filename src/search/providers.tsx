@@ -38,6 +38,7 @@ import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/pag
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
 import { PAGE_ONLY_APPS } from '../app/pageOnlyApps';
+import { BUILD_APP_KEY, BUILD_ICON, BUILD_I18N_KEY } from '../app/buildEntry';
 import { DEV_TOOLS } from '../lib/devTools';
 import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
@@ -350,9 +351,9 @@ const APP_KEYWORDS: Record<string, string[]> = {
   emoji: ['emotes', 'reactions'],
 };
 
-const pageOnlyApps: SearchSource = (ctx) =>
+const pageOnlyApps: SearchSource = (ctx) => [
   // Settings has its own nav entry (the settings nav view), so skip its page-only row.
-  Object.entries(PAGE_ONLY_APPS).filter(([key]) => key !== 'settings').map(([key, app]) => {
+  ...Object.entries(PAGE_ONLY_APPS).filter(([key]) => key !== 'settings').map(([key, app]) => {
     const Icon = app.icon;
     return go(`app:${key}`, {
       title: ctx.t(app.i18nKey),
@@ -360,7 +361,14 @@ const pageOnlyApps: SearchSource = (ctx) =>
       keywords: ['app', ...(APP_KEYWORDS[key] ?? [])],
       to: () => ctx.host.goView(key),
     });
-  });
+  }),
+  go(`app:${BUILD_APP_KEY}`, {
+    title: ctx.t(BUILD_I18N_KEY),
+    icon: <BUILD_ICON size={18} />,
+    keywords: ['app', ...(APP_KEYWORDS[BUILD_APP_KEY] ?? [])],
+    to: () => ctx.host.goView(BUILD_APP_KEY),
+  }),
+];
 
 const installedApps: SearchSource = (ctx) =>
   getCatalogEntries()

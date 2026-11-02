@@ -10,6 +10,7 @@ import { appIconMaskComponent } from '../components/icons/AppIconImage';
 import { DEV_TOOLS } from '../lib/devTools';
 import { DASHBOARD_APP_KEY } from './sidebarAppKeys';
 import { PAGE_ONLY_APPS } from './pageOnlyApps';
+import { BUILD_APP_KEY, BUILD_ICON, BUILD_I18N_KEY } from './buildEntry';
 
 // Re-export the leaf-module helpers so existing imports from
 // './sidebarApps' keep working.
@@ -46,6 +47,7 @@ const DASHBOARD_META: SidebarAppMeta = {
  */
 export function getSidebarAppMeta(key: string): SidebarAppMeta | null {
   if (key === DASHBOARD_APP_KEY) return DASHBOARD_META;
+  if (key === BUILD_APP_KEY) return { icon: createElement(BUILD_ICON, { size: ICON_SIZE }), i18nKey: BUILD_I18N_KEY };
   const pageOnly = PAGE_ONLY_APPS[key];
   if (pageOnly) {
     return { icon: createElement(pageOnly.icon, { size: ICON_SIZE }), i18nKey: pageOnly.i18nKey };

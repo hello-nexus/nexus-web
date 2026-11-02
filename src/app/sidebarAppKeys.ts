@@ -6,6 +6,7 @@
 
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
 import { isPageOnlyAppKey } from './pageOnlyApps';
+import { BUILD_APP_KEY } from './buildEntry';
 import { getPreinstalledPageAppTypes, hasMarketplaceLoadedOnce, isMarketplaceType, normalizeAppType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
@@ -109,6 +110,7 @@ export function sanitizeAppOrder(input: readonly unknown[] | undefined): string[
   for (const entry of input) {
     if (typeof entry !== 'string') continue;
     const key = normalizeAppType(entry);
+    if (key === BUILD_APP_KEY) continue; // dedicated row, never an ordered app
     if (!out.includes(key)) out.push(key);
   }
   return out;

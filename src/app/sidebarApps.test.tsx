@@ -156,7 +156,7 @@ describe('listSidebarAppKeys', () => {
   it('lists page-only apps and built-ins with a Page, and no page-less widget', () => {
     const keys = listSidebarAppKeys();
     expect(keys).toContain('frames');
-    expect(keys.filter(k => k === 'build')).toHaveLength(1);
+    expect(keys).not.toContain('build');
     const pageless = Object.entries(APP_REGISTRY).filter(([key, def]) => def.Page == null && !PAGE_ONLY_APPS[key]).map(([key]) => key);
     expect(pageless.length).toBeGreaterThan(0);
     for (const key of pageless) expect(keys).not.toContain(key);
