@@ -113,4 +113,16 @@ describe('BuildPreviewSeed', () => {
     await flush();
     expect(view.queryByTestId('frame')).not.toBeNull();
   });
+
+  it('never mounts the frame in the day after a failure, even when the setup key arrives after the first render', async () => {
+    recordSeedFailure(seedAttemptKey('y70', 'case=y70'), Date.now());
+    h.key = null;
+    const view = render(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    h.key = 'case=y70';
+    view.rerender(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    expect(view.queryByTestId('frame')).toBeNull();
+    expect(h.frames).toHaveLength(0);
+  });
 });

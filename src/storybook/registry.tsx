@@ -3505,7 +3505,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'BuildLogo', category: 'status',
     filePath: 'src/components/common/BuildLogo/BuildLogo.tsx',
-    description: 'The BUILD logo (a rounded sign with BUILD knocked out and a screw on each side), drawn inline from path data with its ink as currentColor in pure white on the dark theme and pure black on the light one by default (muted and primary text tokens on request, never the accent). One height prop sizes it, and it switches to a small cut (plain dot screws, wider letter spacing) under a 12px cap height. The Build widget shows it just above the case image, centered on it; the Build site header uses the same component.',
+    description: 'The BUILD logo: the name in wide-tracked capitals knocked out of a rounded rectangle, drawn inline from one path with its ink as currentColor. It is pure white on the dark theme and pure black on the light one by default (muted and primary text tokens on request, never the accent); one height prop sizes it and the width follows the artwork. The Build widget shows it dim, centered at the bottom of the tile; the Build site header and the in-app open-in-browser button use the same component.',
     Preview: PreviewBuildLogo,
   },
   {

@@ -57,7 +57,9 @@ export function BuildPreviewSeed({ caseId }: { caseId: string }) {
     };
   }, [stopped, id, wake]);
 
-  const ready = active && !stopped && machine !== null && key !== null && machine.caseId === caseId;
+  // A failure kept from an earlier launch keeps the frame from mounting at all, not only from staying.
+  const heldOff = attempt !== null && seedFailedRecently(attempt);
+  const ready = active && !stopped && !heldOff && machine !== null && key !== null && machine.caseId === caseId;
 
   useEffect(() => {
     if (!ready) return undefined;
