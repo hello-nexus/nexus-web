@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "В этом корпусе не установлены вентиляторы.",
   "cooling.case3d.noneLinked": "Вентилятор не привязан",
   "cooling.case3d.position.bottom": "Низ",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Перед",
   "cooling.case3d.position.frontLeft": "Спереди слева",
   "cooling.case3d.position.frontRight": "Спереди справа",

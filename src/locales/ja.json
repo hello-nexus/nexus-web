@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "このケースにはファンが取り付けられていません。",
   "cooling.case3d.noneLinked": "ファンは割り当てられていません",
   "cooling.case3d.position.bottom": "底面",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "前面",
   "cooling.case3d.position.frontLeft": "前面左",
   "cooling.case3d.position.frontRight": "前面右",

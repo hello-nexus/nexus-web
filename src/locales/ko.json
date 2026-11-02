@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "이 케이스에는 설치된 팬이 없습니다.",
   "cooling.case3d.noneLinked": "연결된 팬 없음",
   "cooling.case3d.position.bottom": "하단",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "전면",
   "cooling.case3d.position.frontLeft": "전면 왼쪽",
   "cooling.case3d.position.frontRight": "전면 오른쪽",

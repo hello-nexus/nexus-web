@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "Aucun ventilateur n'est installé dans ce boîtier.",
   "cooling.case3d.noneLinked": "Aucun ventilateur associé",
   "cooling.case3d.position.bottom": "Bas",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Avant",
   "cooling.case3d.position.frontLeft": "Avant gauche",
   "cooling.case3d.position.frontRight": "Avant droit",

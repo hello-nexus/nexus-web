@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "In chest case no son instaladis ventulis.",
   "cooling.case3d.noneLinked": "Nissune ventule associade",
   "cooling.case3d.position.bottom": "Sot",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Denant",
   "cooling.case3d.position.frontLeft": "Denant a çampe",
   "cooling.case3d.position.frontRight": "Denant a gjestre",

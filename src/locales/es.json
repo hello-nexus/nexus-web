@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "No hay ventiladores instalados en esta caja.",
   "cooling.case3d.noneLinked": "Ningún ventilador asociado",
   "cooling.case3d.position.bottom": "Inferior",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Frontal",
   "cooling.case3d.position.frontLeft": "Frontal izquierdo",
   "cooling.case3d.position.frontRight": "Frontal derecho",
