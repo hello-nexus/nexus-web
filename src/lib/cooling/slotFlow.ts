@@ -46,7 +46,7 @@ export function withDefaultBindings(bindings: readonly FanBinding[], slots: read
   return [...merged, ...[...derived].filter(([id]) => !stored.has(id)).map(([channelId, keys]) => ({ channelId, slotKeys: keys }))];
 }
 
-/** Each slot's direction: the user's override, else the GPU's fans blow into the card (intake), else the position's default. */
+/** Each slot's direction: the user's override, else the GPU's and an air cooler's fans blow into their part (intake), else the position's default. */
 export function slotDirections(slots: readonly Pick<CaseFanSlot, 'key' | 'position'>[], overrides: Readonly<Record<string, FanDirection>>): Record<string, FanDirection> {
   const out: Record<string, FanDirection> = {};
   for (const slot of slots) out[slot.key] = overrides[slot.key] ?? (isInternalSlotKey(slot.key) ? 'intake' : defaultDirection(slot.position));

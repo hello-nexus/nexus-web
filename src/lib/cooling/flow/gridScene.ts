@@ -295,6 +295,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   }
 
   // A fan's disc is never walled in: structure plates and collision solids within its thickness plus the clearance, on both sides, open up across the disc. The hull cut and the case shell stay.
+  // An air cooler's fan opens only cells inside its own cooler box: its disc reaches past the heatsink, and the neighboring memory or board must stay solid.
+  const coolerBoxes = layout.boxes.filter(b => b.slot === 'cooler' && b.role === 'part');
   for (const p of plan.fans) {
     // A stopped card fan leaves the card's heatsink shut, as before.
     if (p.slot.taken === null || (isInternalFan(p.slot) && p.cfm <= 0)) continue;
@@ -304,6 +306,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     eachCellIn(sub(center, [reach, reach, reach]), add(center, [reach, reach, reach]), (i, j, k) => {
       const c = id(i, j, k);
       if (!solid[c] || outside[c] || onCaseShell(i, j, k) || !inCase(i, j, k)) return;
+      if (p.slot.position === 'cpu' && !coolerBoxes.some(b => boxContains(b, layoutMm(i, j, k), 0))) return;
       const d = sub(layoutMm(i, j, k), center);
       const along = dot(d, axis);
       if (Math.abs(along) > span) return;

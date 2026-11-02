@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { fanGeometries, parseCaseLayout, type CaseBox, type CaseLayout } from '../caseLayout';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
+import { buildFlowScene, isSolidAt, type FlowInput, type FlowScene } from './gridScene';
 import { EMITTER_STRIDE, OUTSIDE_REACH_MM } from './flowParams';
 import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
@@ -360,5 +360,27 @@ describe('GPU fans with per-fan sizes and faces', () => {
       expect(slots.map(centerX)).toEqual([200, 300, 400]);
       expect(slots.every(s => s.size === 96 && s.axis?.join() === '0,1,0')).toBe(true);
     }
+  });
+});
+
+describe('a fan carves only what it should', () => {
+  // The Y70 fixture's tower cooler faces front to back from x 328.7; memory sits right in front of that face.
+  const ram = { slot: 'ram', role: 'part', min: [300, 240, 100], size: [25, 120, 50] };
+  // A case without a dual-chamber profile, where memory is a solid part.
+  const generic = (layout: CaseLayout): CaseLayout => ({ ...layout, caseModel: undefined });
+  const solidAtRam = (layout: CaseLayout) => isSolidAt(buildFlowScene(inputOf(layout), LOW), [312, 300, 125]);
+
+  it('leaves the memory beside a tower cooler fan solid', () => {
+    expect(fanGeometries(y70([ram])).some(g => g.slot.position === 'cpu')).toBe(true);
+    expect(solidAtRam(generic(y70([ram])))).toBe(true);
+  });
+
+  it('still opens a card by its own running fan', () => {
+    const layout = y70([horizontalGpu], []);
+    const gpuFan = layout.fanSlots.find(s => s.position === 'gpu')!;
+    // A point on the blade ring, off the solid hub.
+    const c = gpuFan.box!.min.map((v, i) => v + gpuFan.box!.size[i] / 2) as [number, number, number];
+    c[0] += gpuFan.box!.size[0] * 0.3;
+    expect(isSolidAt(buildFlowScene(inputOf(layout), LOW), c)).toBe(false);
   });
 });
