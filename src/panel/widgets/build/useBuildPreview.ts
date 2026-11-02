@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { pingService } from '../../../api/service';
-import { fetchSystemCaseId, fetchSystemPreview, SYSTEM_CASE_TOPIC, SYSTEM_PREVIEW_CHANGED_EVENT } from '../../../api/systemPreview';
+import { fetchSystemCaseId, fetchSystemPreview, SYSTEM_CASE_TOPIC, SYSTEM_PREVIEW_CHANGED_EVENT, type SystemPreviewResult } from '../../../api/systemPreview';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { isMacAppShell } from '../../../app/windowActions';
+import { loadNoCasePreview } from '../../../components/views/BuildPage/noCasePreview';
 
 export const PING_RETRY_MIN_MS = 2000;
 export const PING_RETRY_MAX_MS = 16000;
@@ -105,14 +106,17 @@ export function useBuildPreview(enabled: boolean): PreviewState {
           setState(prev => ({ loaded: true, caseId: caseId ?? prev.caseId, previewUrl: prev.previewUrl, previewWidth: prev.previewWidth }));
           return;
         }
-        const width = preview.kind === 'image' ? await readPngWidth(preview.blob) : null;
+        // With no case chosen the service holds no image; the one drawn for the open PC is kept by the host.
+        const local = caseId === null && preview.kind !== 'image' ? loadNoCasePreview() : null;
+        const shown: SystemPreviewResult = local ? { kind: 'image', blob: local, etag: null } : preview;
+        const width = shown.kind === 'image' ? await readPngWidth(shown.blob) : null;
         if (cancelled || run !== seq) return;
         const previous = currentUrl;
-        if (preview.kind === 'image') {
-          currentUrl = URL.createObjectURL(preview.blob);
-          currentEtag = preview.etag;
+        if (shown.kind === 'image') {
+          currentUrl = URL.createObjectURL(shown.blob);
+          currentEtag = shown.etag;
           currentWidth = width;
-        } else if (preview.kind === 'none') {
+        } else if (shown.kind === 'none') {
           currentUrl = null;
           currentEtag = null;
           currentWidth = null;

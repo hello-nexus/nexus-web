@@ -3,6 +3,8 @@ import { BuildPage, type HeadlessBuild } from '../../../components/views/BuildPa
 import { useBuildMachine } from '../../../components/views/BuildPage/buildMachine';
 import { clearSeedFailures, recordSeedFailure, seedAttemptKey, seedFailedRecently } from './seedAttempts';
 
+const NO_CASE_KEY = 'no-case';
+
 /** Past this the try counts as failed. */
 export const SEED_TIMEOUT_MS = 60_000;
 
@@ -26,15 +28,17 @@ export function resetPreviewSeed(): void {
 }
 
 /** Frames Build out of sight so it renders and stores the case image; the tile unmounts this once the image lands. */
-export function BuildPreviewSeed({ caseId, size = null }: { caseId: string; size?: number | null }) {
-  const triedKey = size ? `${caseId}|${size}` : caseId;
+export function BuildPreviewSeed({ caseId, size = null }: { caseId: string | null; size?: number | null }) {
+  // A PC with no case chosen is seeded too, under its own key.
+  const caseKey = caseId ?? NO_CASE_KEY;
+  const triedKey = size ? `${caseKey}|${size}` : caseKey;
   const [id] = useState(() => Symbol('build-preview-seed'));
   const [active, setActive] = useState(false);
   const [stopped, setStopped] = useState(() => tried.has(triedKey));
   // A new size is a new attempt.
   useEffect(() => { setStopped(tried.has(triedKey)); }, [triedKey]);
   const { machine, key } = useBuildMachine(!stopped);
-  const attempt = key === null ? null : seedAttemptKey(caseId, key, size);
+  const attempt = key === null ? null : seedAttemptKey(caseKey, key, size);
 
   // A failure kept from an earlier launch holds this one off, so an offline or failing portal is not framed on every start.
   useEffect(() => {
@@ -62,7 +66,7 @@ export function BuildPreviewSeed({ caseId, size = null }: { caseId: string; size
 
   // A failure kept from an earlier launch keeps the frame from mounting at all, not only from staying.
   const heldOff = attempt !== null && seedFailedRecently(attempt);
-  const ready = active && !stopped && !heldOff && machine !== null && key !== null && machine.caseId === caseId;
+  const ready = active && !stopped && !heldOff && machine !== null && key !== null && (machine.caseId ?? null) === caseId;
 
   useEffect(() => {
     if (!ready) return undefined;

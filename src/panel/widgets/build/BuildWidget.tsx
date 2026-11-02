@@ -9,7 +9,8 @@ import { isMacAppShell } from '../../../app/windowActions';
 import { DEV_TOOLS } from '../../../lib/devTools';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
-import { BuildCaseSilhouette } from './BuildCaseSilhouette';
+import { BuildLogo } from '../../../components/common/BuildLogo/BuildLogo';
+import { BuildBoxIcon } from './BuildBoxIcon';
 import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
@@ -159,7 +160,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
   const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
-  const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
+  const boxIcon = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
@@ -170,11 +171,11 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
         {isOpenAir && <DrawingImage className={styles.image} src={openAir} openAir />}
-        {silhouette && <BuildCaseSilhouette />}
+        {boxIcon && <BuildBoxIcon />}
       </div>
       {withSpecs && (
         <div className={styles.side}>
-          <span className={styles.label} aria-hidden="true">{t('panel.widget.build.badge')}</span>
+          <span className={styles.mark} aria-hidden="true"><BuildLogo /></span>
           <ul className={styles.specs}>
             {rows.map((row) => (
               <li key={row.key} className={styles.spec}>
@@ -242,11 +243,13 @@ export function BuildWidget({ widget }: WidgetProps) {
     return () => window.removeEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
   }, [redrawing, tooFar, live.previewUrl]);
   const stale = redrawing !== null;
-  const seed = !preview && (view === 'no-preview' || stale) && live.caseId;
+  // A PC with no case chosen is framed too (a null case), so its open-air picture is drawn without the Build page having been opened.
+  const seedCase: string | null | false = !preview && ((view === 'no-preview' || stale) && live.caseId ? live.caseId : view === 'no-case' ? null : false);
+  const seed = seedCase === false ? false : (seedCase ?? 'no-case');
   return (
     <>
       <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} stock={isY70CaseId(live.caseId)} rows={rows} onImageWidth={onImageWidth} />
-      {seed && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seed} size={settled ?? wanted} /></Suspense>}
+      {seed !== false && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seedCase || null} size={settled ?? wanted} /></Suspense>}
     </>
   );
 }

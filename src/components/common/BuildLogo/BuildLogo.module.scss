@@ -1,8 +1,19 @@
-// Neutral by design, never the accent: the theme's full-contrast ink (--logo-contrast: pure white on dark, pure black on
-// light) by default, or a text token when asked.
+@use '../../../styles/text' as *;
+
+// Neutral by design, never the accent: a text token, or the theme's full-contrast ink (--logo-contrast: pure white on dark,
+// pure black on light). Set like the Cooling widget's mode label (SILENT) with the label mixin.
 .logo {
-  display: block;
+  display: inline-block;
   flex: none;
+  box-sizing: border-box;
+  @include text-label;
+  font-family: var(--panel-font, var(--font-sans));
+  font-size: var(--type-body);
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
 }
 
 .contrast {

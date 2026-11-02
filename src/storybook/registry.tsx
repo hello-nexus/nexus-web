@@ -2358,7 +2358,7 @@ function PreviewDesktopOnlyBadge() {
 }
 
 function PreviewBuildLogo() {
-  return <BuildLogo height={32} />;
+  return <BuildLogo />;
 }
 
 function PreviewExperimentalBadge() {
@@ -3505,7 +3505,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'BuildLogo', category: 'status',
     filePath: 'src/components/common/BuildLogo/BuildLogo.tsx',
-    description: 'The BUILD logo: the name in wide-tracked capitals knocked out of a rounded rectangle, drawn inline from one path with its ink as currentColor. It is pure white on the dark theme and pure black on the light one by default (muted and primary text tokens on request, never the accent); one height prop sizes it and the width follows the artwork. The Build widget shows it dim, centered at the bottom of the tile; the Build site header and the in-app open-in-browser button use the same component.',
+    description: 'The BUILD logo: the name in the label style inside a 1.5px rounded outline, the same as the Cooling widget\'s SILENT label. Primary text color by default, with contrast (pure white on dark, pure black on light) and muted tones on request, never the accent; fontSize sizes the type and the outline and padding stay. The Build widget shows it above the specs; the Build site header and the in-app open-in-browser button use the same component.',
     Preview: PreviewBuildLogo,
   },
   {

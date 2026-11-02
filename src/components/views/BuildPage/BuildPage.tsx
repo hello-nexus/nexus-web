@@ -125,6 +125,8 @@ interface BuildPageProps {
   onOpenBenchmark?: () => void;
   /** Opens the Lighting page after the frame sent the PC there as a 3D scene. */
   onOpenLighting?: () => void;
+  /** Opens the Cooling page; the hello advertises it, with whether Cooling is turned on, so the portal can offer the airflow view of a case Cooling can draw. */
+  onOpenCooling?: () => void;
   /** The host's ping platform; the dashboard tile shows no preview on macOS, so none is offered there. */
   platform?: string;
   /** Out of sight, for the Cooling view: no page chrome, no navigation, nothing the user would see or change. */
@@ -135,7 +137,7 @@ interface BuildPageProps {
  * Build: a full-height iframe onto build.hellonexus.com, the upgrade
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
-export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, headless }: BuildPageProps) {
+export function BuildPage({ path, onOpenBenchmark, onOpenLighting, onOpenCooling, platform, headless }: BuildPageProps) {
   const headlessRef = useRef(headless);
   useEffect(() => { headlessRef.current = headless; }, [headless]);
   const canSyncSetup = (DEV_TOOLS || headless?.syncSetup === true) && !isRemoteOrigin;
@@ -143,7 +145,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   const canSavePreview = !isRemoteOrigin && (headless ? headless.preview === true : DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const previewSize = usePreviewSize();
   const { t, language } = useTranslation();
-  const { settings } = useUiSettings();
+  const { settings, update: updateUi } = useUiSettings();
   const { specs } = useSystemSpecs(true);
   const { gamesByKey } = useFpsGames();
 
@@ -157,6 +159,17 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
   useEffect(() => { canSavePreviewRef.current = canSavePreview; }, [canSavePreview]);
   const onOpenLightingRef = useRef(onOpenLighting);
   useEffect(() => { onOpenLightingRef.current = onOpenLighting; }, [onOpenLighting]);
+  const coolingEnabled = settings.featureCoolingEnabled;
+  // Cooling opens on its 3D airflow view, which is the stored choice of that page.
+  const openCooling = useCallback(() => {
+    if (!onOpenCooling) return;
+    updateUi({ coolingView3d: true });
+    onOpenCooling();
+  }, [updateUi, onOpenCooling]);
+  const openCoolingRef = useRef(openCooling);
+  useEffect(() => { openCoolingRef.current = openCooling; }, [openCooling]);
+  const coolingEnabledRef = useRef(coolingEnabled);
+  useEffect(() => { coolingEnabledRef.current = coolingEnabled; }, [coolingEnabled]);
   const [ready, setReady] = useState(false);
   // Bumped on every `ready` message, not just the first: the portal navigates
   // between routes with full page loads inside the iframe, so each new page
@@ -352,12 +365,19 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
             post(reply as FrameMessage);
           })]);
           break;
-        case 'nexus-build:set-preview':
-          if (!canSavePreviewRef.current || typeof data.caseId !== 'string' || !isValidCaseId(data.caseId)) break;
-          void relayPreviewSave(data.caseId, data.png);
+        case 'nexus-build:set-preview': {
+          // A missing case id is a PC with no case chosen.
+          const previewCase = data.caseId ?? null;
+          if (!canSavePreviewRef.current || !isValidCaseId(previewCase)) break;
+          void relayPreviewSave(previewCase, data.png);
           break;
+        }
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();
+          break;
+        case 'nexus-build:open-cooling':
+          // A turned-off Cooling never opens from here, whatever the frame believes.
+          if (coolingEnabledRef.current) openCoolingRef.current();
           break;
         case 'nexus-build:history':
           if (headlessRef.current) break;
@@ -409,6 +429,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
       ...(sceneExportOffered() ? { canExportScene: true } : {}),
       ...(canSyncSetup ? { canSyncSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
+      ...(onOpenCooling ? { canOpenCooling: true, coolingEnabled } : {}),
       // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.
       ...(canSavePreview ? { canSavePreview: true } : {}),
       // How many pixels across the dashboard tile shows the image; the portal draws it at that size. Absent until a tile measured itself.
@@ -423,7 +444,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, platform, hea
     lastHelloSentRef.current = serialized;
     post(payload);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- theme/locale changes post their own delta message below; this only needs to re-run on a new page or on late-arriving machine/games data
-  }, [ready, helloNonce, machineKey, layoutKey, gamesKey, canSavePreview, previewSize, post]);
+  }, [ready, helloNonce, machineKey, layoutKey, gamesKey, canSavePreview, previewSize, coolingEnabled, post]);
 
   const prevThemeRef = useRef(resolvedTheme);
   useEffect(() => {
