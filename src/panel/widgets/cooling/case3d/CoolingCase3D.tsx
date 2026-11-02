@@ -273,6 +273,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     return (
       <div className={styles.root}>
         <EmptyState
+          className={styles.notice}
           icon={<Box size={28} strokeWidth={1.6} />}
           title={t('cooling.case3d.resolveFailed.title')}
           hint={t('cooling.case3d.resolveFailed.hint')}
@@ -291,6 +292,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     return (
       <div className={styles.root}>
         <EmptyState
+          className={styles.notice}
           icon={<Box size={28} strokeWidth={1.6} />}
           title={t('cooling.case3d.unsupported.title')}
           hint={t('cooling.case3d.unsupported.hint')}

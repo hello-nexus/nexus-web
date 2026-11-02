@@ -150,6 +150,11 @@ describe('CoolingCase3D airflow case gate', () => {
     expect(createCaseRenderer).toHaveBeenCalledTimes(1);
   });
 
+  it('docks the unsupported notice at the top of the pane', () => {
+    mount('HYTE Y60');
+    expect(screen.getByText('cooling.case3d.unsupported.title').closest('[role="status"]')!.className).toContain('notice');
+  });
+
   it.each(['HYTE Y60', 'HYTE X50 Air', 'Lian Li O11 Dynamic', null])('shows only the notice for %s and builds no renderer', name => {
     mount(name);
     expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();

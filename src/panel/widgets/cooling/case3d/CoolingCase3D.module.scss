@@ -10,6 +10,13 @@
   box-sizing: border-box;
 }
 
+// The pane's height follows the fan list, so a centered notice sinks below the fold on a long list; dock it at the top instead.
+.root .notice {
+  justify-content: flex-start;
+  height: auto;
+  padding-top: 2.5rem;
+}
+
 .emptyActions {
   display: flex;
   gap: 0.5rem;

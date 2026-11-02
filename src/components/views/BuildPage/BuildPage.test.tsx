@@ -854,10 +854,39 @@ describe('BuildPage headless', () => {
     expect(previewApi.relayPreviewSave).not.toHaveBeenCalled();
   });
 
-  it('offers no setup sync in a distribution build, headless or not', () => {
+  it('offers setup sync to a headless frame that opts in, in a distribution build, and answers its setup requests', async () => {
+    previewApi.devTools = false;
+    h.specs = SAMPLE_SPECS;
+    h.fetchPcSetup.mockResolvedValue({ rev: 4, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } });
+    render(<BuildPage headless={headlessProp({ syncSetup: true })} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)!).toHaveProperty('canSyncSetup', true);
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+    expect(h.fetchPcSetup).toHaveBeenCalled();
+  });
+
+  it('offers no setup sync to a headless frame that did not opt in, and refuses its setup requests', async () => {
     previewApi.devTools = false;
     h.specs = SAMPLE_SPECS;
     render(<BuildPage headless={headlessProp()} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(helloOf(spy)!).not.toHaveProperty('canSyncSetup');
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 0, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } }));
+    expect(h.fetchPcSetup).not.toHaveBeenCalled();
+    expect(h.putPcSetup).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'g', error: 'disabled' }, BUILD_ORIGIN);
+  });
+
+  it('offers no setup sync to an opted-in headless frame on a remote origin', () => {
+    previewApi.devTools = false;
+    h.isRemoteOrigin = true;
+    h.specs = SAMPLE_SPECS;
+    render(<BuildPage headless={headlessProp({ syncSetup: true })} />);
     const iframe = getIframe();
     const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
     act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));

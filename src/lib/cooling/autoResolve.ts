@@ -62,12 +62,13 @@ export type ResolveOutcome = 'waiting' | 'done' | 'failed';
 
 /**
  * Where a headless resolve stands, from its latest message and the record Cooling holds. A layout the view cannot draw is done as soon as
- * it is saved; a drawable one waits for the case model too, which lands a moment after the layout.
+ * it is saved; a drawable one waits for the case model too, which lands a moment after the layout, unless the frame was never offered the
+ * scene export that produces it (`modelOffered` false), when the saved layout is all there will be.
  */
-export function resolveOutcome(message: BuildResolved | null, record: PcSetupRecord | null): ResolveOutcome {
+export function resolveOutcome(message: BuildResolved | null, record: PcSetupRecord | null, modelOffered = true): ResolveOutcome {
   if (!message) return 'waiting';
   if (!message.saved) return 'failed';
   if (!message.hasLayout) return 'done';
   if (!record || record.rev < message.rev) return 'waiting';
-  return message.model || !isFullySupportedCase(layoutOf(record)?.caseModel as string | undefined) ? 'done' : 'waiting';
+  return message.model || !modelOffered || !isFullySupportedCase(layoutOf(record)?.caseModel as string | undefined) ? 'done' : 'waiting';
 }
