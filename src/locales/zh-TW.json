@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "此機殼未安裝風扇。",
   "cooling.case3d.noneLinked": "未綁定風扇",
   "cooling.case3d.position.bottom": "底部",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "前方",
   "cooling.case3d.position.frontLeft": "左前",
   "cooling.case3d.position.frontRight": "右前",

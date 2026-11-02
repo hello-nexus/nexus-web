@@ -435,6 +435,7 @@
   "cooling.case3d.noFans": "W tej obudowie nie zainstalowano wentylatorów.",
   "cooling.case3d.noneLinked": "Brak przypisanego wentylatora",
   "cooling.case3d.position.bottom": "Dół",
+  "cooling.case3d.position.cpu": "CPU",
   "cooling.case3d.position.front": "Przód",
   "cooling.case3d.position.frontLeft": "Przód z lewej",
   "cooling.case3d.position.frontRight": "Przód z prawej",

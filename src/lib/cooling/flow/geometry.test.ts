@@ -245,7 +245,9 @@ describe('particles on the Y70', () => {
   });
 
   it('from the bottom intakes start below the floor and rise into the case', () => {
-    const bottom = y70([], ['bottom:120:0', 'bottom:120:1']);
+    // The cooler's own fan blows inside the case, so it would pull the mean start height up; this test is about the floor intakes.
+    const withCooler = y70([], ['bottom:120:0', 'bottom:120:1']);
+    const bottom = { ...withCooler, fanSlots: withCooler.fanSlots.filter(s => s.position !== 'cpu') };
     const sc = buildFlowScene(inputOf(bottom), LOW);
     const flow = new CpuFlow(sc);
     for (let i = 0; i < 200; i++) flow.step();
