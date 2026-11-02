@@ -587,10 +587,35 @@ describe('CoolingCase3D airflow controls', () => {
     expect(legend()).not.toBeNull();
     expect(canvas.parentElement!.contains(legend())).toBe(true);
     expect(row.contains(legend())).toBe(false);
-    const before = row.children.length;
-    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText('cooling.case3d.flow.mode.case'));
-    expect(legend()).toBeNull();
-    expect(row.children.length).toBe(before);
+    expect(row.children.length).toBeGreaterThan(0);
+  });
+
+  it('shows the legend with the heat volume toggle beside it in every display mode', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const toolbar = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
+    for (const mode of ['case', 'airflow', 'both']) {
+      const label = within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).queryByText(`cooling.case3d.flow.mode.${mode}`);
+      if (label) fireEvent.click(label);
+      const legend = screen.getByRole('group', { name: /cooling\.case3d\.flow\.legend/ });
+      const heat = screen.getByRole('switch', { name: 'cooling.case3d.flow.heat' });
+      expect(legend.parentElement!.contains(heat)).toBe(true);
+      expect(toolbar.contains(heat)).toBe(false);
+    }
+  });
+
+  it('puts the heat volume toggle then the info button inside the frame, top right, with dev tools off', () => {
+    h.devTools = false;
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const frame = screen.getByRole('img', { name: 'cooling.case3d.canvas' }).parentElement as HTMLElement;
+    const heat = screen.getByRole('switch', { name: 'cooling.case3d.flow.heat' });
+    const info = within(frame).getByRole('button', { name: 'cooling.case3d.hint.label' });
+    expect(frame.contains(heat)).toBe(true);
+    expect(heat.compareDocumentPosition(info) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(heat.closest('[class*="legendActions"]')).toBe(info.closest('[class*="legendActions"]'));
   });
 
   it('opens in the remembered mode', () => {
@@ -1192,5 +1217,38 @@ describe('CoolingCase3D renderer creation', () => {
       quiet.mockRestore();
       vi.useRealTimers();
     }
+  });
+});
+
+describe('CoolingCase3D dev-tools flow controls', () => {
+  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.slowMo', 'cooling.case3d.flow.collisions'];
+  const devOnly = names.slice(1);
+  const mount = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    return render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+  };
+
+  it('renders heat volume, slow mo and collision shapes with dev tools on', () => {
+    mount();
+    for (const name of names) expect(screen.getByRole('switch', { name })).toBeTruthy();
+  });
+
+  it('hides slow mo and collision shapes but keeps heat volume with dev tools off', () => {
+    h.devTools = false;
+    mount();
+    for (const name of devOnly) expect(screen.queryByRole('switch', { name })).toBeNull();
+    expect(screen.getByRole('switch', { name: names[0] })).toBeTruthy();
+  });
+
+  it('runs at normal speed with dev tools off even when slow mo was switched on', () => {
+    mount();
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
+    expect(lastState().flowOptions.speed).toBe(0.15);
+    h.devTools = false;
+    const pick = (name: string) => fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText(name));
+    pick('cooling.case3d.flow.mode.case');
+    expect(lastState().flowOptions.speed).toBe(0.6);
+    expect(lastState().flowOptions.timeScale).toBe(VISUAL_TIME_SCALE);
   });
 });
