@@ -211,11 +211,14 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
   });
 
-  it('is not offered on a panel with no display to stack', async () => {
+  it('is not offered where the see-through background does not exist', async () => {
     serveRecord({ family: 'xeneon-edge' });
-    const unbound = { ...DEVICE, displayId: undefined, panelRecordId: undefined } as PanelDevice;
-    render(<PanelDevicePage device={unbound} />);
-    await screen.findByRole('tab', { name: SETTINGS_TAB }).catch(() => null);
+    // A display-bound record on a non-monitor surface: isMonitorPanel holds, the desktop backdrop check does not.
+    const lcd = { ...DEVICE, runtimeSurface: 'phone' } as PanelDevice;
+    render(<PanelDevicePage device={lcd} />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
     expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
   });
 });

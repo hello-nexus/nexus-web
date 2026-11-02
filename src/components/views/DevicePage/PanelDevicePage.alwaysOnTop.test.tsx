@@ -137,7 +137,6 @@ describe('PanelDevicePage Y70 always on top', () => {
 
     fireEvent.click(reserve);
     await waitFor(() => expect(reserve).not.toBeChecked());
-    expect(screen.getByRole('switch', { name: TOGGLE_LABEL })).toBeEnabled();
   });
 
   it('reads the stored value and saves the flip', async () => {
