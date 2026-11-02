@@ -1,9 +1,9 @@
 import { useTranslation } from '../../../lib/i18n';
-import { LOGO_CUTS, LOGO_STYLE, type LogoStyle } from './logoPaths';
+import { LOGO_FULL, LOGO_SMALL } from './logoPaths';
 import styles from './BuildLogo.module.scss';
 
-/** The logo's cap height as a share of its drawing's height (the letters are 70 units in a 137.2 unit tall viewBox). */
-const CAP_SHARE = 70 / 137.2;
+/** The logo's cap height as a share of its drawing's height: the drawing is 1.6 times the cap height. */
+const CAP_SHARE = 1 / 1.6;
 /** Under this cap height, in CSS px, the small cut is drawn: the full one loses its thin strokes below it. */
 export const SMALL_CAP_HEIGHT_PX = 12;
 
@@ -12,8 +12,6 @@ interface BuildLogoProps {
   height?: number;
   /** muted is the quiet default; primary is the body text color. Never the accent. */
   tone?: 'muted' | 'primary';
-  /** outline or inverted; defaults to the one constant in logoPaths. */
-  logoStyle?: LogoStyle;
   /** The accessible name; a host with its own translations passes it. Defaults to the app's BUILD string. */
   label?: string;
   className?: string;
@@ -24,10 +22,10 @@ export function logoCutFor(height: number): 'small' | 'full' {
   return height * CAP_SHARE < SMALL_CAP_HEIGHT_PX ? 'small' : 'full';
 }
 
-/** The BUILD logo, drawn inline in a neutral theme color. A quiet identifier, not a button. */
-export function BuildLogo({ height = 24, tone = 'muted', logoStyle = LOGO_STYLE, label, className }: BuildLogoProps) {
+/** The BUILD logo (a rounded sign with the name knocked out and a screw on each side), drawn inline in a neutral theme color. A quiet identifier, not a button. */
+export function BuildLogo({ height = 24, tone = 'muted', label, className }: BuildLogoProps) {
   const { t } = useTranslation();
-  const cut = LOGO_CUTS[logoStyle][logoCutFor(height)];
+  const cut = logoCutFor(height) === 'small' ? LOGO_SMALL : LOGO_FULL;
   const [, , w, h] = cut.viewBox.split(' ').map(Number);
   return (
     <svg

@@ -20,7 +20,7 @@ import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
 
 // The BUILD logo's drawing height in px; the 2x2 tile reserves it at the bottom so the image sits clear of it.
-const LOGO_HEIGHT = 20;
+const LOGO_HEIGHT = 18;
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
