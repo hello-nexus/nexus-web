@@ -255,7 +255,34 @@ describe('BuildWidget', () => {
       wide.unmount();
       expect(getPreviewSize()).toBe(smallSize);
       small.unmount();
-      expect(getPreviewSize()).toBeNull();
+      // The last size stands for the Build page that replaces the dashboard.
+      expect(getPreviewSize()).toBe(smallSize);
+    });
+
+    it('a wide tile reports its final square before the spec rows have loaded', async () => {
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) { return this.className.includes('gapProbe') ? 0 : 600; });
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(200);
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 600 } as DOMRect);
+      vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(2);
+      h.specs = null;
+      await renderWidget('4x2');
+      expect(getPreviewSize()).toBe(previewSizeFor(200 * 0.82, 2));
+    });
+
+    it('a tile stops counting once it stops measuring', async () => {
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-specs') ? 600 : 120; });
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-specs') ? 200 : 120; });
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) { return { width: this.hasAttribute('data-specs') ? 600 : 120 } as DOMRect; });
+      vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(2);
+      h.specs = { pcName: 'x', osBuild: '', processor: 'AMD Ryzen 7 9800X3D', motherboard: 'B850I', memory: '32 GB DDR5-5600', storage: '1.82 TB NVMe', graphicsCard: 'RTX 5080', primaryGpu: 'NVIDIA GeForce RTX 5080', monitor: '', soundCard: '', networkCard: '' };
+      await renderWidget('2x2');
+      const wide = render(<BuildWidget widget={widget('4x2')} />);
+      await flush();
+      expect(getPreviewSize()).toBe(previewSizeFor(200 * 0.82, 2));
+      // The wide tile goes into preview mode (no live data): its entry leaves, so the smaller tile's size is published.
+      wide.rerender(<PanelPreviewProvider value><BuildWidget widget={widget('4x2')} /></PanelPreviewProvider>);
+      await flush();
+      expect(getPreviewSize()).toBe(previewSizeFor(120 * 0.82, 2));
     });
 
     it('an image far from the wanted size is drawn again, once, and the seed is told the size', async () => {
@@ -279,6 +306,22 @@ describe('BuildWidget', () => {
       h.preview.mockResolvedValue({ kind: 'unchanged' });
       await changed();
       expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('a too-small image is redrawn at most once per interval for the same case and size', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(1024));
+      registerPreviewSize('test', 270);
+      await renderWidget('4x4');
+      expect(screen.getByTestId('seed')).toBeTruthy();
+      h.preview.mockResolvedValue({ kind: 'unchanged' });
+      await changed();
+      expect(screen.queryByTestId('seed')).toBeNull();
+      // What is stored is still too small (another context's smaller save, or a portal that ignores the size): nothing happens inside the interval, and it is drawn again once it has passed.
+      await act(async () => { await vi.advanceTimersByTimeAsync(9 * 60 * 1000); });
+      expect(screen.queryByTestId('seed')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(2 * 60 * 1000); });
+      expect(screen.getByTestId('seed')).toBeTruthy();
     });
 
     it('a change of the wanted size draws it again', async () => {

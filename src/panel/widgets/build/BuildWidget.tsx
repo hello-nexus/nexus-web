@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { isStaleSize, previewSizeFor, usePreviewSize, usePreviewSizeReporter } from '../../../components/views/BuildPage/previewSize';
+import { isStaleSize, mayRedraw, previewSizeFor, REDRAW_INTERVAL_MS, usePreviewSize, usePreviewSizeReporter } from '../../../components/views/BuildPage/previewSize';
 import { SYSTEM_PREVIEW_CHANGED_EVENT } from '../../../api/systemPreview';
 import { useTranslation } from '../../../lib/i18n';
 import { DrawingImage } from './DrawingImage';
@@ -13,7 +13,7 @@ import { BuildCaseSilhouette } from './BuildCaseSilhouette';
 import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
-import type { BuildSpecRow } from './buildSpecRows';
+import { sizeShowsSpecs, type BuildSpecRow } from './buildSpecRows';
 import { isY70CaseId } from './y70Cases';
 import y70Dark from './assets/y70-touch-dark.png';
 import y70Light from './assets/y70-touch-light.png';
@@ -23,12 +23,12 @@ import styles from './BuildWidget.module.scss';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
-// Case and size pairs whose image was redrawn once already.
-const resized = new Set<string>();
+// When each case and size pair was last redrawn by this context.
+const redrawn = new Map<string, number>();
 
 /** Test seam. */
 export function resetResizedPreviews(): void {
-  resized.clear();
+  redrawn.clear();
 }
 
 interface BuildWidgetViewProps {
@@ -149,19 +149,21 @@ function useScopeTheme() {
 
 export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
   const { t } = useTranslation();
-  const wide = rows.length > 0;
+  // The layout is known from the tile's size, not from the spec rows having loaded, so the first report is already the final square.
+  const wide = sizeShowsSpecs(size);
+  const withSpecs = rows.length > 0;
   const geometry = useTileGeometry(wide, onImageWidth);
   const scope = useScopeTheme();
   const showStock = stock && view === 'no-preview';
   // No case yet: the parts stand open-air, drawn by the same scene code as the case image.
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
-  const mediaStyle: CSSProperties | undefined = wide && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
+  const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
-      <div ref={geometry.bodyRef} className={styles.body} data-specs={wide ? '' : undefined}>
+      <div ref={geometry.bodyRef} className={styles.body} data-specs={withSpecs ? '' : undefined}>
       {wide && <span ref={geometry.gapRef} className={styles.gapProbe} aria-hidden="true" />}
       <div className={styles.media} style={mediaStyle}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
@@ -170,7 +172,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {isOpenAir && <DrawingImage className={styles.image} src={openAir} openAir />}
         {silhouette && <BuildCaseSilhouette />}
       </div>
-      {rows.length > 0 && (
+      {withSpecs && (
         <div className={styles.side}>
           <span className={styles.label} aria-hidden="true">{t('panel.widget.build.badge')}</span>
           <ul className={styles.specs}>
@@ -203,21 +205,36 @@ export function BuildWidget({ widget }: WidgetProps) {
   const rows = useBuildSpecs(!preview && isMac === false, widget.size);
   // The image is drawn by the portal at the size this tile shows it in, so the lines meet the screen pixel for pixel.
   const wanted = usePreviewSize();
-  const reportSize = usePreviewSizeReporter();
   const measuring = !preview && isMac === false;
+  const reportSize = usePreviewSizeReporter(measuring);
   const onImageWidth = measuring ? (cssWidth: number) => reportSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
-  // A stored image that is too small, or far too large, for a size that has held still is drawn again once per case and size, so a portal that ignores the size cannot loop.
+  // A stored image narrower than a size that has held still is drawn again, at most once per interval for each case and size, so a portal that ignores the size, or another context's smaller save, cannot loop.
   const settled = useSettled(wanted, SEED_SETTLE_MS);
   const staleKey = live.caseId && settled ? `${live.caseId}|${settled}` : null;
-  const stale = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0) && !resized.has(staleKey);
-  const [, setEnded] = useState(0);
-  // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change.
+  const tooSmall = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0);
+  const [redrawing, setRedrawing] = useState<string | null>(null);
+  const [due, setDue] = useState(0);
   useEffect(() => {
-    if (!stale || !staleKey) return undefined;
-    const done = () => { resized.add(staleKey); setEnded((n) => n + 1); };
+    if (!tooSmall || !staleKey || redrawing !== null) return undefined;
+    const last = redrawn.get(staleKey);
+    if (mayRedraw(last, Date.now())) {
+      redrawn.set(staleKey, Date.now());
+      setRedrawing(staleKey);
+      return undefined;
+    }
+    // Still too small once the interval has passed: look again then.
+    const timer = window.setTimeout(() => setDue((n) => n + 1), REDRAW_INTERVAL_MS - (Date.now() - (last ?? 0)));
+    return () => window.clearTimeout(timer);
+  }, [tooSmall, staleKey, redrawing, due]);
+  // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change, or when what is stored is no longer too small.
+  useEffect(() => {
+    if (redrawing === null) return undefined;
+    if (!tooSmall) { setRedrawing(null); return undefined; }
+    const done = () => setRedrawing(null);
     window.addEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
     return () => window.removeEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
-  }, [stale, staleKey]);
+  }, [redrawing, tooSmall]);
+  const stale = redrawing !== null;
   const seed = !preview && (view === 'no-preview' || stale) && live.caseId;
   return (
     <>

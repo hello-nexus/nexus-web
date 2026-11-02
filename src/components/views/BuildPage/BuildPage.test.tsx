@@ -2,7 +2,7 @@ import { act, cleanup, render, renderHook, screen } from '@testing-library/react
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BuildPage, BUILD_ORIGIN, sanitizeBuildPath } from './BuildPage';
 import { useBuildFrameHistory } from './buildNav';
-import { registerPreviewSize, resetPreviewSize } from './previewSize';
+import { registerPreviewSize, resetPreviewSize, unregisterPreviewSize } from './previewSize';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { FpsGameSummary } from '../../../api/fps';
 
@@ -750,6 +750,13 @@ describe('BuildPage preview relay', () => {
     act(() => registerPreviewSize('tile', 540));
     expect(helloPosts(postSpy)).toHaveLength(2);
     expect(helloPosts(postSpy)[1].previewSize).toBe(540);
+  });
+
+  it('still carries previewSize once the tiles that measured it have gone, as when Build replaces the dashboard', () => {
+    registerPreviewSize('tile', 270);
+    unregisterPreviewSize('tile');
+    const { postSpy } = readyFrame();
+    expect(helloPosts(postSpy)[0].previewSize).toBe(270);
   });
 
   it('does not offer previewSize where no preview is offered', () => {
