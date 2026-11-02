@@ -59,37 +59,42 @@ function useContentBox(src: string): ContentBox | null {
   return box;
 }
 
+/** The size a picture of this shape has at a target width, its proportions kept. */
+export function scaledSize(naturalWidth: number, naturalHeight: number, targetWidth: number): { width: number; height: number } {
+  return { width: targetWidth, height: Math.max(1, Math.round((targetWidth * naturalHeight) / naturalWidth)) };
+}
+
 /**
- * The image resampled once, at the size it is shown (its CSS size times the device pixel ratio), by halving steps with
- * smoothing. The browser's own one-step shrink of a large picture skips pixels, which breaks thin lines into stairs;
- * this keeps them smooth at 1x as well as at higher ratios. Returns null (the original shows) until it is made or where
- * canvas is unavailable.
+ * The image resampled once, at the width it is shown (its CSS width times the device pixel ratio), by halving steps with
+ * smoothing, its proportions kept. The browser's own one-step shrink of a large picture skips pixels, which breaks thin
+ * lines into stairs; this keeps them smooth at 1x as well as at higher ratios. Resolves null (the original shows) where
+ * canvas is unavailable or the picture is already no larger than asked.
  */
-export function downscaleTo(source: CanvasImageSource & { width?: number; naturalWidth?: number; naturalHeight?: number }, targetSide: number): Promise<Blob | null> {
-  const natural = (source as HTMLImageElement).naturalWidth || 0;
-  if (!natural || targetSide >= natural) return Promise.resolve(null);
-  let current: CanvasImageSource = source;
-  let side = natural;
-  while (side / 2 > targetSide) {
-    side = Math.ceil(side / 2);
-    const step = document.createElement('canvas');
-    step.width = side;
-    step.height = side;
-    const ctx = step.getContext('2d');
-    if (!ctx) return Promise.resolve(null);
+export function downscaleTo(source: HTMLImageElement, targetWidth: number): Promise<Blob | null> {
+  const { naturalWidth, naturalHeight } = source;
+  if (!naturalWidth || !naturalHeight || targetWidth >= naturalWidth) return Promise.resolve(null);
+  const draw = (from: CanvasImageSource, width: number, height: number): HTMLCanvasElement | null => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(current, 0, 0, side, side);
+    ctx.drawImage(from, 0, 0, width, height);
+    return canvas;
+  };
+  let current: CanvasImageSource = source;
+  let width = naturalWidth;
+  while (width / 2 > targetWidth) {
+    width = Math.ceil(width / 2);
+    const step = draw(current, width, scaledSize(naturalWidth, naturalHeight, width).height);
+    if (!step) return Promise.resolve(null);
     current = step;
   }
-  const out = document.createElement('canvas');
-  out.width = targetSide;
-  out.height = targetSide;
-  const ctx = out.getContext('2d');
-  if (!ctx) return Promise.resolve(null);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(current, 0, 0, targetSide, targetSide);
+  const target = scaledSize(naturalWidth, naturalHeight, targetWidth);
+  const out = draw(current, target.width, target.height);
+  if (!out) return Promise.resolve(null);
   return new Promise((resolve) => out.toBlob(resolve, 'image/png'));
 }
 

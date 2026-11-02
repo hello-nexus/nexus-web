@@ -34,13 +34,19 @@
 .widget[data-specs] {
   flex-direction: row;
   gap: 0;
-  --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2));
 
   .media {
     flex: 0 0 40%;
     height: 100%;
-    flex-basis: calc(var(--left-region) - 2 * var(--space-md));
-    width: calc(var(--left-region) - 2 * var(--space-md));
+  }
+
+  @supports (width: 1cqw) {
+    --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2));
+
+    .media {
+      flex-basis: calc(var(--left-region) - 2 * var(--space-md));
+      width: calc(var(--left-region) - 2 * var(--space-md));
+    }
   }
 }
 

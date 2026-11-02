@@ -9,6 +9,7 @@ export function shortCpu(name: string): string {
     .replace(/@\s*[\d.]+\s*GHz/i, '')
     .replace(/\b\d+-Core Processor\b/i, '')
     .replace(/\b(?:CPU|Processor)\b/gi, '')
+    .replace(/^\d+(?:st|nd|rd|th)\s+Gen\s+/i, '')
     .replace(/\b(?:AMD|Intel)\s+/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -17,7 +18,10 @@ export function shortCpu(name: string): string {
 
 /** "NVIDIA GeForce RTX 5080" to "RTX 5080"; "AMD Radeon RX 7900 XTX" to "RX 7900 XTX"; "Intel Arc A770" to "Arc A770". */
 export function shortGpu(name: string): string {
-  const s = clean(name)
+  const whole = clean(name);
+  // An integrated adapter has no model to show: it stays as the family it is, vendor included for Intel.
+  if (/^(?:Intel\s+)?(?:Arc\s+)?Graphics$/i.test(whole)) return whole;
+  const s = whole
     .replace(/\b(?:NVIDIA|AMD|Intel|Founders Edition|Graphics Card|Laptop GPU)\b/gi, '')
     .replace(/(\bArc\b.*?)\s+Graphics\b/i, '$1')
     .replace(/\bGeForce\b/i, '')
@@ -25,8 +29,7 @@ export function shortGpu(name: string): string {
     .replace(/\s+/g, ' ')
     .trim();
   if (!s) return name.trim();
-  // An integrated adapter is left as its family, not "Graphics" alone.
-  return s === 'Graphics' ? clean(name).replace(/^(?:AMD|Intel)\s+/i, '') : s;
+  return s === 'Graphics' ? whole.replace(/^AMD\s+/i, '') : s;
 }
 
 /** "32 GB DDR5-5600 (2 x 16 GB Crucial CP16G60C48U5.M8B2)" to "32 GB DDR5". */
@@ -37,13 +40,21 @@ export function shortRam(memory: string): string {
   return `${gb[1]} GB${ddr ? ` ${ddr[1].toUpperCase()}` : ''}`;
 }
 
-// Marketed capacities in GB; operating systems report a little less (a 2 TB drive as 1.82 TB).
-const MARKETED_GB = [128, 256, 500, 512, 1000, 2000, 4000, 8000, 16000];
+// Marketed sizes in decimal GB that drives are sold at; a reading within 3% of one is that size.
+const MARKETED_GB = [16, 32, 64, 120, 128, 240, 250, 256, 480, 500, 512, 960, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 12000, 16000, 20000];
+const SNAP = 0.03;
 
-function marketedCapacity(value: number, unit: string): string {
-  const gb = /tb/i.test(unit) ? value * 1000 : value;
-  const nearest = MARKETED_GB.reduce((best, c) => (Math.abs(Math.log(gb / c)) < Math.abs(Math.log(gb / best)) ? c : best), MARKETED_GB[0]);
-  return nearest >= 1000 ? `${nearest / 1000} TB` : `${nearest} GB`;
+/**
+ * The service reports binary units (a 2 TB drive reads 1.82 TB, a 250 GB one 232.83 GB). The reading goes to decimal bytes,
+ * then to a common marketed size when it is within 3% of one, else to two significant digits.
+ */
+export function marketedCapacity(value: number, unit: string): string {
+  const bytes = value * (/tb/i.test(unit) ? 1024 ** 4 : 1024 ** 3);
+  const gb = bytes / 1e9;
+  const nearest = MARKETED_GB.reduce((best, size) => (Math.abs(gb - size) < Math.abs(gb - best) ? size : best), MARKETED_GB[0]);
+  const near = Math.abs(gb - nearest) / nearest <= SNAP ? nearest : undefined;
+  const rounded = near ?? Number(gb.toPrecision(2));
+  return rounded >= 1000 ? `${Number((rounded / 1000).toFixed(2))} TB` : `${rounded} GB`;
 }
 
 /** "1.82 TB WDS200T1X0E-00AFY0 NVMe" to "2 TB NVMe": the capacity and the interface, never the model string. */

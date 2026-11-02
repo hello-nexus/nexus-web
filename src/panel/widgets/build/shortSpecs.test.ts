@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shortBoard, shortCooler, shortCpu, shortGpu, shortRam, shortStorage } from './shortSpecs';
+import { marketedCapacity, shortBoard, shortCooler, shortCpu, shortGpu, shortRam, shortStorage } from './shortSpecs';
 
 describe('shortCpu', () => {
   it.each([
@@ -7,7 +7,8 @@ describe('shortCpu', () => {
     ['AMD Ryzen 9 7950X 16-Core Processor', 'Ryzen 9 7950X'],
     ['Intel(R) Core(TM) i7-12700KF @ 3.60GHz', 'Core i7-12700KF'],
     ['Intel(R) Core(TM) Ultra 9 285K', 'Core Ultra 9 285K'],
-    ['12th Gen Intel(R) Core(TM) i5-12400', '12th Gen Core i5-12400'],
+    ['12th Gen Intel(R) Core(TM) i5-12400', 'Core i5-12400'],
+    ['12th Gen Intel(R) Core(TM) i7-12700K', 'Core i7-12700K'],
   ])('%s -> %s', (input, expected) => expect(shortCpu(input)).toBe(expected));
 });
 
@@ -20,6 +21,9 @@ describe('shortGpu', () => {
     ['AMD Radeon(TM) Graphics', 'Radeon Graphics'],
     ['Intel(R) Arc(TM) A770 Graphics', 'Arc A770'],
     ['NVIDIA GeForce RTX 4070 Laptop GPU', 'RTX 4070'],
+    ['Intel(R) Arc(TM) Graphics', 'Intel Arc Graphics'],
+    ['Intel(R) Graphics', 'Intel Graphics'],
+    ['Intel(R) UHD Graphics 770', 'UHD Graphics 770'],
   ])('%s -> %s', (input, expected) => expect(shortGpu(input)).toBe(expected));
 });
 
@@ -30,6 +34,26 @@ describe('shortRam', () => {
     ['64 GB LPDDR5X-7500', '64 GB LPDDR5X'],
     ['8 GB', '8 GB'],
   ])('%s -> %s', (input, expected) => expect(shortRam(input)).toBe(expected));
+});
+
+describe('marketedCapacity (binary readings to marketed sizes)', () => {
+  it.each([
+    [2.73, 'TB', '3 TB'],
+    [5.46, 'TB', '6 TB'],
+    [1.36, 'TB', '1.5 TB'],
+    [232.83, 'GB', '250 GB'],
+    [223.57, 'GB', '240 GB'],
+    [59.6, 'GB', '64 GB'],
+    [931.5, 'GB', '1 TB'],
+    [1.82, 'TB', '2 TB'],
+    [465.76, 'GB', '500 GB'],
+    [476.94, 'GB', '512 GB'],
+    [3.64, 'TB', '4 TB'],
+  ])('%s %s -> %s', (value, unit, expected) => expect(marketedCapacity(value, unit)).toBe(expected));
+
+  it('falls back to two significant digits for an unusual size', () => {
+    expect(marketedCapacity(300, 'GB')).toBe('320 GB');
+  });
 });
 
 describe('shortStorage', () => {

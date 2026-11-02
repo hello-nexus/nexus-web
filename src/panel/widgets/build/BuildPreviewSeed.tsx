@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BuildPage, type HeadlessBuild } from '../../../components/views/BuildPage/BuildPage';
 import { useBuildMachine } from '../../../components/views/BuildPage/buildMachine';
+import { clearSeedFailures, recordSeedFailure, seedAttemptKey, seedFailedRecently } from './seedAttempts';
 
 /** Past this the try counts as failed. */
 export const SEED_TIMEOUT_MS = 60_000;
@@ -19,6 +20,7 @@ const release = (id: symbol) => {
 /** Test seam. */
 export function resetPreviewSeed(): void {
   tried.clear();
+  clearSeedFailures();
   owner = null;
   waiters.clear();
 }
@@ -29,6 +31,15 @@ export function BuildPreviewSeed({ caseId }: { caseId: string }) {
   const [active, setActive] = useState(false);
   const [stopped, setStopped] = useState(() => tried.has(caseId));
   const { machine, key } = useBuildMachine(!stopped);
+  const attempt = key === null ? null : seedAttemptKey(caseId, key);
+
+  // A failure kept from an earlier launch holds this one off, so an offline or failing portal is not framed on every start.
+  useEffect(() => {
+    if (attempt !== null && seedFailedRecently(attempt)) {
+      tried.add(caseId);
+      setStopped(true);
+    }
+  }, [attempt, caseId]);
 
   const [wake, setWake] = useState(0);
   useEffect(() => {
@@ -52,10 +63,11 @@ export function BuildPreviewSeed({ caseId }: { caseId: string }) {
     if (!ready) return undefined;
     const timer = window.setTimeout(() => {
       tried.add(caseId);
+      if (attempt !== null) recordSeedFailure(attempt);
       setStopped(true);
     }, SEED_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [ready, caseId]);
+  }, [ready, caseId, attempt]);
 
   const headless = useMemo<HeadlessBuild | null>(() => (ready && machine && key !== null
     ? {
@@ -65,10 +77,11 @@ export function BuildPreviewSeed({ caseId }: { caseId: string }) {
       onResolved: () => {},
       onUnavailable: () => {
         tried.add(caseId);
+        if (attempt !== null) recordSeedFailure(attempt);
         setStopped(true);
       },
     }
-    : null), [ready, machine, key, caseId]);
+    : null), [ready, machine, key, caseId, attempt]);
 
   return headless ? <BuildPage headless={headless} /> : null;
 }
