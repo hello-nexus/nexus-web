@@ -160,6 +160,11 @@
   pointer-events: auto;
 }
 
+// The logo takes the button's ink so it reads in the enabled, hover and disabled states.
+.control .buildLogo {
+  color: inherit;
+}
+
 // The status bar and the temperature legend stack at the canvas top, out of flow, so the legend coming and going moves nothing else.
 .topStack {
   position: absolute;

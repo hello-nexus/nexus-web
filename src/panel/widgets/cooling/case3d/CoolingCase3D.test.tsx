@@ -835,6 +835,7 @@ describe('CoolingCase3D Build link', () => {
     render(ui());
     const build = screen.getByRole('button', { name: 'cooling.case3d.build.customize' });
     expect(build.textContent).toContain('cooling.case3d.build.customize');
+    expect(within(build).getByRole('img', { name: 'panel.widget.build.badge', hidden: true })).toBeTruthy();
     const controls = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
     expect(build.parentElement?.contains(controls)).toBe(true);
     expect(controls.contains(build)).toBe(false);
