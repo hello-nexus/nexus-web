@@ -18,10 +18,10 @@ import { isY70CaseId } from './y70Cases';
 import y70Dark from './assets/y70-touch-dark.png';
 import y70Light from './assets/y70-touch-light.png';
 // Every part draws in the accent, so one image serves both themes.
-import openFrameDark from './assets/open-frame-dark.png';
-import openFrameLight from './assets/open-frame-light.png';
-import genericDark from './assets/generic-case-dark.png';
-import genericLight from './assets/generic-case-light.png';
+import openFrameDark from './assets/open-frame-dark.png?inline';
+import openFrameLight from './assets/open-frame-light.png?inline';
+import genericDark from './assets/generic-case-dark.png?inline';
+import genericLight from './assets/generic-case-light.png?inline';
 import styles from './BuildWidget.module.scss';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));

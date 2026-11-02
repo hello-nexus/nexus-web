@@ -1,6 +1,9 @@
 import { useTranslation } from '../../../lib/i18n';
 import styles from './BuildLogo.module.scss';
 
+// In em of the type size, so every size is rounded the same relative to its height.
+const CORNER_RADIUS = '0.75em';
+
 interface BuildLogoProps {
   /** contrast is the theme's full-contrast ink (pure white on dark, pure black on light); muted is the dim text token; primary the body text color (the default). Never the accent. */
   tone?: 'contrast' | 'muted' | 'primary';
@@ -17,7 +20,7 @@ export function BuildLogo({ tone = 'primary', fontSize, label, className }: Buil
   return (
     <span
       className={[styles.logo, styles[tone], className].filter(Boolean).join(' ')}
-      style={fontSize ? { fontSize } : undefined}
+      style={{ borderRadius: CORNER_RADIUS, ...(fontSize ? { fontSize } : {}) }}
       role="img"
       aria-label={label ?? t('panel.widget.build.badge')}
     >

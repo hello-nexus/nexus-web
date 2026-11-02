@@ -26,6 +26,8 @@ describe('BuildLogo', () => {
   it('sizes the type only when the host asks', () => {
     const sized = logoOf(<BuildLogo fontSize={10} />) as HTMLElement;
     expect(sized.style.fontSize).toBe('10px');
+    // The same rounding at every size, relative to the type size.
+    expect(sized.style.borderRadius).toBe((logoOf(<BuildLogo />) as HTMLElement).style.borderRadius);
     expect((logoOf(<BuildLogo />) as HTMLElement).style.fontSize).toBe('');
   });
 });
