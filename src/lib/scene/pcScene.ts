@@ -134,6 +134,11 @@ export function scenePalette(host: Element): Palette {
   return { part: cssColor(host, '--accent', '#3b82f6'), frame: cssColor(host, '--text-dim', '#888888'), bad: cssColor(host, '--bad', '#ef4444'), limit: cssColor(host, '--warn', '#f59e0b') };
 }
 
+/** The Cooling view's palette: parts in the theme's primary text color, so they stay out of the way of the blue and red air temperatures. */
+export function coolingPalette(host: Element): Palette {
+  return { ...scenePalette(host), part: cssColor(host, '--text', '#f5f5f5') };
+}
+
 /** Frees the geometry and materials of everything under `group`. */
 export function disposeGroup(group: Group) {
   group.traverse((obj) => {

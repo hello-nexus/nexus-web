@@ -53,7 +53,7 @@ describe.each(FILES)('%s idle fans', file => {
     const one = derive([{ channelId: NONE_CHANNEL, slotKeys: keys.slice(1) }, { channelId: 'sim:1500', slotKeys: [keys[0]] }]);
     const back = derive([{ channelId: NONE_CHANNEL, slotKeys: keys }]);
     expect(one.visual.fanCfm[keys[0]]).toBeGreaterThan(0);
-    expect(one.scene.emitters.length).toBeGreaterThan(0);
+    expect(one.scene.fanCount).toBe(1);
     expect(one.scene.dims).toEqual(idle.scene.dims);
     expect(one.scene.origin).toEqual(idle.scene.origin);
     expect(back.scene.dims).toEqual(idle.scene.dims);

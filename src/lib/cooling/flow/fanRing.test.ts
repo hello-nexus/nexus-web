@@ -140,15 +140,10 @@ describe('stopped fans and empty slots', () => {
     expect(s.opening[idx(s, shellCenter)]).toBe(OPENING_VENT);
   });
 
-  it('spawns inflow particles across the whole disc of an empty slot, hub area included', () => {
+  it('spawns nothing at an empty slot, even while the case draws air in', () => {
     const s = buildFlowScene({ ...inputFor([emptyFront], [], () => 'intake'), ventCfm: -60 }, FINE);
-    let inner = 0;
-    for (let m = 0; m < s.spawns.length / 3; m++) {
-      const p = [0, 1, 2].map(a => (s.spawns[m * 3 + a] + 0.5) * s.cellMm - s.origin[a]);
-      if (Math.hypot(p[1] - CENTER[1], p[2] - CENTER[2]) < hub) inner++;
-    }
-    expect(s.spawns.length).toBeGreaterThan(0);
-    expect(inner).toBeGreaterThan(0);
+    expect(s.spawns.length).toBe(0);
+    expect(s.emitters.length).toBe(0);
   });
 });
 

@@ -7,7 +7,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
-import { buildCase, disposeGroup, scenePalette, type Palette } from '../../../../lib/scene/pcScene';
+import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -207,7 +207,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   // The case is Build's own scene (lib/scene/pcScene), built from the same layout; the fans are this view's overlay.
   const buildStatic = (l: CaseLayout) => {
     clearCase();
-    const palette: Palette = scenePalette(canvas);
+    const palette: Palette = coolingPalette(canvas);
     const [D, W, H] = l.size;
     const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true);
     // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.

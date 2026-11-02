@@ -37,7 +37,7 @@ import { LineBasicMaterial, LineDashedMaterial, Color } from 'three';
 import { Group } from 'three';
 import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
-import { buildCase, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
+import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
 import { createCaseRenderer, ringMaterial } from './coolingCaseRenderer';
 
@@ -146,10 +146,21 @@ describe('the case is Build\'s scene', () => {
     const expected = new Group();
     expected.position.set(D / 2, H / 2, W / 2);
     // Build's call for a still view of a case; the fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
-    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, scenePalette(canvas), [], [], [], true, false, true, true));
+    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true));
     expect(staticGroup.children).toHaveLength(1);
     expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
     r.dispose();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('case palette', () => {
+  // jsdom has no 2D context, so the token reader returns each fallback: text f5f5f5, accent 3b82f6.
+  it('Cooling draws parts in the theme text color while Build keeps the accent', () => {
+    const host = document.createElement('div');
+    host.style.setProperty('--accent', '#ff0000');
+    host.style.setProperty('--text', '#f5f5f5');
+    expect(coolingPalette(host).part.getHexString()).toBe('f5f5f5');
+    expect(scenePalette(host).part.getHexString()).not.toBe('f5f5f5');
   });
 });

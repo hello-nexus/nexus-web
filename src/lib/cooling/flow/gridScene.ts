@@ -472,8 +472,6 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     if (speed > 0) {
       fanCount++;
       if (p.direction === 'intake') addSpawns(p, p.cfm);
-    } else if (!p.porousBox && !isInternalFan(p.slot) && input.ventCfm < 0) {
-      addSpawns(p, Math.abs(input.ventCfm) / 4);
     }
   });
 
