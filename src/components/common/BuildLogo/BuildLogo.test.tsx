@@ -1,13 +1,13 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { BuildLogo, logoCutFor, SMALL_CAP_HEIGHT_PX } from './BuildLogo';
-import { LOGO_FULL, LOGO_SMALL } from './logoPaths';
+import { LOGO_CAP_SHARE, LOGO_FULL, LOGO_SMALL } from './logoPaths';
 
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe('BuildLogo', () => {
   it('draws the small cut under the cap-height threshold and the full one at and above it', () => {
-    const threshold = SMALL_CAP_HEIGHT_PX * 1.6;
+    const threshold = SMALL_CAP_HEIGHT_PX / LOGO_CAP_SHARE;
     expect(logoCutFor(threshold - 0.5)).toBe('small');
     expect(logoCutFor(threshold + 0.5)).toBe('full');
   });

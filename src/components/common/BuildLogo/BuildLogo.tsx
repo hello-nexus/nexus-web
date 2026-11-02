@@ -1,9 +1,7 @@
 import { useTranslation } from '../../../lib/i18n';
-import { LOGO_FULL, LOGO_SMALL } from './logoPaths';
+import { LOGO_CAP_SHARE, LOGO_FULL, LOGO_SMALL } from './logoPaths';
 import styles from './BuildLogo.module.scss';
 
-/** The logo's cap height as a share of its drawing's height: the drawing is 1.6 times the cap height. */
-const CAP_SHARE = 1 / 1.6;
 /** Under this cap height, in CSS px, the small cut is drawn: the full one loses its thin strokes below it. */
 export const SMALL_CAP_HEIGHT_PX = 12;
 
@@ -19,7 +17,7 @@ interface BuildLogoProps {
 
 /** Which cut a drawing of this height uses. */
 export function logoCutFor(height: number): 'small' | 'full' {
-  return height * CAP_SHARE < SMALL_CAP_HEIGHT_PX ? 'small' : 'full';
+  return height * LOGO_CAP_SHARE < SMALL_CAP_HEIGHT_PX ? 'small' : 'full';
 }
 
 /** The BUILD logo (a rounded sign with the name knocked out and a screw on each side), drawn inline in a neutral theme color. A quiet identifier, not a button. */
