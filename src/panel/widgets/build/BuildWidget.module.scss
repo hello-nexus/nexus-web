@@ -26,6 +26,11 @@
   justify-content: center;
 }
 
+// The small tile keeps the bottom-left corner for the logo: the image scales down to leave its height and a small gap.
+.widget[data-size='2x2'] {
+  padding-bottom: calc(var(--space-md) + var(--build-logo-height) + var(--space-sm));
+}
+
 // Image on the left, one row per spec on the right.
 .widget[data-specs] {
   flex-direction: row;

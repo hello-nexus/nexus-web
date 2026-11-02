@@ -19,6 +19,9 @@ import y70Light from './assets/y70-touch-light.png';
 import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
 
+// The BUILD logo's drawing height in px; the 2x2 tile reserves it at the bottom so the image sits clear of it.
+const LOGO_HEIGHT = 20;
+
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
 interface BuildWidgetViewProps {
@@ -56,9 +59,9 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
-    <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-specs={rows.length > 0 ? '' : undefined}>
+    <div ref={scope.ref} className={styles.widget} style={{ '--build-logo-height': `${LOGO_HEIGHT}px` } as React.CSSProperties} data-size={size} data-view={view} data-specs={rows.length > 0 ? '' : undefined}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
-      <span className={styles.logoSlot} aria-hidden="true"><BuildLogo height={20} /></span>
+      <span className={styles.logoSlot} aria-hidden="true"><BuildLogo height={LOGO_HEIGHT} /></span>
       <div className={styles.media}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <img className={styles.image} src={previewUrl} alt="" draggable={false} />}
