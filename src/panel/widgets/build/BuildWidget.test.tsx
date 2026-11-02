@@ -68,29 +68,18 @@ describe('BuildWidget', () => {
     const { container } = await renderWidget('2x2');
     expect(container.querySelector('[data-view="no-case"] img[data-open-air]')).not.toBeNull();
     expect(container.querySelector('svg')).toBeNull();
-    expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
+    expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();
   });
 
-  it('4x4 without a case shows the Build invitation', async () => {
-    await renderWidget('4x4');
-    expect(screen.getByText('panel.widget.build.cta')).toBeTruthy();
-  });
-
-  it('a case with no preview: 4x4 shows the same invitation, 2x2 stays silent', async () => {
+  it('shows no call to action in any state, only the image and the specs', async () => {
+    const empty = await renderWidget('4x4');
+    expect(empty.container.querySelector('[data-view="no-case"] img[data-open-air]')).not.toBeNull();
+    expect(screen.queryByText(/panel\.widget\.build\.cta/)).toBeNull();
+    empty.unmount();
     h.caseId.mockResolvedValue('hyte-y70');
-    const big = await renderWidget('4x4');
-    expect(screen.getByText('panel.widget.build.cta')).toBeTruthy();
-    big.unmount();
-    const small = await renderWidget('2x2');
-    expect(small.container.querySelector('[data-view="no-preview"]')).not.toBeNull();
-    expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
-  });
-
-  it('keeps the 4x4 notice slot in the silhouette while loading, so the notice never shifts it', () => {
-    h.ping.mockReturnValue(new Promise(() => {}));
-    const { container } = render(<BuildWidget widget={widget('4x4')} />);
-    expect(container.querySelector('[data-view="loading"] svg')).not.toBeNull();
-    expect(container.querySelectorAll('[data-view="loading"] span').length).toBe(2);
+    const noImage = await renderWidget('4x4');
+    expect(noImage.container.querySelector('[data-view="no-preview"]')).not.toBeNull();
+    expect(screen.queryByText(/panel\.widget\.build\.cta/)).toBeNull();
   });
 
   it('shows only the preview image when one is stored', async () => {
@@ -99,7 +88,7 @@ describe('BuildWidget', () => {
     const { container } = await renderWidget('4x4');
     expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:preview-1');
     expect(container.querySelector('svg')).toBeNull();
-    expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
+    expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();
   });
 
   it('a tile with a case and no image mounts the seed for that case, in release builds too; no case or an image mounts none', async () => {
@@ -162,10 +151,16 @@ describe('BuildWidget', () => {
     expect(view.container.querySelector('svg')).not.toBeNull();
   });
 
-  it('names the tile and carries the notice in its accessible text', async () => {
+  it('carries the quiet BUILD tag in every view, hidden from assistive tech', async () => {
+    const { container } = await renderWidget('2x2');
+    const slot = container.querySelector('[data-placement]');
+    expect(slot?.textContent).toBe('panel.widget.build.badge');
+    expect(slot?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('names the tile in its accessible text', async () => {
     const { container } = await renderWidget('4x4');
     expect(container.textContent).toContain('panel.widget.build');
-    expect(container.textContent).toContain('panel.widget.build.cta');
   });
 
   it('has no interactive element of its own: the dashboard cell click-through opens Build', async () => {
@@ -181,7 +176,7 @@ describe('BuildWidget', () => {
     expect(container.querySelector('[data-view="mac"] svg path')).not.toBeNull();
     expect(h.caseId).not.toHaveBeenCalled();
     expect(h.preview).not.toHaveBeenCalled();
-    expect(screen.queryByText(/panel\.widget\.build\./)).toBeNull();
+    expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();
   });
 
   it('macOS reported by the service behaves the same', async () => {

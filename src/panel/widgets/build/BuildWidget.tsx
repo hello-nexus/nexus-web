@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { BuildBadge } from '../../../components/common/BuildBadge/BuildBadge';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { isMacAppShell } from '../../../app/windowActions';
@@ -7,7 +8,7 @@ import { DEV_TOOLS } from '../../../lib/devTools';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
 import { BuildCaseSilhouette } from './BuildCaseSilhouette';
-import { buildNoticeKey, selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
+import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
 import type { BuildSpecRow } from './buildSpecRows';
@@ -17,6 +18,9 @@ import y70Light from './assets/y70-touch-light.png';
 // Every part draws in the accent, so one image serves both themes.
 import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
+
+// Where the quiet BUILD tag sits on the tile.
+const BADGE_PLACEMENT: 'bottom-left' | 'top-left' = 'bottom-left';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
@@ -49,23 +53,21 @@ function useScopeTheme() {
 
 export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [] }: BuildWidgetViewProps) {
   const { t } = useTranslation();
-  const noticeKey = buildNoticeKey(view, size);
   const scope = useScopeTheme();
   const showStock = stock && view === 'no-preview';
   // No case yet: the parts stand open-air, drawn by the same scene code as the case image.
   const isOpenAir = view === 'no-case';
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
-  const showNotice = (silhouette || isOpenAir) && size === '4x4';
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-specs={rows.length > 0 ? '' : undefined}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
+      <span className={styles.badgeSlot} data-placement={BADGE_PLACEMENT} aria-hidden="true"><BuildBadge size="0.7rem" /></span>
       <div className={styles.media}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <img className={styles.image} src={previewUrl} alt="" draggable={false} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
         {isOpenAir && <img className={styles.image} src={openAir} alt="" draggable={false} data-open-air />}
         {silhouette && <BuildCaseSilhouette />}
-        {showNotice && <span className={styles.notice}>{noticeKey ? t(noticeKey) : ''}</span>}
       </div>
       {rows.length > 0 && (
         <ul className={styles.specs}>

@@ -1,0 +1,18 @@
+@use '../../../styles/text' as *;
+
+// Neutral by design: muted text and a muted outline from the theme tokens, never the accent.
+.badge {
+  @include text-caption;
+  display: inline-block;
+  // Snug: the word fills its frame.
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--text-dim);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  // The heaviest weight the app uses for its thickest titles.
+  font-weight: var(--weight-display);
+  font-size: var(--type-small);
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}

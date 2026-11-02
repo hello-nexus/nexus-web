@@ -111,13 +111,12 @@
   }
 }
 
-.notice {
-  flex-shrink: 0;
-  margin-top: 6px;
-  max-width: 100%;
-  text-align: center;
-  @include text-button;
-  // Reserved on the large tile so the text appearing never moves the silhouette.
-  min-height: 1.25em;
-  color: var(--text-dim);
+// Where the BUILD tag sits in the tile; the tag itself is the shared component.
+.badgeSlot {
+  position: absolute;
+  left: var(--space-md);
+  pointer-events: none;
+
+  &[data-placement='bottom-left'] { bottom: var(--space-md); }
+  &[data-placement='top-left'] { top: var(--space-md); }
 }

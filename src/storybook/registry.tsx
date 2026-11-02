@@ -113,6 +113,7 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../comp
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
+import { BuildBadge } from '../components/common/BuildBadge/BuildBadge';
 import { ConflictRunningBadge } from '../components/common/ConflictRunningBadge/ConflictRunningBadge';
 import { NotRespondingBadge } from '../components/common/NotRespondingBadge/NotRespondingBadge';
 import { FixLightingModal } from '../components/common/FixLightingModal/FixLightingModal';
@@ -2356,6 +2357,10 @@ function PreviewDesktopOnlyBadge() {
   return <DesktopOnlyBadge />;
 }
 
+function PreviewBuildBadge() {
+  return <BuildBadge size="1rem" />;
+}
+
 function PreviewExperimentalBadge() {
   return <ExperimentalBadge />;
 }
@@ -3496,6 +3501,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/DesktopOnlyBadge/DesktopOnlyBadge.tsx',
     description: 'Pill badge shown below a field or control that is unavailable on keyboard-less surfaces (Y70 / Q-series). Monitor icon + caption from common.desktopOnly. No props required; usable anywhere a feature is gated on surfaceSupportsTextInput returning false.',
     Preview: PreviewDesktopOnlyBadge,
+  },
+  {
+    name: 'BuildBadge', category: 'status',
+    filePath: 'src/components/common/BuildBadge/BuildBadge.tsx',
+    description: 'The BUILD tag: the product name in a thin outlined tag, in the muted text color and the heaviest title weight, neutral in every theme. Sized by one font-size prop, with padding and outline scaling in em, so it fits the Build widget\'s corner and a site header alike. A quiet identifier, not a button; the Build widget places it bottom-left.',
+    Preview: PreviewBuildBadge,
   },
   {
     name: 'ExperimentalBadge', category: 'status',
