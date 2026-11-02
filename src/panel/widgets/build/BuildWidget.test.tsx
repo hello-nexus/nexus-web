@@ -524,7 +524,7 @@ describe('BuildWidget', () => {
     expect(container.querySelector('[data-view="mac"]')).toBeNull();
   });
 
-  it('a dev-tools build shows the case icon in the catalog preview inside the macOS shell', () => {
+  it('a dev-tools build shows the no-case view in the catalog preview inside the macOS shell', () => {
     h.devTools = true;
     h.macShell = true;
     const { container } = render(<PanelPreviewProvider value={true}><BuildWidget widget={widget('4x4')} /></PanelPreviewProvider>);

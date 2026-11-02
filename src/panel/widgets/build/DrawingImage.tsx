@@ -13,9 +13,9 @@ const ALPHA_MIN = 8;
 
 /**
  * The drawn part of a transparent snapshot, found once the image loads: the picture is fitted into its square with empty
- * margins, so the logo above it would float apart from the drawing. Cropping the image's box to its content (object-view-box)
- * lets the logo sit just above the drawing, centered on it. Where the browser cannot read the pixels or crop the view
- * (an old kiosk Chromium), the box stays whole and the logo centers on it.
+ * margins, so the drawing would sit off-center in its column. Cropping the image's box to its content (object-view-box)
+ * makes the box hug the drawing, so the drawing is centered in its column. Where the browser cannot read the pixels or
+ * crop the view (an old kiosk Chromium), the box stays whole and the picture centers as drawn.
  */
 function useContentBox(src: string): ContentBox | null {
   const [box, setBox] = useState<ContentBox | null>(null);
@@ -106,7 +106,7 @@ interface DrawingImageProps {
   generic?: boolean;
 }
 
-/** A snapshot of the PC: cropped to its drawing so the logo sits just above it, and resampled to the pixels it is shown in. */
+/** A snapshot of the PC: cropped to its drawing so the drawing is centered in its column, and resampled to the pixels it is shown in. */
 export function DrawingImage({ src, className, openAir = false, generic = false }: DrawingImageProps) {
   const content = useContentBox(src);
   const ref = useRef<HTMLImageElement>(null);
