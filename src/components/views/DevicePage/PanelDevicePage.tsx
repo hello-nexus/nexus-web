@@ -164,6 +164,8 @@ function isLandscapeCanvas(canvas?: { width?: number | null; height?: number | n
 
 interface PanelDevicePageProps {
   device: PanelDevice;
+  /** The service host's platform, empty until the ping lands. */
+  platform?: string;
   // Threaded from the app router (Dashboard); useRoute is per-instance, so a
   // navigate() owned here would update the URL but not drive the visible page.
   onOpenFirmware?: () => void;
@@ -298,7 +300,7 @@ function matchPanelRecord(
     : records?.find(d => d.capabilities?.surface === surface && !d.displayId);
 }
 
-export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
+export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t, language } = useTranslation();
   // A simulated Q60 has no cooler or panel behind it, so no /qseries hardware read or write may fire for it.
   const isQSeries = device?.runtimeSurface === 'q60' && device.connectionKind !== 'simulated';
@@ -448,7 +450,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   // The toggle is offered exactly where the see-through (desktop) background exists, the same gate as the backdrop picker.
-  const alwaysOnTopAvailable = supportsDesktopWallpaper(glassSurface, !!device?.displayId);
+  // The Linux kiosk host has no on-top support, so the toggle would do nothing there.
+  const alwaysOnTopAvailable = supportsDesktopWallpaper(glassSurface, !!device?.displayId) && platform !== 'linux';
   const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
   // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
   const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);

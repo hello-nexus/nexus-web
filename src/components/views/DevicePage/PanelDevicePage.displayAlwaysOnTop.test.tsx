@@ -132,6 +132,15 @@ function serveRecord(extra: Record<string, unknown> = {}) {
 }
 
 describe('PanelDevicePage promoted display always on top', () => {
+  it('hides the toggle on a Linux host, whose kiosk host has no on-top support', async () => {
+    serveRecord();
+    render(<PanelDevicePage device={DEVICE} platform="linux" />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
+    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+  });
+
   it('defaults on when the record has no value and sits before the reserve toggle', async () => {
     serveRecord();
     render(<PanelDevicePage device={DEVICE} />);
