@@ -405,7 +405,7 @@
   "cooling.card.firmware": "Firmware kontrolü",
   "cooling.card.manual": "Manuel",
   "cooling.card.mode": "Fan modu",
-  "cooling.case3d.build.customize": "Parçaları Build içinde özelleştir",
+  "cooling.case3d.build.customize": "Parçaları özelleştir",
   "cooling.case3d.canvas": "Fanları ve hava akışı yönünü gösteren kasanızın 3B görünümü",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.crashed": "Hava akışı görünümü başlatılamadı, bu yüzden eğriler gösteriliyor. Yeniden denemek için Hava akışı seçeneğini seçin.",

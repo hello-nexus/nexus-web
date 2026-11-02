@@ -405,7 +405,7 @@
   "cooling.card.firmware": "Firmware-Steuerung",
   "cooling.card.manual": "Manuell",
   "cooling.card.mode": "Lüftermodus",
-  "cooling.case3d.build.customize": "Komponenten in Build anpassen",
+  "cooling.case3d.build.customize": "Komponenten anpassen",
   "cooling.case3d.canvas": "3D-Ansicht Ihres Gehäuses mit Lüftern und Luftstromrichtung",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.crashed": "Die Luftstromansicht konnte nicht gestartet werden, daher sehen Sie die Kurven. Wählen Sie Luftstrom, um es erneut zu versuchen.",

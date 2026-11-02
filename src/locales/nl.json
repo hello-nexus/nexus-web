@@ -405,7 +405,7 @@
   "cooling.card.firmware": "Firmwarebediening",
   "cooling.card.manual": "Handmatig",
   "cooling.card.mode": "Ventilatormodus",
-  "cooling.case3d.build.customize": "Onderdelen aanpassen in Build",
+  "cooling.case3d.build.customize": "Onderdelen aanpassen",
   "cooling.case3d.canvas": "3D-weergave van je behuizing met fans en luchtstroomrichting",
   "cooling.case3d.cfm": "{value} CFM",
   "cooling.case3d.crashed": "De luchtstroomweergave kon niet starten, dus de curves worden getoond. Kies Luchtstroom om het opnieuw te proberen.",
