@@ -98,6 +98,7 @@ import {
 } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
+import { useServicePlatform } from '../../../hooks/useServicePlatform';
 import { useTranslation } from '../../../lib/i18n';
 import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { createUuid } from '../../../lib/uuid';
@@ -448,7 +449,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   // The toggle is offered exactly where the see-through (desktop) background exists, the same gate as the backdrop picker.
-  const alwaysOnTopAvailable = supportsDesktopWallpaper(glassSurface, !!device?.displayId);
+  // The Linux kiosk host has no on-top support, so the toggle would do nothing there.
+  const servicePlatform = useServicePlatform(true);
+  const alwaysOnTopAvailable = supportsDesktopWallpaper(glassSurface, !!device?.displayId) && servicePlatform !== 'linux';
   const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
   // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
   const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);

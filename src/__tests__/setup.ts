@@ -1,3 +1,8 @@
+import { vi } from 'vitest';
+
+// Most PanelDevicePage suites mock api/service without pingService; the host platform is unknown (empty) unless a suite overrides this.
+vi.mock('../hooks/useServicePlatform', () => ({ useServicePlatform: () => '' }));
+
 // setupFiles run for `@vitest-environment node` files too, where none of this
 // exists; the guard is what lets those files load this at all.
 if (typeof window !== 'undefined') {

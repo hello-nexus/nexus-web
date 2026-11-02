@@ -9,6 +9,9 @@ const patchPanelDeviceMock = vi.fn();
 const fetchDisplayTopologyMock = vi.fn();
 const themeState = vi.hoisted(() => ({ backdrop: undefined as string | undefined }));
 
+const platformState = vi.hoisted(() => ({ value: '' }));
+vi.mock('../../../hooks/useServicePlatform', () => ({ useServicePlatform: () => platformState.value }));
+
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
   postService: vi.fn().mockResolvedValue(null),
@@ -132,6 +135,18 @@ function serveRecord(extra: Record<string, unknown> = {}) {
 }
 
 describe('PanelDevicePage promoted display always on top', () => {
+  beforeEach(() => { platformState.value = ''; });
+
+  it('hides the toggle on a Linux host, whose kiosk host has no on-top support', async () => {
+    platformState.value = 'linux';
+    serveRecord();
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
+    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+  });
+
   it('defaults on when the record has no value and sits before the reserve toggle', async () => {
     serveRecord();
     render(<PanelDevicePage device={DEVICE} />);
