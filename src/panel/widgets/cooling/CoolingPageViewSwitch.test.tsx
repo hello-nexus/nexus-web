@@ -54,16 +54,17 @@ describe('CoolingPage canvas header', () => {
     expect(radios[1].textContent).not.toMatch(/[[\]]/);
   });
 
-  it('titles the pane Curves in 2D and Airflow in 3D, with no gap under the header in 3D', async () => {
+  it('titles the pane Curves in 2D and Airflow in 3D, with the header box identical in both views', async () => {
     mount();
     const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
     const header = radios[0].closest('[role="radiogroup"]')!.parentElement as HTMLElement;
     expect(header.children[0].textContent).toBe('cooling.label.curves');
-    expect(header.className).not.toContain('paneHeaderFlush');
+    const classes2d = header.className;
     fireEvent.click(radios[1]);
     await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
     expect(header.children[0].textContent).toBe('cooling.view.airflow');
-    expect(header.className).toContain('paneHeaderFlush');
+    // A header that changes its box between views resizes the shared grid row and nudges the fan list and the canvas.
+    expect(header.className).toBe(classes2d);
     expect(screen.queryByText('cooling.case3d.title')).toBeNull();
   });
 
