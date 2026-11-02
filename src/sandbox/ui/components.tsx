@@ -564,7 +564,7 @@ export function Badge(p: HostProps) {
   const color = toneVar(str(p.tone), 'var(--text)');
   const Icn = ICON_TABLE[(str(p.icon) ?? '').toLowerCase()];
   const icon = Icn ? <Icn size={12} aria-hidden="true" /> : undefined;
-  return <NativeBadge label={str(p.label) ?? ''} color={color} icon={icon} />;
+  return <NativeBadge label={str(p.label) ?? ''} color={color} icon={icon} uppercase={false} />;
 }
 
 export function Spinner(p: HostProps) {

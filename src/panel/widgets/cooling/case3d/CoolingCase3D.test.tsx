@@ -150,6 +150,11 @@ describe('CoolingCase3D airflow case gate', () => {
     expect(createCaseRenderer).toHaveBeenCalledTimes(1);
   });
 
+  it('docks the unsupported notice at the top of the pane', () => {
+    mount('HYTE Y60');
+    expect(screen.getByText('cooling.case3d.unsupported.title').closest('[role="status"]')!.className).toContain('notice');
+  });
+
   it.each(['HYTE Y60', 'HYTE X50 Air', 'Lian Li O11 Dynamic', null])('shows only the notice for %s and builds no renderer', name => {
     mount(name);
     expect(screen.getByText('cooling.case3d.unsupported.title')).toBeTruthy();
@@ -569,6 +574,23 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().showCase).toBe(false);
     expect(lastState().flowOptions.particles).toBe(true);
     expect(onMode).toHaveBeenLastCalledWith('airflow');
+  });
+
+  it('overlays the temperature legend on the canvas, so showing or hiding it leaves the toolbar as it is', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const canvas = screen.getByRole('img', { name: 'cooling.case3d.canvas' });
+    const legend = () => screen.queryByRole('group', { name: /cooling\.case3d\.flow\.legend/ });
+    const toolbar = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
+    const row = toolbar.parentElement as HTMLElement;
+    expect(legend()).not.toBeNull();
+    expect(canvas.parentElement!.contains(legend())).toBe(true);
+    expect(row.contains(legend())).toBe(false);
+    const before = row.children.length;
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText('cooling.case3d.flow.mode.case'));
+    expect(legend()).toBeNull();
+    expect(row.children.length).toBe(before);
   });
 
   it('opens in the remembered mode', () => {

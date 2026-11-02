@@ -1,13 +1,13 @@
 // Docs-style reference for product telemetry, routed at /telemetry-reference
 // (Settings → Dev tools → Telemetry events). Lists every event the app emits
-// to PostHog, what it means, when it fires, and its parameters - an API
+// to nexus-api, what it means, when it fires, and its parameters - an API
 // lookup in the form of docs. Catalog lives in ./events.ts.
 
 import { useMemo, useState } from 'react';
 import {
   TELEMETRY_EVENTS,
   AUTO_PROPERTIES,
-  PERSON_PROPERTIES,
+  PROFILE_PROPERTIES,
   type TelemetryEventDoc,
   type TelemetryParam,
 } from './events';
@@ -35,7 +35,7 @@ export function TelemetryReference() {
       <header className={styles.header}>
         <h1>Telemetry events</h1>
         <p className={styles.sub}>
-          Every product-analytics event the app sends to PostHog. {liveCount} live,{' '}
+          Every product-analytics event the app sends. {liveCount} live,{' '}
           {TELEMETRY_EVENTS.length - liveCount} planned. Events are anonymous (no PII) and
           gated by the “collect anonymous data” setting.
         </p>
@@ -57,15 +57,15 @@ export function TelemetryReference() {
       </section>
 
       <section className={styles.autoProps}>
-        <h2>Person properties</h2>
+        <h2>Profile properties</h2>
         <p className={styles.dim}>
-          Attached to the anonymous install, not to any single event, and refreshed only when a
-          value changes. This is what lets every event below be broken down by hardware. The
-          hardware rows carry vendor model names reported by the hardware itself; the usage rows are
+          Sent as a separate profile event, not on any single event, when a value changes and
+          again periodically; the latest row per install wins. Core hardware (cpu, gpu, ram,
+          motherboard) arrives through the specs event. The hardware rows carry vendor model names reported by the hardware itself; the usage rows are
           counts and fixed values. Nothing you authored is collected in either - widget titles,
           devices you renamed, panel names, file paths and serials are all excluded.
         </p>
-        <ParamTable params={PERSON_PROPERTIES} />
+        <ParamTable params={PROFILE_PROPERTIES} />
       </section>
 
       <div className={styles.list}>

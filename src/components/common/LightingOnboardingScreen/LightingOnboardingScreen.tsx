@@ -11,13 +11,18 @@ import {
   fetchLightingDevices,
   fetchLightingStatus,
   setLightingDeviceControlled,
+  fetchAnimateDefaults,
+  fetchAnimateSettings,
+  saveAnimateTemplates,
   startAnimate,
+  setAnimateSimple,
   startStatic,
   type LightingDevice,
 } from '../../../api/lighting';
 import { DEFAULT_STATIC_EFFECT } from '../../../types/lighting';
 import { paletteColor, paletteKey } from '../../../types/lightingPalette';
-import { SIMPLE_ANIMATION_KEYS, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
+import { SIMPLE_ANIMATION_KEYS, SIMPLE_SLOT, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
+import { mergeTemplates } from '../../../types/lightingTemplates';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import { appendNewCards } from '../../../lib/lightingVisibility';
@@ -25,6 +30,7 @@ import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSe
 import { useZoneSizeDeviceIds } from '../../../hooks/useZoneSizeDeviceIds';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './LightingOnboardingScreen.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface LightingOnboardingScreenProps {
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
@@ -202,9 +208,20 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   }, []);
 
   const runRainbow = useCallback(() => {
-    const state = simpleAnimationState(false);
-    applyPick(RAINBOW, () => startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params));
-  }, [applyPick]);
+    applyPick(RAINBOW, async () => {
+      // The effect's first preset: stock defaults merged with any saved edit,
+      // selected (awaited, before the start) when it was elsewhere.
+      const [saved, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
+      if (!saved || !defaults) return;
+      const bundle = mergeTemplates(RAINBOW, saved.templates?.[RAINBOW], defaults);
+      if (bundle.selected !== SIMPLE_SLOT) {
+        await saveAnimateTemplates({ ...(saved.templates ?? {}), [RAINBOW]: { ...bundle, selected: SIMPLE_SLOT } }).catch(() => {});
+      }
+      const slot0 = bundle.slots[SIMPLE_SLOT];
+      const state = simpleAnimationState(slot0, false);
+      await startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, mode === 'simple');
+    });
+  }, [applyPick, mode]);
 
   // The simple page's palette path: Static owns the output first, then every
   // device is pinned to the color.
@@ -263,6 +280,8 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     try {
       // A device detected after the color was picked follows the global color.
       await pickChainRef.current;
+      // The pick may predate the mode choice; the running sweep has to follow the chosen one.
+      if (pick === RAINBOW) await setAnimateSimple(mode === 'simple').catch(() => {});
       updateUiSettings({ lightingDashboardMode: mode });
       const result = await completeLightingOnboarding();
       if (result?.lightingCompleted) {
@@ -392,26 +411,27 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       {cards !== null && cards.length > 0 && (
         <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
-          <button
-            type="button"
-            className={`${styles.swatch} ${pick === RAINBOW ? styles.swatchActive : ''}`}
-            style={{ '--swatch': RAINBOW_SWATCH } as CSSProperties}
-            aria-label={t('lighting.simple.anim.rainbow')}
-            title={t('lighting.simple.anim.rainbow')}
-            aria-pressed={pick === RAINBOW}
-            onClick={runRainbow}
-          />
-          {TEST_COLORS.map(c => (
+          <HoverTooltip body={t('lighting.controls.rainbow')}>
             <button
-              key={c.id}
               type="button"
-              className={`${styles.swatch} ${pick === c.id ? styles.swatchActive : ''}`}
-              style={{ '--swatch': paletteColor(c.id)?.hex } as CSSProperties}
-              aria-label={t(c.labelKey)}
-              title={t(c.labelKey)}
-              aria-pressed={pick === c.id}
-              onClick={() => runColor(c.id)}
+              className={`${styles.swatch} ${pick === RAINBOW ? styles.swatchActive : ''}`}
+              style={{ '--swatch': RAINBOW_SWATCH } as CSSProperties}
+              aria-label={t('lighting.controls.rainbow')}
+              aria-pressed={pick === RAINBOW}
+              onClick={runRainbow}
             />
+          </HoverTooltip>
+          {TEST_COLORS.map(c => (
+            <HoverTooltip key={c.id} body={t(c.labelKey)}>
+              <button
+                type="button"
+                className={`${styles.swatch} ${pick === c.id ? styles.swatchActive : ''}`}
+                style={{ '--swatch': paletteColor(c.id)?.hex } as CSSProperties}
+                aria-label={t(c.labelKey)}
+                aria-pressed={pick === c.id}
+                onClick={() => runColor(c.id)}
+              />
+            </HoverTooltip>
           ))}
         </div>
       )}

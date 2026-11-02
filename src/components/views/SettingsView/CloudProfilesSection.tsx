@@ -222,7 +222,7 @@ export function CloudProfilesSection(
   const ownCloud = allRows.filter(r => r.machine.isThisMachine);
   const ownMachine = library?.machines.find(m => m.isThisMachine);
   const ownInstallId = ownMachine?.installId ?? '';
-  const pcChip = (hostname: string | undefined) => <Badge label={hostname || unknown} color="var(--accent)" uppercase />;
+  const pcChip = (hostname: string | undefined) => <Badge label={hostname || unknown} color="var(--accent)" />;
 
   // The list is the union of what is local and what is backed up, so a profile
   // whose backup was removed still appears - with only a Back up action - and
@@ -277,7 +277,7 @@ export function CloudProfilesSection(
         labelSuffix={(ownMachine || row.profileId === profiles.activeId) && (
           <>
             {ownMachine && pcChip(ownMachine.hostname)}
-            {row.isLocal && row.profileId === profiles.activeId && <Badge label={t('settings.profiles.active')} color="var(--accent)" uppercase />}
+            {row.isLocal && row.profileId === profiles.activeId && <Badge label={t('settings.profiles.active')} color="var(--accent)" />}
           </>
         )}
         description={withApps(!row.isLocal

@@ -12,6 +12,7 @@ import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, pickerHexAt, pickerPointFor, snapToSegment } from './page/staticPickerField';
 import { useColorWriteQueue } from './page/useColorWriteQueue';
 import { useGlobalColor } from './page/useGlobalColor';
+import { useLightingRecents } from './useLightingRecents';
 import { usePins } from './page/usePins';
 import { visibleCards } from './page/zoneUtils';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
@@ -343,6 +344,7 @@ function useImmersiveAnimateState(): {
   const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
   // The exact flat color the global Static look is, from the service; '' when it is an effect.
   const [globalColor, setGlobalColor, readGlobalColor] = useGlobalColor();
+  const { recordColor } = useLightingRecents();
 
   const selectionIds = useMemo(() => [...selectedIds], [selectedIds]);
   const selection = useMemo(() => selectionPin(pins, selectionIds), [pins, selectionIds]);
@@ -486,6 +488,7 @@ function useImmersiveAnimateState(): {
     setCustomStaticColor(hex);
     // Nothing selected: the color is the exact global flat color.
     if (selectionIds.length === 0) {
+      recordColor(hex);
       setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       return;
     }
@@ -494,7 +497,7 @@ function useImmersiveAnimateState(): {
     const pin = colorPin(hex);
     recordPins(selectionIds, pin);
     queueColorWrite(pin, selectionIds);
-  }, [queueColorWrite, recordPins, selectionIds, setCustomStaticColor, setGlobalColor]);
+  }, [queueColorWrite, recordColor, recordPins, selectionIds, setCustomStaticColor, setGlobalColor]);
 
   const onPreviewCustom = useCallback((hex: string) => {
     if (selectionIds.length === 0) return;

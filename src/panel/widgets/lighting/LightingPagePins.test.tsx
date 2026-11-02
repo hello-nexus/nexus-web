@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchLightingDevices, fetchPins, fetchStaticSettings, saveAnimateTemplates, setPins, startAnimate, startStatic, type Pin } from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { loadSettings } from '../../../lib/settings';
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
 import { LightingPage } from './LightingPage';
 import { colorPin } from './pins';
@@ -123,21 +124,25 @@ vi.mock('./page/MirrorBackdrop', () => ({ MirrorBackdrop: () => <div data-testid
 vi.mock('./page/RightPaneTabs', () => ({ RightPaneTabs: () => null }));
 // A typed slider edit is onChange(v, true) followed synchronously by onCommit.
 vi.mock('./page/EffectTab', () => ({
-  EffectTab: ({ mode, effect, state, onAnimateChange, onAnimateCommit }: {
+  EffectTab: ({ mode, effect, state, onAnimateChange, onAnimateCommit, onTemplateSelect }: {
     mode: string;
     effect: string;
     state: { intensity: number } | null;
     onAnimateChange: (patch: { intensity: number }, commit?: boolean) => void;
     onAnimateCommit: () => void;
+    onTemplateSelect: (idx: number) => void;
   }) => (
-    <button
-      type="button"
-      data-testid="type-intensity"
-      data-mode={mode}
-      data-effect={effect}
-      data-intensity={state?.intensity}
-      onClick={() => { onAnimateChange({ intensity: 0.3 }, true); onAnimateCommit(); }}
-    >type</button>
+    <>
+      <button
+        type="button"
+        data-testid="type-intensity"
+        data-mode={mode}
+        data-effect={effect}
+        data-intensity={state?.intensity}
+        onClick={() => { onAnimateChange({ intensity: 0.3 }, true); onAnimateCommit(); }}
+      >type</button>
+      <button type="button" data-testid="pick-preset-3" onClick={() => onTemplateSelect(2)}>preset 3</button>
+    </>
   ),
 }));
 vi.mock('../../../components/common/ViewHeader/ViewHeader', () => ({
@@ -283,7 +288,7 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(screen.getByTestId('rail').dataset.source).not.toBe(''));
       expect(screen.getByTestId('rail').dataset.disabled).toBe('');
       fireEvent.click(screen.getByText('toggle'));
-      expect(lastPinsCall()).toEqual([['a'], { kind: 'animate', effect: 'sweeprainbow' }]);
+      expect(lastPinsCall()).toEqual([['a'], { kind: 'animate', effect: 'rainbow' }]);
     });
 
     it('pins to the one shared Media in Media', async () => {
@@ -628,6 +633,29 @@ describe('LightingPage pins', () => {
       expect(vi.mocked(startStatic).mock.calls.at(-1)?.[8]).toBe('#00ff00');
       expect(setPins).not.toHaveBeenCalled();
       await waitFor(() => expect(screen.getByTestId('picker-hex').textContent).toBe('#00ff00'));
+      expect(loadSettings().general.recentStaticColors).toEqual(['#00ff00']);
+    });
+
+    it('records a global color on release and not while dragging', async () => {
+      syncState.mode = 'static';
+      syncState.rawSync = 'static';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('checker'));
+      fireEvent.click(screen.getByText('preview-blue'));
+      expect(loadSettings().general.recentStaticColors ?? []).toEqual([]);
+      fireEvent.click(screen.getByText('pick-green'));
+      await waitFor(() => expect(loadSettings().general.recentStaticColors).toEqual(['#00ff00']));
+    });
+
+    it('does not record a per-device pin color', async () => {
+      syncState.mode = 'static';
+      syncState.rawSync = 'static';
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('checker'));
+      fireEvent.click(screen.getByText('select-a'));
+      fireEvent.click(screen.getByText('pick-green'));
+      await waitFor(() => expect(setPins).toHaveBeenCalled());
+      expect(loadSettings().general.recentStaticColors ?? []).toEqual([]);
     });
 
     it('shows the service\'s global flat color as the selected look, with no effect tile lit', async () => {
@@ -761,6 +789,24 @@ describe('LightingPage pins', () => {
       fireEvent.click(screen.getByText('clear-selection'));
       await waitFor(() => expect(screen.getByTestId('preview').dataset.effect).toBe('fire'));
       expect(screen.getByTestId('grid-effect').textContent).toBe('fire');
+    });
+
+    it('records an animation pick with its preset, and picking preset 3 records that preset', async () => {
+      localStorage.setItem('nexus.lighting.effectDockCollapsed', 'false');
+      renderPage();
+      await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('fire'));
+      fireEvent.click(screen.getByTestId('grid-effect'));
+      await waitFor(() => expect(loadSettings().general.recentAnimations).toEqual(['stripes@0']));
+      await waitFor(() => expect(screen.getByTestId('pick-preset-3')).toBeTruthy());
+      vi.mocked(saveAnimateTemplates).mockClear();
+
+      fireEvent.click(screen.getByTestId('pick-preset-3'));
+
+      await waitFor(() => expect(loadSettings().general.recentAnimations?.[0]).toMatch(/@2$/));
+      await waitFor(() => expect(saveAnimateTemplates).toHaveBeenCalled());
+      const saved = vi.mocked(saveAnimateTemplates).mock.calls.at(-1)?.[0] as Record<string, { selected: number }>;
+      const key = loadSettings().general.recentAnimations![0].replace(/@2$/, '');
+      expect(saved[key].selected).toBe(2);
     });
 
     it('edits a pinned shader\'s global settings without restarting the running effect', async () => {

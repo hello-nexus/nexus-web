@@ -2,7 +2,7 @@ import type { Pin, PinKind } from '../../../api/lighting';
 import { hexToHsv, hsvToHex } from '../../../lib/settings';
 import { nearestPaletteId, paletteColorForKey, paletteFamilyKey, paletteKey, type PaletteColor } from '../../../types/lightingPalette';
 import { EFFECTS, type EffectState, type LightingMode } from '../../../types/lighting';
-import { isSimpleAnimation, simpleAnimationLabelKey } from './simpleAnimations';
+import { canonicalSimpleKey } from './simpleAnimations';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 
 /** Device id to the pin it wears. Absent means following the global mode. */
@@ -220,7 +220,7 @@ export function pinModeTargetLabel(pin: Pin, t: (key: string, params?: Record<st
   return name ? t('lighting.pin.modeTarget', { mode, name }) : mode;
 }
 
-/** What a pin points at, for tooltips: the shader or simple sweep, the palette swatch or hex, or Mirror. */
+/** What a pin points at, for tooltips: the shader, the palette swatch or hex, or Mirror. */
 export function pinTargetLabel(pin: Pin, t: (key: string) => string): string {
   if (pin.kind === 'mirror') return t('lighting.mode.screen');
   if (pin.kind === 'media') return t('lighting.mode.gif');
@@ -229,7 +229,6 @@ export function pinTargetLabel(pin: Pin, t: (key: string) => string): string {
     return palette ? `${t(paletteFamilyKey(palette.family))} ${palette.shade}` : (pin.color ?? '').toUpperCase();
   }
   if (!pin.effect) return '';
-  if (isSimpleAnimation(pin.effect)) return t(simpleAnimationLabelKey(pin.effect));
-  const def = EFFECTS.find(e => e.key === pin.effect);
+  const def = EFFECTS.find(e => e.key === canonicalSimpleKey(pin.effect!));
   return def ? t(def.labelKey) : pin.effect;
 }

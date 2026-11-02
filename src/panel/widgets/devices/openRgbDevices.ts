@@ -14,6 +14,8 @@ export interface OpenRgbDevice {
   /** On when any of its cards is controlled; a card without the flag counts as controlled. */
   controlled: boolean;
   conflictAppIds: string[];
+  /** 'failing' when a controlled card of this device keeps failing its lighting writes. */
+  writeHealth?: 'failing';
 }
 
 /**
@@ -44,6 +46,7 @@ export function groupOpenRgbDevices(cards: readonly LightingDevice[]): OpenRgbDe
       cardIds: members.map(c => c.id),
       controlled: members.some(c => c.controlled !== false),
       conflictAppIds: [...new Set(members.flatMap(c => c.conflictAppIds ?? []))],
+      writeHealth: members.some(c => c.writeHealth === 'failing' && c.controlled !== false) ? 'failing' : undefined,
     });
   }
   return groups.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }) || a.key.localeCompare(b.key));

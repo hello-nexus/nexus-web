@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, Unplug } from 'lucide-react';
-import { useUnifiedDevices, claimsKey, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { useUnifiedDevices, controlGateIsPanel, claimsKey, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { ServiceRequired } from '../ServiceRequired';
@@ -19,6 +19,7 @@ import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { AsiahorseUmbraDevicePage } from './AsiahorseUmbraDevicePage';
 import { AsusGlacialLcdDevicePage } from './AsusGlacialLcdDevicePage';
+import { AstralDevicePage } from './AstralDevicePage';
 import { DeepCoolMystiqueDevicePage } from './DeepCoolMystiqueDevicePage';
 import { GlacialPanelRoute } from './GlacialPanelRoute';
 import { KrakenDevicePage } from './KrakenDevicePage';
@@ -39,6 +40,8 @@ import { canSwitchChannel, requestChannelSwitch } from '../../../lib/channelSwit
 import { getUpdateStatus } from '../../../api/update';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
+import { patchPanelDevice } from '../../../api/panel';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { isLianLiHubId } from '../../../api/lianli';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -168,6 +171,8 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         conflictAppId={device.conflictAppId}
         experimental={device.experimental}
         requiresBeta={device.requiresBeta}
+        panelMode={controlGateIsPanel(device)}
+        secondaryMonitorRecordId={device.panelDevice?.secondaryMonitor ? device.panelDevice.panelRecordId : undefined}
         onEnable={() => {
           detectReportedRef.current = false;
           setDetectingKey(device.key);
@@ -279,6 +284,10 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
     return <AsusGlacialLcdDevicePage key={device.key} />;
   }
 
+  if (device.curatedId === 'asus-astral') {
+    return <AstralDevicePage key={device.key} />;
+  }
+
   if (device.curatedId === 'deepcool-mystique') {
     return <DeepCoolMystiqueDevicePage key={device.key} />;
   }
@@ -375,7 +384,7 @@ function BetaRequiredNotice() {
   );
 }
 
-export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; onEnable: () => void }) {
+export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, panelMode, secondaryMonitorRecordId, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; panelMode?: boolean; secondaryMonitorRecordId?: string; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -385,6 +394,26 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
   const resolvingConflict = Boolean(conflictAppId) && !ready;
   const [confirmingExperimental, setConfirmingExperimental] = useState(false);
   const { hidden, setHidden } = useSidebarHiddenDevices();
+  const { push: pushToast } = useToast();
+  // The switch renders only while the record says the monitor is on, so a record update to off removes it.
+  // An optimistic value holds until the newest write settles; only that write may roll back.
+  const [monitorPending, setMonitorPending] = useState<boolean | null>(null);
+  const monitorSeqRef = useRef(0);
+  // The switch unmounts its record when the monitor goes off, so a later turn-on starts from the record again.
+  useEffect(() => {
+    if (!secondaryMonitorRecordId) setMonitorPending(null);
+  }, [secondaryMonitorRecordId]);
+  const setMonitor = (id: string, next: boolean) => {
+    const seq = ++monitorSeqRef.current;
+    setMonitorPending(next);
+    patchPanelDevice(id, { secondaryMonitor: next })
+      .then(saved => saved === null ? Promise.reject(new Error('save failed')) : undefined)
+      .catch(() => {
+        if (seq !== monitorSeqRef.current) return;
+        setMonitorPending(null);
+        pushToast({ title: t('devices.panels.saveFailedTitle'), body: t('devices.panels.saveFailedBody') });
+      });
+  };
   const shownInSidebar = deviceKey === undefined || !hidden.includes(deviceKey);
   return (
     <section className={styles.page}>
@@ -418,9 +447,16 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
             </>
           ) : (
             <>
-              <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>
-              <NexusControlCard checked={false} disabled={resolvingConflict} onChange={experimental ? () => setConfirmingExperimental(true) : onEnable} />
+              {!panelMode && <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>}
+              <NexusControlCard checked={false} label={panelMode ? t('sidebar.device.panelOn') : undefined} disabled={resolvingConflict} onChange={experimental ? () => setConfirmingExperimental(true) : onEnable} />
             </>
+          )}
+          {secondaryMonitorRecordId && (
+            <SettingToggle
+              label={t('devices.lcd.secondaryMonitor')}
+              checked={monitorPending ?? true}
+              onChange={() => setMonitor(secondaryMonitorRecordId, !(monitorPending ?? true))}
+            />
           )}
           {deviceKey !== undefined && (
             <NexusControlCard

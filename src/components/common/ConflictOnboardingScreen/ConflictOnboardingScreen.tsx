@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
 import { ConflictOutcomePanel, type ConflictOutcomeAction } from '../ConflictOutcomePanel/ConflictOutcomePanel';
+import { settingMix } from '../ConflictOutcomePanel/conflictOutcome';
 import { OnboardingHeader } from '../OnboardingHeader/OnboardingHeader';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
@@ -44,7 +45,8 @@ export function ConflictOnboardingScreen({
     [exclusions],
   );
   const [busy, setBusy] = useState(false);
-  const heading = t('conflicts.onboarding.title');
+  const mix = settingMix(conflicts);
+  const heading = t(mix === 'setting' ? 'conflicts.onboarding.titleSetting' : 'conflicts.onboarding.title');
 
   // Fire-and-forget: the line is for support bundles and never holds the step.
   const report = useCallback((action: ConflictStepAction, listed: string[], alreadyEnded: string[]) => {
@@ -95,7 +97,7 @@ export function ConflictOnboardingScreen({
               <TriangleAlert size={HERO_ICON_SIZE} />
             </span>
             <h1 className={styles.title}>{heading}</h1>
-            <p className={styles.intro}>{t('conflicts.onboarding.intro')}</p>
+            <p className={styles.intro}>{t(mix === 'apps' ? 'conflicts.onboarding.intro' : mix === 'mixed' ? 'conflicts.modal.introMixed' : 'conflicts.modal.introSetting')}</p>
           </div>
         )}
         onAction={handleAction}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
@@ -156,6 +156,8 @@ export interface PanelThemeSettingsProps {
   deviceW?: number;
   /** Device native pixel height for the import conversion. */
   deviceH?: number;
+  /** Extra row rendered first in the Widgets section (the per-device widget scale slider). */
+  widgetScaleRow?: ReactNode;
   /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
    * labels off. */
   hideWidgetLabelsToggle?: boolean;
@@ -222,6 +224,7 @@ export function PanelThemeSettings({
   deviceH,
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
+  widgetScaleRow = null,
   showBackdropSelector = false,
   showEffectSearch = false,
   showImmersiveBackdrop = true,
@@ -371,8 +374,9 @@ export function PanelThemeSettings({
 
   return (
     <div className={styles.themePanel}>
-      {showTheme && (!hideWidgetLabelsToggle || !hideWidgetChromeControls) && (
+      {showTheme && (!hideWidgetLabelsToggle || !hideWidgetChromeControls || widgetScaleRow) && (
         <SettingsSection title={label('panel.settings.widgets', 'Widgets')} boxClassName={styles.themeBox}>
+          {widgetScaleRow}
           {!hideWidgetLabelsToggle && (
             <SettingToggle
               label={label('panel.settings.widgetLabels', 'Widget labels')}
@@ -556,7 +560,14 @@ export function PanelThemeSettings({
               }}
               onCommit={onBackgroundFrostCommit}
             />
-            {theme.backdrop === 'desktop' ? null : backgroundOpacitySlider}
+            {theme.backdrop === 'desktop' ? null : (
+              <>
+                {backgroundOpacitySlider}
+                {backgroundOpacityPercent === 0 && (
+                  <Notice tone="info" role="status">{label('panel.settings.backgroundOpacity.off', "The background isn't rendering.")}</Notice>
+                )}
+              </>
+            )}
             {theme.backdrop !== 'theme' ? null : (
             <>
             {theme.backgroundMode === 'solid' ? (

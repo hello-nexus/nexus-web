@@ -13,7 +13,6 @@ import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
 import { slotLayoutLabelKey, slotLayoutOptionsForSize, slotLayoutPatch, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
-import { StreamFpsCapSetting } from './StreamFpsCapSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import type { TextColorMode } from '../theme/textColor';
@@ -336,10 +335,7 @@ export function PanelEditorSheet({
         <span className={styles.editorSheetGrabber} aria-hidden="true" />
         <header className={styles.editorHeader}>
           <div className={styles.editorTitle}>{title}</div>
-          {/* Single-widget surfaces (Q-series, Kraken) always show exactly one
-              widget - there is nothing to remove it to, so the only way to
-              change it is picking a replacement from the catalog. */}
-          {mode === 'settings' && editingWidget && !isSingleWidgetSurface(surface) && (
+          {mode === 'settings' && editingWidget && (
             <button
               type="button"
               className={styles.removeButton}
@@ -462,7 +458,6 @@ export function PanelEditorSheet({
                 onCommit={onMachineNameCommit}
               />
             )}
-            {panelSettingsSection !== 'background' && <StreamFpsCapSetting />}
             <PanelThemeSettings
               sections={panelSettingsSection}
               theme={panelTheme}

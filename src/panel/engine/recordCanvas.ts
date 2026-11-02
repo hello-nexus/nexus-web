@@ -47,3 +47,19 @@ export function monitorGridCapacity(
   );
   return { gridCols: capacity.columns, pageRows: capacity.rows };
 }
+
+/** The Y70 grid for a canvas in CSS px; a forced column count keeps square cells, otherwise the fixed Y70 rows. */
+export function y70GridCapacity(
+  canvas: { width: number; height: number },
+  dpr: number,
+  dpi: number,
+  paddingRatio: number,
+  shortSideSlots?: number,
+): PaginateCapacity {
+  const capacity = panelGridCapacityForCanvas(
+    Math.max(1, Math.round(canvas.width * dpr)),
+    Math.max(1, Math.round(canvas.height * dpr)),
+    { surface: 'y70', dpi, sizing: getPanelGridSizingSettings(), shortSideSlots, paddingRatio },
+  );
+  return { gridCols: capacity.columns, pageRows: capacity.rows };
+}

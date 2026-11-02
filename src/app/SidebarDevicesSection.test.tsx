@@ -201,6 +201,26 @@ describe('SidebarDevicesSection panel toggle wording', () => {
     expect(screen.getByRole('menuitem', { name: 'sidebar.device.panelOn' })).toBeTruthy();
   });
 
+  const usb = (secondaryMonitor: boolean, on: boolean) => monitorDevice({
+    key: 'panel-stream:rec9', curatedId: 'nzxt-kraken', supportsNexusControl: true, nexusControlEnabled: on,
+    panelDevice: monitorPanelDevice({ displayId: undefined, secondaryMonitor }),
+  });
+
+  it('calls the toggle on a USB panel a Nexus panel while its secondary monitor is on', () => {
+    mockUnified = [usb(true, true)];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.getByRole('menuitem', { name: 'sidebar.device.panelOff' })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeNull();
+  });
+
+  it('keeps Nexus Control wording for a USB panel with its secondary monitor off', () => {
+    mockUnified = [usb(false, true)];
+    renderSidebar();
+    fireEvent.contextMenu(screen.getByRole('button', { name: /Xeneon Edge/ }));
+    expect(screen.getByRole('menuitem', { name: 'lighting.devices.menuControlOff' })).toBeTruthy();
+  });
+
   it('keeps Nexus Control wording for a branded display panel', () => {
     mockUnified = [monitorDevice({ nexusControlEnabled: true, panelDevice: monitorPanelDevice({ linkEnabled: true }) })];
     renderSidebar();

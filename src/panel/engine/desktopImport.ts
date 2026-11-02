@@ -1,6 +1,6 @@
 import type { DesktopImportDto } from '../../api/panel';
 import { createUuid } from '../../lib/uuid';
-import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSizeMode } from '../types';
+import type { PanelLayout, PanelPage, PanelSurface, PanelWidget, PanelWidgetSizeMode } from '../types';
 import { GRID_SLOTS_MAX, GRID_SLOTS_MIN, PANEL_WIDGET_SIZE_MODES, panelWidgetSizeOptions, widgetSizeShortSideSlots } from '../types';
 import { panelGridCapacityForCanvas, panelWidgetPaddingRatio, sizeToSpan } from './grid';
 import { rectsOverlap } from './paginate';
@@ -73,12 +73,12 @@ export function columnWidth(vp: ImportViewport, g: { columns: number; gap: numbe
   return Math.max(1, (vp.w - g.padding * 2 - g.gap * (g.columns - 1)) / g.columns);
 }
 
-function gridFor(vp: ImportViewport, slots: number, paddingRatio: number): ImportGrid {
+function gridFor(vp: ImportViewport, slots: number | undefined, paddingRatio: number, surface: PanelSurface = 'monitor'): ImportGrid {
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
   const cap = panelGridCapacityForCanvas(
     Math.max(1, Math.round(vp.w * dpr)),
     Math.max(1, Math.round(vp.h * dpr)),
-    { surface: 'monitor', shortSideSlots: slots, paddingRatio },
+    { surface, shortSideSlots: slots, paddingRatio },
   );
   const base = { columns: cap.columns, rows: cap.rows, rowSize: cap.rowSize / dpr, gap: cap.gap / dpr, padding: cap.padding / dpr };
   return { ...base, colSize: columnWidth(vp, base) };
@@ -92,16 +92,21 @@ function cellMismatch(grid: ImportGrid, legacyCell: number): number {
  * The widget size whose grid draws the cell closest to the legacy one. Without the glass's density the
  * even count that fits best is used and the size defaults to Small.
  */
-export function bestSize(vp: ImportViewport, paddingRatio: number, legacyCell: number, densitySlots: number | undefined): { mode: PanelWidgetSizeMode; slots: number; grid: ImportGrid } {
-  if (!densitySlots) {
+export function bestSize(vp: ImportViewport, paddingRatio: number, legacyCell: number, densitySlots: number | undefined, glassSurface: PanelSurface = 'monitor'): { mode: PanelWidgetSizeMode; slots: number | undefined; grid: ImportGrid } {
+  // A Y70 offers sizes on its own fixed grid as well; every size is measured on the surface it lays out as.
+  const options = panelWidgetSizeOptions(glassSurface, undefined);
+  if (glassSurface === 'monitor' ? !densitySlots : !options) {
     const fallback = bestGridSlots(vp, paddingRatio, legacyCell);
     return { mode: 'small', ...fallback };
   }
-  const options = panelWidgetSizeOptions('monitor', undefined);
-  let best: { mode: PanelWidgetSizeMode; slots: number; grid: ImportGrid; err: number } | null = null;
+  let best: { mode: PanelWidgetSizeMode; slots: number | undefined; grid: ImportGrid; err: number } | null = null;
   for (const mode of PANEL_WIDGET_SIZE_MODES) {
-    const slots = (options ? widgetSizeShortSideSlots(options, mode, densitySlots) : undefined) ?? densitySlots;
-    const grid = gridFor(vp, slots, paddingRatio);
+    if (options && !options.layoutSurface[mode]) continue;
+    const forced = options ? widgetSizeShortSideSlots(options, mode, densitySlots) : undefined;
+    const target = options?.layoutSurface[mode] ?? 'monitor';
+    // A size that forces nothing keeps its surface's own columns, except on the monitor grid, which takes the density count.
+    const slots = forced ?? (target === 'monitor' ? densitySlots : undefined);
+    const grid = gridFor(vp, slots, paddingRatio, target);
     const err = cellMismatch(grid, legacyCell);
     if (!best || err < best.err - 1e-9) best = { mode, slots, grid, err };
   }
@@ -165,7 +170,7 @@ export function planDesktopImport(
   layout: PanelLayout,
   currentGrid?: RuntimeGrid,
   snapSize?: SizeSnapper,
-  options: { singlePage?: boolean; densitySlots?: number } = {},
+  options: { singlePage?: boolean; densitySlots?: number; glassSurface?: PanelSurface } = {},
 ): DesktopImportPlan {
   const singlePage = options.singlePage ?? false;
   const dpr = vp.dpr > 0 ? vp.dpr : 1;
@@ -178,11 +183,13 @@ export function planDesktopImport(
   let slots: number | undefined;
   let widgetSize: PanelWidgetSizeMode | undefined;
   let grid: ImportGrid;
-  if (imp.merge && currentGrid) {
+  // A Y70 import never writes a size: it fills the current grid and the size stays the user's.
+  const y70 = options.glassSurface === 'y70';
+  if (currentGrid && (imp.merge || y70)) {
     grid = { ...currentGrid, colSize: columnWidth(vp, currentGrid) };
   } else {
-    const sized = bestSize(vp, paddingRatio, legacyCell, options.densitySlots);
-    widgetSize = sized.mode;
+    const sized = bestSize(vp, paddingRatio, legacyCell, options.densitySlots, options.glassSurface);
+    widgetSize = y70 ? undefined : sized.mode;
     slots = sized.slots;
     grid = sized.grid;
   }

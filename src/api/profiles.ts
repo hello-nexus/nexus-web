@@ -190,6 +190,10 @@ export interface UiPrefs {
   coolingFlowMode?: CoolingFlowMode;
   coolingCollisionShapes?: boolean;
   hiddenSidebarDevices?: string[];
+  /** Lighting widget history, `#RRGGBB`, most recent first. Absent from a service that predates the field. */
+  recentStaticColors?: string[];
+  /** Lighting widget history of effect keys, most recent first. Absent from a service that predates the field. */
+  recentAnimations?: string[];
 }
 
 export interface UpdatePrefs {

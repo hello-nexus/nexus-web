@@ -1,6 +1,8 @@
 import { authFetchWithStatus, fetchService, putServiceBytes } from './service';
 
 export const SYSTEM_PREVIEW_CHANGED_EVENT = 'nexus-system-preview-changed';
+/** The service pings this topic when the machine's case changes; subscribers refetch GET /system/case. */
+export const SYSTEM_CASE_TOPIC = 'system/case';
 
 /** image: a PNG to show; unchanged: the sent ETag still matches; none: no preview for the current case; error: the request failed. */
 export type SystemPreviewResult =

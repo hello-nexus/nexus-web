@@ -95,6 +95,11 @@ describe('resolveOutcome', () => {
     expect(resolveOutcome(msg({ model: false }), record(2, { caseModel: 'HYTE X50' }))).toBe('waiting');
   });
 
+  it('is done without the model when no scene export was offered', () => {
+    expect(resolveOutcome(msg({ model: false }), record(2, { caseModel: 'HYTE Y70' }), false)).toBe('done');
+    expect(resolveOutcome(msg({ model: false }), record(1, { caseModel: 'HYTE Y70' }), false)).toBe('waiting');
+  });
+
   it('is done without the model for a case the view does not draw', () => {
     expect(resolveOutcome(msg({ model: false }), record(2, { caseModel: 'Lian Li O11 Dynamic' }))).toBe('done');
     expect(resolveOutcome(msg({ model: false }), record(2, {}))).toBe('done');

@@ -7,7 +7,7 @@ vi.mock('../../api/appTelemetry', () => ({ fetchAppTelemetryRecent: () => fetchR
 import { AppTelemetryCard } from './AppTelemetryCard';
 
 const sample = {
-  posthog: 'off',
+  status: 'off',
   events: [{ at: '2026-10-03T10:00:00Z', event: 'app_event', properties: { app_id: 'a.app', event: 'level_done', p_level: 3 } }],
 };
 
@@ -15,7 +15,7 @@ beforeEach(() => { vi.useFakeTimers(); fetchRecent.mockResolvedValue(sample); })
 afterEach(() => { cleanup(); vi.useRealTimers(); fetchRecent.mockReset(); });
 
 describe('AppTelemetryCard', () => {
-  it('lists events and the PostHog status', async () => {
+  it('lists events and the sink status', async () => {
     await act(async () => { render(<AppTelemetryCard />); });
     expect(screen.getByText('tools.appTelemetry.status.off')).toBeTruthy();
     expect(screen.getByText('app_event (level_done)')).toBeTruthy();

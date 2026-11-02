@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { createDisplayDivider, createFramePacer, framePacingQuery, panelDisplayHz, streamFrameCap } from './framePacer';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  createAdaptivePacer, createDisplayDivider, createFramePacer, framePacingQuery, getPanelFpsCap, pageFrameCap, panelDisplayHz, setPanelFpsCap,
+  streamFrameCap, subscribePanelFpsCap,
+} from './framePacer';
 
 function drawsOver(pacer: (ts: number) => boolean, tickMs: number, durationMs: number): number[] {
   const drawn: number[] = [];
@@ -98,5 +101,42 @@ describe('framePacingQuery', () => {
     expect(framePacingQuery('?backdrop=desktop&displayHz=60&x=1')).toBe('?displayHz=60');
     expect(framePacingQuery('?streamFps=44')).toBe('?streamFps=44');
     expect(framePacingQuery('?backdrop=desktop')).toBe('');
+  });
+});
+
+describe('device record frame cap', () => {
+  afterEach(() => setPanelFpsCap(null));
+
+  it('lowers the page cap below the stream rate and applies alone without one', () => {
+    expect(pageFrameCap('')).toBeNull();
+    setPanelFpsCap(15);
+    expect(pageFrameCap('')).toBe(15);
+    expect(pageFrameCap('?streamFps=30')).toBe(15);
+    expect(pageFrameCap('?streamFps=10')).toBe(10);
+  });
+
+  it('ignores a cap that is not a positive number and notifies only on a change', () => {
+    const seen: Array<number | null> = [];
+    const off = subscribePanelFpsCap(() => seen.push(getPanelFpsCap()));
+    setPanelFpsCap(20);
+    setPanelFpsCap(20);
+    setPanelFpsCap(0);
+    setPanelFpsCap(undefined);
+    off();
+    setPanelFpsCap(5);
+    expect(seen).toEqual([20, null]);
+  });
+
+  it('adaptive pacer follows a cap that changes while drawing', () => {
+    let cap: number | null = null;
+    const pacer = createAdaptivePacer(() => cap, null);
+    expect(drawsOver(pacer, 1000 / 144, 1000)).toHaveLength(144);
+    cap = 10;
+    const capped = [];
+    for (let i = 0; i < 144 * 5; i++) { const ts = 5000 + i * (1000 / 144); if (pacer(ts)) capped.push(ts); }
+    expect(capped.length).toBeGreaterThanOrEqual(48);
+    expect(capped.length).toBeLessThanOrEqual(52);
+    cap = null;
+    expect(drawsOver(pacer, 1000 / 144, 1000)).toHaveLength(144);
   });
 });

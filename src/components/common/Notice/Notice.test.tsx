@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { Notice, NoticeSecondary } from './Notice';
 
 describe('Notice', () => {
@@ -31,5 +31,17 @@ describe('Notice', () => {
     const row = container.firstElementChild?.firstElementChild;
     expect(row?.children).toHaveLength(1);
     expect(row?.firstElementChild?.children).toHaveLength(2);
+  });
+
+  it('closes through its own button when dismissable', () => {
+    const onDismiss = vi.fn();
+    render(<Notice tone="warning" role="status" onDismiss={onDismiss} dismissLabel="Close">x</Notice>);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no close button unless asked', () => {
+    render(<Notice tone="warning" role="status">x</Notice>);
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

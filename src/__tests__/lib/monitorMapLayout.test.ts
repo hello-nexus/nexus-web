@@ -18,6 +18,7 @@ function display(partial: Partial<TopologyDisplay> & { id: string }): TopologyDi
     isY70: false,
     hostingSupported: true,
     assignedPanelDeviceId: null,
+    ownedByDevicePanel: false,
     assignedPanelName: null,
     ...partial,
   };

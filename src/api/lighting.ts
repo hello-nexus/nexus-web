@@ -115,8 +115,6 @@ export const fetchLightingStatus = () =>
 export interface CurrentSyncResponse {
   sync: string;
   paused: boolean;
-  /** True on installs upgraded from a version that shipped Game Sync. */
-  gameSyncRemovedNotice?: boolean;
 }
 
 export const fetchCurrentSync = () =>
@@ -225,6 +223,8 @@ export const startAnimate = (
   persist = true,
   // Sent only when the user changed a sensor pick, so a service that predates the field sees an unchanged body.
   sensors?: Record<string, SensorBinding>,
+  // True only from simple mode, where the service shows a sweep's whole pattern on every device.
+  simple = false,
 ) =>
   postService('/lighting/animate/headless-start', {
     effect, speed, noise: 0, filter: 'none', intensity, scheme: [], hue, sat: 0,
@@ -232,7 +232,12 @@ export const startAnimate = (
     params: params ? Object.entries(params).map(([name, value]) => ({ name, value })) : [],
     persist,
     ...(sensors && Object.keys(sensors).length > 0 ? { sensors } : {}),
+    ...(simple ? { simple } : {}),
   });
+
+/** Changes only the running animate effect's simple-mode mapping and stores it; the look and unsaved edits are untouched. */
+export const setAnimateSimple = (simple: boolean) =>
+  postService('/lighting/animate/simple', { simple });
 
 export interface StudioLiveResponse {
   error?: boolean;
@@ -364,8 +369,25 @@ export const fetchRenderGpu = () =>
 export const setRenderGpu = (value: string) =>
   postService<{ error?: boolean }>('/lighting/render-gpu', { value });
 
-export const restartService = () =>
-  postService('/service/restart', {});
+/** `reopenRoute` asks the service to reopen the dashboard window at that route once after the restart. */
+export const restartService = (reopenRoute?: string) =>
+  postService('/service/restart', reopenRoute ? { reopenRoute } : {});
+
+export type RestartOutcome = 'accepted' | 'refused' | 'dropped';
+
+/**
+ * Restart that tells the three outcomes apart by status: accepted (2xx), refused (the service answered
+ * with an error, e.g. an invalid route or a restart already running), or dropped (no answer, as the
+ * socket does when the service goes down).
+ */
+export async function requestServiceRestart(reopenRoute?: string): Promise<RestartOutcome> {
+  const { response, status } = await authFetchWithStatus('/service/restart', {
+    method: 'POST',
+    body: reopenRoute ? { reopenRoute } : {},
+  });
+  if (response === null || status === 0) return 'dropped';
+  return status >= 200 && status < 300 ? 'accepted' : 'refused';
+}
 
 // --- Screen monitor enumeration ---
 
@@ -504,6 +526,8 @@ export interface LightingDevice {
   zoneCustomizable?: boolean;
   /** Conflict-app catalog ids competing with Nexus for this card's hardware. Undefined on older services. */
   conflictAppIds?: string[];
+  /** 'failing' while Nexus controls this card but its hardware writes keep failing; absent when healthy or on an older service. */
+  writeHealth?: 'failing';
   /** Curated handler whose Nexus Control gate claims this card's hardware (Lian Li / Corsair hubs); the conflict UI folds the card into that handler's row. */
   controlHandlerId?: string;
 }
@@ -768,10 +792,15 @@ export const setLightingMaxRate = (id: string, maxRateHz: number | null) =>
 export const setLightingSampling = (id: string, mode: SamplingMode) =>
   postService<ApiEnvelope>('/devices/lighting-devices/sampling', { id, mode });
 
-// Master brightness cap (0..1). Caps every per-device value so the effective
-// brightness for an LED is `min(global, device / 100)` - never brighter.
+// Master brightness (0..1). By default it caps every per-device value so the
+// effective brightness for an LED is `min(global, device / 100)`; with
+// `masterScalesDevices` on it multiplies instead: `global * device / 100`.
 export const fetchGlobalBrightness = () =>
-  fetchService<{ value: number }>('/lighting/global-brightness');
+  fetchService<{ value: number; masterScalesDevices?: boolean }>('/lighting/global-brightness');
+
+/** Switch between master capping and master multiplying the per-device level. */
+export const setMasterScalesDevices = (masterScalesDevices: boolean) =>
+  postService('/lighting/global-brightness', { masterScalesDevices });
 
 export const setGlobalBrightness = (value: number) =>
   postService('/lighting/global-brightness', { value });

@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { simulatedPanelCssViewport, simulatedPanelEditorCapacity } from './simulatedPanelViewport';
 import { panelGridCapacityForCanvas } from '../engine/grid';
 import {
-  DEFAULT_SIMULATED_PANEL_GRID_SIZING,
   SIMULATED_PANEL_PRESETS,
-  setPanelGridSizingSettings,
 } from '../../lib/panelSimulation';
 
 function preset(id: string) {
@@ -30,16 +28,6 @@ describe('simulatedPanelEditorCapacity', () => {
     const p = preset('xeneon-edge');
     expect(simulatedPanelEditorCapacity(p.surface, p.width, p.height, p.dpi))
       .toEqual({ gridCols: 14, pageRows: 4 });
-  });
-
-  it('honors the short-side jump sizing knob', () => {
-    const p = preset('tablet');
-    setPanelGridSizingSettings({ shortSideJumpAtInches: 7 });
-    try {
-      expect(simulatedPanelEditorCapacity(p.surface, p.width, p.height, p.dpi).gridCols).toBe(4);
-    } finally {
-      setPanelGridSizingSettings(DEFAULT_SIMULATED_PANEL_GRID_SIZING);
-    }
   });
 
   // Guards the two halves of the helper drifting apart: capacity must equal

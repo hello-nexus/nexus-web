@@ -34,6 +34,8 @@ export interface DeviceListItem {
   hasPage?: boolean;
   // Transport the device lives on. Undefined on an older service means 'usb'.
   bus?: 'usb' | 'smbus';
+  // 'failing' while this controlled device's lighting writes keep failing; absent when healthy or on an older service.
+  writeHealth?: 'failing';
 }
 
 export function useDevices(enabled: boolean) {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Home, Lock, Maximize2, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Home, Lock, Monitor, Pencil, Pin, PinOff, Plus, Scaling, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -9,18 +10,24 @@ import styles from './WidgetContextMenu.module.scss';
 interface WidgetContextMenuProps {
   x: number;
   y: number;
-  currentSize: PanelWidgetSize;
-  sizes: PanelWidgetSize[];
-  hasConfig: boolean;
+  // The widget rows (size picker, Edit) show only when their props are given; the preview's background menu gives none.
+  currentSize?: PanelWidgetSize;
+  sizes?: PanelWidgetSize[];
+  hasConfig?: boolean;
+  // Widget name, shown as the first row. The row runs onImmersive when set, else onOpen, else it is a plain title.
+  title?: string;
   surface?: PanelSurface;
   themeMode?: 'dark' | 'light';
   themeStyle?: CSSProperties;
-  onResize: (size: PanelWidgetSize) => void;
+  onResize?: (size: PanelWidgetSize) => void;
   // Starts corner-drag resize mode; the caller offers it only where the widget has more than one size to snap to.
   onResizeMode?: () => void;
-  onEdit: () => void;
-  onRemove: () => void;
-  // Optional - only shown when the widget has an ImmersiveComponent
+  onEdit?: () => void;
+  // Omitted on menus that are not about a widget (the preview's background menu): no Remove row.
+  onRemove?: () => void;
+  // Plain action rows under the name row, for menus whose actions are not widget actions.
+  items?: { key: string; label: string; icon: LucideIcon; onSelect: () => void }[];
+  // Optional - what the name row does when the widget has an ImmersiveComponent
   // and the current orientation is supported. Caller owns the gating.
   onImmersive?: () => void;
   // Web View only, each offered while its history step or return home applies.
@@ -50,7 +57,8 @@ interface WidgetContextMenuProps {
   // "Lock widgets" row; while `locked`, the edit and resize items are hidden.
   locked?: boolean;
   onToggleLock?: () => void;
-  // Opens the widget's page or editor in the app; offered on generic display panels for widgets that have one.
+  // Opens the widget's page or editor in the app; the name row becomes this action where the widget has one
+  // and no immersive view. Beside onImmersive it shows as a plain Open item.
   onOpen?: () => void;
   // Dashboard order: Edit, Resize and Remove sit last, under the display and sidebar items.
   widgetItemsLast?: boolean;
@@ -59,12 +67,13 @@ interface WidgetContextMenuProps {
 
 export function WidgetContextMenu({
   x, y,
-  currentSize, sizes,
-  hasConfig,
+  currentSize, sizes = [],
+  hasConfig = false,
+  title,
   surface,
   themeMode = 'dark',
   themeStyle,
-  onResize, onResizeMode, onEdit, onRemove, onImmersive, onWebBack, onWebForward, onWebHome,
+  onResize, onResizeMode, onEdit, onRemove, items, onImmersive, onWebBack, onWebForward, onWebHome,
   displayTargets, onAddToDisplay, onAddWidget,
   onPinToSidebar, onUnpinFromSidebar,
   onOpenPanelActions,
@@ -156,7 +165,7 @@ export function WidgetContextMenu({
 
   const editItems = (
     <>
-      {hasConfig && !locked && (
+      {hasConfig && onEdit && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
           <Pencil size={14} />
           <span>{t('panel.widget.menu.edit')}</span>
@@ -171,7 +180,9 @@ export function WidgetContextMenu({
       )}
     </>
   );
-  const hasMiddleItems = Boolean(onImmersive || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+  const hasMiddleItems = Boolean((onImmersive && onOpen) || (onAddToDisplay && displayTargets?.length) || onPinToSidebar || onUnpinFromSidebar);
+
+  const nameAction = onImmersive ?? onOpen;
 
   const menuStyle = {
     ...themeStyle,
@@ -191,6 +202,33 @@ export function WidgetContextMenu({
       data-panel-hit="true"
       style={menuStyle}
     >
+      {(title || onImmersive) && (
+        <>
+          {nameAction ? (
+            <button type="button" className={`${styles.item} ${styles.nameRow}`} aria-label={title ? t('featureDisabled.widget.open', { feature: title }) : t('panel.widget.menu.immersive')} onClick={() => runAndClose(nameAction)}>
+              <span className={styles.nameLabel}>{title}</span>
+              <ArrowUpRight size={15} className={styles.nameChevron} aria-hidden />
+            </button>
+          ) : (
+            <div role="presentation" className={`${styles.nameRow} ${styles.nameRowStatic}`}>
+              <span className={styles.nameLabel}>{title}</span>
+            </div>
+          )}
+          <div className={styles.divider} />
+        </>
+      )}
+
+      {items && items.length > 0 && (
+        <>
+          {items.map(({ key, label, icon: Icon, onSelect }) => (
+            <button key={key} type="button" className={styles.item} onClick={() => runAndClose(onSelect)}>
+              <Icon size={14} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </>
+      )}
+
       {(onWebBack || onWebForward || onWebHome) && (
         <>
           {onWebBack && (
@@ -215,17 +253,7 @@ export function WidgetContextMenu({
         </>
       )}
 
-      {onOpen && (
-        <>
-          <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
-            <ExternalLink size={14} />
-            <span>{t('search.kind.open')}</span>
-          </button>
-          <div className={styles.divider} />
-        </>
-      )}
-
-      {sizes.length > 1 && !locked && (
+      {sizes.length > 1 && onResize && !locked && (
         <>
           <div className={styles.sizeRow}>
             {sizes.map(size => {
@@ -251,10 +279,10 @@ export function WidgetContextMenu({
 
       {!widgetItemsLast && editItems}
 
-      {onImmersive && (
-        <button type="button" className={styles.item} onClick={() => runAndClose(onImmersive)}>
-          <Maximize2 size={14} />
-          <span>{t('panel.widget.menu.immersive')}</span>
+      {onImmersive && onOpen && (
+        <button type="button" className={styles.item} onClick={() => runAndClose(onOpen)}>
+          <ArrowUpRight size={14} />
+          <span>{t('openInApp.open')}</span>
         </button>
       )}
 
@@ -282,10 +310,12 @@ export function WidgetContextMenu({
       {widgetItemsLast && hasMiddleItems && <div className={styles.divider} />}
       {widgetItemsLast && editItems}
 
-      <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
-        <Trash2 size={14} />
-        <span>{t('panel.widget.menu.remove')}</span>
-      </button>
+      {onRemove && (
+        <button type="button" className={`${styles.item} ${styles.itemDanger}`} onClick={() => runAndClose(onRemove)}>
+          <Trash2 size={14} />
+          <span>{t('panel.widget.menu.remove')}</span>
+        </button>
+      )}
 
       {/* Groups in order: widget items, view toggles, panel-wide items; a divider only between non-empty groups. */}
       {(onToggleLock || onToggleAlwaysOnTop) && <div className={styles.divider} />}

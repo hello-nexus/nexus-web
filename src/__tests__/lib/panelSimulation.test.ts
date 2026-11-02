@@ -17,12 +17,10 @@ import {
   getConnectedSimulatedPanelIds,
   getConnectedSimulatedPanels,
   getCustomSimulatedPanel,
-  getPanelGridSizingSettings,
   getSimulatedPanelGridCapacity,
   getSimulatedPanelPhysicalSize,
   isY70Simulated,
   SIMULATED_PANEL_PRESETS,
-  setPanelGridSizingSettings,
   setCustomSimulatedPanelSize,
   setSimulatedPanelConnected,
   ensureSimulatedPanelRecord,
@@ -113,13 +111,14 @@ describe('panelSimulation', () => {
     expect(tablet && getSimulatedPanelGridCapacity(tablet)).toMatchObject({ columns: 8, rows: 10 });
   });
 
-  it('persists the physical-size grid jump cutoff', () => {
-    const tablet = SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'tablet');
+  it('ignores a grid jump cutoff an earlier build saved', async () => {
+    localStorage.setItem('nexus_simulated_panel_grid_sizing', JSON.stringify({ shortSideJumpAtInches: 7 }));
+    vi.resetModules();
+    const fresh = await import('../../lib/panelSimulation');
+    const tablet = fresh.SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'tablet');
 
-    setPanelGridSizingSettings({ shortSideJumpAtInches: 7 });
-
-    expect(getPanelGridSizingSettings()).toEqual({ shortSideJumpAtInches: 7 });
-    expect(tablet && getSimulatedPanelGridCapacity(tablet)).toMatchObject({ columns: 4 });
+    expect(fresh.getPanelGridSizingSettings()).toEqual(fresh.DEFAULT_SIMULATED_PANEL_GRID_SIZING);
+    expect(tablet && fresh.getSimulatedPanelGridCapacity(tablet)).toMatchObject({ columns: 8 });
   });
 
   it('uses the real Q60 resolution and derives a 2x4 widget grid', () => {
@@ -257,13 +256,13 @@ describe('panelSimulation', () => {
     });
 
     it('heals a layout-less record at the surface its stored Widget size lays out as', async () => {
-      setSimulatedPanelConnected('icue-link-lcd5', true);
-      const id = await ensureSimulatedPanelRecord('icue-link-lcd5');
-      Object.assign(service.get(id!)!, { layout: null, widgetSize: 'large' });
+      setSimulatedPanelConnected('q60', true);
+      const id = await ensureSimulatedPanelRecord('q60');
+      Object.assign(service.get(id!)!, { layout: null, widgetSize: 'small' });
 
-      await ensureSimulatedPanelRecord('icue-link-lcd5');
+      await ensureSimulatedPanelRecord('q60');
 
-      expect((service.get(id!)!.layout as StoredLayout).surface).toBe('q60');
+      expect((service.get(id!)!.layout as StoredLayout).surface).toBe('monitor');
     });
 
     it('allocates and writes the default once for concurrent callers', async () => {

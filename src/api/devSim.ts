@@ -33,3 +33,18 @@ export const stopDevSim = (id: string) =>
   deleteService<DevSimEvents>(`/dev/sim/events/${encodeURIComponent(id)}`);
 
 export const clearDevSims = () => postService<DevSimEvents>('/dev/sim/clear', {});
+
+export interface DevSimAstral {
+  active: boolean;
+  sag: number;
+  lean: number;
+  pinAmps: number[];
+}
+
+export const fetchDevSimAstral = () => fetchService<DevSimAstral>('/dev/sim/astral');
+
+/** Starts the simulated Astral card when it is off; only the fields given change. */
+export const setDevSimAstral = (patch: Partial<Omit<DevSimAstral, 'active'>>) =>
+  postService<DevSimAstral>('/dev/sim/astral', patch);
+
+export const stopDevSimAstral = () => deleteService<DevSimAstral>('/dev/sim/astral');

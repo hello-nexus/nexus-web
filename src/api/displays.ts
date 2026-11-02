@@ -83,6 +83,8 @@ export interface TopologyDisplay {
   /** False when the user turned brightness control off for this display. */
   ddcEnabled: boolean;
   hostingSupported: boolean;
+  /** Virtual monitor of a USB device in secondary-monitor mode; its panel is the device's own. */
+  ownedByDevicePanel: boolean;
   assignedPanelDeviceId: string | null;
   assignedPanelName: string | null;
 }

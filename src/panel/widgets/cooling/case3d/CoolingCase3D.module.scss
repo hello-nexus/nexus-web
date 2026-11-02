@@ -10,6 +10,13 @@
   box-sizing: border-box;
 }
 
+// The pane's height follows the fan list, so a centered notice sinks below the fold on a long list; dock it at the top instead.
+.root .notice {
+  justify-content: flex-start;
+  height: auto;
+  padding-top: 2.5rem;
+}
+
 .emptyActions {
   display: flex;
   gap: 0.5rem;
@@ -153,10 +160,34 @@
   pointer-events: auto;
 }
 
+// The status bar and the temperature legend stack at the canvas top, out of flow, so the legend coming and going moves nothing else.
+.topStack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  pointer-events: none;
+
+  .overlay {
+    position: static;
+    align-self: stretch;
+    pointer-events: auto;
+  }
+}
+
 .legend {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-left: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius);
+  background: rgb(0 0 0 / var(--alpha-strong));
+  backdrop-filter: blur(var(--blur-backdrop));
   @include text-caption;
   color: var(--text-dim);
 }

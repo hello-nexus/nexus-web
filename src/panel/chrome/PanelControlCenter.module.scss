@@ -51,8 +51,8 @@
 
 // Same zoom rule as the actions tray: the chrome scales with the panel.
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .sheet {
-  zoom: var(--panel-scale, 1);
-  --cc-zoom: var(--panel-scale, 1);
+  zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
+  --cc-zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
 }
 
 .scrim {

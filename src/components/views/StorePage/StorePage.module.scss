@@ -102,6 +102,15 @@ $card-gap: 0.6rem;
   color: var(--text-dim);
 }
 
+/* Product button plus its reason line, in the slot Install would take. */
+.hardwareGate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 /* Where the Install button sits until the app's launch day. Accent rather than
    dim: it is an announcement, not the "not compatible" dead end above. */
 .comingSoon {

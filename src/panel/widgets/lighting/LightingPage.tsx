@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Gamepad2, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
-  startAnimate, startStatic, startScreenMirror, stopLighting,
+  startAnimate, setAnimateSimple, startStatic, startScreenMirror, stopLighting,
   fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
@@ -26,7 +26,9 @@ import { SensorSignalProvider } from '../../../hooks/SensorSignalProvider';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
-import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
+import { getLianLiWirelessLighting, getLianLiWirelessState, setLianLiWirelessChainLighting, type LianLiWirelessFan } from '../../../api/lianli-wireless';
+import { deviceTypeKey, lianLiWirelessDeviceAnchor } from '../../../components/views/DevicePage/LianLiWirelessFansTab';
+import { unboundWirelessCards, unboundWirelessFans } from './page/unboundWireless';
 import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
 import { WIRELESS_DEVICE_PREFIX, presetDeviceIds, presetTarget } from './page/firmwareChains';
 import { getHydroShift2Lighting, setHydroShift2Lighting } from '../../../api/hydroshift2';
@@ -53,7 +55,6 @@ import { Badge } from '../../../components/common/Badge/Badge';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useOnboardingHint } from '../../../hooks/useOnboardingHint';
-import { InfoTooltip } from '../../../components/common/InfoTooltip/InfoTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -67,6 +68,7 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDevices } from '../../../hooks/useDevices';
 import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { ConflictWarningModal } from '../../../components/common/Sidebar/ConflictWarning';
+import { FixLightingModal } from '../../../components/common/FixLightingModal/FixLightingModal';
 import { Coachmark } from '../../../components/common/Coachmark/Coachmark';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
@@ -100,7 +102,10 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { effectEditEnabled } from './page/effectEdit';
 import { StaticPalette } from './page/StaticPalette';
 import { SimpleAnimationRow } from './page/SimpleAnimationRow';
-import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import {
+  SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationLabelKey, simpleAnimationState,
+} from './simpleAnimations';
+import { useLightingRecents } from './useLightingRecents';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
 import { useColorWriteQueue } from './page/useColorWriteQueue';
@@ -163,8 +168,6 @@ interface LayoutHistorySnapshot {
 }
 
 const PIN_HINT_SELECTOR = `[data-coachmark="${LIGHTING_PIN_HINT_ID}"]`;
-const GAME_SYNC_REMOVED_TAB_KEY = 'game-sync-removed';
-const GAME_SYNC_NOTICE_HINT_ID = 'game-sync-removed-notice';
 
 // The modes a tab press can pin selected cards to; Off always changes the global mode.
 const PINNABLE_MODES: ReadonlySet<string> = new Set(['static', 'animate', 'screen', 'gif']);
@@ -239,7 +242,7 @@ const VIEW_2D = '2d' as const;
 const VIEW_3D = '3d' as const;
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate, accountUsername = null }: LightingViewProps) {
   const { t, language } = useTranslation();
-  const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused, gameSyncRemovedNotice } = useLightingSync(serviceOnline, activeProfileId);
+  const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
   // gpuCanSwitch is true whenever the Settings picker has something to choose
   // (a second card, or CPU rendering offered), so the shortcut never lands on
   // a tab with no GPU control. Offered only for a
@@ -251,8 +254,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     onSectionNavigate?.('settings', { settingsTab: 'lighting-cooling', settingsAnchor: 'set-render-gpu' });
   }, [onSectionNavigate]);
   const isWindows = platform === 'windows';
-  const gameSyncNoticeHint = useOnboardingHint(GAME_SYNC_NOTICE_HINT_ID, isWindows && gameSyncRemovedNotice);
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const { recordColor, recordAnimation } = useLightingRecents();
   const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
   // Off / simple / advanced live behind the first tab (see modeTabs). The
   // popover anchors on the tab row, which is why the ref sits on the element
@@ -260,9 +263,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const modeMenuAnchorRef = useRef<HTMLDivElement | null>(null);
   const closeModeMenu = useCallback(() => setModeMenuOpen(false), []);
+  // A running effect keeps the mapping it was started with, so a user's mode switch updates only that flag.
+  const reapplyMappingRef = useRef<(toSimple: boolean) => void>(() => {});
   const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
     updateUiSettings({ lightingDashboardMode: next });
-  }, [updateUiSettings]);
+    if ((next === 'simple') !== simpleDashboard) reapplyMappingRef.current(next === 'simple');
+  }, [updateUiSettings, simpleDashboard]);
   // Keeps the output socket open; the canvas paints its frames from ledFrameStore.
   const lightingStream = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
@@ -386,6 +392,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       ]);
     });
   }, []);
+  // Wireless devices on the air but bound to no controller: no lighting card exists for them until bound.
+  const [unboundWireless, setUnboundWireless] = useState<LianLiWirelessFan[]>([]);
+  const unboundSeq = useRef(0);
+  const refreshUnboundWireless = useCallback(async () => {
+    const seq = ++unboundSeq.current;
+    const state = await getLianLiWirelessState().catch(() => null);
+    if (seq === unboundSeq.current) setUnboundWireless(unboundWirelessFans(state));
+  }, []);
+  useEffect(() => {
+    if (!serviceOnline) { unboundSeq.current++; setUnboundWireless([]); }
+  }, [serviceOnline]);
+  const unboundWirelessDevices = useMemo(
+    () => unboundWirelessCards(unboundWireless, f => t(`devices.lianli-wireless.${deviceTypeKey(f.devType, f.fanType)}` as Parameters<typeof t>[0])),
+    [unboundWireless, t],
+  );
   const hasFlexDevice = devices.some(d => d.id.startsWith(LIANLI_FLEX_CHANNEL_PREFIX));
   useEffect(() => {
     if (hasFlexDevice) void refreshWirelessPresets();
@@ -691,6 +712,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const throttleAnimate = useThrottle();
   const throttlePostProcess = useThrottle();
   const localAnimateEditUntilRef = useRef(0);
+  // Bumped whenever simple mode saves or loads templates itself, and counting its
+  // saves in flight, so an older hydrate never overwrites them.
+  const templateGenerationRef = useRef(0);
+  const templateSavesRef = useRef(0);
   const activeProfileKey = activeProfileId ?? 'default';
   const activeProfileKeyRef = useRef(activeProfileKey);
   activeProfileKeyRef.current = activeProfileKey;
@@ -715,7 +740,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     keepSelection = false,
   ) => {
     if (!data) return;
+    const generation = templateGenerationRef.current;
     const defaults = await fetchAnimateDefaults();
+    // A simple-mode tap saved templates since this payload was read: applying it
+    // would put the older selection back.
+    if (generation !== templateGenerationRef.current || templateSavesRef.current > 0) return;
     setAnimateDefaults(defaults);
     const merged: Record<string, EffectTemplateBundle> = {};
     const savedTemplates = data.templates ?? {};
@@ -862,13 +891,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           setActiveEffect(data.effect);
         }
       });
-    } else if (isSimpleAnimation(rawSync)) {
-      // Started from simple mode, the widget or another client: a sweep has no
-      // cell in the advanced grid, so leaving the last catalogue key selected
-      // would mark that cell and draw its shader over a canvas running this.
-      setActiveEffect('');
-    } else if (EFFECTS.some(e => e.key === rawSync) || isCustomEffectKey(rawSync)) {
-      setActiveEffect(rawSync);
+    } else if (EFFECTS.some(e => e.key === canonicalSimpleKey(rawSync)) || isCustomEffectKey(rawSync)) {
+      // A key retired from simple mode (older service, cached state) shows as
+      // the effect that replaced it.
+      setActiveEffect(canonicalSimpleKey(rawSync));
       fetchAnimateSettings().then(data => {
         if (cancelled || !data) return;
         hydrateAnimateSettings(data);
@@ -964,7 +990,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (EFFECTS.some(e => e.key === sync) || isCustomEffectKey(sync)) {
         const state = stateFor(sync);
         await startAnimate(sync, state.speed, state.intensity, state.hue,
-          state.colorize, state.saturation, state.contrast, state.params, false, state.sensors);
+          state.colorize, state.saturation, state.contrast, state.params, false, state.sensors, simpleDashboard);
       } else if (sync === 'screen') {
         await startScreenMirror(screenPP.saturation, screenPP.contrast, undefined, screenPP.hue, screenPP.colorize);
       } else if (sync === 'media' || sync === 'gif') {
@@ -980,6 +1006,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     screenPP.contrast,
     screenPP.hue,
     screenPP.colorize,
+    simpleDashboard,
   ]);
 
   // Settles the static start still waiting on the throttle; any newer call drops
@@ -1153,6 +1180,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (modeRef.current === 'none') {
       setCustomStaticColor(hex);
       setSelectionTab(null);
+      recordColor(hex);
       void resumeLightingRef.current('static').then(() => {
         setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       });
@@ -1163,6 +1191,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = [...selectedDeviceIds];
     // Nothing selected: the color is the exact global flat color.
     if (ids.length === 0) {
+      recordColor(hex);
       setGlobalColor(hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex));
       return;
     }
@@ -1171,7 +1200,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const pin = colorPin(hex);
     recordPins(ids, pin);
     queueColorWrite(pin, ids);
-  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope]);
+  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope, recordColor]);
 
   // Records as well as writes: the marks and the device cards read the pin, so
   // a drag has to move them with the pointer, not on release.
@@ -1290,6 +1319,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const clamped = Math.min(Math.max(idx, 0), bundle.slots.length - 1);
     const nextBundle: EffectTemplateBundle = { ...bundle, selected: clamped };
     const nextTemplates = { ...effectTemplates, [target]: nextBundle };
+    if (viewMode === 'animate') recordAnimation(target, clamped);
     writeTemplates(nextTemplates, target === activeEffect ? target : null, true);
     // Selection is instant and the slot's params are unchanged, so the committed
     // snapshot can advance immediately (no save race).
@@ -1306,7 +1336,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       templateIndex: clamped,
       effectState: nextBundle.slots[clamped],
     });
-  }, [activeEffect, effectTemplates, pinStaticLook, pinTarget, focusIds, stateOf, writeTemplates]);
+  }, [activeEffect, effectTemplates, pinStaticLook, pinTarget, focusIds, recordAnimation, stateOf, viewMode, writeTemplates]);
 
   const handleStatePatch = useCallback((patch: Partial<EffectState>, commit = false) => {
     if (!dockEffect || !dockState) return;
@@ -1628,6 +1658,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [curatedDevices],
   );
   const [appStripIds, setAppStripIds] = useState<readonly string[] | null>(null);
+  // Open flag plus the card that opened it; null name means the page link opened it.
+  const [fixLighting, setFixLighting] = useState<{ deviceName: string | null } | null>(null);
   const conflictExclusions = useConflictAutoKillExclusions();
   // Nexus 2 is never whitelisted: the service ends it whatever the list says.
   const conflictWhitelisted = useMemo(
@@ -1797,22 +1829,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (!serviceOnline) return;
     void refreshLianLiModes();
     void refreshWirelessPresets();
+    void refreshUnboundWireless();
     void refreshOwnEffects();
-  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshOwnEffects]);
+  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshUnboundWireless, refreshOwnEffects]);
 
   useEffect(() => {
     const onFocus = () => {
       if (!serviceOnline) return;
       void refreshLianLiModes();
       void refreshWirelessPresets();
+      void refreshUnboundWireless();
       void refreshOwnEffects();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshOwnEffects]);
+  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets, refreshUnboundWireless, refreshOwnEffects]);
 
   useTopicCallback('devices', serviceOnline, () => {
     void refreshDevices();
+    void refreshUnboundWireless();
   });
 
   const prevScanningRef = useRef(rgb.scanning);
@@ -2072,7 +2107,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           setActiveEffect(key);
           setRawSync(key);
           const state = stateFor(key);
-          await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors);
+          await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, simpleDashboard);
           publishControlSync({ domain: 'lighting', mode: m, rawSync: key, effect: key });
           break;
         }
@@ -2104,7 +2139,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         publishControlSync({ domain: 'lighting', mode: m, rawSync: m });
       }
     } catch { /* best-effort; backend state becomes source of truth */ }
-  }, [activeEffect, globalColor, rawSync, setMode, setRawSync, screenPP, stateFor, setPausedState]);
+  }, [activeEffect, globalColor, rawSync, setMode, setRawSync, screenPP, stateFor, setPausedState, simpleDashboard]);
 
   resumeLightingRef.current = handleModeChange;
 
@@ -2119,9 +2154,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Simple mode has no device rail, so a color is the exact global flat color.
   // Static has to own the output first.
   const handleSimplePaletteSelect = useCallback(async (color: PaletteColor) => {
+    recordColor(color.hex);
     if (mode !== 'static') await handleModeChange('static');
     setGlobalColor(color.hex, startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, color.hex));
-  }, [mode, handleModeChange, setGlobalColor]);
+  }, [mode, handleModeChange, setGlobalColor, recordColor]);
 
   // Simple mode has no per-device toggle, so a device left un-driven or dark on
   // the advanced page would sit black here with nothing on the page saying why.
@@ -2235,66 +2271,149 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [claimableDevices, pins],
   );
 
-  // The switch holds a browser-local preference, but the direction the hardware
-  // is running is the stored speed sign - conform to it once per sweep so a
-  // second browser does not show the switch the wrong way round.
+  // The switch holds a browser-local preference for the next pick; the
+  // direction the hardware is running is the stored speed sign, so conform to
+  // it once per animation and a second browser does not show the switch the
+  // wrong way round.
   const reverseReadFor = useRef<string | null>(null);
 
-  // A sweep is one shared shader for every device, so starting Animate is the
-  // whole assignment - there is no per-device write to make. activeEffect is
-  // cleared because a sweep has no cell in the advanced grid: leaving the last
-  // catalogue key there marks that cell selected and draws its shader on the
-  // canvas while the hardware runs this one.
+  // Last tap wins: every simple-mode action takes a number and gives up when a
+  // newer one (or an unmount) has taken over while it was awaiting.
+  const simpleSeqRef = useRef(0);
+  useEffect(() => () => { simpleSeqRef.current += 1; }, []);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  const simpleReversedRef = useRef(simpleReversed);
+  simpleReversedRef.current = simpleReversed;
+
+  // Simple mode runs the first preset of a regular effect: this moves the
+  // effect's selection there (saved, and awaited, only when it was elsewhere,
+  // because the service re-applies the selected preset on that save and would
+  // overwrite a reversed start sent before it lands) and returns the preset's
+  // resolved look. Resolves null while the stock defaults or this effect's
+  // templates cannot be loaded, when the selection could not be saved (the
+  // prior state stays), or when a newer action took over: starting then would
+  // persist a wrong look.
+  const selectSimpleSlot = useCallback(async (key: string, seq: number): Promise<EffectState | null> => {
+    const current = () => seq === simpleSeqRef.current;
+    let templates = effectTemplatesRef.current;
+    if (!animateDefaults || !templates[key]) {
+      const [data, defaults] = await Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]);
+      if (!current() || !data || !defaults) return null;
+      templateGenerationRef.current += 1;
+      setAnimateDefaults(defaults);
+      const loaded: Record<string, EffectTemplateBundle> = {};
+      for (const fx of EFFECTS) loaded[fx.key] = mergeTemplates(fx.key, data.templates?.[fx.key], defaults);
+      for (const k of Object.keys(data.templates ?? {})) {
+        if (isCustomEffectKey(k)) loaded[k] = mergeTemplates(k, data.templates?.[k], defaults);
+      }
+      templates = loaded;
+      effectTemplatesRef.current = loaded;
+      setEffectTemplates(loaded);
+      setCommittedTemplates(loaded);
+    }
+    const bundle = templates[key];
+    if (!bundle) return null;
+    if (bundle.selected !== SIMPLE_SLOT) {
+      localAnimateEditUntilRef.current = Date.now() + 1500;
+      const next = { ...templates, [key]: { ...bundle, selected: SIMPLE_SLOT } };
+      templateGenerationRef.current += 1;
+      templateSavesRef.current += 1;
+      let saved: unknown = null;
+      try { saved = await saveAnimateTemplates(next); } catch { /* left null: not saved */ } finally { templateSavesRef.current -= 1; }
+      templateGenerationRef.current += 1;
+      // A refused save keeps the prior selection locally too.
+      if (!saved || !current()) return null;
+      effectTemplatesRef.current = next;
+      setEffectTemplates(next);
+      setCommittedTemplates(next);
+    }
+    return bundle.slots[SIMPLE_SLOT];
+  }, [animateDefaults]);
+
+  // One shared shader for every device, so starting Animate is the whole
+  // assignment - there is no per-device write to make.
   const handleSimpleAnimationSelect = useCallback(async (key: string) => {
+    const seq = ++simpleSeqRef.current;
+    const slot0 = await selectSimpleSlot(key, seq);
+    if (!slot0 || seq !== simpleSeqRef.current) return;
+    recordAnimation(key, SIMPLE_SLOT);
     claimAllDevices(false);
     unpinAll();
-    setActiveEffect('');
+    setActiveEffect(key);
     // This IS the direction now, so the conform read below must not run for
     // this key: rawSync goes optimistic, and the stored sign is still the old
     // one until the start persists.
     reverseReadFor.current = key;
     setMode('animate');
     setRawSync(key);
-    const state = simpleAnimationState(simpleReversed);
+    const state = simpleAnimationState(slot0, simpleReversedRef.current);
     try {
-      // Re-picking the running sweep reuses the live shader, and that path
+      // Re-picking the running effect reuses the live shader, and that path
       // never clears the engine's hold, so a paused engine has to be released
       // explicitly or the tile lights up over frozen LEDs.
-      if (paused) { setPausedState(false); await setLightingPaused(false); }
-      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+      if (pausedRef.current) {
+        setPausedState(false);
+        await setLightingPaused(false);
+        if (seq !== simpleSeqRef.current) return;
+      }
+      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, true);
+      if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
     } catch { /* the sync poll reconciles */ }
-  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed, unpinAll]);
+  }, [claimAllDevices, selectSimpleSlot, setMode, setPausedState, setRawSync, unpinAll, recordAnimation]);
 
-  // The running sweep, which is also what marks a tile.
+  // The running simple-mode animation, which is also what marks a tile. Only
+  // the first preset counts: the same effect on another preset is a custom
+  // setup that simple mode neither marks nor reverses.
   const simpleAnimation = synced && mode === 'animate' && isSimpleAnimation(rawSync)
-    ? rawSync
+    && slotOf(canonicalSimpleKey(rawSync)) === SIMPLE_SLOT
+    ? canonicalSimpleKey(rawSync)
     : null;
+  // Only the mapping flag changes: the running look, unsaved edits included, stays on the LEDs and nothing is committed.
+  reapplyMappingRef.current = (toSimple: boolean) => {
+    if (mode !== 'animate') return;
+    void setAnimateSimple(toSimple && simpleAnimation !== null).catch(() => {});
+  };
 
-  // Turning the row around restarts the running sweep with the other sign.
+  // Turning the row around restarts the running animation with the preset's
+  // speed negated. The sign lives in the running state only, never in the slot.
   const handleSimpleReverse = useCallback(async (next: boolean) => {
     setSimpleReversed(next);
     if (!simpleAnimation) return;
-    const state = simpleAnimationState(next);
+    const seq = ++simpleSeqRef.current;
+    const slot0 = await selectSimpleSlot(simpleAnimation, seq);
+    if (!slot0 || seq !== simpleSeqRef.current) return;
+    const state = simpleAnimationState(slot0, next);
     try {
       // Same in-place uniform path a re-pick takes, which never clears the
       // engine's hold, so a paused engine has to be released explicitly.
-      if (paused) { setPausedState(false); await setLightingPaused(false); }
-      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+      if (pausedRef.current) {
+        setPausedState(false);
+        await setLightingPaused(false);
+        if (seq !== simpleSeqRef.current) return;
+      }
+      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params, true, state.sensors, true);
+      if (seq !== simpleSeqRef.current) return;
       publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: simpleAnimation, effect: simpleAnimation });
     } catch { /* the sync poll reconciles */ }
-  }, [paused, setPausedState, simpleAnimation, setSimpleReversed]);
+  }, [selectSimpleSlot, setPausedState, simpleAnimation, setSimpleReversed]);
 
   useEffect(() => {
     if (!simpleAnimation || reverseReadFor.current === simpleAnimation) return;
     reverseReadFor.current = simpleAnimation;
     let cancelled = false;
-    fetchAnimateSettings().then(data => {
-      const speed = data?.states?.[simpleAnimation]?.speed;
-      if (!cancelled && typeof speed === 'number') setSimpleReversed(speed < 0);
+    Promise.all([fetchAnimateSettings(), fetchAnimateDefaults()]).then(([data, defaults]) => {
+      if (cancelled || !data) return;
+      // The service drops a running state equal to the selected preset, so a
+      // missing one is the forward direction. A retired key may still hold it.
+      const speed = data.states?.[rawSync]?.speed ?? data.states?.[simpleAnimation]?.speed;
+      if (typeof speed !== 'number') { setSimpleReversed(false); return; }
+      const slot0 = mergeTemplates(simpleAnimation, data.templates?.[simpleAnimation], defaults).slots[SIMPLE_SLOT];
+      setSimpleReversed(isSimpleReversed(speed, slot0.speed));
     }).catch(() => { /* keep the local value */ });
     return () => { cancelled = true; };
-  }, [simpleAnimation, setSimpleReversed]);
+  }, [simpleAnimation, rawSync, setSimpleReversed]);
 
   // The swatch simple mode marks active: the exact global color, when it is
   // one of the palette's.
@@ -2383,19 +2502,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         ) : undefined,
       };
     }),
-    // Removal notice for upgraders: delete with its hint id, locale keys and tests after the next production release.
-    ...(isWindows && gameSyncRemovedNotice && gameSyncNoticeHint.dismissed === false ? [{
-      key: GAME_SYNC_REMOVED_TAB_KEY,
-      label: t('lighting.mode.gamesync'),
-      icon: <Gamepad2 size={14} />,
-      disabled: true,
-      trailing: (
-        <InfoTooltip
-          message={t('lighting.gameSync.removedNotice')}
-          action={{ label: t('lighting.gameSync.removeTab'), onClick: gameSyncNoticeHint.dismiss }}
-        />
-      ),
-    }] : [])];
+  ];
   // The strip marks the mode tab while lighting is off - it is the tab Off now
   // lives on. Every other mode still marks its own tab.
   const activeTabKey = !synced ? undefined
@@ -2436,7 +2543,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // The cards a press on `key` changes, outlined on hover and pulsed on press: with a selection
   // and a pinnable mode, the cards it pins; otherwise the global reach.
   const tabPressReach = useCallback((key: string): Set<string> | undefined => {
-    if (key === GAME_SYNC_REMOVED_TAB_KEY) return undefined;
     // Off: the press starts the mode for every card, whatever is selected.
     if (mode === 'none' && key !== 'none') return pressReach(visibleDevices, pins, new Set());
     if (selectedDeviceIds.size > 0 && PINNABLE_MODES.has(key)) {
@@ -2494,7 +2600,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     <Badge
       label={previewBadgeLabel}
       compact
-      uppercase
       color={selectedDeviceIds.size > 0 ? 'var(--accent-glow)' : 'var(--text-dim)'}
     />
   );
@@ -2521,9 +2626,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     : (scoped.kind === 'mixed' || (scoped.kind === 'none' && viewMode === 'static' && globalColor) ? '' : activeEffect);
   // With nothing selected, re-picking the running tile changes no card, so it
   // pulses none. A selection's re-pick can move a static pin to the current slot.
-  const openDock = useCallback(() => setDockCollapsed(false), [setDockCollapsed]);
+  const toggleDock = useCallback(() => setDockCollapsed(c => !c), [setDockCollapsed]);
   const handleEffectPick = (key: string) => {
     if (!(key === gridEffect && selectedDeviceIds.size === 0)) pulsePick();
+    if (viewMode === 'animate') recordAnimation(key, gridSlotFor(key));
     handleEffectSelect(key);
   };
   // The colour the selection wears, which is where its dots sit on the field.
@@ -2760,6 +2866,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <SectionHeader className={styles.simpleSectionHeader}>{t('lighting.mode.animate')}</SectionHeader>
             <SimpleAnimationRow
               activeKey={simpleAnimation}
+              versionFor={key => versionForSlot(key, SIMPLE_SLOT)}
               reversed={simpleReversed}
               gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
               onSelect={key => { void handleSimpleAnimationSelect(key); }}
@@ -2981,6 +3088,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               void (ownEffectIds.has(id) ? handleOwnEffectTakeControl(id) : handleWirelessTakeControl(id));
             }}
             onOpenDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
+            unboundWireless={unboundWirelessDevices}
+            onOpenWirelessBinding={onSectionNavigate ? mac => onSectionNavigate('device', { deviceKey: 'curated-lianli-wireless', scrollAnchors: [lianLiWirelessDeviceAnchor(mac)] }) : undefined}
             zoneSizeDeviceIds={zoneSizeDeviceIds}
             onOpenZoneSizes={() => onSectionNavigate?.('devices', { tab: 'available' })}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
@@ -2989,6 +3098,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             runningApps={runningApps}
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
+            onOpenFixLighting={deviceName => setFixLighting({ deviceName })}
+            onOpenFixLightingLink={showCanvas || viewMode === 'static' ? () => setFixLighting({ deviceName: null }) : undefined}
           />
         </div>
         <div
@@ -3069,7 +3180,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <AnimateGrid
               effect={gridEffect}
               onSelect={handleEffectPick}
-              onEdit={openDock}
+              onEdit={toggleDock}
+              editorOpen={!dockCollapsed && effectEditEnabled(true, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               editEnabled={effectEditEnabled(dockCollapsed, gridEffect, selectedDeviceIds.size > 0, mode !== 'none' && !detachedTab)}
               effects={viewMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               query={effectQuery}
@@ -3255,6 +3367,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => { setKeyReactionsId(null); void refreshKeyReactive(); }}
         />
       )}
+      <FixLightingModal
+        open={fixLighting !== null}
+        onClose={() => setFixLighting(null)}
+        deviceName={fixLighting?.deviceName ?? undefined}
+      />
       <ConflictWarningModal
         open={appStripIds !== null}
         conflicts={appStripConflicts}

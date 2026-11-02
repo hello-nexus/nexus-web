@@ -317,6 +317,8 @@ export function ZoneCard({
   pulseSeq,
   appStrip,
   onOpenAppStrip,
+  onOpenFixLighting,
+  onOpenBinding,
 }: {
   device: LightingDevice;
   /** Deep-link anchor the card answers to; see CollapsibleSection's searchAnchor. */
@@ -413,6 +415,10 @@ export function ZoneCard({
   appStrip?: CardAppStrip;
   /** Strip press: opens the conflict dialog for those apps. */
   onOpenAppStrip?: () => void;
+  /** Opens the Fix lighting flow from the not-responding strip. */
+  onOpenFixLighting?: () => void;
+  /** Marks a wireless device that is not bound to this PC: a card with no lighting controls whose press opens the controller page to bind it. */
+  onOpenBinding?: () => void;
 }) {
   const { t, language } = useTranslation();
   const unpinHintId = useId();
@@ -446,7 +452,7 @@ export function ZoneCard({
   // Same gate as the action-icon row: the onboarding grid exposes no per-device
   // controls. A firmware-owned card offers only its device page, take control
   // and the naming and grouping rows, so it opts in when one of those exists.
-  const menuEnabled = !toggleMode && !selectOnly
+  const menuEnabled = !toggleMode && !selectOnly && !onOpenBinding
     && (firmwareControlled ? !!onTakeControl || !!onOpenDevicePage || renameEnabled || !!groupMove : true);
 
   // Persistent marker for a card that is not in its default state, so the
@@ -472,6 +478,9 @@ export function ZoneCard({
   // there it keeps the old rule - a tap would commit a look the device cannot
   // show, and its own select-all skips those cards.
   const showAppStrip = !!appStrip && !!onOpenAppStrip && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
+  // A running competing app explains the failed writes, so its strip takes the slot.
+  const showFailingStrip = !showAppStrip && device.writeHealth === 'failing' && controlled && !!onOpenFixLighting
+    && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
   const clickable = !unavailable && !firmwareControlled
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
@@ -627,12 +636,18 @@ export function ZoneCard({
     <div
       ref={drag?.ref ?? (() => {})}
       style={drag?.style ?? {}}
-      role={toggleable ? 'switch' : undefined}
+      role={toggleable ? 'switch' : onOpenBinding ? 'button' : undefined}
       aria-checked={toggleable ? controlled : undefined}
-      aria-label={toggleable ? displayName ?? device.name : undefined}
+      aria-label={toggleable ? displayName ?? device.name : onOpenBinding ? `${displayName ?? device.name}, ${t('lighting.devices.needsBinding')}` : undefined}
       data-search-anchor={anchorId}
-      tabIndex={toggleable ? 0 : undefined}
-      onKeyDown={toggleable ? e => {
+      tabIndex={toggleable || onOpenBinding ? 0 : undefined}
+      onKeyDown={onOpenBinding ? e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenBinding();
+        }
+      } : toggleable ? e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           // Keep Enter from bubbling to the modal stack's document listener,
@@ -647,16 +662,18 @@ export function ZoneCard({
         styles.deviceCard,
         (toggleMode ? toggleable && controlled : selected && !firmwareControlled) ? styles.deviceCardSelected : '',
         target && !toggleMode && !unavailable && !firmwareControlled ? styles.deviceCardTarget : '',
-        unavailable ? styles.deviceCardUnavailable : '',
+        unavailable && !onOpenBinding ? styles.deviceCardUnavailable : '',
+        onOpenBinding ? styles.deviceCardNeedsBinding : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        showAppStrip ? styles.deviceCardWithStrip : '',
+        showAppStrip || showFailingStrip || onOpenBinding ? styles.deviceCardWithStrip : '',
         stacked ? styles.deviceCardStacked : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
       data-menu-arrow-host={menuEnabled || undefined}
       onClick={e => {
+        if (onOpenBinding) { onOpenBinding(); return; }
         if (!clickable) return;
         // Toggle mode is how an un-driven device gets turned back on, so it
         // runs before the Nexus-Control gate rather than after it.
@@ -725,13 +742,15 @@ export function ZoneCard({
         )}
       </div>
       <div className={styles.deviceMetaRow}>
-        {firmwareControlled ? (
+        {onOpenBinding ? (
+          <Badge label={t('devices.lianli-wireless.unbound')} icon={<Link2Off size={11} />} compact color="var(--text-dim)" />
+        ) : firmwareControlled ? (
           <HoverTooltip
             body={t(device.devicePageReason === 'argbInput' ? 'lighting.devices.devicePageArgbTooltip' : device.devicePageReason === 'firmware' ? 'lighting.devices.devicePageFirmwareTooltip' : 'lighting.devices.firmwareTooltip')}
             side="top"
           >
             <span className={styles.deviceMetaBadge}>
-              <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact uppercase color="var(--text-dim)" />
+              <Badge label={t('lighting.devices.hardwareControlBadge')} icon={<Cpu size={11} />} compact color="var(--text-dim)" />
             </span>
           </HoverTooltip>
         ) : unavailable && onOpenZoneSizes ? (
@@ -747,7 +766,7 @@ export function ZoneCard({
             {t('lighting.devices.detectionFailed')}
           </span>
         ) : stateChip ? (
-          <Badge label={stateChip.label} icon={stateChip.icon} compact uppercase color="var(--text-dim)" />
+          <Badge label={stateChip.label} icon={stateChip.icon} compact color="var(--text-dim)" />
         ) : isZone && device.zoneType === 'single' && !resizable ? (
           <HoverTooltip body={t('lighting.devices.zoneFixedTooltip')} side="top">
             <span className={styles.deviceMeta}>
@@ -843,6 +862,8 @@ export function ZoneCard({
       </div>
       </div>
       {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
+      {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} passive />}
+      {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
       {menuEnabled && (
         <MenuArrowButton
           variant="card"
@@ -863,7 +884,7 @@ export function ZoneCard({
   // waiting for its LED counts says so in its label.
   return (
     <>
-      {unavailable && !onOpenZoneSizes && !needsLedCounts
+      {unavailable && !onOpenZoneSizes && !needsLedCounts && !onOpenBinding
         ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
         : card}
       {menuAt && (

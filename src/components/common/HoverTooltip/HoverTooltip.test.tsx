@@ -24,6 +24,17 @@ describe('HoverTooltip', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('Reset');
   });
 
+  it('renders the trigger untouched when the body is empty', () => {
+    render(
+      <HoverTooltip body={undefined}>
+        <button type="button">trigger</button>
+      </HoverTooltip>,
+    );
+    const btn = screen.getByRole('button', { name: 'trigger' });
+    fireEvent.focus(btn);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
   it('does not open when a pointer press causes the focus', () => {
     // A tap / mouse click focuses the trigger; that focus must not open the
     // tooltip - on a touch surface nothing would ever close it again.

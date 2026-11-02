@@ -17,6 +17,7 @@ import { previewEmoteUri } from '../common/previewAssets';
 import { TwitchLogo } from './TwitchLogo';
 import { TWITCH_PREVIEW, TWITCH_PREVIEW_CHANNEL } from './twitchPreviewData';
 import styles from './TwitchWidget.module.scss';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 
 // Matches the service-side retention cap, so a reconnect snapshot never
 // exceeds what the tile already holds.
@@ -87,15 +88,16 @@ export function TwitchWidget({ widget, surface, deviceTouch }: WidgetProps) {
         <TwitchLogo size={16} aria-hidden />
         <span className={styles.channel}>{displayChannel || t('panel.widget.twitch')}</span>
         {canClear && messages.length > 0 && (
-          <button
-            type="button"
-            className={styles.clear}
-            onClick={clear}
-            aria-label={t('panel.widget.twitch.clear')}
-            title={t('panel.widget.twitch.clear')}
-          >
-            <BrushCleaning size={15} />
-          </button>
+          <HoverTooltip body={t('panel.widget.twitch.clear')}>
+            <button
+              type="button"
+              className={styles.clear}
+              onClick={clear}
+              aria-label={t('panel.widget.twitch.clear')}
+            >
+              <BrushCleaning size={15} />
+            </button>
+          </HoverTooltip>
         )}
       </header>
       {renderBody()}

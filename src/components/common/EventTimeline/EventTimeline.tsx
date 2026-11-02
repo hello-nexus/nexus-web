@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import styles from './EventTimeline.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface EventTimelineLane {
   id: string;
@@ -180,9 +181,11 @@ export function EventTimeline<E extends EventTimelineEvent>({
       <div className={styles.grid} style={{ gridTemplateRows: `${height}px` }}>
         <div className={styles.lanes} style={{ paddingTop: PAD.top }}>
           {lanes.map(lane => (
-            <div key={lane.id} className={styles.laneLabel} style={{ height: laneHeight }} title={lane.label}>
-              {lane.label}
-            </div>
+            <HoverTooltip key={lane.id} body={lane.label}>
+              <div className={styles.laneLabel} style={{ height: laneHeight }}>
+                {lane.label}
+              </div>
+            </HoverTooltip>
           ))}
         </div>
 

@@ -118,4 +118,42 @@ describe('EndTaskButton', () => {
     expect(onKilled).not.toHaveBeenCalled();
     expect(spinning()).toBe(false);
   });
+
+  it('labels a setting entry Turn off and kills it by its catalog id', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting />);
+
+    expect(screen.getByRole('button', { name: 'conflicts.modal.turnOff' })).toBeInTheDocument();
+    expect(screen.queryByText('conflicts.modal.endTask')).not.toBeInTheDocument();
+
+    await clickEnd();
+
+    expect(mockKill).toHaveBeenCalledWith('windows-dynamic-lighting');
+  });
+
+  it('shows Turned off, not Terminated, once a setting entry is done', () => {
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting terminated />);
+    expect(screen.getByText('conflicts.modal.turnedOff')).toBeInTheDocument();
+    expect(screen.queryByText('conflicts.modal.terminated')).not.toBeInTheDocument();
+  });
+
+  it('stops spinning and reports done for a setting whose kill stuck, since its pid never changes', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    const onKilled = vi.fn();
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting onKilled={onKilled} />);
+
+    await clickEnd();
+
+    expect(onKilled).toHaveBeenCalledTimes(1);
+    expect(spinning()).toBe(false);
+  });
+
+  it('stops spinning for a setting even with no caller handler', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    render(<EndTaskButton conflictId="windows-dynamic-lighting" pid={0} setting />);
+
+    await clickEnd();
+
+    expect(spinning()).toBe(false);
+  });
 });

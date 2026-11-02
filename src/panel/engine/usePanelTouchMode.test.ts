@@ -292,4 +292,39 @@ describe('usePanelTouchMode', () => {
       expect(result.current.ctxMenu).toBeNull();
     });
   });
+
+  describe('menuDisabled (Restricted mode)', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('a long-press never opens the context menu', () => {
+      const { result } = renderHook(() => usePanelTouchMode({ menuDisabled: true }));
+      act(() => {
+        result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType: 'touch' }));
+        vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS + 50);
+      });
+      expect(result.current.ctxMenu).toBeNull();
+    });
+
+    it('a right-click and the host-reported menu stay closed, and the browser menu is still suppressed', () => {
+      const { result } = renderHook(() => usePanelTouchMode({ menuDisabled: true }));
+      const e = contextMenuEvent();
+      act(() => {
+        result.current.handleContextMenu(e, widget);
+        result.current.openCtxMenu(widget, 10, 10);
+      });
+      expect(e.preventDefault).toHaveBeenCalled();
+      expect(result.current.ctxMenu).toBeNull();
+    });
+
+    it('a tap still reaches onCellTap', () => {
+      const onCellTap = vi.fn();
+      const { result } = renderHook(() => usePanelTouchMode({ onCellTap, menuDisabled: true }));
+      act(() => {
+        result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType: 'touch' }));
+        result.current.bindCellPointers(widget).onPointerUp(pointerEvent({ pointerType: 'touch' }));
+      });
+      expect(onCellTap).toHaveBeenCalledTimes(1);
+    });
+  });
 });

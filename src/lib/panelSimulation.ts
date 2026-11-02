@@ -17,7 +17,6 @@ import {
 const SIMULATE_Y70_KEY = 'nexus_simulate_y70';
 const SIMULATED_PANEL_IDS_KEY = 'nexus_simulated_panel_ids';
 const SIMULATED_PANEL_CUSTOM_KEY = 'nexus_simulated_panel_custom';
-const SIMULATED_PANEL_GRID_SIZING_KEY = 'nexus_simulated_panel_grid_sizing';
 const SIMULATED_PANEL_RECORDS_KEY = 'nexus_simulated_panel_records';
 
 export const PANEL_SIMULATION_CHANGED_EVENT = 'y70-simulate-changed';
@@ -76,12 +75,6 @@ function clampDimension(value: number, fallback: number): number {
 function clampDpi(value: number, fallback: number): number {
   return Number.isFinite(value)
     ? Math.max(72, Math.min(600, Math.round(value)))
-    : fallback;
-}
-
-function clampJumpAtInches(value: number, fallback: number): number {
-  return Number.isFinite(value)
-    ? Math.max(1, Math.min(16, Math.round(value * 10) / 10))
     : fallback;
 }
 
@@ -150,27 +143,9 @@ export function getCustomSimulatedPanel(): SimulatedPanelDefinition {
   return { ...DEFAULT_CUSTOM_PANEL, width, height, dpi, surface };
 }
 
+// The cutoff is no longer user-tunable; a value an earlier build saved is never read.
 export function getPanelGridSizingSettings(): SimulatedPanelGridSizing {
-  const saved = readJson<Partial<SimulatedPanelGridSizing> & { jumpAtInches?: number }>(SIMULATED_PANEL_GRID_SIZING_KEY, {});
-  const savedJumpAtInches = saved.shortSideJumpAtInches ?? saved.jumpAtInches;
-  return {
-    shortSideJumpAtInches: typeof savedJumpAtInches === 'number'
-      ? clampJumpAtInches(savedJumpAtInches, DEFAULT_SIMULATED_PANEL_GRID_SIZING.shortSideJumpAtInches)
-      : DEFAULT_SIMULATED_PANEL_GRID_SIZING.shortSideJumpAtInches,
-  };
-}
-
-export function setPanelGridSizingSettings(settings: Partial<SimulatedPanelGridSizing>): void {
-  const current = getPanelGridSizingSettings();
-  const next: SimulatedPanelGridSizing = {
-    shortSideJumpAtInches: clampJumpAtInches(
-      settings.shortSideJumpAtInches ?? current.shortSideJumpAtInches,
-      current.shortSideJumpAtInches,
-    ),
-  };
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(SIMULATED_PANEL_GRID_SIZING_KEY, JSON.stringify(next));
-  dispatchSimulationChanged();
+  return { ...DEFAULT_SIMULATED_PANEL_GRID_SIZING };
 }
 
 export function setCustomSimulatedPanelSize(width: number, height: number, dpi = DEFAULT_CUSTOM_PANEL.dpi): void {

@@ -23,7 +23,7 @@ const LAYOUT: PanelLayout = {
   pages: [{ id: 'p0', widgets: [clock('a')] }, { id: 'p1', widgets: [clock('b')] }],
 };
 
-function mountWith(genericDisplay: boolean) {
+function mountWith(genericDisplay: boolean, deviceTouch = true) {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 404 })));
   vi.spyOn(window, 'parent', 'get').mockReturnValue({ postMessage: vi.fn() } as unknown as Window);
   render(
@@ -34,7 +34,7 @@ function mountWith(genericDisplay: boolean) {
   const message: SimulatorParentToChild = {
     type: 'simulator/init',
     surface: 'monitor',
-    deviceTouch: true,
+    deviceTouch,
     displayBound: true,
     genericDisplay,
     layout: LAYOUT,
@@ -59,9 +59,14 @@ afterEach(() => {
 });
 
 describe('PanelSimulatorContent display classification', () => {
-  it('renders one page for a generic display', () => {
-    mountWith(true);
+  it('renders one page for a mouse-only generic display', () => {
+    mountWith(true, false);
     expect(pageCount()).toBe(1);
+  });
+
+  it('keeps every page for a touch generic display', () => {
+    mountWith(true, true);
+    expect(pageCount()).toBe(2);
   });
 
   it('keeps every page for a known device such as a Xeneon Edge', () => {

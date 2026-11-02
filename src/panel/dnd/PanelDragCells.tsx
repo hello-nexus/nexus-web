@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Check, Lock, Pencil } from 'lucide-react';
+import { Check, Lock, OctagonMinus, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
@@ -9,10 +9,14 @@ import type { DeckEditView } from '../widgets/types';
 import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
+import { MenuArrowButton } from '../../components/common/DeviceCanvas/MenuArrowButton';
 import { EditHint } from '../../components/common/EditHint/EditHint';
+import { BackgroundSplitHint, type BackgroundMenuPoint } from './BackgroundEditHint';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../lib/i18n';
-import { useLockNotice } from './useLockNotice';
+import { isOwnControl, useLockNotice } from './useLockNotice';
+import { useLongPress } from '../engine/useLongPress';
+import { PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
 import type { DragActivation } from '../engine/pointerDragSensor';
 import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
@@ -129,6 +133,22 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
   );
 }
 
+// A mouse click focuses the badge button too, which would leave it showing after
+// the pointer moved to another widget; only keyboard focus keeps it up.
+function keyboardFocused(el: EventTarget): boolean {
+  try {
+    return el instanceof Element && el.matches(':focus-visible');
+  } catch {
+    return false;
+  }
+}
+
+// Restricted mode: keyboard and synthetic clicks must not reach a blocked widget's controls; Tab still moves past.
+function swallowClick(e: React.MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 export function PanelTouchCell({
   widget,
   deviceId,
@@ -155,16 +175,21 @@ export function PanelTouchCell({
   lockActivationFor,
   onLockDragChange,
   clickthrough = false,
+  inert = false,
+  restricted = false,
   onContextMenu,
   cellPointers,
   onSimulatorClick,
   editHint = false,
+  backgroundSplit,
+  onEditBackground,
   resizeSelected = false,
   immersiveOnLoad = false,
   previewLayout = null,
   onSectionNavigate,
   onConfigureWidget,
   onEnterImmersiveWidget,
+  moreActions,
 }: {
   widget: PanelWidget;
   deviceId?: string;
@@ -195,6 +220,10 @@ export function PanelTouchCell({
   // True while a locked widget is being pulled, so the host keeps delivering input outside its rects.
   onLockDragChange?: (active: boolean) => void;
   clickthrough?: boolean;
+  // Restricted mode: the widget renders but takes no input; a tap on the cell still reaches the host.
+  inert?: boolean;
+  // Restricted mode on any cell: a hold or drag attempt shows the lock feedback.
+  restricted?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
     onPointerDown: (e: React.PointerEvent) => void;
@@ -204,6 +233,9 @@ export function PanelTouchCell({
   };
   onSimulatorClick?: () => void;
   editHint?: boolean;
+  // Single-widget preview: the hover notice splits into Edit widget and Edit background.
+  backgroundSplit?: 'stacked' | 'side';
+  onEditBackground?: (point: BackgroundMenuPoint) => void;
   // The tile in resize mode: its drag starts on distance, not a hold.
   resizeSelected?: boolean;
   // Device-page preview: this is the widget the panel opens immersive on load.
@@ -213,10 +245,15 @@ export function PanelTouchCell({
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
   onEnterImmersiveWidget?: (widget: PanelWidget) => void;
+  // Home dashboard only: a hover corner badge that opens the widget's context
+  // menu at the button. Omitted on every other surface.
+  moreActions?: { open: boolean; onOpen: (x: number, y: number) => void; onClose: () => void };
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
+  // A blocked cell reads as locked: a drag attempt pulls it, and a tap, click or key press nudges it, with the same notice.
+  const lockedLook = locked || inert || restricted;
   // dnd-kit must already be tracking pointerdowns when the long-press fires,
   // or a hold+drag can't convert to a sort-drag (it only tracks via its own
   // onPointerDown). Disable only during transitional motion states where a
@@ -226,10 +263,30 @@ export function PanelTouchCell({
     isDragging,
   } = useSortable({
     id: widget.id,
-    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || locked,
+    disabled: Boolean(editorDockMotion) || Boolean(resizeMotion) || lockedLook,
   });
 
-  const lockNotice = useLockNotice(locked, lockActivationFor);
+  // Home dashboard "More actions" badge: shown while the cell is hovered or
+  // focused, centered on the visible card (the .cell surface).
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [cardEl, setCardEl] = useState<HTMLElement | null>(null);
+
+  const lockNotice = useLockNotice(lockedLook, lockActivationFor);
+  // A hold on a cell, not on one of its own controls, nudges it like a drag attempt.
+  const holdPress = useLongPress(() => lockNotice.pulse(), PANEL_CONTEXT_MENU_TRIGGER_MS, { allowMouse: true });
+  const onInertKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab' || e.key === 'Escape') return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Enter' || e.key === ' ') lockNotice.pulse();
+  };
+  const onInertClick = (e: React.MouseEvent) => {
+    lockNotice.handlers.onClickCapture(e);
+    const pulled = e.isPropagationStopped();
+    swallowClick(e);
+    if (!pulled) lockNotice.pulse();
+  };
   const lockDragging = lockNotice.dragging;
   useEffect(() => {
     if (!lockDragging) return undefined;
@@ -395,25 +452,32 @@ export function PanelTouchCell({
   // delay. Intent (tap / long-press / long-press-then-drag) is disambiguated
   // by which timer fires and whether movement follows.
   const dragMotionActive = Boolean(editorDockMotion) || Boolean(resizeMotion);
-  const composedPointerHandlers = dragMotionActive ? {} : {
+  const composedPointerHandlers = dragMotionActive ? { onClickCapture: inert ? onInertClick : undefined } : {
     ...cellPointers,
     onPointerMove: (e: React.PointerEvent) => {
       cellPointers.onPointerMove(e);
+      if (restricted) holdPress.onPointerMove(e);
       lockNotice.handlers.onPointerMove(e);
     },
     onPointerUp: (e: React.PointerEvent) => {
-      // A pulled locked widget was dragged, not tapped.
-      if (lockNotice.handlers.up(e)) cellPointers.onPointerCancel(e);
+      holdPress.onPointerUp();
+      // A pulled locked widget was dragged, not tapped, and a hold that showed the notice is no tap either.
+      const held = holdPress.firedRef.current;
+      if (lockNotice.handlers.up(e) || held) cellPointers.onPointerCancel(e);
       else cellPointers.onPointerUp(e);
     },
     onPointerCancel: (e: React.PointerEvent) => {
+      holdPress.onPointerCancel();
       cellPointers.onPointerCancel(e);
       lockNotice.handlers.end();
     },
     onLostPointerCapture: lockNotice.handlers.onLostPointerCapture,
-    onClickCapture: lockNotice.handlers.onClickCapture,
+    onClickCapture: inert ? onInertClick : lockNotice.handlers.onClickCapture,
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
+      holdPress.firedRef.current = false;
+      const primaryPress = e.isPrimary !== false && (e.pointerType !== 'mouse' || e.button === 0);
+      if (restricted && primaryPress && !isOwnControl(e.target, e.currentTarget as Element)) holdPress.onPointerDown(e);
       lockNotice.handlers.onPointerDown(e);
       // Skip dnd-kit activation in scroll regions inside widgets (cellPointers
       // already bails there). Else a 500ms hold inside a scroll list would
@@ -455,17 +519,24 @@ export function PanelTouchCell({
       }}
       onContextMenu={dragMotionActive ? e => e.preventDefault() : onContextMenu}
       onClick={onSimulatorClick}
+      onKeyDownCapture={inert ? onInertKey : undefined}
+      data-restricted-inert={inert ? 'true' : undefined}
+      onPointerEnter={moreActions ? () => setHovered(true) : undefined}
+      onPointerLeave={moreActions ? () => setHovered(false) : undefined}
+      onFocus={moreActions ? e => setFocused(keyboardFocused(e.target)) : undefined}
+      onBlur={moreActions ? () => setFocused(false) : undefined}
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}
     >
       {hosted(
         <>
           <div
+            ref={setCardEl}
             className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
             data-size={widget.size}
             data-widget-type={widget.type}
           >
-            <div className={styles.cellScaler}>
+            <div className={styles.cellScaler} data-testid={inert ? 'restricted-inert-scaler' : undefined} style={inert ? { pointerEvents: 'none' } : undefined}>
               <Comp
                 widget={widget}
                 deviceId={deviceId}
@@ -482,8 +553,12 @@ export function PanelTouchCell({
                 onEnterImmersive={onEnterImmersiveWidget ? () => onEnterImmersiveWidget(widget) : undefined}
               />
             </div>
-            {editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
-            {locked && <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />}
+            {editHint && backgroundSplit && onEditBackground ? (
+              <BackgroundSplitHint orientation={backgroundSplit} round={widget.size === '2x2round'} widgetHalf onActivate={onEditBackground} />
+            ) : editHint && <EditHint className={styles.cellEditHint} label={t('panel.widget.editWidget')} />}
+            {lockedLook && (restricted
+              ? <EditHint className={styles.cellLockNotice} icon={OctagonMinus} label={t('devices.y70.restrictedMode')} />
+              : <EditHint className={styles.cellLockNotice} icon={Lock} label={t('panel.widget.locked')} />)}
             {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
           {immersiveOnLoad && (
@@ -492,6 +567,17 @@ export function PanelTouchCell({
           <div className={styles.cellLabelStrip}>
             <WidgetCellLabel label={labelText} />
           </div>
+          {moreActions && (hovered || focused || moreActions.open) && !editorDockMotion && !resizeSelected && !isDragging && (
+            <MenuArrowButton
+              variant="corner"
+              anchor={cardEl}
+              label={t('lighting.devices.moreActions')}
+              tooltip={t('lighting.devices.moreActions')}
+              open={moreActions.open}
+              onOpen={moreActions.onOpen}
+              onClose={moreActions.onClose}
+            />
+          )}
         </>,
       )}
     </div>
@@ -662,6 +748,7 @@ export function PanelDragOverlayCell({
   fixedWidth,
   fixedHeight,
   showLabels = true,
+  flush = false,
   onSlot,
 }: {
   widget: PanelWidget;
@@ -671,6 +758,8 @@ export function PanelDragOverlayCell({
   fixedWidth?: number;
   fixedHeight?: number;
   showLabels?: boolean;
+  // Widget padding at 0%: the grid's cards are square, so the clone must be too.
+  flush?: boolean;
   onSlot: (slot: HTMLElement, attached: boolean) => void;
 }) {
   const slotRef = useCallback((slot: HTMLDivElement) => {
@@ -687,6 +776,7 @@ export function PanelDragOverlayCell({
       // Portaled to body, so it can't inherit the panel root's labels-off state
       // - mirror it here or the dragged clone shows a label the grid hides.
       data-show-widget-labels={showLabels ? 'true' : 'false'}
+      data-widget-padding={flush ? 'none' : undefined}
       style={themeStyle}
     >
       <div

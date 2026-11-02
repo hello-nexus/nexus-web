@@ -17,7 +17,14 @@ export interface DetectedConflict {
   deviceOverlapKnown?: boolean;
   /** True for a universal RGB app (SignalRGB, OpenRGB), which competes for every RGB device Nexus controls whatever its vendor. */
   claimsAllRgb?: boolean;
+  /** True for an OS setting rather than a process (Windows Dynamic Lighting): it has no pid, and is turned off instead of ended. */
+  isSetting?: boolean;
 }
+
+// Catalog id of Windows Dynamic Lighting, listed as a conflict while it is on
+// with a LampArray present; must match WindowsDynamicLighting.ConflictId in
+// nexus-service.
+export const WINDOWS_DYNAMIC_LIGHTING_CONFLICT_ID = 'windows-dynamic-lighting';
 
 // Catalog id of the HYTE Nexus 2 conflict; must match the Id in
 // nexus-service's ConflictAppDefinitions.cs.

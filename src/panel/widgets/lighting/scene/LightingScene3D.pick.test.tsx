@@ -5,8 +5,6 @@ import type { LightingScene, SceneObject } from '../../../../api/lightingScene';
 import { caseObject, deskObject } from '../../../../lib/scene/sceneFixtures';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import LightingScene3D from './LightingScene3D';
-import { DEVICE_DRAG_TYPE } from './SceneViewport';
-import type { SceneEdit } from './useLightingScene';
 import type { LightingSceneApi } from './useLightingScene';
 
 const loop = vi.hoisted(() => ({ frame: null as (() => void) | null }));
@@ -94,86 +92,47 @@ describe('LightingScene3D inline scene', () => {
     expect(onSelect).toHaveBeenCalledWith('m65');
   });
 
-  describe('placement in the canvas', () => {
+  describe('read-only scene', () => {
     const kase = caseObject();
     const unplaced = () => viewOf([kase], [], [0, 0, 1500]);
-    const applied = (api: LightingSceneApi, scene: LightingScene): SceneEdit => {
-      const mutate = vi.mocked(api.update).mock.calls[0][0];
-      return mutate({ objects: scene.objects, bindings: scene.bindings });
-    };
 
-    it('shows no dialog, no experimental editor and no Done flow', async () => {
+    it('shows no dialog and no device list, auto-place or placement hint', async () => {
       await mount(unplaced());
       expect(screen.queryByRole('dialog')).toBeNull();
-      expect(screen.queryByText('lighting.scene.title')).toBeNull();
-      expect(screen.queryByText('lighting.scene.done')).toBeNull();
-      expect(screen.queryByText('lighting.scene.edit')).toBeNull();
+      expect(screen.queryByText('lighting.scene.devices.title')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'lighting.scene.devices.autoPlace' })).toBeNull();
+      expect(screen.queryByRole('button', { name: /ARGB_V2_1/ })).toBeNull();
+      expect(screen.queryByText('lighting.scene.devices.note')).toBeNull();
     });
 
-    it('lists the devices beside the canvas with where each sits', async () => {
-      await mount(viewOf([kase], [{ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'strip:front' }], rotation: 0, flip: false }], [0, 0, 1500]));
-      expect(screen.getByRole('button', { name: /Corsair M65 PRO/ }).textContent).toContain('lighting.scene.devices.notPlaced');
-      expect(screen.getByRole('button', { name: /ARGB_V2_1/ }).textContent).not.toContain('lighting.scene.devices.notPlaced');
-    });
-
-    it('click then click: picking a device row and then a spot places it and saves through the hook at once', async () => {
-      const scene = unplaced();
-      const { api, click, onSelect } = await mount(scene);
-      fireEvent.click(screen.getByRole('button', { name: /ARGB_V2_1/ }));
-      expect(onSelect).toHaveBeenCalledWith('argb-1');
-      expect(api.update).not.toHaveBeenCalled();
+    it('a click on a free spot never writes a placement, even with an unplaced device selected', async () => {
+      const { api, click } = await mount(unplaced(), undefined, 'argb-1');
       click(400, 225);
-      expect(api.update).toHaveBeenCalledTimes(1);
-      expect(applied(api, scene).bindings).toEqual([{ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'fan:front:120:0' }], rotation: 0, flip: false }]);
-    });
-
-    it('a row answers the keyboard like a click', async () => {
-      const { onSelect } = await mount(unplaced());
-      fireEvent.keyDown(screen.getByRole('button', { name: /ARGB_V2_1/ }), { key: 'Enter' });
-      expect(onSelect).toHaveBeenCalledWith('argb-1');
-    });
-
-    it('a device already selected in the page and unplaced takes the next spot clicked', async () => {
-      const scene = unplaced();
-      const { api, click } = await mount(scene, undefined, 'argb-1');
-      click(400, 225);
-      expect(applied(api, scene).bindings[0].deviceId).toBe('argb-1');
-    });
-
-    it('dragging a row onto a spot places the device', async () => {
-      const scene = unplaced();
-      const { api, container } = await mount(scene);
-      const viewport = container.querySelector('canvas')!.closest('[class*="viewport"]') as HTMLElement;
-      const dataTransfer = { types: [DEVICE_DRAG_TYPE], getData: (type: string) => (type === DEVICE_DRAG_TYPE ? 'argb-1' : ''), dropEffect: 'none' };
-      const at = { clientX: 400, clientY: 225 };
-      fireEvent(viewport, Object.assign(new Event('dragover', { bubbles: true, cancelable: true }), { dataTransfer, ...at }));
-      fireEvent(viewport, Object.assign(new Event('drop', { bubbles: true, cancelable: true }), { dataTransfer, ...at }));
-      expect(api.update).toHaveBeenCalledTimes(1);
-      expect(applied(api, scene).bindings[0]).toMatchObject({ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'fan:front:120:0' }] });
-    });
-
-    it('a drop that misses every spot places nothing', async () => {
-      const { api, container } = await mount(unplaced());
-      const viewport = container.querySelector('canvas')!.closest('[class*="viewport"]') as HTMLElement;
-      const dataTransfer = { types: [DEVICE_DRAG_TYPE], getData: () => 'argb-1', dropEffect: 'none' };
-      fireEvent(viewport, Object.assign(new Event('drop', { bubbles: true, cancelable: true }), { dataTransfer, clientX: 2, clientY: 2 }));
       expect(api.update).not.toHaveBeenCalled();
     });
 
-    it('Auto-place binds the devices it recognizes in one update', async () => {
-      const scene = unplaced();
-      const { api } = await mount(scene, [{ ...device('fan-a', 'Front fan'), iconType: 'fan' } as LightingDevice]);
-      fireEvent.click(screen.getByRole('button', { name: 'lighting.scene.devices.autoPlace' }));
-      expect(api.update).toHaveBeenCalledTimes(1);
-      const next = applied(api, scene);
-      expect(next.bindings.map(b => b.deviceId)).toEqual(['fan-a']);
-      expect(next.bindings[0].targets[0].anchorId).toMatch(/^fan:/);
+    it('a bound device offers Identify but no move, turn, flip or remove', async () => {
+      const bound = viewOf([kase], [{ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'strip:front' }], rotation: 0, flip: false }], [0, 0, 1500]);
+      const api = {
+        scene: bound, model: null, update: vi.fn(), setEnabled: vi.fn(), setCamera: vi.fn(() => Promise.resolve()), refreshView: vi.fn(),
+      } as unknown as LightingSceneApi;
+      render(<LightingScene3D api={api} devices={[device('argb-1', 'ARGB_V2_1')]} selectedDeviceId="argb-1" onSelectDevice={vi.fn()}
+        shaderEffect={null} shaderState={null} onIdentify={vi.fn()} />);
+      expect(await screen.findByRole('button', { name: 'lighting.scene.device.identify' })).toBeTruthy();
+      for (const key of ['move', 'rotate', 'flip', 'unplace', 'addSurface']) {
+        expect(screen.queryByText(`lighting.scene.device.${key}`)).toBeNull();
+      }
     });
 
-    it('Auto-place with nothing it recognizes changes nothing', async () => {
-      const { api } = await mount(unplaced(), [device('x', 'Mystery')]);
-      fireEvent.click(screen.getByRole('button', { name: 'lighting.scene.devices.autoPlace' }));
-      expect(api.update).not.toHaveBeenCalled();
+    it('a bound device still shows its name card without onIdentify, with no Identify button', async () => {
+      const bound = viewOf([kase], [{ deviceId: 'argb-1', targets: [{ objectId: kase.id, anchorId: 'strip:front' }], rotation: 0, flip: false }], [0, 0, 1500]);
+      const api = {
+        scene: bound, model: null, update: vi.fn(), setEnabled: vi.fn(), setCamera: vi.fn(() => Promise.resolve()), refreshView: vi.fn(),
+      } as unknown as LightingSceneApi;
+      render(<LightingScene3D api={api} devices={[device('argb-1', 'ARGB_V2_1')]} selectedDeviceId="argb-1" onSelectDevice={vi.fn()}
+        shaderEffect={null} shaderState={null} />);
+      expect(await screen.findByText('ARGB_V2_1')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'lighting.scene.device.identify' })).toBeNull();
     });
   });
 

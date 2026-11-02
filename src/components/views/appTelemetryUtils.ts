@@ -15,7 +15,7 @@ export function filterByApp(events: readonly AppTelemetryEvent[], appId: string)
   return appId ? events.filter(e => eventAppId(e) === appId) : [...events];
 }
 
-/** app_event shows the app's own event name, since every app event shares one PostHog name. */
+/** app_event shows the app's own event name, since every app event shares one event name. */
 export function eventLabel(e: AppTelemetryEvent): string {
   const own = e.properties.event;
   return e.event === 'app_event' && typeof own === 'string' ? `${e.event} (${own})` : e.event;

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LEASE_RENEW_MS, usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
+import { LEASE_RENEW_MS, panelHostKeys, usePanelActivatable, usePanelFrost, usePanelHitTest, usePanelRaise } from './usePanelHostSync';
 
 const sent: Array<Record<string, unknown>> = [];
 const rootRef = { current: null };
@@ -13,6 +13,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   delete (window as unknown as Record<string, unknown>).chrome;
+  delete (window as unknown as Record<string, unknown>).webkit;
+  document.documentElement.removeAttribute('data-host-frost');
 });
 
 const flush = async () => { await act(async () => { await vi.advanceTimersByTimeAsync(20); }); };
@@ -117,6 +119,19 @@ describe('usePanelFrost', () => {
     rerender({ sig: 'b' });
     await flush();
     expect(frosts()).toHaveLength(1);
+    cell.remove();
+  });
+
+  it('re-measures the cards when the signature changes', async () => {
+    const cell = mountCard();
+    const card = cell.firstElementChild as HTMLElement;
+    const { rerender } = renderHook(({ sig }) => usePanelFrost(true, 70, true, false, rootRef, sig), { initialProps: { sig: 'gap8' } });
+    await flush();
+    card.getBoundingClientRect = () => ({ left: 0, top: 0, right: 120, bottom: 110 }) as DOMRect;
+    rerender({ sig: 'gap0' });
+    await flush();
+    expect(frosts()).toHaveLength(2);
+    expect(frosts()[1]).toMatchObject({ rects: [{ x: 0, y: 0, w: 120, h: 110 }] });
     cell.remove();
   });
 
@@ -250,6 +265,59 @@ describe('usePanelFrost', () => {
     renderHook(() => usePanelFrost(false, 70, true, false, rootRef, 'a'));
     await flush();
     expect(frosts()).toHaveLength(0);
+  });
+
+  it('marks the document while Windows plates frost the cards, and clears it when frost stops', () => {
+    const html = document.documentElement;
+    const view = renderHook(({ pct }) => usePanelFrost(true, pct, true, false, rootRef, 'a'), { initialProps: { pct: 70 } });
+    expect(html.getAttribute('data-host-frost')).toBe('windows');
+    view.rerender({ pct: 0 });
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+    view.rerender({ pct: 40 });
+    view.unmount();
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+  });
+
+  it('leaves the document unmarked for an opaque panel and for the macOS host', () => {
+    const html = document.documentElement;
+    const opaque = renderHook(() => usePanelFrost(true, 70, false, false, rootRef, 'a'));
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+    opaque.unmount();
+    delete (window as unknown as Record<string, unknown>).chrome;
+    (window as unknown as Record<string, unknown>).webkit = { messageHandlers: { nexusPanel: { postMessage: () => {} } } };
+    const mac = renderHook(() => usePanelFrost(true, 70, true, false, rootRef, 'a'));
+    expect(html.hasAttribute('data-host-frost')).toBe(false);
+    mac.unmount();
+  });
+
+  it('sends the panel theme, dark by default, and re-sends when it changes', async () => {
+    const cell = mountCard();
+    const view = renderHook(({ theme }) => usePanelFrost(true, 30, true, false, rootRef, 'a', theme), { initialProps: { theme: undefined as 'light' | 'dark' | undefined } });
+    await flush();
+    expect(frosts().at(-1)).toMatchObject({ level: 'light', theme: 'dark' });
+    view.rerender({ theme: 'light' });
+    await flush();
+    expect(frosts()).toHaveLength(2);
+    expect(frosts().at(-1)).toMatchObject({ theme: 'light', rects: [{ x: 10, y: 20, w: 100, h: 70 }] });
+    view.rerender({ theme: 'light' });
+    await flush();
+    expect(frosts()).toHaveLength(2);
+    cell.remove();
+  });
+});
+
+describe('panelHostKeys', () => {
+  const base = { pageIndex: 0, pageCount: 2, menuSeq: 0, backdrop: 'desktop', columns: 20, rows: 12, gap: 7, geometry: 'w1@0,0,4x2' };
+
+  it('changes both keys when only the gap (widget padding) changes', () => {
+    const a = panelHostKeys(base);
+    const b = panelHostKeys({ ...base, gap: 0 });
+    expect(b.hitTest).not.toBe(a.hitTest);
+    expect(b.frost).not.toBe(a.frost);
+  });
+
+  it('is stable for an equal gap', () => {
+    expect(panelHostKeys({ ...base })).toEqual(panelHostKeys(base));
   });
 });
 

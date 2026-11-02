@@ -11,6 +11,10 @@
   transition: opacity var(--ease-fast) ease-out;
 }
 
+.bare {
+  background: none;
+}
+
 .content {
   @include cell-notice-content;
 }
@@ -22,4 +26,12 @@
 
 .label {
   @include text-button;
+}
+
+// The glyph and label sit in a box of the host's own choosing (a free area of the canvas).
+.area {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

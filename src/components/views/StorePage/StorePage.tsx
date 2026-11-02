@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutDashboard, Ruler, ShieldCheck, Sparkles, Tag,
+  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutDashboard, Ruler, Sparkles, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
@@ -28,6 +28,7 @@ import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { capabilityGrants, capabilityLabel } from './capabilityLabels';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import { AppIconTile } from '../../common/AppIconTile/AppIconTile';
+import { NexusMark } from '../../icons/NexusBrand';
 import { resolveHttp } from '../../../api/service';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { widgetLayoutSize, type PanelWidgetSize } from '../../../panel/types';
@@ -42,7 +43,7 @@ const EffectsMarket = (import.meta.env.DEV || __DEV_TOOLS__)
 const EFFECTS_ROUTE = 'effects';
 const APPS_TAB = 'apps';
 
-type InstallState = 'idle' | 'working' | 'failed';
+type InstallState = 'idle' | 'working' | 'failed' | 'hardware';
 
 interface InstalledInfo { version: string; iconUrl?: string | null }
 
@@ -100,6 +101,11 @@ type NeedsSignIn = (retry: () => void) => void;
 /** A fresh install landed; updates do not call it. */
 type OnInstalled = (app: StoreApp) => void;
 
+/** A first install the service would refuse: the app's device is not attached. */
+function hardwareGated(app: StoreApp, installedVersion: string | undefined): boolean {
+  return !!app.hardware && !installedVersion && app.hardware.matched !== true;
+}
+
 function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
   app: StoreApp; installedVersion?: string; onNeedsSignIn: NeedsSignIn; onInstalled: OnInstalled;
 }) {
@@ -136,7 +142,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       onNeedsSignIn(() => { void install(); });
       return;
     }
-    setState('failed');
+    setState(res?.reason === 'hardware_required' && !installedVersion ? 'hardware' : 'failed');
   }, [app, installedVersion, latest, onNeedsSignIn, onInstalled]);
 
   // Ahead of compatibility: an app that is not out yet has nothing to say about
@@ -155,6 +161,27 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       : null;
   }
   if (!latest) return <span className={styles.incompatible}>{t('store.incompatible')}</span>;
+
+  // An installed copy keeps its normal controls; the gate only decides a first install.
+  const hardware = app.hardware;
+  if (hardware && !installedVersion && (hardware.matched !== true || state === 'hardware')) {
+    return (
+      <span className={styles.hardwareGate}>
+        <Button
+          type="button"
+          tone="accent"
+          onClick={e => { e.stopPropagation(); void openExternalUrl(hardware.url); }}
+        >
+          {t('store.viewProduct')}
+        </Button>
+        <span className={styles.incompatible}>
+          {state === 'hardware'
+            ? t('store.hardwareRequired', { name: hardware.name })
+            : t('store.requiresHardware', { name: hardware.name })}
+        </span>
+      </span>
+    );
+  }
 
   const upToDate = installedVersion === latest.version;
   const label = state === 'working' ? t('store.installing')
@@ -262,7 +289,10 @@ function FeaturedApp({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
         )}
         <div className={styles.featuredActions}>
           <LocalPreviewChip app={app} />
-          <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
+          {/* A missing device is explained on the app page, so the card only invites opening it. */}
+          {!hardwareGated(app, installed?.version) && (
+            <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
+          )}
         </div>
       </div>
       {shots.length > 0 && (
@@ -341,7 +371,7 @@ function useHighlights(latest: StoreVersion): Highlight[] {
   if (latest.minNexusVersion) {
     out.push({
       key: 'requires',
-      icon: <ShieldCheck size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      icon: <span aria-hidden={true}><NexusMark size={HIGHLIGHT_ICON} /></span>,
       label: t('store.spec.requires'),
       value: latest.minNexusVersion,
     });
@@ -615,6 +645,9 @@ export function StorePage({ tab, onTabChange, accounts, devices = NO_DEVICES, on
   const installed = useInstalled();
   const [apps, setApps] = useState<StoreApp[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // Hardware-bound apps get a full-width card next to the lead app rather than a grid row.
+  const featured = apps?.filter((a, i) => i === 0 || a.hardware) ?? [];
+  const rest = apps?.filter(a => !featured.includes(a)) ?? [];
   const [localOpenId, setLocalOpenId] = useState<string | null>(null);
   // Install to resume once a session exists - the modal is opened by a refused
   // install, so signing in finishes what the user already asked for.
@@ -731,19 +764,21 @@ export function StorePage({ tab, onTabChange, accounts, devices = NO_DEVICES, on
             <div className={styles.notice}>{t('store.empty')}</div>
           ) : (
             <>
-              <FeaturedApp
-                key={apps[0].id}
-                app={apps[0]}
-                installed={installed.get(apps[0].id)}
-                onOpen={() => open(apps[0].id)}
-                onNeedsSignIn={handleNeedsSignIn}
-                onInstalled={handleInstalled}
-              />
-              {apps.length > 1 && (
+              {featured.map(app => (
+                <FeaturedApp
+                  key={app.id}
+                  app={app}
+                  installed={installed.get(app.id)}
+                  onOpen={() => open(app.id)}
+                  onNeedsSignIn={handleNeedsSignIn}
+                  onInstalled={handleInstalled}
+                />
+              ))}
+              {rest.length > 0 && (
                 <>
                   <h2 className={styles.sectionTitle}>{t('store.section.apps')}</h2>
                   <div className={styles.grid}>
-                    {apps.slice(1).map(app => (
+                    {rest.map(app => (
                       <AppRow
                         key={app.id}
                         app={app}

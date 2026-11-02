@@ -10,6 +10,7 @@ import { SearchInput } from '../../../components/common/SearchInput/SearchInput'
 import { withMediaFetchSlot as withIconSlot } from '../../../lib/mediaFetchSlot';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import styles from './AppPicker.module.scss';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 
 interface Shortcut {
   id: string;
@@ -278,20 +279,21 @@ function AppRow({ app, selected, unavailable, title, onSelect }: {
   }, [app.iconPath]);
 
   return (
-    <button
-      ref={rowRef}
-      type="button"
-      className={`${styles.appRow} ${selected ? styles.appRowSelected : ''} ${unavailable ? styles.appRowTaken : ''}`}
-      onClick={onSelect}
-      title={unavailable ?? title}
-      aria-disabled={unavailable ? true : undefined}
-    >
-      {iconUrl
-        ? <img src={iconUrl} className={styles.rowIcon} alt="" />
-        : <AppWindow size={20} className={styles.rowIconFallback} />
-      }
-      <span className={styles.rowName}>{app.name}</span>
-    </button>
+    <HoverTooltip body={unavailable ?? title}>
+      <button
+        ref={rowRef}
+        type="button"
+        className={`${styles.appRow} ${selected ? styles.appRowSelected : ''} ${unavailable ? styles.appRowTaken : ''}`}
+        onClick={onSelect}
+        aria-disabled={unavailable ? true : undefined}
+      >
+        {iconUrl
+          ? <img src={iconUrl} className={styles.rowIcon} alt="" />
+          : <AppWindow size={20} className={styles.rowIconFallback} />
+        }
+        <span className={styles.rowName}>{app.name}</span>
+      </button>
+    </HoverTooltip>
   );
 }
 

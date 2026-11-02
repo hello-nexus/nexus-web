@@ -5,6 +5,8 @@ import { BrightnessScheduleModal } from './BrightnessScheduleModal';
 const api = vi.hoisted(() => ({
   fetchIdleDim: vi.fn(),
   setIdleDim: vi.fn().mockResolvedValue(null),
+  fetchGlobalBrightness: vi.fn().mockResolvedValue({ value: 1, masterScalesDevices: false }),
+  setMasterScalesDevices: vi.fn().mockResolvedValue({ error: false }),
 }));
 vi.mock('../../../api/lighting', () => api);
 const topic = vi.hoisted(() => ({ fire: () => {} }));
@@ -436,5 +438,40 @@ describe('BrightnessScheduleModal sunset shift', () => {
   it('shows the status line while the schedule is on', () => {
     withState({ current: 55 });
     expect(screen.getByText('lighting.schedule.now.on:55%')).not.toHaveStyle({ visibility: 'hidden' });
+  });
+});
+
+describe('BrightnessScheduleModal brightness multiplier', () => {
+  beforeEach(() => {
+    api.fetchIdleDim.mockReset().mockResolvedValue(idle({ supported: false }));
+    api.fetchGlobalBrightness.mockReset().mockResolvedValue({ value: 1, masterScalesDevices: false });
+    api.setMasterScalesDevices.mockReset().mockResolvedValue({ error: false });
+  });
+
+  it('shows the toggle off by default and saves a change straight away', async () => {
+    render(<BrightnessScheduleModal open onClose={() => {}} state={scheduleState} />);
+    const toggle = await screen.findByRole('switch', { name: 'lighting.masterScales.label' });
+    await waitFor(() => expect(toggle).not.toBeDisabled());
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(api.setMasterScalesDevices).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('puts the toggle back when the save fails', async () => {
+    api.setMasterScalesDevices.mockResolvedValue({ error: true });
+    render(<BrightnessScheduleModal open onClose={() => {}} state={scheduleState} />);
+    const toggle = await screen.findByRole('switch', { name: 'lighting.masterScales.label' });
+    await waitFor(() => expect(toggle).not.toBeDisabled());
+    fireEvent.click(toggle);
+    await waitFor(() => expect(api.setMasterScalesDevices).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'false'));
+  });
+
+  it('reflects the saved state', async () => {
+    api.fetchGlobalBrightness.mockResolvedValue({ value: 1, masterScalesDevices: true });
+    render(<BrightnessScheduleModal open onClose={() => {}} state={scheduleState} />);
+    const toggle = await screen.findByRole('switch', { name: 'lighting.masterScales.label' });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
   });
 });

@@ -267,6 +267,90 @@ describe('StorePage app page', () => {
   });
 });
 
+describe('StorePage hardware-gated app', () => {
+  const gated = (matched?: boolean): StoreApp => ({
+    ...app,
+    hardware: { name: 'HYTE Y70TI', url: 'https://hyte.com/y70ti', ...(matched === undefined ? {} : { matched }) } as StoreApp['hardware'],
+  });
+
+  beforeEach(() => openExternalUrl.mockReset());
+
+  const lead: StoreApp = { ...app, id: 'com.example.lead', name: 'Lead' };
+
+  it('gives a gated app its own full-width card with no action, and keeps it out of the grid', async () => {
+    fetchStoreApps.mockResolvedValue([lead, gated(false)]);
+    render(<StorePage />);
+
+    expect(await screen.findAllByText('store.featured')).toHaveLength(2);
+    expect(screen.queryByRole('heading', { name: 'store.section.apps' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'store.install' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
+  });
+
+  it('swaps Install for a product button and a requirement line on the app page when the hardware is absent', async () => {
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    const button = await screen.findByRole('button', { name: 'store.viewProduct' });
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+    expect(screen.getByText('store.requiresHardware name=HYTE Y70TI')).toBeInTheDocument();
+    fireEvent.click(button);
+    expect(openExternalUrl).toHaveBeenCalledWith('https://hyte.com/y70ti');
+  });
+
+  it('treats a missing matched flag as unmatched', async () => {
+    fetchStoreApps.mockResolvedValue([gated()]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated() });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('offers Install when the hardware is attached', async () => {
+    fetchStoreApps.mockResolvedValue([gated(true)]);
+    render(<StorePage />);
+
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
+  });
+
+  it('opens the app page from the gated card, where the gate shows', async () => {
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByText('Aquarium'));
+    expect(await screen.findByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('keeps an installed copy on Update and shows Retry when the update is refused for missing hardware', async () => {
+    installed.push({ id: app.id, version: '1.0.1', iconUrl: null });
+    fetchStoreApps.mockResolvedValue([gated(false)]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: false, reason: 'hardware_required' });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.update' }));
+
+    expect(await screen.findByRole('button', { name: 'store.retry' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
+  });
+
+  it('explains a hardware_required refusal and keeps the product link', async () => {
+    fetchStoreApps.mockResolvedValue([gated(true)]);
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: false, reason: 'hardware_required' });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+
+    expect(await screen.findByText('store.hardwareRequired name=HYTE Y70TI')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'store.viewProduct' })).toBeInTheDocument();
+  });
+});
+
 describe('StorePage app page layout', () => {
   it('reads the capabilities as a highlight strip, not a definition table', async () => {
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);

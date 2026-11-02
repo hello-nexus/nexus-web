@@ -20,6 +20,7 @@ import { PanelSimulatorCard } from './SimulatorsCard';
 import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { DevSimEventsCard } from './DevSimEventsCard';
+import { AstralSimCard } from './AstralSimCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { DEV_TOOLS } from '../../lib/devTools';
@@ -66,6 +67,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <PawnIoCard />
             <PanelSimulatorCard />
             {DEV_TOOLS && <DevSimEventsCard />}
+            {DEV_TOOLS && <AstralSimCard />}
             <HelloGreetingCard />
           </div>
         </div>
@@ -110,7 +112,7 @@ function WidgetSdkCard() {
 
 /**
  * Telemetry events reference card. Opens /telemetry-reference - every product
- * event sent to PostHog, what it means, when it fires, and its parameters.
+ * event sent, what it means, when it fires, and its parameters.
  */
 function TelemetryEventsCard() {
   const { t } = useTranslation();

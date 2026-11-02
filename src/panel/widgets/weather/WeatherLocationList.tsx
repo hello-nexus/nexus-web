@@ -25,6 +25,16 @@ export function placeKey(location: WeatherLocation | null): string {
   return location ? weatherLocationKey(location) : AUTO_PLACE_KEY;
 }
 
+// The widget's custom place as a route segment ("lat~lon"); `~` because a
+// comma fails the open-app route's character rule. Null for auto.
+export function weatherPlaceRouteTab(location: WeatherLocation | null | undefined): string | null {
+  return location ? placeKey(location).replace(',', '~') : null;
+}
+
+export function placeKeyFromRouteTab(tab: string | undefined): string | null {
+  return tab && /^-?\d+(\.\d+)?~-?\d+(\.\d+)?$/.test(tab) ? tab.replace('~', ',') : null;
+}
+
 export function buildPlaces(locations: WeatherLocation[]): WeatherPlace[] {
   return [{ key: AUTO_PLACE_KEY, location: null }, ...locations.map(l => ({ key: placeKey(l), location: l }))];
 }
@@ -98,7 +108,7 @@ function WeatherPlaceRow({
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
   const { snap, loaded } = useWeatherSnapshot(place.location);
-  const unit = resolveUnit(unitPref, place.location?.cc ?? snap?.countryCode);
+  const unit = resolveUnit(unitPref, place.location?.cc || snap?.countryCode);
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
   const today = snap?.daily?.[0];

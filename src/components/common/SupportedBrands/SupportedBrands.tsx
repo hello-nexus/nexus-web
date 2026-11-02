@@ -1,6 +1,7 @@
 import { useTranslation } from '../../../lib/i18n';
 import { BRAND_LOGOS, queryStartsWithBrand } from './brandLogos';
 import styles from './SupportedBrands.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 interface SupportedBrandsProps {
   /** Omitted for build-time HTML, where the host page wires clicks via data-brand. */
@@ -16,22 +17,22 @@ export function SupportedBrands({ onSelect, query = '', className }: SupportedBr
   return (
     <div className={[styles.brands, className].filter(Boolean).join(' ')}>
       {BRAND_LOGOS.map(logo => (
-        <button
-          key={logo.name}
-          type="button"
-          className={styles.brand}
-          data-brand={logo.name}
-          aria-label={logo.name}
-          title={logo.name}
-          aria-current={queryStartsWithBrand(query, logo.name) || undefined}
-          onClick={onSelect && (() => onSelect(logo.name))}
-        >
-          <svg className={styles.logo} viewBox={logo.viewBox} aria-hidden={true}>
-            {logo.paths.map((p, i) => (
-              <path key={i} d={p.d} transform={p.transform} fillRule={p.evenOdd ? 'evenodd' : undefined} />
-            ))}
-          </svg>
-        </button>
+        <HoverTooltip key={logo.name} body={logo.name}>
+          <button
+            type="button"
+            className={styles.brand}
+            data-brand={logo.name}
+            aria-label={logo.name}
+            aria-current={queryStartsWithBrand(query, logo.name) || undefined}
+            onClick={onSelect && (() => onSelect(logo.name))}
+          >
+            <svg className={styles.logo} viewBox={logo.viewBox} aria-hidden={true}>
+              {logo.paths.map((p, i) => (
+                <path key={i} d={p.d} transform={p.transform} fillRule={p.evenOdd ? 'evenodd' : undefined} />
+              ))}
+            </svg>
+          </button>
+        </HoverTooltip>
       ))}
       <span className={styles.more}>{t('supported.moreBrands')}</span>
     </div>

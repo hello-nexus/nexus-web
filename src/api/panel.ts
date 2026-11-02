@@ -155,6 +155,8 @@ export interface PanelDeviceRecord {
   reserveMonitor?: boolean;
   // Per-panel "keep the mouse off the panel" (display-bound records). Absent/null = off.
   keepCursorOff?: boolean;
+  // Restricted mode on this panel: only lighting, media and volume work. Absent = off.
+  restrictedMode?: boolean;
   // Empty space passes clicks through to the desktop; only with the 'desktop'
   // backdrop. Absent/null = off.
   clickThrough?: boolean | null;
@@ -181,6 +183,9 @@ export interface PanelDeviceRecord {
   // Panels whose capabilities carry supportsRenderScale: render at native resolution
   // instead of a lower one. Absent/null = lower (high performance).
   highResolution?: boolean | null;
+  // Frame rate cap in fps for this device (streamed session rate, secondary-monitor pacing, or
+  // how often a display-bound panel page draws). Absent/null = the device's own rate.
+  fpsCap?: number | null;
   // Panels offering the Widget size switch (panelWidgetSizeOptions). Absent/null = the
   // panel's default size.
   widgetSize?: PanelWidgetSizeMode | null;
@@ -209,7 +214,10 @@ export interface PanelDeviceRecord {
   secondaryMonitor?: boolean | null;
   // Response-only, route-computed, never persisted: absent/null when
   // secondaryMonitor is off or the panel is not streaming.
-  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'failed' | null;
+  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'in-use' | 'failed' | null;
+  // Response-only: the display name of the device holding the one virtual
+  // monitor when secondaryMonitorState is 'in-use'.
+  secondaryMonitorHolder?: string | null;
 }
 
 export interface PanelDevicePatch {
@@ -260,6 +268,7 @@ export interface PanelDevicePatch {
   reserveMonitor?: boolean;
   // Display-bound records only; ignored for other panels.
   keepCursorOff?: boolean;
+  restrictedMode?: boolean;
   // Display-bound records only; ignored for other panels.
   clickThrough?: boolean;
   // Even; monitor panels only. Zero clears the record's own density.
@@ -281,6 +290,8 @@ export interface PanelDevicePatch {
   portrait?: boolean;
   // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
   highResolution?: boolean;
+  // Frame rate cap in fps; 0 clears it (the device's own rate). The service clamps it.
+  fpsCap?: number;
   widgetSize?: PanelWidgetSizeMode;
   kioskViewport?: KioskViewportDto;
   capabilities?: PanelDeviceCapabilitiesDto;
@@ -764,24 +775,3 @@ export async function claimPanelPhonePairingLan(
     return null;
   }
 }
-
-// Global frame cap for every streamed display. null = Off (each display runs
-// at its own native rate).
-export interface StreamSettings {
-  fpsCap: number | null;
-}
-
-/** Null when the service has no such route (older build) or is unreachable. */
-export async function fetchStreamSettings(): Promise<StreamSettings | null> {
-  const { response, status } = await authFetchWithStatus('/panel/streams/settings', { cache: 'no-store' });
-  if (status === 404 || !response || !response.ok) return null;
-  try {
-    return (await response.json()) as StreamSettings;
-  } catch {
-    return null;
-  }
-}
-
-/** Null on any non-2xx (400 on an invalid value) or transport failure. */
-export const setStreamFpsCap = (fpsCap: number | null) =>
-  putService<StreamSettings>('/panel/streams/settings', { fpsCap });

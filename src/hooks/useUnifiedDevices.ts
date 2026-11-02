@@ -75,10 +75,17 @@ export interface UnifiedDevice {
   // Transport the device lives on; drives the Devices-page section grouping.
   // Undefined means 'usb'.
   bus?: 'usb' | 'smbus';
+  // 'failing' while Nexus controls the device but its lighting writes keep failing.
+  writeHealth?: 'failing';
 }
 
 // A simulated panel carries the marker on its panel record; the Tryx sim sets
 // `simulated` directly. Neither marker alone covers both.
+/** Whether the Nexus Control gate on this device reads as a panel on/off rather than releasing the hardware. */
+export function controlGateIsPanel(device: Pick<UnifiedDevice, 'panelDevice'>): boolean {
+  return !!device.panelDevice?.genericDisplay || device.panelDevice?.secondaryMonitor === true;
+}
+
 /** The device-page key of a panel device. */
 export function panelDeviceKey(panelId: string): string {
   return `panel-${panelId}`;
@@ -169,6 +176,7 @@ const CURATED_ICONS: Record<string, string> = {
   'asus-ryujin-lcd': '/assets/devices/asus.svg',
   'asus-slc4-lcd': '/assets/devices/asus.svg',
   'asus-glacial-lcd': '/assets/devices/asus.svg',
+  'asus-astral': '/assets/devices/asus.svg',
   'asiahorse-umbra': '/assets/devices/asiahorse.svg',
 };
 
@@ -199,6 +207,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'nzxt-kraken': 'NZXT Kraken',
   'asiahorse-umbra': 'Asiahorse Umbra V2',
   'asus-glacial-lcd': 'ROG Crosshair X870E Glacial',
+  'asus-astral': 'ROG Astral',
   'deepcool-mystique': 'DeepCool Mystique',
 };
 
@@ -419,6 +428,7 @@ function buildUnifiedList(
       warning: (d.nexusControlEnabled === false && (d.warning === 'bulk-pipe-unavailable' || d.warning === 'access-denied') ? undefined : d.warning) ?? undefined,
       conflictAppId: d.conflictAppId,
       bus: d.bus ?? 'usb',
+      writeHealth: d.writeHealth,
     });
   }
 

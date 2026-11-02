@@ -5,7 +5,7 @@ import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Toggle } from '../../common/Toggle/Toggle';
 import {
-  HYTE_NEXUS2_CONFLICT_ID, fetchConflictCatalog, fetchDynamicLighting, setDynamicLighting,
+  HYTE_NEXUS2_CONFLICT_ID, WINDOWS_DYNAMIC_LIGHTING_CONFLICT_ID, fetchConflictCatalog, fetchDynamicLighting, setDynamicLighting,
   type ConflictCatalogApp, type SetWindowsDynamicLightingBody, type WindowsDynamicLightingState,
 } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
@@ -77,7 +77,8 @@ export function ManageConflictAppsModal({
       if (cancelled) return;
       // A failed read must not sit on "Loading" forever - the service can be
       // offline, and the row that opened this modal stays available.
-      if (apps) setCatalog(apps);
+      // Dynamic Lighting has its own switch below, which also sets its policy; a second row would split the two.
+      if (apps) setCatalog(apps.filter(a => a.id !== WINDOWS_DYNAMIC_LIGHTING_CONFLICT_ID));
       else setLoadFailed(true);
     });
     return () => { cancelled = true; };

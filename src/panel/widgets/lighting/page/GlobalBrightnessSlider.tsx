@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Clock } from 'lucide-react';
+import { Sun } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
@@ -11,16 +11,17 @@ import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Master brightness slider at the top of the lighting page. Caps each
- * per-device brightness before colour reaches hardware: effective LED
+ * Master brightness slider at the top of the lighting page. Joins each
+ * per-device brightness before colour reaches hardware: by default effective LED
  * brightness is `min(global, device / 100)`, so a device never renders
- * brighter than master. Stored 0..1 on the service side, surfaced
+ * brighter than master; with the brightness multiplier on it is
+ * `global * device / 100`. Stored 0..1 on the service side, surfaced
  * 0..100% in the UI.
  *
  * While the time-of-day schedule is on, its current level is a second cap on
  * top of the slider, shown the way the per-device slider shows this one: a
  * marker at the scheduled level and the fill past it dimmed when it is the
- * lower of the two. A clock beside the label opens the schedule editor in
+ * lower of the two. A sun button beside the label opens the brightness settings in
  * place, whether the schedule is on or off.
  *
  * Renders as a labelled stacked slider so it reads as the first control in the
@@ -104,13 +105,13 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         data-active={scheduled !== null ? '' : undefined}
         aria-label={t('lighting.schedule.marker.title')}
         aria-disabled={canOpenSchedule ? undefined : true}
-        // A mouse press must not focus the clock: the modal hands focus back
+        // A mouse press must not focus the sun button: the modal hands focus back
         // to it on close, and that focus reopens the tooltip.
         onMouseDown={e => e.preventDefault()}
         onClick={e => { e.preventDefault(); openSchedule(); }}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSchedule(); } }}
       >
-        <Clock size={14} />
+        <Sun size={14} />
       </span>
     </HoverTooltip>
   );

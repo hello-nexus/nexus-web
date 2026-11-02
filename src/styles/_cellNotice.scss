@@ -4,6 +4,10 @@
 // the catalog's post-add confirmation and the lighting effect tile's edit hint.
 // Mixins rather than classes so each host keeps its own module-scoped class.
 
+@mixin cell-notice-scrim {
+  background: var(--panel-scrim-bg, rgb(0 0 0 / var(--alpha-strong)));
+}
+
 @mixin cell-notice {
   position: absolute;
   // Longhands, not the `inset` shorthand - Chromium 83 floor (see
@@ -18,7 +22,7 @@
   justify-content: center;
   text-align: center;
   color: var(--text);
-  background: var(--panel-scrim-bg, rgb(0 0 0 / var(--alpha-strong)));
+  @include cell-notice-scrim;
   border-radius: inherit;
 }
 

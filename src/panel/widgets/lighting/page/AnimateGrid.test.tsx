@@ -1,5 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { initPointerKind, resetPointerKindForTests } from '../../../../lib/pointerKind';
 import { AnimateGrid } from './AnimateGrid';
 
 vi.mock('../../../../hooks/useEffectThumbnail', () => ({
@@ -8,6 +10,12 @@ vi.mock('../../../../hooks/useEffectThumbnail', () => ({
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+
+function mouseMoves() {
+  const event = new Event('pointermove');
+  Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+  act(() => { window.dispatchEvent(event); });
+}
 
 describe('AnimateGrid live-on-RGB bulb', () => {
   it('marks exactly the rgb-active effect cell with a bulb', () => {
@@ -85,10 +93,10 @@ describe('AnimateGrid category sections', () => {
     expect(has(container, 'spectrumbars')).toBe(true); // audio
   });
 
-  it('orders sections simple, organic, pattern, then the rest with audio last', () => {
+  it('orders sections pattern, organic, then the rest with audio last', () => {
     const { container } = render(<AnimateGrid effect="" onSelect={() => {}} />);
     const text = container.textContent || '';
-    const order = ['simple', 'organic', 'pattern', 'cosmic', 'geometric', 'audio'];
+    const order = ['pattern', 'organic', 'cosmic', 'geometric', 'audio'];
     const idxs = order.map(c => text.indexOf(`lighting.category.${c}`));
     expect(idxs.every(i => i >= 0)).toBe(true);
     expect(idxs).toEqual([...idxs].sort((a, b) => a - b));
@@ -182,6 +190,8 @@ describe('AnimateGrid pin badge', () => {
 });
 
 describe('AnimateGrid edit pencil', () => {
+  afterEach(() => { vi.unstubAllGlobals(); resetPointerKindForTests(); });
+
   const renderGrid = (props: { effect: string; onEdit?: () => void; editEnabled?: boolean; onSelect?: (k: string) => void }) => render(
     <AnimateGrid
       effect={props.effect}
@@ -220,19 +230,27 @@ describe('AnimateGrid edit pencil', () => {
     expect(container.querySelector('[data-effect-key="plasma"]')).toBe(tile);
   });
 
-  it('re-picks on a touch or coarse pointer', () => {
-    const original = window.matchMedia;
-    window.matchMedia = (() => ({ matches: false })) as unknown as typeof window.matchMedia;
-    try {
-      const onEdit = vi.fn();
-      const onSelect = vi.fn();
-      const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
-      fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
-      expect(onSelect).toHaveBeenCalledTimes(1);
-      expect(onEdit).not.toHaveBeenCalled();
-    } finally {
-      window.matchMedia = original;
-    }
+  it('re-picks while no mouse has been used, as on touch', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q }));
+    resetPointerKindForTests();
+    initPointerKind();
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit, onSelect });
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('opens the editor once a mouse moves, even where the media queries report no pointer', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q }));
+    resetPointerKindForTests();
+    initPointerKind();
+    const onEdit = vi.fn();
+    const { container } = renderGrid({ effect: 'plasma', onEdit });
+    mouseMoves();
+    fireEvent.click(container.querySelector('[data-effect-key="plasma"]')!);
+    expect(onEdit).toHaveBeenCalledTimes(1);
   });
 
   it('names the selected tile by its edit action and opens the editor without re-selecting', () => {
@@ -289,5 +307,82 @@ describe('AnimateGrid edit pencil', () => {
     const pencils = container.querySelectorAll('[data-edit-hint-overlay]');
     expect(pencils.length).toBe(1);
     expect(pencils[0].closest('[data-effect-key]')?.getAttribute('data-effect-key')).toBe(next);
+  });
+});
+
+describe('AnimateGrid editor toggle', () => {
+  afterEach(() => { vi.unstubAllGlobals(); resetPointerKindForTests(); });
+
+  // Mirrors LightingPage: the selected tile toggles the editor, another tile re-picks.
+  function Harness({ onSelect }: { onSelect: (k: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [effect, setEffect] = useState('plasma');
+    return (
+      <AnimateGrid
+        effect={effect}
+        onSelect={k => { setEffect(k); onSelect(k); }}
+        onEdit={() => setOpen(o => !o)}
+        editEnabled={!open}
+        editorOpen={open}
+        slotFor={() => 0}
+        versionFor={() => '0'}
+      />
+    );
+  }
+  const tile = (c: HTMLElement, key: string) => c.querySelector(`[data-effect-key="${key}"]`)!;
+
+  it('opens on the first click and closes on the second click of the same tile', () => {
+    const onSelect = vi.fn();
+    const { container } = render(<Harness onSelect={onSelect} />);
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(tile(container, 'plasma'));
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(tile(container, 'plasma'));
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('switches to another tile without closing the editor', () => {
+    const onSelect = vi.fn();
+    const { container } = render(<Harness onSelect={onSelect} />);
+    fireEvent.click(tile(container, 'plasma'));
+    const other = container.querySelector('[data-effect-key]:not([data-effect-key="plasma"])')!;
+    fireEvent.click(other);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(other.getAttribute('data-effect-key'));
+    expect(other.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('keeps the edit hint on the selected tile with the editor closed and open, and on no other tile', () => {
+    const { container } = render(<Harness onSelect={() => {}} />);
+    const hintOwners = () => Array.from(container.querySelectorAll('[data-edit-hint-overlay]')).map(el => el.closest('[data-effect-key]')?.getAttribute('data-effect-key'));
+    expect(hintOwners()).toEqual(['plasma']);
+    fireEvent.click(tile(container, 'plasma'));
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
+    expect(hintOwners()).toEqual(['plasma']);
+    fireEvent.pointerEnter(tile(container, 'plasma'), { pointerType: 'mouse' });
+    expect(tile(container, 'plasma').getAttribute('data-edit-hint-shown')).toBe('true');
+    fireEvent.click(tile(container, 'plasma'));
+    expect(hintOwners()).toEqual(['plasma']);
+  });
+
+  it('toggles from the keyboard like a click', () => {
+    const { container } = render(<Harness onSelect={() => {}} />);
+    fireEvent.keyDown(tile(container, 'plasma'), { key: 'Enter' });
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('true');
+    fireEvent.keyDown(tile(container, 'plasma'), { key: ' ' });
+    expect(tile(container, 'plasma').getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('re-picks instead of closing when the editor is open but editing is gated off', () => {
+    const onEdit = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = render(
+      <AnimateGrid effect="plasma" onSelect={onSelect} onEdit={onEdit} editEnabled={false} editorOpen={false} slotFor={() => 0} versionFor={() => '0'} />,
+    );
+    fireEvent.click(tile(container, 'plasma'));
+    expect(onSelect).toHaveBeenCalledWith('plasma');
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(tile(container, 'plasma').hasAttribute('aria-expanded')).toBe(false);
   });
 });

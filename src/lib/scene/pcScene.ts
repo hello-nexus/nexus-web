@@ -25,6 +25,7 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { ribbonData } from './ribbon';
 
 /** The id of the case itself in a scene's picks and highlights. */
 export const CASE_ID = 'case';
@@ -77,6 +78,8 @@ export interface SceneLine {
   points: Vec3[];
   /** Set on a hose: drawn as a solid tube of this radius (mm) through the points instead of a hairline. */
   radius?: number;
+  /** Set on a flat cable: drawn as a ribbon of this width and thickness (mm) along the points; `across` is the width direction at each point. */
+  ribbon?: { width: number; thickness: number; across: Vec3[] };
 }
 
 /** What the scene reads of a case layout: Build's PcLayout and the setup record's layout. */
@@ -468,6 +471,27 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
   }
   for (const line of layout.lines) {
     const detail = line.role === 'detail';
+    if (line.ribbon && line.points.length >= 2) {
+      const { width, thickness, across } = line.ribbon;
+      const data = ribbonData(line.points, across, width, thickness);
+      const base = 0.55;
+      const material = new MeshBasicMaterial({ color: palette.part, transparent: true, opacity: base, depthWrite: false, side: DoubleSide });
+      dimmables.push({ id: line.slot, materials: [material], base: [base] });
+      const geometry = new BufferGeometry();
+      geometry.setAttribute('position', new Float32BufferAttribute(data.positions, 3));
+      geometry.setIndex(data.indices);
+      const band = new Mesh(geometry, material);
+      band.renderOrder = 1;
+      group.add(band);
+      const edgeMaterial = lineMaterial({ color: palette.part, width: 1, opacity: 0.8, dashed: false, face: 0 }, materials);
+      dimmables.push({ id: line.slot, materials: [edgeMaterial], base: [0.8] });
+      for (const edge of data.edges) {
+        const rim = new Line2(new LineGeometry().setPositions(edge.flat()), edgeMaterial);
+        rim.renderOrder = 1;
+        group.add(rim);
+      }
+      continue;
+    }
     const curve = line.points.length > 2 ? new CatmullRomCurve3(line.points.map((p) => new Vector3(...p))) : null;
     if (line.radius && curve) {
       // A hose: a solid tube in scene mm, in the part's face tint.

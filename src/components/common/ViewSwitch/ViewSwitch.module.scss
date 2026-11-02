@@ -20,3 +20,10 @@
   background: var(--border);
   color: inherit;
 }
+
+// On the solid accent chip the label is --accent-text, so the pill inverts: that same
+// contrast-paired color as the fill and the accent as the text, readable on any accent.
+:global(.chip-active) .pill {
+  background: var(--accent-text);
+  color: var(--accent);
+}

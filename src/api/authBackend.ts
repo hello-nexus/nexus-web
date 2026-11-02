@@ -64,7 +64,47 @@ export interface AccountDeviceItem {
   caseId?: string | null;
 }
 
+/** A build saved on the account; `data` is the portal's own serialization of it. */
+export interface AccountBuild {
+  id: string;
+  name: string;
+  data: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A build opened by its public id. */
+export interface SharedBuild {
+  id: string;
+  name: string;
+  data: Record<string, unknown>;
+  updatedAt: string;
+}
+
+export type SaveBuildResult =
+  | { status: 'ok'; build: AccountBuild }
+  /** The account holds as many builds as it may. */
+  | { status: 'limit'; limit: number }
+  | { status: 'tooLarge' }
+  /** The session now belongs to another account than the caller expected; nothing was sent. */
+  | { status: 'wrongAccount' }
+  /** A 400 or 404: the api refuses this build as sent, and will again. */
+  | { status: 'rejected' }
+  /** Network, 5xx or 429: worth trying again. */
+  | { status: 'failed' };
+
+export type SharedBuildResult =
+  | { status: 'ok'; build: SharedBuild }
+  | { status: 'notFound' }
+  | { status: 'failed' };
+
 export type AuthDeviceUpsertResponse = AuthEnvelope & Partial<AccountDeviceItem>;
+
+/** What a session check found: telling no session apart from a check that could not be made. */
+export type AccountCheck =
+  | { state: 'signedIn'; account: AuthAccount }
+  | { state: 'signedOut' }
+  | { state: 'unreachable' };
 
 export interface AuthBackend {
   login(identifier: string, password: string): Promise<AuthFetchResult<AuthLoginResponse>>;
@@ -73,6 +113,8 @@ export interface AuthBackend {
   resendVerification(email: string): Promise<AuthResendResult>;
   logout(): Promise<void>;
   getAccount(): Promise<AuthAccount | null>;
+  /** Like getAccount, but a definite sign-out is told apart from an offline or failing check. Website only. */
+  checkAccount?(): Promise<AccountCheck>;
   /** False when no link was sent (throttled, offline). */
   recoveryStart(email: string): Promise<boolean>;
   recoveryStatus(): Promise<AuthRecoveryStatusResponse | null>;
@@ -97,6 +139,16 @@ export interface AuthBackend {
   deleteDevice?(installId: string): Promise<boolean>;
   /** Null when the request failed. */
   setDeviceCase?(installId: string, caseId: string | null): Promise<AccountDeviceItem | null>;
+  /** The signed-in account's saved builds; null when the request failed. Website only. */
+  listBuilds?(expectAccount?: string): Promise<AccountBuild[] | null | 'wrongAccount'>;
+  /** Creates or replaces one saved build. Website only. */
+  saveBuild?(id: string, build: { name: string; data: Record<string, unknown> }, expectAccount?: string): Promise<SaveBuildResult>;
+  /** Website only. */
+  deleteBuild?(id: string, expectAccount?: string): Promise<boolean | 'wrongAccount'>;
+  /** Drops the in-memory access token, so the next request asks the shared session cookie who is signed in now. Website only. */
+  forgetAccessToken?(): void;
+  /** A build by its public id, no sign-in needed. Website only. */
+  getSharedBuild?(id: string): Promise<SharedBuildResult>;
   /** Leaderboard entries the signed-in account submitted; null when the request failed. Website only. */
   listOwnBenchmarks?(): Promise<string[] | null>;
   /** Removes one of the signed-in account's leaderboard entries. Website only. */

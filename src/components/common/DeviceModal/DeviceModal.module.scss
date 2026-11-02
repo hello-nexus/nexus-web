@@ -34,6 +34,10 @@
   width: min(560px, calc(100vw - 4rem));
 }
 
+.modalRoomy {
+  width: min(660px, calc(100vw - 4rem));
+}
+
 .modalLarge {
   width: min(980px, calc(100vw - 4rem));
   max-height: 90vh;

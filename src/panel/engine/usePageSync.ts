@@ -16,8 +16,10 @@ export function usePageSync(params: {
   pageDragging: boolean;
   // Rendered index of the trailing blank page, -1 when none is rendered.
   blankPageIndex: number;
+  // Ids of the pages actually rendered, when some stored pages are hidden (Restricted mode drops empty ones). Indexes then map against these.
+  shownPageIds?: readonly string[];
 }) {
-  const { loaded, kioskBehavior, paginatedLayout, layout, setLayout, pageCount, pageDragging, blankPageIndex } = params;
+  const { loaded, kioskBehavior, paginatedLayout, layout, setLayout, pageCount, pageDragging, blankPageIndex, shownPageIds } = params;
   const [activePageIndex, setActivePageIndex] = useState(0);
   useEffect(() => {
     if (activePageIndex > pageCount - 1) setActivePageIndex(pageCount - 1);
@@ -57,7 +59,7 @@ export function usePageSync(params: {
     // itself, or the last page where none renders.
     const indexOf = (id: string) => (id === BLANK_PAGE_ID
       ? (blankPageIndex >= 0 ? blankPageIndex : pages.length - 1)
-      : pages.findIndex(p => p.id === id));
+      : shownPageIds ? shownPageIds.indexOf(id) : pages.findIndex(p => p.id === id));
     if (!pageBootRef.current) {
       pageBootRef.current = true;
       if (kioskBehavior && (pages.length > 1 || layout.activePageId === BLANK_PAGE_ID)) {
@@ -82,20 +84,20 @@ export function usePageSync(params: {
     lastSeenPageIdRef.current = target;
     const idx = indexOf(target);
     if (idx >= 0 && idx !== activePageIndex) setActivePageIndex(idx);
-  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout, blankPageIndex]);
+  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout, blankPageIndex, shownPageIds]);
 
   // Persist a user-driven page change (swipe) into the layout so other clients
   // follow. Carries the new index from the pager so it never reads a stale
   // render value, and marks it seen so the honor effect won't echo it back.
   const handlePageChange = useCallback((idx: number) => {
     setActivePageIndex(idx);
-    const pages = paginatedLayout.pages;
+    const pages = shownPageIds ? shownPageIds.map(id => ({ id })) : paginatedLayout.pages;
     if (pages.length <= 1 && blankPageIndex < 0) return;
     const id = idx === blankPageIndex ? BLANK_PAGE_ID : pages[Math.min(Math.max(idx, 0), pages.length - 1)]?.id;
     if (!id) return;
     lastSeenPageIdRef.current = id;
     if (layout.activePageId !== id) setLayout({ ...layout, activePageId: id });
-  }, [paginatedLayout, layout, setLayout, blankPageIndex]);
+  }, [paginatedLayout, layout, setLayout, blankPageIndex, shownPageIds]);
 
   return { activePageIndex, setActivePageIndex, activePageIndexRef, pageCountRef, handlePageChange };
 }

@@ -1236,3 +1236,104 @@ describe('ZoneCard unsized OpenRGB device', () => {
     expect(screen.queryByRole('button', { name: 'lighting.devices.setLedCounts' })).toBeNull();
   });
 });
+
+describe('ZoneCard not-responding strip', () => {
+  const failing: LightingDevice = { ...baseDevice, writeHealth: 'failing' };
+  const stripName = /lighting\.writeHealth\.badge/;
+
+  function renderFailing(device: LightingDevice, extra: Record<string, unknown> = {}, onOpenFixLighting: () => void = () => {}) {
+    return render(
+      <ZoneCard device={device} selected={false} indent={false} onSelect={() => {}} onOpenFixLighting={onOpenFixLighting} {...extra} />,
+    );
+  }
+
+  it('shows an amber strip for a failing device Nexus controls', () => {
+    renderFailing(failing);
+    const button = screen.getByRole('button', { name: stripName });
+    expect(button.className).toContain(styles.deviceControlledByWarn);
+    expect(document.querySelector(`.${styles.deviceCard}`)?.className).toContain(styles.deviceCardWithStrip);
+  });
+
+  it('shows nothing when healthy, when Nexus does not control the card, or without a handler', () => {
+    const hidden = (device: LightingDevice, handler = true) => {
+      const view = render(
+        <ZoneCard device={device} selected={false} indent={false} onSelect={() => {}} onOpenFixLighting={handler ? () => {} : undefined} />,
+      );
+      const found = screen.queryByRole('button', { name: stripName });
+      view.unmount();
+      return found;
+    };
+    expect(hidden(baseDevice)).toBeNull();
+    expect(hidden({ ...failing, controlled: false })).toBeNull();
+    expect(hidden(failing, false)).toBeNull();
+    expect(hidden(failing)).not.toBeNull();
+  });
+
+  it('stays hidden in toggle, select-only and firmware-controlled modes', () => {
+    const hidden = (extra: Record<string, unknown>) => {
+      const view = renderFailing(failing, extra);
+      const found = screen.queryByRole('button', { name: stripName });
+      view.unmount();
+      return found;
+    };
+    expect(hidden({ toggleMode: true, onToggleControlled: () => {} })).toBeNull();
+    expect(hidden({ selectOnly: true })).toBeNull();
+    expect(hidden({ firmwareControlled: true })).toBeNull();
+  });
+
+  it('yields to the running-app strip', () => {
+    renderFailing(failing, { appStrip: { controlled: true, apps: [{ id: 'icue', name: 'Corsair iCUE' }] }, onOpenAppStrip: () => {} });
+    expect(screen.queryByRole('button', { name: stripName })).toBeNull();
+    expect(screen.getByRole('button', { name: /devices\.conflictRunning\.badge/ })).toBeTruthy();
+  });
+
+  it('opens Fix lighting on press without selecting the card', () => {
+    const onSelect = vi.fn();
+    const onOpenFixLighting = vi.fn();
+    render(<ZoneCard device={failing} selected={false} indent={false} onSelect={onSelect} onOpenFixLighting={onOpenFixLighting} />);
+    fireEvent.click(screen.getByRole('button', { name: stripName }));
+    expect(onOpenFixLighting).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('ZoneCard needs-binding state', () => {
+  const unbound: LightingDevice = { ...baseDevice, id: 'lianli-wireless-unbound:AA', name: 'Strimer Wireless', ledCount: 0, ledsOn: false, controlled: false };
+
+  function renderUnbound(onOpenBinding: () => void) {
+    return render(
+      <ZoneCard
+        device={unbound}
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+        onOpenBinding={onOpenBinding}
+      />,
+    );
+  }
+
+  it('shows the status, offers no lighting controls, and opens on tap or key', () => {
+    const open = vi.fn();
+    renderUnbound(open);
+    expect(screen.getByText('lighting.devices.needsBinding')).toBeTruthy();
+    expect(screen.queryByText('lighting.devices.detectionFailed')).toBeNull();
+    expect(screen.queryByLabelText('lighting.devices.moreActions')).toBeNull();
+    const card = screen.getByRole('button', { name: 'Strimer Wireless, lighting.devices.needsBinding' });
+    fireEvent.click(card);
+    fireEvent.keyDown(card, { key: 'Enter' });
+    fireEvent.keyDown(card, { key: ' ' });
+    expect(open).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByText('lighting.devices.needsBinding').closest('button')!);
+    expect(open).toHaveBeenCalledTimes(4);
+    const strip = screen.getByText('lighting.devices.needsBinding').closest('button')!;
+    expect(strip).toHaveAttribute('tabindex', '-1');
+    expect(strip).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('devices.lianli-wireless.unbound')).toBeTruthy();
+    expect(document.querySelectorAll(`.${styles.deviceControlledByWarn}`)).toHaveLength(1);
+    expect(card.className).toContain(styles.deviceCardWithStrip);
+  });
+});

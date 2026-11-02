@@ -195,6 +195,9 @@ export interface GeneralSettings {
   coolingCollisionShapes: boolean;
   // Sidebar DEVICES row keys the user hid. Server-mirrored under ui.hiddenSidebarDevices.
   hiddenSidebarDevices: string[];
+  // Lighting widget history, most recent first. Server-mirrored under ui.recentStaticColors / ui.recentAnimations.
+  recentStaticColors: string[];
+  recentAnimations: string[];
   // Display-unit choices. Server-mirrored under the preferences `units` block
   // so they follow the profile. See lib/units.ts for their meaning. The
   // monitoring temperature unit governs in-app hardware temps only; outdoor
@@ -272,6 +275,8 @@ export function getDefaultSettings(): NexusSettings {
       coolingFlowMode: 'both',
       coolingCollisionShapes: false,
       hiddenSidebarDevices: [],
+      recentStaticColors: [],
+      recentAnimations: [],
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,

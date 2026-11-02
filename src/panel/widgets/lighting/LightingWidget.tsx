@@ -9,8 +9,8 @@ import {
   fetchCurrentSync,
   fetchLightingStatus,
   fetchScreenEffect,
-  fetchLightingDevices,
   fetchStaticSettings,
+  saveAnimateTemplates,
   startAnimate,
   startStatic,
   startScreenMirror,
@@ -25,15 +25,15 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
-import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
+import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
+import { customEffectKey, isCustomEffectKey, refreshCustomEffects, useCustomEffects } from '../../../api/customEffects';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
-import { pluralKey } from '../../../lib/pluralKey';
 import {
   ANIMATE_EFFECTS,
   DEFAULT_STATIC_EFFECT,
@@ -51,32 +51,38 @@ import { useFeatureFlags, useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
-import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
+import { LightingSwatches } from './LightingSwatches';
+import { useLightingRecents } from './useLightingRecents';
+import { usePanelOpenWidget } from '../common/PanelOpenWidgetContext';
 import { type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
-// Catalog preview pins Animate on the stock simple-mode Rainbow, with a generic
-// rainbow thumbnail in place of the service-rendered one, so the tile renders
-// with zero fetch/socket/blob traffic. Keep in sync with the simple-mode
-// render; previewMode.test.tsx is the fixture-sync gate.
+// Catalog preview pins Animate on the stock simple-mode Rainbow. LightingSwatches
+// draws gradient tiles in preview instead of service-rendered thumbnails, so the
+// tile renders with zero fetch/socket/blob traffic. Keep in sync with the
+// simple-mode render; previewMode.test.tsx is the fixture-sync gate.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'animate';
-const LIGHTING_PREVIEW_EFFECT = 'sweeprainbow';
-const LIGHTING_PREVIEW_THUMBS: Record<string, string> = { [LIGHTING_PREVIEW_EFFECT]: previewRainbowUri() };
+const LIGHTING_PREVIEW_EFFECT = 'rainbow';
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
   const flags = useFeatureFlags();
+  const openWidget = usePanelOpenWidget();
+  const recents = useLightingRecents();
+  const showRecents = widget.config?.showRecents !== false;
+  // The panel's cell-tap action where it acts, else the dashboard's section link, else no open tile.
+  const openAction = openWidget?.(widget) ?? (onSectionNavigate ? () => onSectionNavigate('lighting') : null);
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
   const [gpuAvailable, setGpuAvailable] = useState(true);
   const [gpuState, setGpuState] = useState<GpuState | undefined>(undefined);
-  const [activeDeviceCount, setActiveDeviceCount] = useState(0);
+  const [activeColor, setActiveColor] = useState('');
   // WS-synced from /lighting/current (re-hydrated on the 'lighting' topic), so
   // the shader preview freezes when lighting is paused from any surface.
   const [paused, setPaused] = useState(false);
@@ -89,9 +95,23 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // Animate would drop the user's animation for the catalog default.
   const animateEffectRef = useRef('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
-  // Direction of a running simple-mode sweep, read from its stored speed sign.
+  // The service's stored bundles and the canonical defaults, kept so Studio effects can be resolved as they appear.
+  const [stored, setStored] = useState<{ server: Record<string, EffectTemplateBundle>; defaults: Awaited<ReturnType<typeof fetchAnimateDefaults>> }>({ server: {}, defaults: null });
+  const customs = useCustomEffects(!preview && flags.lighting);
+  const latestRef = useRef({ templates, stored });
+  latestRef.current = { templates, stored };
+  // Built-in presets plus those of every saved Studio effect, so a recent tile of either kind resolves its own preset.
+  const allTemplates = useMemo(() => {
+    const out = { ...templates };
+    for (const c of customs) {
+      const key = customEffectKey(c.id);
+      out[key] = mergeTemplates(key, stored.server[key], stored.defaults);
+    }
+    return out;
+  }, [templates, customs, stored]);
+  // Direction of a running simple-mode animation: its stored speed sign against preset 1's.
   const [sweepReversed, setSweepReversed] = useState(false);
-  const [thumbs, setThumbs] = useState<Record<string, string>>(preview ? LIGHTING_PREVIEW_THUMBS : {});
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});
@@ -139,28 +159,26 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const hydrateSeqRef = useRef(0);
   const hydrate = useCallback(async () => {
     const seq = ++hydrateSeqRef.current;
-    const [sync, animate, staticSettings, screen, lightStatus, defaults, deviceList] = await Promise.all([
+    const [sync, animate, staticSettings, screen, lightStatus, defaults] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
       fetchStaticSettings(),
       fetchScreenEffect(),
       fetchLightingStatus(),
       fetchAnimateDefaults(),
-      fetchLightingDevices(),
     ]);
     if (seq !== hydrateSeqRef.current) return;
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
     setGpuState(lightStatus?.gpuState);
-    // Static drives devices individually, so the widget reports how many are
-    // lit rather than naming one effect.
-    setActiveDeviceCount((deviceList?.devices ?? [])
-      .filter(d => d.ledsOn && d.controlled !== false).length);
+    setActiveColor((staticSettings?.color ?? '').toLowerCase());
 
     const nextTemplates: Record<string, EffectTemplateBundle> = {};
     for (const effect of EFFECTS) {
       nextTemplates[effect.key] = mergeTemplates(effect.key, animate?.templates?.[effect.key], defaults);
     }
     setTemplates(nextTemplates);
+    void refreshCustomEffects();
+    setStored({ server: (animate?.templates ?? {}) as Record<string, EffectTemplateBundle>, defaults });
 
     const rawSync = sync?.sync || 'none';
     const nextMode = resolveMode(rawSync);
@@ -168,17 +186,20 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     // The running sync IS the animate key while Animate runs, and animate
     // settings still hold the pick once another mode takes over - so the ref
     // tracks it whatever mode we hydrate into.
-    const animatePick = [rawSync, animate?.effect]
-      .find(k => ANIMATE_EFFECTS.some(e => e.key === k));
+    const animatePick = [canonicalSimpleKey(rawSync), animate?.effect]
+      .find(k => ANIMATE_EFFECTS.some(e => e.key === k) || isCustomEffectKey(k));
     if (animatePick) animateEffectRef.current = animatePick;
-    // A sweep drives the hardware without a catalogue entry, so it has to be
-    // named here or the tile pictures whatever the last catalogue pick was.
-    const sweep = isSimpleAnimation(rawSync);
-    if (sweep) setSweepReversed((animate?.states?.[rawSync]?.speed ?? 50) < 0);
+    // A key retired from simple mode (older service) shows as its replacement.
+    const syncEffect = canonicalSimpleKey(rawSync);
+    if (isSimpleAnimation(rawSync)) {
+      const runningSpeed = animate?.states?.[rawSync]?.speed ?? animate?.states?.[syncEffect]?.speed;
+      const slot0 = nextTemplates[syncEffect]?.slots[SIMPLE_SLOT];
+      setSweepReversed(typeof runningSpeed === 'number' && !!slot0 && isSimpleReversed(runningSpeed, slot0.speed));
+    }
     const nextEffect = nextMode === 'static'
       ? staticEffectRef.current
-      : EFFECTS.some(e => e.key === rawSync) || sweep
-        ? rawSync
+      : EFFECTS.some(e => e.key === syncEffect) || isCustomEffectKey(syncEffect)
+        ? syncEffect
         : animateEffectRef.current;
     setActiveEffect(nextEffect);
 
@@ -206,12 +227,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // The tile shows the active effect's selected universal slot. Its content hash
   // changes when that slot's saved look is edited (re-hydrate here, or the
   // lighting broadcast from another surface), so the tile refetches the BMP.
-  const activeSlot = templates[activeEffect]?.selected ?? 0;
+  const activeSlot = allTemplates[activeEffect]?.selected ?? 0;
   const activeVersion = useMemo(() => {
-    const b = templates[activeEffect];
+    const b = allTemplates[activeEffect];
     if (!b || b.slots.length === 0) return '0';
     return slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)]);
-  }, [templates, activeEffect]);
+  }, [allTemplates, activeEffect]);
 
   // The widget shows one thumbnail at a time (active effect, Prev/Next
   // cycling). Load the active effect's BMP on demand and cache picks as
@@ -297,7 +318,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   }, []);
 
   const applyEffect = useCallback(async (effectKey: string, state?: EffectState, templateIndex?: number) => {
-    const next = state ?? resolveEffectState(effectKey, templates);
+    const next = state ?? resolveEffectState(effectKey, allTemplates);
     setActiveEffect(effectKey);
     animateEffectRef.current = effectKey;
     setMode('animate');
@@ -314,7 +335,22 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       next.sensors,
     );
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
-  }, [publishLighting, templates]);
+  }, [publishLighting, allTemplates]);
+
+  // A recents tile: the effect at the preset it shows. The preset becomes the effect's selected one, as picking it on the page does.
+  const applyRecentAnimation = useCallback(async (effectKey: string, slot: number) => {
+    const bundle = allTemplates[effectKey];
+    const picked = bundle?.slots[Math.min(Math.max(slot, 0), bundle.slots.length - 1)];
+    // Before hydrate there is no preset to run, so the current one runs and no preset index is claimed.
+    await applyEffect(effectKey, picked ? resolveEffectState(effectKey, allTemplates, picked) : undefined, picked ? slot : undefined);
+    if (!bundle || bundle.selected === slot) return;
+    // Read after the await: the start's broadcast may have re-hydrated, and the save replaces the whole dict.
+    const latest = latestRef.current;
+    const next: Record<string, EffectTemplateBundle> = { ...latest.templates };
+    for (const [k, v] of Object.entries(latest.stored.server)) if (isCustomEffectKey(k)) next[k] = v;
+    next[effectKey] = { ...(next[effectKey] ?? bundle), selected: slot };
+    try { await saveAnimateTemplates(next); } catch { /* the tile still ran; the next hydrate shows what persisted */ }
+  }, [allTemplates, applyEffect]);
 
   const applyStatic = useCallback(async (effectKey: string, state?: EffectState) => {
     const next = state ?? resolveEffectState(effectKey, templates);
@@ -333,6 +369,15 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     );
     publishLighting('static', 'static', { effect: effectKey, effectState: next });
   }, [publishLighting, templates]);
+
+  const applyColor = useCallback(async (hex: string) => {
+    setActiveColor(hex.toLowerCase());
+    setActiveEffect(DEFAULT_STATIC_EFFECT);
+    staticEffectRef.current = DEFAULT_STATIC_EFFECT;
+    setMode('static');
+    await startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex);
+    publishLighting('static', 'static', { effect: DEFAULT_STATIC_EFFECT });
+  }, [publishLighting]);
 
   const applyMirror = useCallback(async () => {
     setMode('screen');
@@ -354,6 +399,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   const onStaticButton = useCallback(() => {
     const effect = isStaticEffect(activeEffect) ? activeEffect : staticEffectRef.current;
+    setActiveColor('');
     void applyStatic(effect);
   }, [activeEffect, applyStatic]);
 
@@ -403,32 +449,22 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     const prev = () => cycleMode(-1);
     const next = () => cycleMode(1);
 
-    // Static assigns a colour per device, so there is no one selection to
-    // picture - the icon plus how many devices are lit is the whole truth.
     if (mode === 'static') {
       return {
         kind: 'icon',
         icon: LIGHTING_MODE_ICONS.static,
-        label: t(pluralKey('lighting.devices.activeCount', language, activeDeviceCount), { count: activeDeviceCount }),
+        label: t('lighting.mode.static'),
         onPrev: prev,
         onNext: next,
       };
     }
     if (mode === 'animate') {
-      if (isSimpleAnimation(activeEffect)) {
-        return {
-          kind: 'thumb',
-          thumbUrl: thumbs[activeEffect] ?? null,
-          label: t(simpleAnimationLabelKey(activeEffect)),
-          onPrev: prev,
-          onNext: next,
-        };
-      }
+      const custom = isCustomEffectKey(activeEffect) ? customs.find(c => customEffectKey(c.id) === activeEffect) : undefined;
       const effect = ANIMATE_EFFECTS.find(e => e.key === activeEffect) ?? ANIMATE_EFFECTS[0];
       return {
         kind: 'thumb',
-        thumbUrl: thumbs[effect.key] ?? null,
-        label: t(effect.labelKey),
+        thumbUrl: thumbs[custom ? activeEffect : effect.key] ?? null,
+        label: custom ? custom.name : t(effect.labelKey),
         onPrev: prev,
         onNext: next,
       };
@@ -458,7 +494,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     }
     // mode === 'none' (off).
     return { kind: 'icon', icon: Lightbulb, muted: true, label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
+  }, [mode, activeEffect, customs, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
   // The flash stands in for a thumbnail that has not painted yet, so the tile
   // only flashes where a thumbnail renders. Off, Static, Mirror and
@@ -469,10 +505,14 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
-    () => (isSimpleAnimation(activeEffect)
-      ? simpleAnimationState(sweepReversed)
-      : resolveEffectState(activeEffect, templates)),
-    [activeEffect, sweepReversed, templates],
+    () => {
+      // Reverse is measured against, and negates, the first preset.
+      const slot0 = allTemplates[activeEffect]?.slots[SIMPLE_SLOT];
+      return sweepReversed && isSimpleAnimation(activeEffect) && slot0
+        ? simpleAnimationState(slot0, true)
+        : resolveEffectState(activeEffect, allTemplates);
+    },
+    [activeEffect, sweepReversed, allTemplates],
   );
 
   if (!preview && !flags.lighting) {
@@ -562,12 +602,32 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     );
   }
 
-  // Simple mode: same UX at every size - center icon/label + arrows, no
+  const swatches = mode === 'static' || mode === 'animate'
+    ? (
+      <LightingSwatches
+        key={`${mode}:${showRecents}`}
+        kind={mode}
+        size={widget.size}
+        activeEffect={activeEffect}
+        activeColor={activeColor}
+        templates={allTemplates}
+        preview={preview}
+        showRecents={showRecents}
+        recentColors={recents.colors}
+        recentAnimations={recents.animations}
+        onColor={hex => { void applyColor(hex); }}
+        onEffect={(key, slot) => { void applyRecentAnimation(key, slot); }}
+        onOpen={openAction}
+      />
+    )
+    : undefined;
+
+  // Simple mode: same UX at every size - center content + arrows, no
   // mode-buttons row. The arrows switch mode (see cycleMode).
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
-        <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed />
+        <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed swatches={swatches} />
       </div>
     );
   }
@@ -575,7 +635,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   if (compact) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
+        <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed swatches={swatches} />
       </div>
     );
   }
@@ -583,7 +643,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
       {/* The mode buttons below pick the mode, so no arrows here. */}
-      <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
+      <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed swatches={swatches} />
       <div className={styles.modeGrid}>
         {MODES.map(m => {
           const Icon = LIGHTING_MODE_ICONS[m.key];
@@ -609,11 +669,11 @@ type SingleView =
   | { kind: 'thumb'; thumbUrl: string | null; label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'icon';  icon: LucideIcon; muted?: boolean; label: string; onPrev?: () => void; onNext?: () => void };
 
-function SingleItemView({ view, t, showArrows, overlay, framed }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode; framed?: boolean }) {
+function SingleItemView({ view, t, showArrows, overlay, framed, swatches }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode; framed?: boolean; swatches?: ReactNode }) {
   const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   return (
     <div className={styles.thumbBox}>
-      {view.kind === 'thumb' && framed ? (
+      {swatches ? swatches : view.kind === 'thumb' && framed ? (
         // Same card as the animation browser (EffectCard overlay), centered
         // at the browser's 16/9 aspect instead of stretched edge-to-edge.
         <div className={styles.thumbCardBox}>

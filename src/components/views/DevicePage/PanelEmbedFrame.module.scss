@@ -1,14 +1,13 @@
 .container {
   border-radius: var(--radius);
   overflow: hidden;
+  // The iframe is composited (transform-scaled) and a GIF or video background takes its own
+  // layer, which Blink does not clip against an ancestor's border-radius; the clip path does.
+  clip-path: inset(0 round var(--radius));
   border: 1px solid transparent;
   background: #0a0a10;
   flex-shrink: 0;
   position: relative;
-}
-
-.container[data-surface='y70'] {
-  border-radius: 0;
 }
 
 // Round cooler glass shows the inscribed circle of the square

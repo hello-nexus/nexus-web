@@ -1,13 +1,26 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
 import { ConflictOutcomePanel } from '../ConflictOutcomePanel/ConflictOutcomePanel';
+import { settingMix } from '../ConflictOutcomePanel/conflictOutcome';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
 import { alwaysAlerts, useConflictOverlap } from '../../../hooks/useConflictOverlap';
 import styles from './ConflictWarning.module.scss';
+
+const INTRO_KEYS = {
+  apps: 'conflicts.modal.intro',
+  mixed: 'conflicts.modal.introMixed',
+  setting: 'conflicts.modal.introSetting',
+} as const;
+
+const TITLE_KEYS = {
+  apps: 'conflicts.modal.title',
+  mixed: 'conflicts.modal.titleMixed',
+  setting: 'conflicts.modal.titleSetting',
+} as const;
 
 interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
@@ -80,6 +93,21 @@ export function ConflictWarningModal({
   open, conflicts, ready, whitelisted, onClose,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
+  // The panel holds its rows while the modal is open (an ended app stays listed),
+  // so the wording follows every entry seen since it opened, not the live list:
+  // a setting-only modal keeps its setting title after Turn off.
+  const [held, setHeld] = useState<readonly DetectedConflict[]>([]);
+  useEffect(() => {
+    if (!open) {
+      setHeld([]);
+      return;
+    }
+    setHeld(prev => {
+      const extra = conflicts.filter(c => !prev.some(p => p.id === c.id));
+      return extra.length === 0 ? prev : [...prev, ...extra];
+    });
+  }, [open, conflicts]);
+  const mix = settingMix([...held, ...conflicts.filter(c => !held.some(h => h.id === c.id))]);
 
   if (!open) return null;
 
@@ -87,7 +115,7 @@ export function ConflictWarningModal({
     <DeviceModal
       open={open}
       onClose={onClose}
-      title={t('conflicts.modal.title')}
+      title={t(TITLE_KEYS[mix])}
       large
       // DeviceModal tints its icon slot with --accent; conflicts are a warning
       // everywhere else they appear (the badge, the onboarding screen).
@@ -100,7 +128,7 @@ export function ConflictWarningModal({
           active={open}
           whitelisted={whitelisted}
           variant="modal"
-          heading={<p className={styles.intro}>{t('conflicts.modal.intro')}</p>}
+          heading={<p className={styles.intro}>{t(INTRO_KEYS[mix])}</p>}
           onDone={onClose}
         />
       </div>

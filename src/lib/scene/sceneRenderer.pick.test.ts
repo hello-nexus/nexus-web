@@ -32,7 +32,7 @@ const bind = (deviceId: string, objectId: string, anchorId: string): SceneBindin
 const settle = (r: SceneRenderer) => (r as unknown as { scene: { updateMatrixWorld: (force: boolean) => void } }).scene.updateMatrixWorld(true);
 
 function stateOf(objects: SceneObject[], bindings: SceneBinding[]): SceneRenderState {
-  return { objects, bindings, leds: new Map(), selectedDeviceId: null, selectedObjectId: null, placing: false, dropTarget: null, editable: false };
+  return { objects, bindings, leds: new Map(), selectedDeviceId: null, selectedObjectId: null, editable: false };
 }
 
 describe('scene pick path', () => {

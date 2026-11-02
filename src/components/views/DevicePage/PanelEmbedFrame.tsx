@@ -16,7 +16,7 @@ import {
   type SimulatorParentToChild,
   type SimulatorTheme,
 } from '../../../panel/embed/simulatorProtocol';
-import type { PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
+import type { ChromeGrid, PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
 import { simulatedPanelCssViewport } from '../../../panel/embed/simulatedPanelViewport';
 import { playlistTypeOfWidgetId, playlistWidget } from '../../../panel/engine/widgetPlaylist';
 import { useTranslation } from '../../../lib/i18n';
@@ -28,6 +28,8 @@ export interface PanelEmbedFrameHandle {
 }
 
 interface PanelEmbedFrameProps {
+  /** SVG filter id applied to the frame, for 1-bit glass. */
+  monoFilterId?: string;
   surface: PanelSurface;
   captureRef?: Ref<PanelEmbedFrameHandle>;
   layout: PanelLayout;
@@ -40,6 +42,9 @@ interface PanelEmbedFrameProps {
   onLayoutChange: (layout: PanelLayout) => void;
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
+  // A click on free background; the point is in the host window's client pixels.
+  onBackgroundMenu?: (point: { x: number; y: number }) => void;
+  onBackgroundCovered?: (covered: boolean) => void;
   // The widget type the preview's playlist rotation shows (null when none).
   onPlaylistShown?: (type: string | null) => void;
   /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
@@ -80,6 +85,8 @@ interface PanelEmbedFrameProps {
   gridDpi?: number;
   // Short-axis slot count Widget size forces on the grid, forwarded with the density.
   shortSideSlots?: number;
+  // The Large-size grid that sizes floating chrome in the preview.
+  chromeGrid?: ChromeGrid;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -219,12 +226,16 @@ export function PanelEmbedFrame({
   onLayoutChange,
   onWidgetClicked,
   onBackgroundClicked,
+  onBackgroundMenu,
+  onBackgroundCovered,
   onPlaylistShown,
   canvasSize,
+  monoFilterId,
   canvasDpi,
   canvasIsCssPixels,
   gridDpi,
   shortSideSlots,
+  chromeGrid,
   brightness,
   screenOn,
   showPanel,
@@ -339,6 +350,20 @@ export function PanelEmbedFrame({
           onBackgroundClicked();
           break;
         }
+        case 'simulator/background-menu': {
+          // The iframe is transform-scaled, so its client pixels map through the box ratio.
+          const frame = iframeRef.current;
+          if (!frame) break;
+          const rect = frame.getBoundingClientRect();
+          const sx = frame.offsetWidth > 0 ? rect.width / frame.offsetWidth : 1;
+          const sy = frame.offsetHeight > 0 ? rect.height / frame.offsetHeight : 1;
+          onBackgroundMenu?.({ x: rect.left + data.x * sx, y: rect.top + data.y * sy });
+          break;
+        }
+        case 'simulator/background-covered': {
+          onBackgroundCovered?.(data.covered);
+          break;
+        }
         case 'simulator/playlist-shown': {
           onPlaylistShown?.(data.widgetType);
           break;
@@ -349,7 +374,7 @@ export function PanelEmbedFrame({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
+  }, [layout, onBackgroundClicked, onBackgroundCovered, onBackgroundMenu, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {
@@ -362,6 +387,7 @@ export function PanelEmbedFrame({
       genericDisplay,
       dpi: effectiveGridDpi,
       shortSideSlots,
+      chromeGrid,
       layout,
       theme,
       themeMode,
@@ -408,8 +434,8 @@ export function PanelEmbedFrame({
   // fetch races the iframe boot), so mirror it like the other props.
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots });
-  }, [childReady, effectiveGridDpi, shortSideSlots, post]);
+    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots, chromeGrid });
+  }, [childReady, effectiveGridDpi, shortSideSlots, chromeGrid, post]);
 
   // Touch capability can resolve after init the same way (record fetch),
   // so mirror it too - the preview's drag sensor gates on it.
@@ -530,6 +556,7 @@ export function PanelEmbedFrame({
           width: canvasW,
           height: canvasH,
           transform: `scale(${measured.scale})`,
+          ...(monoFilterId ? { filter: `url(#${monoFilterId})`, imageRendering: 'pixelated' as const } : {}),
         }}
       />
     </div>

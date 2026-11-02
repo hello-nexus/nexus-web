@@ -194,13 +194,28 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(patchPanelDeviceMock).not.toHaveBeenCalledWith('rec1', expect.objectContaining({ alwaysOnTop: expect.anything() }));
   });
 
-  it('is not offered on a known device display such as the Xeneon Edge', async () => {
-    serveRecord({ family: 'xeneon-edge' });
+  it('is offered on a known device display on any background, as a plain toggle', async () => {
+    themeState.backdrop = 'theme';
+    serveRecord({ family: 'xeneon-edge', alwaysOnTop: true });
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    await screen.findByRole('switch', { name: RESERVE_LABEL });
-    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+    const toggle = await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+    expect(toggle).not.toBeDisabled();
+    expect(screen.getAllByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).toHaveLength(1);
+    fireEvent.click(toggle);
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { alwaysOnTop: false }));
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    // Widget lock stays generic-display only.
     expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
+  });
+
+  it('is not offered on a panel with no display to stack', async () => {
+    serveRecord({ family: 'xeneon-edge' });
+    const unbound = { ...DEVICE, displayId: undefined, panelRecordId: undefined } as PanelDevice;
+    render(<PanelDevicePage device={unbound} />);
+    await screen.findByRole('tab', { name: SETTINGS_TAB }).catch(() => null);
+    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
   });
 });

@@ -18,18 +18,21 @@ interface DeviceModalProps {
   fit?: boolean;
   /** Slightly wider than the default cap - use for content-heavy dialogs. */
   medium?: boolean;
+  /** A step wider than medium - for dialogs whose sections need the room. */
+  roomy?: boolean;
   /** When false the X button is hidden and Esc/backdrop-click do not close. Defaults to true. */
   closable?: boolean;
   headerRight?: ReactNode;
   children: ReactNode;
 }
 
-export function DeviceModal({ open, onClose, title, subtitle, icon, large, wide, fullscreen, fit, medium, closable = true, headerRight, children }: DeviceModalProps) {
+export function DeviceModal({ open, onClose, title, subtitle, icon, large, wide, fullscreen, fit, medium, roomy, closable = true, headerRight, children }: DeviceModalProps) {
   const { t } = useTranslation();
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
     : large ? styles.modalLarge
     : fit ? styles.modalFit
+    : roomy ? styles.modalRoomy
     : medium ? styles.modalMedium
     : '';
   const surfaceClass = `${styles.modal} ${variantClass}`.trim();

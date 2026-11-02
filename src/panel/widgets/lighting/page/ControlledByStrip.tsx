@@ -11,10 +11,13 @@ const APP_TOKEN = '\uE000';
  * The footer of a lighting card naming the apps that compete for its hardware.
  * Gray when Nexus does not drive the device, amber when it does; both open the
  * conflict dialog, so the press never reaches the card's select or drag.
+ * With `label` it is the amber not-responding strip instead, opening whatever `onOpen` opens.
  */
-export function ControlledByStrip({ strip, onOpen }: { strip: CardAppStrip; onOpen: () => void }) {
+type ControlledByStripProps = { onOpen: () => void; /** The card around it is the one control, so the strip leaves the tab order and the accessibility tree. */ passive?: boolean } & ({ strip: CardAppStrip; label?: never } | { label: string; strip?: never });
+
+export function ControlledByStrip({ strip, label, onOpen, passive }: ControlledByStripProps) {
   const { t, language } = useTranslation();
-  const warn = strip.controlled;
+  const warn = label !== undefined || !!strip?.controlled;
   const [before, after = ''] = t(warn ? 'devices.conflictRunning.badge' : 'lighting.devices.controlledBy', { app: APP_TOKEN }).split(APP_TOKEN);
   const Icon = warn ? AlertTriangle : AppWindow;
   return (
@@ -22,15 +25,21 @@ export function ControlledByStrip({ strip, onOpen }: { strip: CardAppStrip; onOp
       type="button"
       className={`${styles.deviceControlledBy} ${warn ? styles.deviceControlledByWarn : ''}`}
       data-no-dnd
+      tabIndex={passive ? -1 : undefined}
+      aria-hidden={passive || undefined}
       onClick={e => { e.stopPropagation(); onOpen(); }}
       // Enter and Space activate the button; keep them from the card's key handlers (drag, toggle). Everything else bubbles.
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
     >
       <Icon aria-hidden />
       <span>
-        {before}
-        <b>{formatList(strip.apps.map(a => a.name), language)}</b>
-        {after}
+        {label !== undefined ? <b>{label}</b> : (
+          <>
+            {before}
+            <b>{formatList((strip?.apps ?? []).map(a => a.name), language)}</b>
+            {after}
+          </>
+        )}
       </span>
     </button>
   );

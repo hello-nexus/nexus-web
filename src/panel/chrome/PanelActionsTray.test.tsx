@@ -5,7 +5,7 @@ import { PanelActionsTray } from './PanelActionsTray';
 import { resetGestureAxis } from '../engine/gestureAxisLock';
 import type { PanelSurface } from '../types';
 
-function Harness({ surface = 'phone' }: { surface?: PanelSurface }) {
+function Harness({ surface = 'phone', disabled = false, restricted = false }: { surface?: PanelSurface; disabled?: boolean; restricted?: boolean }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   return (
     <div ref={surfaceRef} data-testid="surface" style={{ height: 800 }}>
@@ -17,6 +17,8 @@ function Harness({ surface = 'phone' }: { surface?: PanelSurface }) {
         pairAvailable={false}
         surfaceRef={surfaceRef}
         surface={surface}
+        disabled={disabled}
+        restricted={restricted}
       />
     </div>
   );
@@ -98,6 +100,28 @@ describe('PanelActionsTray pairing tile', () => {
   });
 });
 
+describe('PanelActionsTray restricted', () => {
+  it('shows only the Restricted mode indicator, no tiles', () => {
+    render(
+      <PanelActionsTray open onOpen={vi.fn()} onClose={vi.fn()} onAddWidget={vi.fn()} onTheme={vi.fn()} onBackground={vi.fn()}
+        pairAvailable={false} surfaceRef={{ current: null }} surface="y70" restricted />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('devices.y70.restrictedMode');
+    expect(screen.queryByText('panel.actions.addWidget')).toBeNull();
+    expect(screen.queryByText('panel.actions.theme')).toBeNull();
+  });
+
+  it('still opens on a swipe', () => {
+    render(<Harness surface="y70" restricted />);
+    const surface = screen.getByTestId('surface');
+    act(() => {
+      dispatchTouch(surface, 'touchstart', 100, window.innerHeight - 4, 0);
+      dispatchTouch(surface, 'touchmove', 100, window.innerHeight - 300, 16);
+    });
+    expect(screen.getByLabelText('panel.actions.label')).toHaveAttribute('data-state', 'dragging');
+  });
+});
+
 describe('PanelActionsTray swipe-to-open', () => {
   beforeEach(() => resetGestureAxis());
 
@@ -151,6 +175,20 @@ describe('PanelActionsTray swipe-to-open', () => {
     });
 
     expect(tray).toHaveAttribute('data-state', 'dragging');
+  });
+
+  // Restricted mode passes disabled: the swipe never engages.
+  it('stays closed under a swipe while disabled', () => {
+    render(<Harness surface="y70" disabled />);
+    const surface = screen.getByTestId('surface');
+    const tray = screen.getByLabelText('panel.actions.label');
+
+    act(() => {
+      dispatchTouch(surface, 'touchstart', 100, 700, 0);
+      dispatchTouch(surface, 'touchmove', 100, 650, 16);
+    });
+
+    expect(tray).toHaveAttribute('data-state', 'closed');
   });
 
   // The phone's system home-indicator band keeps its bottom edge.

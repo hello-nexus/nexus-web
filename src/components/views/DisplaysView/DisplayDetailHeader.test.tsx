@@ -7,7 +7,7 @@ import { displaySubtitle } from './displaySubtitle';
 const disp = (over: Partial<TopologyDisplay>): TopologyDisplay => ({
   id: 'd', number: 1, name: 'DELL U2723QE', manufacturer: 'DEL', model: 'U2723QE', bounds: null, resolution: { width: 1, height: 1 },
   scaleFactor: null, dpi: null, isPrimary: false, isInternal: false, isTouch: false, orientation: '', isY70: false,
-  ddcEnabled: true, hostingSupported: true, assignedPanelDeviceId: null, assignedPanelName: null, ...over,
+  ddcEnabled: true, hostingSupported: true, ownedByDevicePanel: false, assignedPanelDeviceId: null, assignedPanelName: null, ...over,
 });
 
 describe('displaySubtitle', () => {
@@ -46,5 +46,13 @@ describe('DisplayDetailHeader', () => {
     render(<DisplayDetailHeader display={disp({ isY70: true })} onDeviceSelect={onDeviceSelect} />);
     fireEvent.click(screen.getByRole('button', { name: 'displays.panel.open' }));
     expect(onDeviceSelect).toHaveBeenCalledWith('panel-device:y70');
+  });
+
+  it('treats a USB device virtual monitor as managed automatically and opens the device panel page', () => {
+    const onDeviceSelect = vi.fn();
+    render(<DisplayDetailHeader display={disp({ ownedByDevicePanel: true, hostingSupported: false, assignedPanelDeviceId: 'p9' })} onDeviceSelect={onDeviceSelect} />);
+    expect(screen.getByText('displays.panel.activeAuto')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'displays.panel.open' }));
+    expect(onDeviceSelect).toHaveBeenCalledWith('panel-stream:p9');
   });
 });

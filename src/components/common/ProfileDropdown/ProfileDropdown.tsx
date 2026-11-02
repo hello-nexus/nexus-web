@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, UsersRound, UserRound, LogIn } from 'lucide-react';
+import { ChevronDown, Plus, UsersRound, UserRound, LogIn } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
@@ -195,7 +195,6 @@ export function ProfileDropdown({
                     <span className={styles.accountEntryName}>{signedIn ? accountUsername : t('account.dropdown.logIn')}</span>
                     <span className={styles.accountEntrySub}>{t('account.title')}</span>
                   </span>
-                  <ChevronRight size={14} className={styles.accountEntryChevron} aria-hidden />
                 </button>
               </div>
               <MenuDivider />

@@ -19,6 +19,7 @@ import { sliceStackSlot, stackSlotOf, type DeviceStack } from '../../../lib/stac
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import { lockedFrameSize } from '../../../lib/aspectResize';
 import styles from './DeviceCanvas.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 interface DeviceCanvasProps {
   /** Drawn over the canvas stream and under the shader canvas and frames; it must not take pointer events. */
@@ -955,9 +956,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
             onPointerDown={e => handleFramePointerDown(e, dev)}
             onContextMenu={e => handleFrameContextMenu(e, dev)}>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
-            <div className={styles.rotateHandle} title={t('lighting.devices.rotateHandle')} onPointerDown={e => startDrag(e, dev, 'rotate')}>
-              <RotateCw size={10} aria-hidden />
-            </div>
+            <HoverTooltip body={t('lighting.devices.rotateHandle')}>
+              <div className={styles.rotateHandle} onPointerDown={e => startDrag(e, dev, 'rotate')}>
+                <RotateCw size={10} aria-hidden />
+              </div>
+            </HoverTooltip>
             {foreign && <span className={styles.foreignCaption}>{foreignFrames.get(dev.id) ?? foreignFrames.get(shownMembers[0])}</span>}
             {selected && selectedDeviceLeds && shownMembers
               .filter(id => !foreignFrames?.has(id))

@@ -22,6 +22,21 @@
   }
 }
 
+.clickable {
+  border: 0;
+  cursor: pointer;
+  transition: background var(--ease-fast);
+
+  &:hover {
+    background: color-mix(in srgb, var(--badge-color, var(--text)) 26%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
 .filled {
   background: var(--badge-color, var(--text));
   color: var(--accent-text);

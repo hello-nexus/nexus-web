@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PcSetupRecord } from '../../../../api/pcSetup';
 import type { HeadlessBuild } from '../../../../components/views/BuildPage/BuildPage';
-import { supportsAirflow } from '../../../../lib/cooling/airflowCases';
+import { isFullySupportedCase } from '../../../../lib/cooling/supportedCases';
 import { resetTried } from '../../../../lib/cooling/autoResolve';
 import { CoolingAutoResolve, RESOLVE_TIMEOUT_MS, type AutoResolveState } from './CoolingAutoResolve';
 
@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
   setup: { record: null as unknown, loaded: false },
   machine: { machine: null as unknown, key: null as string | null },
   frames: 0,
+  sceneExport: true,
   headless: null as null | HeadlessBuild,
 }));
 
@@ -19,6 +20,7 @@ vi.mock('../../../../api/service', () => ({ get isRemoteOrigin() { return h.remo
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
 vi.mock('../../../../components/views/BuildPage/buildMachine', () => ({ useBuildMachine: (enabled: boolean) => (enabled ? h.machine : { machine: null, key: null }) }));
 vi.mock('../../../../components/views/BuildPage/BuildPage', () => ({
+  sceneExportOffered: () => h.sceneExport,
   BuildPage: ({ headless }: { headless: HeadlessBuild }) => {
     h.headless = headless;
     useEffect(() => { h.frames += 1; }, []);
@@ -64,17 +66,30 @@ describe('CoolingAutoResolve', () => {
     const { rerender } = mount();
     expect(frame()).not.toBeNull();
     expect(state.phase).toBe('resolving');
-    expect(h.headless).toMatchObject({ layoutKey: 'k1', machine: { caseId: Y70 } });
+    expect(h.headless).toMatchObject({ layoutKey: 'k1', syncSetup: true, machine: { caseId: Y70 } });
 
     act(() => h.headless!.onResolved({ rev: 1, saved: true, hasLayout: true, model: false }));
     // The layout is in, the model is not yet: the frame stays for it.
     h.setup = { record: record(1, { caseModel: 'HYTE Y70', inputKey: 'k1' }), loaded: true };
     rerender(view());
     expect(frame()).not.toBeNull();
-    expect(supportsAirflow((h.setup.record as PcSetupRecord).setup.resolved.caseLayout && ((h.setup.record as PcSetupRecord).setup.resolved.caseLayout as { caseModel: string }).caseModel)).toBe(true);
+    expect(isFullySupportedCase((h.setup.record as PcSetupRecord).setup.resolved.caseLayout && ((h.setup.record as PcSetupRecord).setup.resolved.caseLayout as { caseModel: string }).caseModel)).toBe(true);
 
     act(() => h.headless!.onResolved({ rev: 2, saved: true, hasLayout: true, model: true }));
     h.setup = { record: record(2, { caseModel: 'HYTE Y70', inputKey: 'k1' }), loaded: true };
+    rerender(view());
+    expect(frame()).toBeNull();
+    expect(state.phase).toBe('idle');
+  });
+
+  it('finishes on the saved layout when the build offers no scene export, so a release build does not wait out the timeout', () => {
+    h.sceneExport = false;
+    h.setup = { record: record(0), loaded: true };
+    h.machine = machineFor('k1');
+    const { rerender } = mount();
+    expect(frame()).not.toBeNull();
+    act(() => h.headless!.onResolved({ rev: 1, saved: true, hasLayout: true, model: false }));
+    h.setup = { record: record(1, { caseModel: 'HYTE Y70', inputKey: 'k1' }), loaded: true };
     rerender(view());
     expect(frame()).toBeNull();
     expect(state.phase).toBe('idle');

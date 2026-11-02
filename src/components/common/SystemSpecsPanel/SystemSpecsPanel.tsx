@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Card } from '../Card/Card';
 import { Button } from '../Button/Button';
 import styles from './SystemSpecsPanel.module.scss';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface SystemSpecRow {
   label: string;
@@ -60,7 +61,7 @@ export function SystemSpecsPanel({ rows, variant = 'list', loading, copyLabel, c
                   <span className={styles.tileLabel}>{row.label}</span>
                 </>
               )}
-              <span className={styles.tileValue} title={row.value}>{row.value || '-'}</span>
+              <HoverTooltip body={row.value}><span className={styles.tileValue}>{row.value || '-'}</span></HoverTooltip>
             </div>
           </Card>
         ))}

@@ -5,7 +5,7 @@ export const DISCORD_INVITE_URL = 'https://discord.gg/MXAuxKKfVM';
 export const AI_INTEGRATION_GUIDE_URL = 'https://hellonexus.com/docs/guides/ai/mcp-server';
 
 // The site serves each app language under /<lowercased tag>/docs, English at /docs.
-export function troubleshootingUrl(page: 'q-series-panels' | 'y70-touch', language: Language): string {
+export function troubleshootingUrl(page: 'q-series-panels' | 'y70-touch' | 'lighting', language: Language): string {
   const prefix = language === 'en' ? '' : `/${language.toLowerCase()}`;
   return `https://hellonexus.com${prefix}/docs/troubleshooting/${page}`;
 }

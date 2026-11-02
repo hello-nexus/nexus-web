@@ -988,7 +988,11 @@ export function Dashboard() {
       case 'benchmark':  return <BenchmarkPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'lighting':   return <FeatureGate feature="lighting"><LightingPage serviceOnline={online} serviceState={serviceState} accountUsername={cloudAccounts.activeAccount?.username ?? null} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} onSectionNavigate={(target, payload) => {
         // The LED-map hub composition panel deep-links to a device page.
-        if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
+        if (target === 'device' && payload?.deviceKey) {
+          navigate('system', 'device', payload.deviceKey);
+          if (payload.scrollAnchors) requestSearchScroll(payload.scrollAnchors);
+          return;
+        }
         // The canvas GPU notice deep-links to the render-GPU picker.
         if (target === 'settings' && payload?.settingsTab) {
           navigate('system', 'settings', payload.settingsTab);
@@ -1034,7 +1038,7 @@ export function Dashboard() {
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
       case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} platform={status.ping?.platform ?? ''} />;
       case 'clock':      return <ClockPage />;
-      case 'weather':    return <WeatherPage />;
+      case 'weather':    return <WeatherPage tab={subtab ?? undefined} />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenDeckEditor={target => handleOpenDeckEditor({ ...target, token: 0 })} />;

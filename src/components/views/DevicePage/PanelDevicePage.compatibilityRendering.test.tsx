@@ -166,3 +166,53 @@ describe('PanelDevicePage Y70 compatibility mode', () => {
     expect(toggle).toBeChecked();
   });
 });
+
+describe('PanelDevicePage Y70 Restricted mode', () => {
+  const LABEL = 'devices.y70.restrictedMode';
+  const REAL_Y70 = { ...DEVICE, connectionKind: 'usb' } as PanelDevice;
+
+  function serveY70Record() {
+    fetchServiceMock.mockImplementation(() => Promise.resolve(null));
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{ id: 'yrec', capabilities: { surface: 'y70', touch: true } }],
+    });
+  }
+
+  it('shows on the Y70 settings and patches the surface-bound record', async () => {
+    serveY70Record();
+    render(<PanelDevicePage device={REAL_Y70} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: LABEL });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('yrec', { restrictedMode: true }));
+    expect(toggle).toBeChecked();
+  });
+
+  it('reverts the switch when the write is refused', async () => {
+    serveY70Record();
+    patchPanelDeviceMock.mockResolvedValue(null);
+    render(<PanelDevicePage device={REAL_Y70} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: LABEL });
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('yrec', { restrictedMode: true }));
+    await waitFor(() => expect(toggle).not.toBeChecked());
+  });
+
+  it('reverts the switch when the write throws', async () => {
+    serveY70Record();
+    patchPanelDeviceMock.mockRejectedValue(new Error('offline'));
+    render(<PanelDevicePage device={REAL_Y70} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: LABEL });
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(toggle).not.toBeChecked());
+  });
+});

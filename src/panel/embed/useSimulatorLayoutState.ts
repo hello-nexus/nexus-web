@@ -4,7 +4,7 @@
 // are echoed back to the parent via 'simulator/layout-changed'.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { PanelLayout, PanelSurface } from '../types';
+import type { ChromeGrid, PanelLayout, PanelSurface } from '../types';
 import {
   isSimulatorMessage,
   type SimulatorChildToParent,
@@ -26,6 +26,7 @@ export interface SimulatorRuntimeState {
   dpi: number | undefined;
   // Forced short-axis slot count (see SimulatorInitMessage.shortSideSlots).
   shortSideSlots: number | undefined;
+  chromeGrid: ChromeGrid | undefined;
   // Parent's iframe fit scale; overlays drawn for the desktop operator divide
   // it out so they do not shrink with the preview.
   previewScale: number;
@@ -45,6 +46,8 @@ export interface SimulatorRuntimeState {
   deviceId: string | null;
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
+  onBackgroundMenu: (point: { x: number; y: number }) => void;
+  onBackgroundCovered: (covered: boolean) => void;
   onPlaylistShown: (widgetType: string | null) => void;
 }
 
@@ -75,6 +78,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [deviceTouch, setDeviceTouch] = useState<boolean | undefined>(undefined);
   const [dpi, setDpi] = useState<number | undefined>(undefined);
   const [shortSideSlots, setShortSideSlots] = useState<number | undefined>(undefined);
+  const [chromeGrid, setChromeGrid] = useState<ChromeGrid | undefined>(undefined);
   const [previewScale, setPreviewScale] = useState(1);
   const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
   const [genericDisplay, setGenericDisplay] = useState<boolean | undefined>(undefined);
@@ -99,6 +103,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setDeviceTouch(data.deviceTouch);
           setDpi(data.dpi);
           setShortSideSlots(data.shortSideSlots);
+          setChromeGrid(data.chromeGrid);
           setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           setDisplayBound(data.displayBound);
           setGenericDisplay(data.genericDisplay);
@@ -120,6 +125,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         case 'simulator/set-grid': {
           setDpi(data.dpi);
           setShortSideSlots(data.shortSideSlots);
+          setChromeGrid(data.chromeGrid);
           break;
         }
         case 'simulator/set-preview-scale': {
@@ -178,6 +184,14 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     postToParent({ type: 'simulator/background-clicked' });
   }, []);
 
+  const onBackgroundMenu = useCallback((point: { x: number; y: number }) => {
+    postToParent({ type: 'simulator/background-menu', x: point.x, y: point.y });
+  }, []);
+
+  const onBackgroundCovered = useCallback((covered: boolean) => {
+    postToParent({ type: 'simulator/background-covered', covered });
+  }, []);
+
   const onPlaylistShown = useCallback((widgetType: string | null) => {
     postToParent({ type: 'simulator/playlist-shown', widgetType });
   }, []);
@@ -194,6 +208,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     deviceTouch,
     dpi,
     shortSideSlots,
+    chromeGrid,
     previewScale,
     displayBound,
     genericDisplay,
@@ -208,6 +223,8 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     deviceId,
     onWidgetClicked,
     onBackgroundClicked,
+    onBackgroundMenu,
+    onBackgroundCovered,
     onPlaylistShown,
   };
 }

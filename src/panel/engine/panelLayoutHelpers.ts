@@ -6,6 +6,8 @@ import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 import { APP_REGISTRY } from '../widgets/registry';
 import { marketplaceIdFromType } from '../../widgets/marketplaceRegistry';
+import type { WeatherLocation } from '../../api/weather';
+import { weatherPlaceRouteTab } from '../widgets/weather/WeatherLocationList';
 import { panelEditorRoute, type PanelEditorTarget } from './panelEditorLink';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
@@ -40,15 +42,23 @@ export function isDashboardClickthroughType(type: string): type is DashboardWidg
   return isPinnableAppKey(type) && (!isPageOnlyAppKey(type) || APP_REGISTRY[type] !== undefined);
 }
 
+/** Sub-route a widget's open carries so the page lands on the widget's own state; undefined when it has none. */
+export function widgetOpenTab(widget: Pick<PanelWidget, 'type'> & Partial<Pick<PanelWidget, 'config'>>): string | undefined {
+  if (widget.type !== 'weather') return undefined;
+  return weatherPlaceRouteTab(widget.config?.location as WeatherLocation | null | undefined) ?? undefined;
+}
+
 /** The app path a widget's Open item goes to: its own page or editor, null when it has neither. */
-export function appRouteForWidget(widget: Pick<PanelWidget, 'id' | 'type'>, recordId?: string, deckKey?: PanelEditorTarget['deckKey']): string | null {
+export function appRouteForWidget(widget: Pick<PanelWidget, 'id' | 'type'> & Partial<Pick<PanelWidget, 'config'>>, recordId?: string, deckKey?: PanelEditorTarget['deckKey']): string | null {
   const { type } = widget;
   if (type === 'deck') return recordId ? panelEditorRoute({ recordId, widgetId: widget.id, deckKey }) : null;
   if (type === 'displays') return '/system/devices/displays';
   if (!isDashboardClickthroughType(type)) return null;
   // An SDK app type carries a colon, which the open-app route rejects; useRoute maps /system/app/<id> back.
   const appId = marketplaceIdFromType(type);
-  return appId ? `/system/app/${appId}` : `/system/${type}`;
+  if (appId) return `/system/app/${appId}`;
+  const tab = widgetOpenTab(widget);
+  return tab ? `/system/${type}/${tab}` : `/system/${type}`;
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }
@@ -267,4 +277,33 @@ export function buildPanelCollisionDetection(
     }
     return [];
   };
+}
+
+// The hover "More actions" corner badge belongs to the home dashboard grid
+// alone: the embedded desktop panel, not a device-page preview, and not while a
+// sheet, a resize or a drag owns the grid.
+export function showWidgetMoreActions(o: {
+  embedded: boolean;
+  surface: string;
+  simulator: boolean;
+  editable: boolean;
+  busy: boolean;
+}): boolean {
+  return o.embedded && o.surface === 'desktop' && !o.simulator && o.editable && !o.busy;
+}
+
+const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]';
+
+/** True for an event target that is the panel's empty background: not a widget, a control or a scroll pane. */
+export function isPanelBackgroundTarget(target: EventTarget | null): boolean {
+  return target instanceof Element
+    && !target.closest('[data-panel-widget-id]')
+    && !target.closest(INTERACTIVE_SELECTOR)
+    && !target.closest('[data-panel-scrollable="true"]')
+    && !target.closest('[data-panel-hit]');
+}
+
+/** A click opens the background menu only when it lands on the background and its press did too; a press that began on a widget (a drag ending over a gutter) is not one. `pressedOnBackground` is null when no press was seen (a keyboard click). */
+export function clickOpensBackgroundMenu(pressedOnBackground: boolean | null, clickTarget: EventTarget | null): boolean {
+  return pressedOnBackground !== false && isPanelBackgroundTarget(clickTarget);
 }

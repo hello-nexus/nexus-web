@@ -3,7 +3,7 @@ import { Lightbulb } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { LightingWidget } from './LightingWidget';
 import { LightingTouch } from './LightingTouch';
-import { AdvancedModeSettings } from '../common/AdvancedModeSettings';
+import { LightingSettings } from './LightingSettings';
 
 // Code-split: Page only loads when the dashboard navigates into the
 // immersive view. Widget + Touch stay eager so panel cells render
@@ -24,5 +24,5 @@ export const lightingApp: AppManifest = {
   Widget: LightingWidget,
   Page: LightingPage,
   Touch: LightingTouch,
-  Settings: AdvancedModeSettings,
+  Settings: LightingSettings,
 };

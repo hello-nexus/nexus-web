@@ -25,7 +25,7 @@ export function LightingCoolingTab({ settings, updateGeneral, serviceOnline, pla
       <SettingsSection title={t('settings.features.title')}>
         <SettingToggle
           label={t('settings.features.lighting.label')}
-          labelSuffix={<Badge label={t('settings.features.master')} color="var(--accent)" uppercase />}
+          labelSuffix={<Badge label={t('settings.features.master')} color="var(--accent)" />}
           description={t('settings.features.lighting.description')}
           icon={<Lightbulb />}
           iconLeading="subtle"
@@ -35,7 +35,7 @@ export function LightingCoolingTab({ settings, updateGeneral, serviceOnline, pla
         />
         <SettingToggle
           label={t('settings.features.cooling.label')}
-          labelSuffix={<Badge label={t('settings.features.master')} color="var(--accent)" uppercase />}
+          labelSuffix={<Badge label={t('settings.features.master')} color="var(--accent)" />}
           description={t('settings.features.cooling.description')}
           icon={<Fan />}
           iconLeading="subtle"

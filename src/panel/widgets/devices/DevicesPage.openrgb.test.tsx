@@ -34,6 +34,11 @@ vi.mock('../../../api/openRgbZones', () => ({
   setOpenRgbZoneSize: vi.fn(() => Promise.resolve({ error: false, msg: '' })),
 }));
 
+vi.mock('../../../components/common/FixLightingModal/FixLightingModal', () => ({
+  FixLightingModal: ({ open, deviceName }: { open: boolean; deviceName?: string }) =>
+    (open ? <div data-testid="fix-lighting" data-device={deviceName ?? ''} /> : null),
+}));
+
 import { DevicesPage } from './DevicesPage';
 
 const card = (over: Partial<LightingDevice>) => ({ id: 'c', name: 'Board', ledsOn: true, ledCount: 1, ...over }) as LightingDevice;
@@ -110,5 +115,30 @@ describe('DevicesPage OpenRGB section', () => {
     renderPage();
     expect(await screen.findByText('devices.openrgb.zoneSizePrompt')).toBeTruthy();
     expect(screen.getByText('Fan 1')).toBeTruthy();
+  });
+
+  describe('not-responding chip', () => {
+    const chip = 'lighting.writeHealth.badge. lighting.writeHealth.tooltip';
+
+    it('shows for a failing controlled card and opens Fix lighting naming the device', async () => {
+      cards = [card({ id: 'a1', deviceId: 'openrgb-d', name: 'MSI GPU', writeHealth: 'failing' })];
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: chip }));
+      expect(screen.getByTestId('fix-lighting').getAttribute('data-device')).toBe('MSI GPU');
+    });
+
+    it('is absent when healthy', async () => {
+      cards = [card({ id: 'a1', deviceId: 'openrgb-d', name: 'MSI GPU' })];
+      renderPage();
+      await screen.findByText('MSI GPU');
+      expect(screen.queryByRole('button', { name: chip })).toBeNull();
+    });
+
+    it('is absent while Nexus Control is off for the card', async () => {
+      cards = [card({ id: 'a1', deviceId: 'openrgb-d', name: 'MSI GPU', writeHealth: 'failing', controlled: false })];
+      renderPage();
+      await screen.findByText('MSI GPU');
+      expect(screen.queryByRole('button', { name: chip })).toBeNull();
+    });
   });
 });

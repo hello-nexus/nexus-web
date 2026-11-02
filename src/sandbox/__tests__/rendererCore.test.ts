@@ -127,6 +127,22 @@ describe('runRenderer protocol', () => {
     expect(frame.mock.calls.length).toBeLessThanOrEqual(31);
   });
 
+  it('a pacing update changes the draw rate of a running renderer', async () => {
+    const h = fakePort();
+    const frame = vi.fn();
+    runRenderer((c) => { c.onFrame(frame); }, h.port);
+    h.init({ pacing: { maxFps: null, displayHz: null } });
+    await flush();
+    for (let i = 0; i < 144; i++) h.runFrame(1000 + i * (1000 / 144));
+    expect(frame.mock.calls.length).toBe(144);
+
+    h.deliver({ type: 'pacing', pacing: { maxFps: 10, displayHz: null } });
+    frame.mockClear();
+    for (let i = 0; i < 144; i++) h.runFrame(5000 + i * (1000 / 144));
+    expect(frame.mock.calls.length).toBeGreaterThanOrEqual(9);
+    expect(frame.mock.calls.length).toBeLessThanOrEqual(11);
+  });
+
   it('starts hidden without scheduling frames', async () => {
     const h = fakePort();
     const frame = vi.fn();

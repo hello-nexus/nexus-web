@@ -41,7 +41,8 @@ const layoutOf = (pageCount: number): PanelLayout => ({
   pages: Array.from({ length: pageCount }, (_, i) => ({ id: `page-${i}`, widgets: [clock(`w-${i}`)] })),
 });
 
-const recordWith = (layout: PanelLayout) => ({
+const recordWith = (layout: PanelLayout, restrictedMode = false) => ({
+  restrictedMode,
   id: 'y70-1',
   displayName: 'Y70',
   firstSeenAt: 0,
@@ -59,8 +60,8 @@ function setViewport(width: number, height: number) {
   }));
 }
 
-async function mountKiosk(stored: PanelLayout) {
-  fetchMock.mockResolvedValue({ found: true, record: recordWith(stored) });
+async function mountKiosk(stored: PanelLayout, restrictedMode = false) {
+  fetchMock.mockResolvedValue({ found: true, record: recordWith(stored, restrictedMode) });
   patchMock.mockResolvedValue({ ok: true, record: recordWith(stored) });
   render(
     <UiSettingsProvider serviceOnline={true} manageDom={false}>
@@ -113,6 +114,18 @@ describe('PanelApp trailing blank page', () => {
     expect(pages).toHaveLength(2);
     expect(pages[1].querySelector('[data-panel-widget-id]')).toBeNull();
     for (const written of writtenLayouts()) expect(written.pages).toHaveLength(1);
+  });
+
+  it('Restricted mode renders no blank page and drops a stored empty page', async () => {
+    await mountKiosk(layoutOf(1), true);
+    expect(renderedPages()).toHaveLength(1);
+    cleanup();
+    const withEmpty = layoutOf(2);
+    withEmpty.pages.push({ id: 'page-empty', widgets: [] });
+    await mountKiosk(withEmpty, true);
+    const pages = renderedPages();
+    expect(pages).toHaveLength(2);
+    for (const page of pages) expect(page.querySelector('[data-panel-widget-id]')).not.toBeNull();
   });
 
   it('adds no blank page at the page cap', async () => {

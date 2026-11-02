@@ -12,6 +12,7 @@ import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { ProfilesTab } from './ProfilesTab';
 import { CloudProfilesSection } from './CloudProfilesSection';
 import styles from './SettingsView.module.scss';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 
 interface ProfilesViewProps {
   serviceOnline: boolean;
@@ -47,17 +48,18 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
       label: t('profile.tab.cloud'),
       icon: <ShieldUser size={14} />,
       trailing: showRefresh ? (
-        <button
-          type="button"
-          className={styles.cloudRefresh}
-          aria-label={t('profile.cloud.refresh')}
-          title={t('profile.cloud.refresh')}
-          data-loading={cloudLoading ? 'true' : undefined}
-          disabled={cloudLoading}
-          onClick={() => setCloudReload(n => n + 1)}
-        >
-          <RefreshCw size={14} className={cloudLoading ? styles.cloudRefreshSpinning : undefined} />
-        </button>
+        <HoverTooltip body={t('profile.cloud.refresh')}>
+          <button
+            type="button"
+            className={styles.cloudRefresh}
+            aria-label={t('profile.cloud.refresh')}
+            data-loading={cloudLoading ? 'true' : undefined}
+            disabled={cloudLoading}
+            onClick={() => setCloudReload(n => n + 1)}
+          >
+            <RefreshCw size={14} className={cloudLoading ? styles.cloudRefreshSpinning : undefined} />
+          </button>
+        </HoverTooltip>
       ) : undefined,
     },
   ], [t, showRefresh, cloudLoading]);

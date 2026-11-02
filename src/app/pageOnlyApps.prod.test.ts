@@ -19,13 +19,13 @@ describe('page-only apps without dev tools', () => {
     expect(sanitizePinnedTail(undefined).at(-1)).toBe('store');
   });
 
-  it('registers build and lets it be pinned: the page ships on release builds, only the widget tile is hidden', () => {
+  it('registers build and lets it be pinned: the page and the widget tile both ship on release builds', () => {
     expect(PAGE_ONLY_APPS.build).toBeDefined();
     expect(isPageOnlyAppKey('build')).toBe(true);
     expect(isPinnableAppKey('build')).toBe(true);
     expect(sanitizePinnedTail(['build'])).toEqual(['build']);
     expect(listSidebarAppKeys()).toContain('build');
-    expect(catalogEntriesFor('desktop').map(([type]) => type)).not.toContain('build');
+    expect(catalogEntriesFor('desktop').map(([type]) => type)).toContain('build');
   });
 
   it('keeps frames registered and pinnable: it ships on release builds', () => {

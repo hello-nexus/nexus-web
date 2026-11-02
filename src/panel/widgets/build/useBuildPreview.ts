@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { pingService } from '../../../api/service';
-import { fetchSystemCaseId, fetchSystemPreview, SYSTEM_PREVIEW_CHANGED_EVENT } from '../../../api/systemPreview';
+import { fetchSystemCaseId, fetchSystemPreview, SYSTEM_CASE_TOPIC, SYSTEM_PREVIEW_CHANGED_EVENT } from '../../../api/systemPreview';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { isMacAppShell } from '../../../app/windowActions';
 
 export const PING_RETRY_MIN_MS = 2000;
@@ -63,9 +64,11 @@ export function useHostIsMac(enabled: boolean): boolean | null {
   return isMac;
 }
 
-/** The saved case id and the stored preview as an object URL, refreshed on mount, window focus, and the preview-changed event. */
+/** The saved case id and the stored preview as an object URL, refreshed on mount, window focus, the preview-changed event and the service's case signal (a Y70 display assigns its case after detection). */
 export function useBuildPreview(enabled: boolean): PreviewState {
   const [state, setState] = useState<PreviewState>(EMPTY);
+  const refreshRef = useRef<(() => void) | null>(null);
+  useTopicCallback(SYSTEM_CASE_TOPIC, enabled, () => { refreshRef.current?.(); });
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -112,10 +115,12 @@ export function useBuildPreview(enabled: boolean): PreviewState {
     const onChanged = () => { void refresh(); };
 
     void refresh();
+    refreshRef.current = onChanged;
     window.addEventListener('focus', onFocus);
     window.addEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, onChanged);
     return () => {
       cancelled = true;
+      refreshRef.current = null;
       window.removeEventListener('focus', onFocus);
       window.removeEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, onChanged);
       if (currentUrl) URL.revokeObjectURL(currentUrl);

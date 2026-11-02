@@ -1,5 +1,5 @@
 // Documentation catalog for the product-telemetry events the app emits to
-// PostHog. This is the human-readable mirror of the service's authoritative
+// nexus-api. This is the human-readable mirror of the service's authoritative
 // list in nexus-service `src/Telemetry/TelemetryEvents.cs` - keep `name`
 // values in sync with the constants there. Rendered at /telemetry-reference
 // (Settings → Dev tools → Telemetry events).
@@ -14,7 +14,7 @@ export interface TelemetryParam {
 }
 
 export interface TelemetryEventDoc {
-  /** Event name sent to PostHog. Must match TelemetryEvents.cs. */
+  /** Event name sent to nexus-api. Must match TelemetryEvents.cs. */
   name: string;
   title: string;
   /** 'live' = wired and emitting today. 'planned' = name reserved, not emitted yet. */
@@ -26,40 +26,34 @@ export interface TelemetryEventDoc {
   params: TelemetryParam[];
 }
 
-// Properties PostHog attaches to EVERY event - you never pass these yourself.
+// Envelope fields nexus-api receives with EVERY event - you never pass these yourself.
 export const AUTO_PROPERTIES: TelemetryParam[] = [
-  { name: 'distinct_id', type: 'string', required: true, description: 'Anonymous per-install id (no PII). Shared with the fleet heartbeat.' },
-  { name: '$lib', type: 'string', required: true, description: 'Always "nexus-service" for service-emitted events.' },
-  { name: '$lib_version', type: 'string', required: true, description: 'Build version (BuildInfo.Version).' },
-  { name: 'os', type: 'string', required: true, description: 'win | mac | linux | other.' },
+  { name: 'id', type: 'string', required: true, description: 'Per-event uuid; nexus-api dedupes resends on (id, ts).' },
+  { name: 'ts', type: 'string', required: true, description: 'Event timestamp (UTC, ISO 8601); nexus-api stores it as a column.' },
+  { name: 'installId', type: 'string', required: true, description: 'Anonymous per-install id (no PII). Shared with the fleet heartbeat.' },
 ];
 
-// Attached to the anonymous person via PostHog $set (never to a single
-// event), refreshed only when the value actually changes. The hardware half
-// is what makes every event above breakable down by machine; the usage half
-// is the current-state census that layout_snapshot mirrors over time.
+// Carried by the appended `profile` event (never on a single event), sent
+// when the value changes and re-sent periodically; the latest row per install
+// wins. The core hardware fields (cpu, gpu, ram, motherboard, os, version) are
+// NOT here: they arrive through the fleet `specs` event. The rows below are
+// the extra hardware and the current-state census that layout_snapshot
+// mirrors over time.
 //
-// The hardware half carries vendor model-name strings (cpu, gpu, monitor and
-// the devices list) - reported by the hardware itself, never typed by the
-// user. The usage half is counts and fixed values only. Nothing the user
+// The hardware rows carry vendor model-name strings (monitor and the devices
+// list) - reported by the hardware itself, never typed by the user. The usage
+// rows are counts and fixed values only. Nothing the user
 // authored is collected in either: widget titles, renamed devices, panel
 // display names, file paths and serials are all excluded.
-export const PERSON_PROPERTIES: TelemetryParam[] = [
-  { name: 'version', type: 'string', required: true, description: 'Nexus build version (BuildInfo.Version).' },
-  { name: 'os', type: 'string', required: true, description: 'win | mac | linux | other.' },
+export const PROFILE_PROPERTIES: TelemetryParam[] = [
   { name: 'os_build', type: 'string', required: false, description: 'Operating-system build string.' },
-  { name: 'cpu', type: 'string', required: false, description: 'CPU model name.' },
-  { name: 'gpu', type: 'string', required: false, description: 'GPU model name(s).' },
-  { name: 'ram', type: 'string', required: false, description: 'Installed RAM as reported (the raw string; ram_amount is the parsed figure).' },
-  { name: 'ram_amount', type: 'number', required: false, description: 'Installed RAM in GB, parsed from ram. Absent when the string does not parse.' },
-  { name: 'motherboard', type: 'string', required: false, description: 'Motherboard model name.' },
   { name: 'storage', type: 'string', required: false, description: 'Storage as reported (the raw string; storage_amount is the parsed figure).' },
   { name: 'storage_amount', type: 'number', required: false, description: 'Total storage in GB, parsed from storage. Absent when the string does not parse.' },
   { name: 'monitor', type: 'string', required: false, description: 'Monitor model name(s).' },
   { name: 'network', type: 'string', required: false, description: 'Network adapter model name(s).' },
   { name: 'sound', type: 'string', required: false, description: 'Sound device model name(s).' },
   { name: 'devices', type: 'array', required: true, description: 'Recognized connected devices by model name, sorted (capped at 80). Always sent, possibly empty.' },
-  { name: 'lighting_devices', type: 'number', required: false, description: 'Lighting cards currently enumerated - one entry per motherboard ARGB zone, including disabled devices, so higher than a count of physical products. Omitted when the provider read failed rather than reported as 0, because person properties are last-write-wins.' },
+  { name: 'lighting_devices', type: 'number', required: false, description: 'Lighting cards currently enumerated - one entry per motherboard ARGB zone, including disabled devices, so higher than a count of physical products. Omitted when the provider read failed rather than reported as 0, so a failed read does not overwrite a good value.' },
   { name: 'cooling_channels', type: 'number', required: false, description: 'Fan channels currently enumerated. Omitted on a failed read rather than reported as 0.' },
   { name: 'panel_devices', type: 'number', required: true, description: 'Configured panel devices.' },
   { name: 'panel_surfaces', type: 'array', required: true, description: 'Distinct panel surfaces in use.' },
@@ -162,8 +156,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     description: 'A device firmware flash completed.',
     params: [
       { name: 'device', type: 'string', required: true, description: 'Device family flashed.' },
-      { name: 'version', type: 'string', required: false, description: 'Firmware version written.' },
-    ],
+        ],
   },
   {
     name: 'pair_completed',
@@ -379,42 +372,36 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Install',
     status: 'live',
     source: 'service',
-    description: 'Delivered once per install id - reaches virtually every fresh install under the default-on consent default, plus existing opted-in installs once as a backfill on upgrade. Retried at boot and hourly until nexus-api acknowledges it (a persisted delivered flag prevents re-delivery); PostHog gets a single best-effort attempt alongside it. The nexus-api envelope additionally carries os, osVersion, arch, and deviceType.',
+    description: 'Delivered once per install id - reaches virtually every fresh install under the default-on consent default, plus existing opted-in installs once as a backfill on upgrade. Retried at boot and hourly until nexus-api acknowledges it (a persisted delivered flag prevents re-delivery); the usage sink gets a single best-effort copy alongside it. The nexus-api envelope additionally carries os, osVersion, arch, and deviceType.',
     params: [
-      { name: 'version', type: 'string', required: true, description: 'Nexus build version (BuildInfo.Version).' },
-    ],
+        ],
   },
   {
     name: 'specs',
     title: 'Hardware specs',
     status: 'live',
     source: 'service',
-    description: 'Fires once while opted in, then again only when the hardware summary hash changes (e.g. a component swap); skipped and retried next pass on a cold boot with no processor or GPU data yet. Upserts the latest snapshot per install id in nexus-api rather than appending, and reaches PostHog only once nexus-api has accepted it.',
+    description: 'Fires once while opted in, then again only when the hardware summary hash changes (e.g. a component swap); skipped and retried next pass on a cold boot with no processor or GPU data yet. Upserts the latest snapshot per install id in nexus-api rather than appending.',
     params: [
-      { name: 'cpu', type: 'string', required: true, description: 'CPU model name.' },
-      { name: 'gpu', type: 'array', required: false, description: 'GPU model name(s); more than one entry on a multi-GPU system.' },
-      { name: 'ram_bytes', type: 'number', required: true, description: 'Total installed RAM in bytes, derived from the parsed GB figure (an approximation, not an exact byte count).' },
-      { name: 'motherboard', type: 'string', required: true, description: 'Motherboard model name.' },
-    ],
+              { name: 'ram_bytes', type: 'number', required: true, description: 'Total installed RAM in bytes, derived from the parsed GB figure (an approximation, not an exact byte count).' },
+        ],
   },
   {
     name: 'opt_out',
     title: 'Opted out',
     status: 'live',
     source: 'service',
-    description: 'Fires on a true-to-false consent transition, from either the welcome screen or Settings. The one event still delivered after opting out: nexus-api retries it hourly until delivered once, and PostHog gets a single best-effort attempt alongside it. Appended, not deduped - the latest status wins.',
+    description: 'Fires on a true-to-false consent transition, from either the welcome screen or Settings. The one event still delivered after opting out: nexus-api retries it hourly until delivered once, and the usage sink gets a single best-effort copy alongside it. Appended, not deduped - the latest status wins.',
     params: [
-      { name: 'version', type: 'string', required: true, description: 'Nexus build version at the time of the transition.' },
-    ],
+        ],
   },
   {
     name: 'opt_in',
     title: 'Opted in',
     status: 'live',
     source: 'service',
-    description: 'Fires on a false-to-true consent transition from Settings, after a prior opt-out - not the initial welcome-screen confirmation, since posting the same value the fresh-install default already holds is not a transition. Delivered the same way as opt_out: nexus-api retries until it lands once, PostHog gets a single best-effort attempt. Appended, not deduped - the latest status wins.',
+    description: 'Fires on a false-to-true consent transition from Settings, after a prior opt-out - not the initial welcome-screen confirmation, since posting the same value the fresh-install default already holds is not a transition. Delivered the same way as opt_out: nexus-api retries until it lands once, the usage sink gets a single best-effort copy. Appended, not deduped - the latest status wins.',
     params: [
-      { name: 'version', type: 'string', required: true, description: 'Nexus build version at the time of the transition.' },
-    ],
+        ],
   },
 ];

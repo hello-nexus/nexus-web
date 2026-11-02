@@ -60,6 +60,7 @@ export type HostToRenderer =
   | { type: 'resize'; size: RendererSize }
   | { type: 'pointer'; event: CanvasPointerEvent }
   | { type: 'visible'; visible: boolean }
+  | { type: 'pacing'; pacing: FramePacing }
   | { type: 'asset-result'; id: number; data: ArrayBuffer }
   | { type: 'asset-error'; id: number; message: string };
 
@@ -196,6 +197,9 @@ export function runRenderer(start: (ctx: RendererContext) => void | Promise<void
         safe(visibilityCbs, visible);
         return;
       }
+      case 'pacing':
+        shouldDraw = m.pacing.maxFps ? createFramePacer(m.pacing.maxFps) : createDisplayDivider(m.pacing.displayHz);
+        return;
       case 'asset-result': {
         const slot = pending.get(m.id);
         if (!slot) return;

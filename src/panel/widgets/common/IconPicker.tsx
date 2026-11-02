@@ -20,6 +20,7 @@ import { stageKlipy, type KlipyGif } from '../../../api/klipy';
 import { cancelMediaStage, mediaStagePreviewUrl, mediaStageRawUrl, stagePreviewFor } from '../../../api/mediaLibrary';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 
 const TAB_DEFS = [
   { key: 'auto', icon: Sparkles, labelKey: 'panel.iconPicker.auto' },
@@ -230,15 +231,16 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
               const Comp = DECK_ICONS[name];
               const active = value?.kind === 'lucide' && value.value === name;
               return (
-                <button
-                  key={name}
-                  type="button"
-                  className={`${styles.iconBtn} ${active ? styles.activeIcon : ''}`}
-                  title={name}
-                  onClick={() => onChange({ kind: 'lucide', value: name })}
-                >
-                  <Comp aria-hidden="true" />
-                </button>
+                <HoverTooltip key={name} body={name}>
+                  <button
+                    type="button"
+                    aria-label={name}
+                    className={`${styles.iconBtn} ${active ? styles.activeIcon : ''}`}
+                    onClick={() => onChange({ kind: 'lucide', value: name })}
+                  >
+                    <Comp aria-hidden="true" />
+                  </button>
+                </HoverTooltip>
               );
             })}
           </div>

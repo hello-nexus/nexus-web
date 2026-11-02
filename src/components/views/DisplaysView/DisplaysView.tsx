@@ -124,7 +124,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
           <div className={styles.mapCard}>
             <MonitorMap displays={displays} selectedId={selectedId} onSelect={setSelectedId} />
             <div className={styles.mapActions}>
-              {selected && !selected.isY70 && (
+              {selected && !selected.isY70 && !selected.ownedByDevicePanel && (
                 <label className={styles.panelToggle}>
                   <span>{t('displays.panel.active')}</span>
                   <Toggle
@@ -186,7 +186,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
               </div>
               )}
 
-              {!selected.isY70 && !selected.assignedPanelDeviceId && (!topology?.hostingSupported || !selected.hostingSupported) && (
+              {!selected.isY70 && !selected.ownedByDevicePanel && !selected.assignedPanelDeviceId && (!topology?.hostingSupported || !selected.hostingSupported) && (
                 <span className={styles.hint}>{t('displays.panel.unsupportedHint')}</span>
               )}
 

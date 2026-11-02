@@ -22,7 +22,7 @@ describe('RateCapSelect', () => {
     fireEvent.click(trigger);
     expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([
       'lighting.ledMap.rateCapOff',
-      ...[30, 20, 15, 10, 5, 1].map(hz => `lighting.ledMap.rateCapHz:{"hz":${hz}}`),
+      ...[30, 25, 20, 15, 10, 5, 1].map(hz => `lighting.ledMap.rateCapHz:{"hz":${hz}}`),
     ]);
   });
 

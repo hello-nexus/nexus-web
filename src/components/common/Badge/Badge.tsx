@@ -18,8 +18,7 @@ export interface BadgeProps {
    *  reserved minWidth (the monitoring tab chips) rather than the default
    *  roomier pill other badges use. */
   compact?: boolean;
-  /** Renders the label in caps, for badges that read as a label on a heading
-   *  rather than as a value. */
+  /** Caps by default; pass false for a value that must keep its case (executable names, unit readouts). */
   uppercase?: boolean;
   /** Solid fill in the badge color with the contrast-paired text, for a badge that must stand out. */
   filled?: boolean;
@@ -27,22 +26,39 @@ export interface BadgeProps {
   size?: 'caption' | 'small';
   /** Hover explanation; also the badge's accessible name, since a tooltip is pointer-only. */
   tooltip?: { title?: string; body: string };
+  /** Makes the badge a button; its keys and clicks stay off an enclosing clickable row. */
+  onClick?: () => void;
   className?: string;
 }
 
-export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase, filled, size = 'caption', tooltip, className }: BadgeProps) {
-  const badge = (
-    <span
-      className={classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase, filled && styles.filled, size === 'small' && styles.small, !tooltip && className)}
-      style={{ '--badge-color': color, ...(minWidth ? { '--badge-min-width': minWidth } : {}) } as CSSProperties}
-    >
+export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase = true, filled, size = 'caption', tooltip, onClick, className }: BadgeProps) {
+  const badgeClass = classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase, filled && styles.filled, size === 'small' && styles.small, onClick && styles.clickable, !tooltip && className);
+  const badgeStyle = { '--badge-color': color, ...(minWidth ? { '--badge-min-width': minWidth } : {}) } as CSSProperties;
+  const content = (
+    <>
       {iconPosition === 'start' && icon}
       {label ?? ''}
       {iconPosition === 'end' && icon}
-    </span>
+    </>
   );
+  const name = tooltip ? (tooltip.title ? `${tooltip.title}. ${tooltip.body}` : tooltip.body) : undefined;
+  if (onClick) {
+    const button = (
+      <button
+        type="button"
+        className={classNames(badgeClass, tooltip && className)}
+        style={badgeStyle}
+        aria-label={name ? `${label ?? ''}. ${name}` : undefined}
+        onClick={e => { e.stopPropagation(); onClick(); }}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
+      >
+        {content}
+      </button>
+    );
+    return tooltip ? <HoverTooltip title={tooltip.title} body={tooltip.body} side="top">{button}</HoverTooltip> : button;
+  }
+  const badge = <span className={badgeClass} style={badgeStyle}>{content}</span>;
   if (!tooltip) return badge;
-  const name = tooltip.title ? `${tooltip.title}. ${tooltip.body}` : tooltip.body;
   return (
     <HoverTooltip title={tooltip.title} body={tooltip.body} side="top">
       <span className={classNames(styles.trigger, className)} role="img" aria-label={name}>{badge}</span>

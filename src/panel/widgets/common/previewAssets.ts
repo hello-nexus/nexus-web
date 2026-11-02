@@ -66,18 +66,27 @@ export function previewAlbumArtUri(hue: number): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-// Effect-thumbnail fixture for the lighting widget: the stock Rainbow animation
-// as a full hue sweep, standing in for the service-rendered thumbnail.
-export function previewRainbowUri(): string {
-  const stops = [0, 60, 120, 180, 240, 300, 360]
-    .map((h, i, all) => `<stop offset="${i / (all.length - 1)}" stop-color="hsl(${h} 95% 55%)"/>`)
-    .join('');
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">'
-    + `<defs><linearGradient id="r" x1="0" y1="0" x2="1" y2="0.35">${stops}</linearGradient>`
-    + '<linearGradient id="v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.18"/>'
-    + '<stop offset="1" stop-color="#000" stop-opacity="0.22"/></linearGradient></defs>'
-    + '<rect width="320" height="180" fill="url(#r)"/><rect width="320" height="180" fill="url(#v)"/>'
-    + '</svg>';
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+// Tile gradients for the lighting widget preview: the media album-art family
+// (indigo sky, violet and magenta horizon, warm sun), each tile a different
+// stop pair and angle. Plain linear-gradient() with hsl stops, so no
+// color-mix and no image fetch.
+const TILE_STOPS = {
+  sky: 'hsl(260 55% 16%)',
+  indigo: 'hsl(250 60% 32%)',
+  blue: 'hsl(225 70% 40%)',
+  violet: 'hsl(275 60% 42%)',
+  magenta: 'hsl(320 65% 42%)',
+  pink: 'hsl(335 80% 55%)',
+  orange: 'hsl(20 90% 56%)',
+  sun: 'hsl(45 95% 62%)',
+};
+const TILE_PAIRS: ReadonlyArray<readonly [keyof typeof TILE_STOPS, keyof typeof TILE_STOPS, number]> = [
+  ['blue', 'violet', 135], ['violet', 'magenta', 160], ['magenta', 'sun', 135], ['sky', 'indigo', 180],
+  ['indigo', 'pink', 120], ['pink', 'orange', 150], ['sky', 'violet', 135], ['orange', 'sun', 160],
+  ['blue', 'indigo', 200], ['violet', 'pink', 145], ['sky', 'magenta', 125], ['magenta', 'orange', 170],
+  ['indigo', 'violet', 140], ['pink', 'sun', 130],
+];
+
+export function previewTileGradients(): string[] {
+  return TILE_PAIRS.map(([a, b, deg]) => `linear-gradient(${deg}deg, ${TILE_STOPS[a]}, ${TILE_STOPS[b]})`);
 }

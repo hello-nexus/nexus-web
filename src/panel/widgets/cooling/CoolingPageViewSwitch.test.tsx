@@ -21,7 +21,8 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     fetchCoolingPresets: vi.fn(async () => ({ presets: [], activeId: null })),
   };
 });
-vi.mock('./case3d/CoolingCase3D', () => ({ CoolingCase3D: () => <div data-testid="case3d" /> }));
+const crash = vi.hoisted(() => ({ on: false }));
+vi.mock('./case3d/CoolingCase3D', () => ({ CoolingCase3D: () => { if (crash.on) throw new Error('webgl unavailable'); return <div data-testid="case3d" />; } }));
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 
@@ -93,5 +94,24 @@ describe('CoolingPage canvas header', () => {
     fireEvent.click(radios[1]);
     await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
     expect(radios[1].getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('falls back to the curves with a notice when the 3D view throws, and retries on the next pick of Airflow', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    // React reports a caught render error to the window too; the boundary is what is under test.
+    const swallow = (e: ErrorEvent) => e.preventDefault();
+    window.addEventListener('error', swallow);
+    crash.on = true;
+    mountWith({ coolingView3d: true });
+    await waitFor(() => expect(screen.getByText('cooling.case3d.crashed')).toBeTruthy());
+    expect(screen.getByText('cooling.label.curveEditor')).toBeTruthy();
+    const radios = within(screen.getByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');
+    expect(radios[0].getAttribute('aria-checked')).toBe('true');
+    crash.on = false;
+    fireEvent.click(radios[1]);
+    await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
+    expect(screen.queryByText('cooling.case3d.crashed')).toBeNull();
+    window.removeEventListener('error', swallow);
+    quiet.mockRestore();
   });
 });

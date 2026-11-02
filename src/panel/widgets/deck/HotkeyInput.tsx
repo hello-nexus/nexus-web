@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { Select, type SelectOption } from '../../../components/common/Select/Select';
 import { HOTKEY_PRESET_CATEGORIES, findHotkeyPreset, hotkeyPresetId } from './hotkeyPresets';
 import styles from './HotkeyInput.module.scss';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 
 interface HotkeyInputProps {
   value: string;
@@ -138,15 +139,16 @@ export function HotkeyInput({ value, onChange, disabled = false, display, hidePr
           ) : (display || value || t('panel.settings.deck.hotkeySet'))}
         </button>
         {onClear && (showClear ?? !!value) && !disabled && !capturing && (
-          <button
-            type="button"
-            className={styles.clear}
-            onClick={() => { onClear(); fieldRef.current?.focus(); }}
-            aria-label={t('hotkeys.clear')}
-            title={t('hotkeys.clear')}
-          >
-            <X size={12} aria-hidden />
-          </button>
+          <HoverTooltip body={t('hotkeys.clear')}>
+            <button
+              type="button"
+              className={styles.clear}
+              onClick={() => { onClear(); fieldRef.current?.focus(); }}
+              aria-label={t('hotkeys.clear')}
+            >
+              <X size={12} aria-hidden />
+            </button>
+          </HoverTooltip>
         )}
       </div>
     </div>

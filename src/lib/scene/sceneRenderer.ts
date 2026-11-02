@@ -50,10 +50,6 @@ export interface SceneRenderState {
   leds: Map<string, Float32Array>;
   selectedDeviceId: string | null;
   selectedObjectId: string | null;
-  /** A device waiting for a surface: free surfaces glow to invite the click. */
-  placing: boolean;
-  /** Surface under a drag from the device list, as "objectId\nanchorId". */
-  dropTarget: string | null;
   /** The selected object can be dragged across the desk. */
   editable: boolean;
 }
@@ -614,15 +610,10 @@ export class SceneRenderer {
         color = accent;
         opacity = device === state.selectedDeviceId ? 1 : 0.75;
         fill = device === state.selectedDeviceId ? 0.18 : 0;
-      } else if (state.placing) {
-        color = accent;
-        opacity = 0.9;
-        fill = 0.12;
-      }
-      if (key === state.dropTarget || key === this.hovered) {
-        color = accent;
-        opacity = 1;
-        fill = 0.3;
+        if (key === this.hovered) {
+          opacity = 1;
+          fill = 0.3;
+        }
       }
       mat.color.copy(color);
       mat.opacity = opacity;
@@ -678,7 +669,8 @@ export class SceneRenderer {
     this.callbacks.onHover?.(pick, e.clientX, e.clientY, stack);
     const key = pick?.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : null;
     const movable = this.state?.editable && pick && pick.objectId === this.state.selectedObjectId;
-    this.canvas.style.cursor = pick ? (movable ? 'grab' : 'pointer') : '';
+    const freeSpot = !!key && !this.state?.bindings.some(b => b.targets.some(t => anchorKey(t.objectId, t.anchorId) === key));
+    this.canvas.style.cursor = pick && !freeSpot ? (movable ? 'grab' : 'pointer') : '';
     if (key !== this.hovered) {
       this.hovered = key;
       this.restyle();

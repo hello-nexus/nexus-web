@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { customTextVars, normalizeTextColorMode, pickInk, regionLuminance, relativeLuminance } from './textColor';
+import { clearInks, customTextVars, normalizeTextColorMode, pickInk, resolveHostInk, smoothLuminance, stampInk, regionLuminance, relativeLuminance } from './textColor';
 
 function solidGrid(width: number, height: number, [r, g, b]: [number, number, number]) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -30,6 +30,86 @@ describe('pickInk', () => {
     expect(pickInk(0.16, 'dark')).toBe('dark');
     expect(pickInk(0.25, 'light')).toBe('dark');
     expect(pickInk(0.1, 'dark')).toBe('light');
+  });
+});
+
+describe('pickInk theme bias', () => {
+  it('dark theme: leaves white late and returns at the neutral crossover', () => {
+    expect(pickInk(0.22, null, 'light')).toBe('light');
+    expect(pickInk(0.22, 'light', 'light')).toBe('light');
+    expect(pickInk(0.28, 'light', 'light')).toBe('dark');
+    expect(pickInk(0.2, 'dark', 'light')).toBe('dark');
+    expect(pickInk(0.17, 'dark', 'light')).toBe('light');
+  });
+
+  it('light theme: leaves black late and returns at the neutral crossover', () => {
+    expect(pickInk(0.14, null, 'dark')).toBe('dark');
+    expect(pickInk(0.14, 'dark', 'dark')).toBe('dark');
+    expect(pickInk(0.1, 'dark', 'dark')).toBe('light');
+    expect(pickInk(0.16, 'light', 'dark')).toBe('light');
+    expect(pickInk(0.19, 'light', 'dark')).toBe('dark');
+  });
+
+  it('keeps the symmetric hysteresis band without a theme ink', () => {
+    expect(pickInk(0.22, null)).toBe('dark');
+    expect(pickInk(0.2, 'light')).toBe('light');
+    expect(pickInk(0.2, 'dark')).toBe('dark');
+    expect(pickInk(0.25, 'light')).toBe('dark');
+    expect(pickInk(0.1, 'dark')).toBe('light');
+  });
+
+  it('follows a theme switch on the next pick', () => {
+    expect(pickInk(0.22, 'light', 'light')).toBe('light');
+    expect(pickInk(0.22, 'light', 'dark')).toBe('dark');
+  });
+});
+
+describe('resolveHostInk on a theme switch', () => {
+  it('dark to light theme judges an in-band sample like a fresh load', () => {
+    const host = document.createElement('div');
+    host.dataset.ink = 'light';
+    expect(resolveHostInk(host, 0.15, 'dark', true)).toBe('dark');
+  });
+
+  it('light to dark theme judges an in-band sample like a fresh load', () => {
+    const host = document.createElement('div');
+    host.dataset.ink = 'dark';
+    expect(resolveHostInk(host, 0.22, 'light', true)).toBe('light');
+  });
+
+  it('keeps the stamp as history on an ordinary tick', () => {
+    const host = document.createElement('div');
+    host.dataset.ink = 'light';
+    expect(resolveHostInk(host, 0.15, 'dark', false)).toBe('light');
+  });
+});
+
+describe('smoothLuminance', () => {
+  it('seeds with the first sample', () => {
+    const host = document.createElement('div');
+    expect(smoothLuminance(host, 0.4)).toBe(0.4);
+  });
+
+  it('does not let a single-tick spike flip the ink', () => {
+    const host = document.createElement('div');
+    smoothLuminance(host, 0.15);
+    smoothLuminance(host, 0.15);
+    const spiked = smoothLuminance(host, 0.5);
+    expect(spiked).toBeLessThan(0.274);
+    expect(pickInk(spiked, 'light', 'light')).toBe('light');
+  });
+
+  it('settles on a sustained change and resets on clearInks', () => {
+    const host = document.createElement('div');
+    const root = document.createElement('div');
+    root.appendChild(host);
+    host.dataset.ink = 'light';
+    smoothLuminance(host, 0.1);
+    let v = 0;
+    for (let i = 0; i < 20; i++) v = smoothLuminance(host, 0.5);
+    expect(v).toBeGreaterThan(0.49);
+    clearInks(root);
+    expect(smoothLuminance(host, 0.1)).toBe(0.1);
   });
 });
 
@@ -94,5 +174,66 @@ describe('adaptive ink palettes', () => {
     const theme = declarations(variables, themeSelector);
     const expected = Object.fromEntries(Object.keys(light).filter(k => !themeOnly.test(k)).map(k => [k, theme[k]]));
     expect(declarations(tokens, `.panel-root [data-ink='${ink}']`)).toEqual(expected);
+  });
+});
+
+describe('ink fade window', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('does not fade a first stamp, fades a flip, and ends after the backstop', () => {
+    vi.useFakeTimers();
+    const host = document.createElement('div');
+    stampInk(host, 'light');
+    expect(host.dataset.inkFade).toBeUndefined();
+    stampInk(host, 'dark');
+    expect(host.dataset.ink).toBe('dark');
+    expect(host.dataset.inkFade).toBeDefined();
+    vi.advanceTimersByTime(1000);
+    expect(host.dataset.inkFade).toBeUndefined();
+  });
+
+  it('re-arms on a repeated flip', () => {
+    vi.useFakeTimers();
+    const host = document.createElement('div');
+    stampInk(host, 'light');
+    stampInk(host, 'dark');
+    vi.advanceTimersByTime(300);
+    stampInk(host, 'light');
+    vi.advanceTimersByTime(300);
+    expect(host.dataset.inkFade).toBeDefined();
+    vi.advanceTimersByTime(1000);
+    expect(host.dataset.inkFade).toBeUndefined();
+  });
+
+  it('ends early on the host color transitionend only', () => {
+    vi.useFakeTimers();
+    const host = document.createElement('div');
+    const child = document.createElement('span');
+    host.appendChild(child);
+    stampInk(host, 'light');
+    stampInk(host, 'dark');
+    const end = (target: HTMLElement, propertyName: string) => {
+      const e = new Event('transitionend', { bubbles: true });
+      Object.assign(e, { propertyName });
+      target.dispatchEvent(e);
+    };
+    end(child, 'color');
+    end(host, 'opacity');
+    expect(host.dataset.inkFade).toBeDefined();
+    end(host, 'color');
+    expect(host.dataset.inkFade).toBeUndefined();
+  });
+
+  it('clearInks removes stamps and a fade in flight', () => {
+    vi.useFakeTimers();
+    const root = document.createElement('div');
+    const host = document.createElement('div');
+    root.appendChild(host);
+    stampInk(host, 'light');
+    stampInk(host, 'dark');
+    clearInks(root);
+    expect(host.dataset.ink).toBeUndefined();
+    expect(host.dataset.inkFade).toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

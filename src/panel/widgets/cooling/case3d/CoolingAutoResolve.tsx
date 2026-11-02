@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { BuildPage, type BuildResolved, type HeadlessBuild } from '../../../../components/views/BuildPage/BuildPage';
+import { BuildPage, sceneExportOffered, type BuildResolved, type HeadlessBuild } from '../../../../components/views/BuildPage/BuildPage';
 import { useBuildMachine } from '../../../../components/views/BuildPage/buildMachine';
 import { isRemoteOrigin } from '../../../../api/service';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
@@ -43,7 +43,7 @@ export function CoolingAutoResolve({ children }: { children: (state: AutoResolve
     setFrameKey(null);
   }, [frameKey]);
 
-  const outcome = frameKey === null ? 'waiting' : resolveOutcome(message, record);
+  const outcome = frameKey === null ? 'waiting' : resolveOutcome(message, record, sceneExportOffered());
   useEffect(() => {
     if (outcome !== 'waiting') finish(outcome === 'failed');
   }, [outcome, finish]);
@@ -61,7 +61,7 @@ export function CoolingAutoResolve({ children }: { children: (state: AutoResolve
   }, [failedKey]);
 
   const headless = useMemo<HeadlessBuild | null>(() => (frameKey !== null && machine && key !== null
-    ? { machine, layoutKey: key, onResolved: setMessage, onUnavailable: () => finish(true) }
+    ? { machine, layoutKey: key, syncSetup: true, onResolved: setMessage, onUnavailable: () => finish(true) }
     : null), [frameKey, machine, key, finish]);
 
   const phase: AutoResolvePhase = frameKey !== null ? 'resolving' : failedKey !== null && failedKey === key ? 'failed' : 'idle';

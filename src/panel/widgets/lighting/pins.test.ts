@@ -210,8 +210,8 @@ describe('pinTargetLabel', () => {
     expect(pinTargetLabel(colorPin('#010203'), t)).toMatch(/^#010203$|^lighting\.palette\./);
   });
 
-  it('names a simple sweep by its own label, a shader by its effect label, and Mirror', () => {
-    expect(pinTargetLabel(animatePin('sweeprainbow'), t)).toBe('lighting.simple.anim.rainbow');
+  it('names a retired simple key by its replacement label, a shader by its effect label, and Mirror', () => {
+    expect(pinTargetLabel(animatePin('sweeprainbow'), t)).toBe('lighting.controls.rainbow');
     expect(pinTargetLabel(animatePin('plasma'), t)).toBe('lighting.controls.plasma');
     expect(pinTargetLabel(MIRROR_PIN, t)).toBe('lighting.mode.screen');
   });
