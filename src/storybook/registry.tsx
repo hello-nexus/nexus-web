@@ -148,6 +148,7 @@ import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
+import { ChannelLayout, type ChannelNode } from '../components/common/ChannelLayout/ChannelLayout';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
 import { DEFAULT_GAUGE_GRADIENT, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
@@ -222,6 +223,32 @@ function PreviewSliderRange() {
   const [v, setV] = useState(800);
   return <Slider orientation="stacked" label="DPI" value={v} min={100} max={3200} step={50} showRange
     formatValue={x => `${x} DPI`} onChange={setV} />;
+}
+
+function PreviewSliderVertical() {
+  const [bands, setBands] = useState([4, 3, 2, 0, -4, -3, -3, 1]);
+  return (
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+      {bands.map((v, i) => (
+        <Slider key={i} orientation="vertical" length={150} editable zeroMarker trackFill label={String(48 * 2 ** i)}
+          value={v} min={-20} max={6} step={0.5} formatValue={x => (x > 0 ? `+${x}` : String(x))}
+          onChange={x => setBands(prev => prev.map((b, j) => (j === i ? x : b)))} />
+      ))}
+    </div>
+  );
+}
+
+function PreviewChannelLayout() {
+  const [lit, setLit] = useState<string | null>(null);
+  const spots: Record<string, { label: string; x: number; y: number }> = {
+    fl: { label: 'Front left', x: -0.5, y: -0.4 }, c: { label: 'Center', x: 0, y: -0.85 }, fr: { label: 'Front right', x: 0.5, y: -0.4 },
+    rl: { label: 'Rear left', x: -0.5, y: 0.55 }, rr: { label: 'Rear right', x: 0.5, y: 0.55 },
+  };
+  const nodes: ChannelNode[] = Object.entries(spots).map(([id, s]) => ({
+    id, label: s.label, pos: { x: s.x, y: s.y }, icon: <span aria-hidden>{id.toUpperCase()}</span>,
+    control: <StorybookStepper label={`${s.label} volume`} value={10} min={0} max={20} />,
+  }));
+  return <ChannelLayout nodes={nodes} activeId={lit} ariaLabel="Speakers" hint="Click to select." center={<span>Listener</span>} onActivate={setLit} />;
 }
 
 function PreviewEditableText() {
@@ -2684,7 +2711,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Stepper', category: 'inputs',
     filePath: 'src/components/common/Stepper/Stepper.tsx',
-    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping and disabled state. Host-renderer bridge for the SDK Stepper element.',
+    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping, disabled state and a label that names it for assistive tech. Host-renderer bridge for the SDK Stepper element.',
     Preview: PreviewStepper,
   },
   {
@@ -2714,6 +2741,17 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Slider (showRange)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
     description: 'Stacked slider with min and max printed under the track. Used by any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
+  },
+  {
+    name: 'Slider (vertical)', category: 'inputs',
+    filePath: 'src/components/common/Slider/Slider.tsx',
+    description: 'Label over a bottom-to-top track over the value, for a bank of bands such as an equalizer. length sets the track height; the zero tick and centre-out fill work as in the other layouts.', Preview: PreviewSliderVertical,
+    notes: 'The range is a rotated native input, so keyboard and pointer behave as in every other Slider. marker and band are horizontal-only.',
+  },
+  {
+    name: 'ChannelLayout', category: 'inputs',
+    filePath: 'src/components/common/ChannelLayout/ChannelLayout.tsx',
+    description: 'Labeled nodes placed compactly around a center, such as speakers around a listener. Positions run from -1 to 1 on each axis from the center. A click on a node reports onActivate; activeId lights one node. Each node can carry a control, such as a Stepper, placed beside it.', Preview: PreviewChannelLayout,
   },
   {
     name: 'RangeSlider (temperature)', category: 'inputs',

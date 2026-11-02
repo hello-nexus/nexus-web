@@ -11,10 +11,12 @@ export interface StepperProps {
   min?: number;
   max?: number;
   disabled?: boolean;
+  /** Names the stepper for assistive tech, e.g. which speaker's volume it sets. */
+  label?: string;
   onChange?: (value: number) => void;
 }
 
-export function Stepper({ value, step = 1, min, max, disabled = false, onChange }: StepperProps) {
+export function Stepper({ value, step = 1, min, max, disabled = false, label, onChange }: StepperProps) {
   const { t } = useTranslation();
   const atMax = max != null && value >= max;
   const atMin = min != null && value <= min;
@@ -26,7 +28,7 @@ export function Stepper({ value, step = 1, min, max, disabled = false, onChange 
     onChange(v);
   };
   return (
-    <div className={styles.root}>
+    <div className={styles.root} role={label ? 'group' : undefined} aria-label={label}>
       <button
         type="button" aria-label={t('common.increment')}
         className={styles.btn}
