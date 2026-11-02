@@ -10,7 +10,6 @@ import { DEV_TOOLS } from '../../../lib/devTools';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
 import { BuildLogo } from '../../../components/common/BuildLogo/BuildLogo';
-import { BuildBoxIcon } from './BuildBoxIcon';
 import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
@@ -19,7 +18,10 @@ import { isY70CaseId } from './y70Cases';
 import y70Dark from './assets/y70-touch-dark.png';
 import y70Light from './assets/y70-touch-light.png';
 // Every part draws in the accent, so one image serves both themes.
-import openAir from './assets/open-air.png?inline';
+import openFrameDark from './assets/open-frame-dark.png';
+import openFrameLight from './assets/open-frame-light.png';
+import genericDark from './assets/generic-case-dark.png';
+import genericLight from './assets/generic-case-light.png';
 import styles from './BuildWidget.module.scss';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
@@ -161,7 +163,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
   const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
-  const boxIcon = (view === 'loading' || view === 'no-preview') && !showStock;
+  const generic = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
@@ -171,8 +173,8 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
-        {isOpenAir && <DrawingImage className={styles.image} src={openAir} openAir />}
-        {boxIcon && <BuildBoxIcon />}
+        {isOpenAir && <DrawingImage className={styles.image} src={scope.theme === 'light' ? openFrameLight : openFrameDark} openAir />}
+        {generic && <DrawingImage className={styles.image} src={scope.theme === 'light' ? genericLight : genericDark} generic />}
       </div>
       {withSpecs && (
         <div className={styles.side}>

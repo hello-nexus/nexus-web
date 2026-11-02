@@ -11,9 +11,11 @@
   font-size: var(--type-body);
   white-space: nowrap;
   pointer-events: none;
-  border: 1.5px solid currentColor;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
+  // Padding and corner radius are in em of the type size, with the proportions the small header logo has, so every size is
+  // rounded the same relative to its height; the stroke grows with the size but never drops below its smallest weight.
+  border: max(1.5px, 0.09375em) solid currentColor;
+  border-radius: 0.75em;
+  padding: 0.3em 0.6em;
 }
 
 .contrast {

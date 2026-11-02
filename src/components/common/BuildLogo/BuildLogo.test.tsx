@@ -26,7 +26,6 @@ describe('BuildLogo', () => {
   it('sizes the type only when the host asks', () => {
     const sized = logoOf(<BuildLogo fontSize={10} />) as HTMLElement;
     expect(sized.style.fontSize).toBe('10px');
-    expect(sized.style.padding).toBe('3px 6px');
     expect((logoOf(<BuildLogo />) as HTMLElement).style.fontSize).toBe('');
   });
 });

@@ -169,11 +169,11 @@ describe('BuildWidget', () => {
     document.documentElement.removeAttribute('data-theme');
   });
 
-  it('a case that is not a Y70 keeps the box icon', async () => {
+  it('a case that is not a Y70 keeps the generic case picture', async () => {
     h.caseId.mockResolvedValue('some-other-case');
     const view = await renderWidget('2x2');
     expect(view.container.querySelector('img[data-stock]')).toBeNull();
-    expect(view.container.querySelector('svg:not([role="img"])')).not.toBeNull();
+    expect(view.container.querySelector('img[data-generic]')).not.toBeNull();
   });
 
   describe('the BUILD label', () => {

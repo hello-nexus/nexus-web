@@ -4,7 +4,7 @@ import styles from './BuildLogo.module.scss';
 interface BuildLogoProps {
   /** contrast is the theme's full-contrast ink (pure white on dark, pure black on light); muted is the dim text token; primary the body text color (the default). Never the accent. */
   tone?: 'contrast' | 'muted' | 'primary';
-  /** The type size in CSS px, with the padding scaled to it. Omitted, the body type token and its stylesheet padding apply. */
+  /** The type size in CSS px; padding, corner radius and stroke scale with it. Omitted, the body type token applies. */
   fontSize?: number;
   /** The accessible name; a host with its own translations passes it. Defaults to the app's BUILD string. */
   label?: string;
@@ -17,7 +17,7 @@ export function BuildLogo({ tone = 'primary', fontSize, label, className }: Buil
   return (
     <span
       className={[styles.logo, styles[tone], className].filter(Boolean).join(' ')}
-      style={fontSize ? { fontSize, padding: `${fontSize * 0.3}px ${fontSize * 0.6}px` } : undefined}
+      style={fontSize ? { fontSize } : undefined}
       role="img"
       aria-label={label ?? t('panel.widget.build.badge')}
     >
