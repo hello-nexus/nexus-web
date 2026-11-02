@@ -19,6 +19,14 @@ describe('relayPreviewSave', () => {
     expect(notifySystemPreviewChanged).toHaveBeenCalledTimes(1);
   });
 
+  it('stores the png for a PC with no case through the same route and signals the widget', async () => {
+    vi.mocked(putSystemPreview).mockResolvedValue(true);
+    const png = new Uint8Array([1, 2, 3]).buffer;
+    expect(await relayPreviewSave(null, png)).toBe(true);
+    expect(putSystemPreview).toHaveBeenCalledWith(null, png);
+    expect(notifySystemPreviewChanged).toHaveBeenCalledTimes(1);
+  });
+
   it('does not signal when the service refused it', async () => {
     vi.mocked(putSystemPreview).mockResolvedValue(false);
     expect(await relayPreviewSave('hyte-y70', new ArrayBuffer(8))).toBe(false);

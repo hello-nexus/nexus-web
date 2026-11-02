@@ -72,22 +72,11 @@
   overflow: hidden;
 }
 
-// The BUILD label is set like the Cooling widget's mode label (SILENT): the same size, weight and ink and the label mixin's
-// tracking, which is a little tighter than SILENT's raw value (the style ratchet takes tokens and mixins only).
-.label {
+// The BUILD logo sits above the specs; margins, not flex gap, which needs a newer Chromium than the panels' floor.
+.mark {
   flex: none;
-  box-sizing: border-box;
-  @include text-label;
-  font-family: var(--panel-font);
-  font-size: var(--type-body);
-  color: var(--text);
-  white-space: nowrap;
-  pointer-events: none;
-  // Margins, not flex gap, which needs a newer Chromium than the panels' floor.
+  display: block;
   margin-bottom: var(--space-lg);
-  border: 1.5px solid currentColor;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
 }
 
 .specs {
@@ -137,13 +126,6 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-.silhouette {
-  // Same size on every tile size.
-  flex: none;
-  width: 110px;
-  height: 88px;
 }
 
 .image {

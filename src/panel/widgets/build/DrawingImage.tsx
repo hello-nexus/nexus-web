@@ -101,11 +101,13 @@ export function downscaleTo(source: HTMLImageElement, targetWidth: number): Prom
 interface DrawingImageProps {
   src: string;
   className?: string;
+  /** The picture is one the Build portal's renderer drew ahead of time in place of a snapshot: the open frame, or the generic case. */
   openAir?: boolean;
+  generic?: boolean;
 }
 
 /** A snapshot of the PC: cropped to its drawing so the logo sits just above it, and resampled to the pixels it is shown in. */
-export function DrawingImage({ src, className, openAir = false }: DrawingImageProps) {
+export function DrawingImage({ src, className, openAir = false, generic = false }: DrawingImageProps) {
   const content = useContentBox(src);
   const ref = useRef<HTMLImageElement>(null);
   const [crisp, setCrisp] = useState<string | null>(null);
@@ -152,5 +154,5 @@ export function DrawingImage({ src, className, openAir = false }: DrawingImagePr
   }, [src, width, content]);
 
   const style = content ? ({ aspectRatio: String(content.aspect), objectViewBox: content.inset } as React.CSSProperties) : undefined;
-  return <img ref={ref} className={className} src={crisp ?? src} alt="" draggable={false} data-open-air={openAir ? '' : undefined} data-cropped={content ? '' : undefined} style={style} />;
+  return <img ref={ref} className={className} src={crisp ?? src} alt="" draggable={false} data-open-air={openAir ? '' : undefined} data-generic={generic ? '' : undefined} data-cropped={content ? '' : undefined} style={style} />;
 }

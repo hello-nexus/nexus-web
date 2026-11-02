@@ -2,6 +2,9 @@
 // failure is kept for a day, per case, setup and image size, and a changed one is a new attempt.
 
 const KEY = 'nexus.buildSeed.failed';
+
+/** What stands for a PC with no case in a seed or redraw key: a value no real case id can have (isValidCaseId rejects it). */
+export const NO_CASE_KEY = '(no case)';
 export const SEED_RETRY_MS = 24 * 60 * 60 * 1000;
 
 type Failures = Record<string, number>;

@@ -16,6 +16,8 @@ vi.mock('./buildPreview', () => ({ relayPreviewSave: (...args: unknown[]) => pre
 
 const h = vi.hoisted(() => ({
   themeMode: 'dark' as 'dark' | 'light' | 'system',
+  coolingEnabled: true,
+  updateUi: vi.fn(),
   openExternalUrl: vi.fn().mockResolvedValue(undefined),
   isRemoteOrigin: false,
   specs: null as unknown as SystemSpecs | null,
@@ -32,7 +34,7 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
-  useUiSettings: () => ({ settings: { themeMode: h.themeMode }, update: vi.fn(), hydrated: true }),
+  useUiSettings: () => ({ settings: { themeMode: h.themeMode, featureCoolingEnabled: h.coolingEnabled }, update: h.updateUi, hydrated: true }),
 }));
 vi.mock('../../../hooks/useSystemSpecs', () => ({
   useSystemSpecs: () => ({ specs: h.specs }),
@@ -190,6 +192,64 @@ describe('BuildPage', () => {
     // A foreign origin cannot trigger it.
     act(() => postFromFrame(iframe, { type: 'nexus-build:open-benchmark' }, 'https://evil.example'));
     expect(onOpenBenchmark).toHaveBeenCalledTimes(1);
+  });
+
+  describe('open-cooling', () => {
+    beforeEach(() => { h.coolingEnabled = true; h.updateUi.mockReset(); });
+    const helloOf = (postSpy: { mock: { calls: unknown[][] } }) => postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).filter(m => m.type === 'nexus-build:hello');
+
+    it('advertises it with whether Cooling is on, only when the app can open Cooling', () => {
+      const without = render(<BuildPage path="/builder" />);
+      const plain = getIframe();
+      const plainSpy = vi.spyOn(plain.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(plain, { type: 'nexus-build:ready' }));
+      expect(helloOf(plainSpy)[0]).not.toHaveProperty('canOpenCooling');
+      expect(helloOf(plainSpy)[0]).not.toHaveProperty('coolingEnabled');
+      without.unmount();
+
+      h.coolingEnabled = false;
+      render(<BuildPage path="/builder" onOpenCooling={vi.fn()} />);
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      expect(helloOf(postSpy)[0]).toMatchObject({ canOpenCooling: true, coolingEnabled: false });
+    });
+
+    it('tells the frame again when Cooling is turned on or off', () => {
+      h.coolingEnabled = false;
+      const { rerender } = render(<BuildPage path="/builder" onOpenCooling={vi.fn()} />);
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      h.coolingEnabled = true;
+      rerender(<BuildPage path="/builder" onOpenCooling={vi.fn()} />);
+      expect(helloOf(postSpy).map(m => m.coolingEnabled)).toEqual([false, true]);
+    });
+
+    it('opens Cooling on its 3D airflow view when the frame asks', () => {
+      const onOpenCooling = vi.fn();
+      render(<BuildPage path="/builder" onOpenCooling={onOpenCooling} />);
+      const iframe = getIframe();
+      act(() => postFromFrame(iframe, { type: 'nexus-build:open-cooling' }));
+      expect(h.updateUi).toHaveBeenCalledWith({ coolingView3d: true });
+      expect(onOpenCooling).toHaveBeenCalledTimes(1);
+      act(() => postFromFrame(iframe, { type: 'nexus-build:open-cooling' }, 'https://evil.example'));
+      expect(onOpenCooling).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not open a turned-off Cooling, and an app without the handler ignores the message', () => {
+      h.coolingEnabled = false;
+      const onOpenCooling = vi.fn();
+      const off = render(<BuildPage path="/builder" onOpenCooling={onOpenCooling} />);
+      act(() => postFromFrame(getIframe(), { type: 'nexus-build:open-cooling' }));
+      expect(onOpenCooling).not.toHaveBeenCalled();
+      expect(h.updateUi).not.toHaveBeenCalled();
+      off.unmount();
+      h.coolingEnabled = true;
+      render(<BuildPage path="/builder" />);
+      act(() => postFromFrame(getIframe(), { type: 'nexus-build:open-cooling' }));
+      expect(h.updateUi).not.toHaveBeenCalledWith({ coolingView3d: true });
+    });
   });
 
   it('omits canOpenBenchmark from hello without a handler', () => {
@@ -828,8 +888,14 @@ describe('BuildPage preview relay', () => {
     expect(previewApi.relayPreviewSave).toHaveBeenCalledWith('case-abc', png);
   });
 
+  it.each([['null', null], ['absent', undefined]])('relays a set-preview whose case id is %s as a PC with no case', (_label, none) => {
+    const { iframe } = readyFrame();
+    const png = new ArrayBuffer(4);
+    act(() => postFromFrame(iframe, { type: 'nexus-build:set-preview', caseId: none, png }));
+    expect(previewApi.relayPreviewSave).toHaveBeenCalledWith(null, png);
+  });
+
   it.each([
-    ['null', null],
     ['too long', 'x'.repeat(65)],
     ['a path', '../etc'],
     ['a number', 7],

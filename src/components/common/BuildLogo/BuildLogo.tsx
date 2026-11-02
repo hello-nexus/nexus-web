@@ -1,33 +1,30 @@
 import { useTranslation } from '../../../lib/i18n';
-import { LOGO } from './logoPaths';
 import styles from './BuildLogo.module.scss';
 
+// In em of the type size, so every size is rounded the same relative to its height.
+const CORNER_RADIUS = '0.75em';
+
 interface BuildLogoProps {
-  /** The drawing's height in CSS px; the width follows the artwork's proportions. */
-  height?: number;
-  /** contrast is the theme's full-contrast ink (pure white on dark, pure black on light, the default); muted is the dim text token; primary the body text color. Never the accent. */
+  /** contrast is the theme's full-contrast ink (pure white on dark, pure black on light); muted is the dim text token; primary the body text color (the default). Never the accent. */
   tone?: 'contrast' | 'muted' | 'primary';
+  /** The type size in CSS px; padding, corner radius and stroke scale with it. Omitted, the body type token applies. */
+  fontSize?: number;
   /** The accessible name; a host with its own translations passes it. Defaults to the app's BUILD string. */
   label?: string;
   className?: string;
 }
 
-const [, , VIEW_WIDTH, VIEW_HEIGHT] = LOGO.viewBox.split(' ').map(Number);
-
-/** The BUILD logo, drawn inline in a neutral theme color. A quiet identifier, not a button. */
-export function BuildLogo({ height = 24, tone = 'contrast', label, className }: BuildLogoProps) {
+/** The BUILD logo: the name in the label style inside a rounded outline. A quiet identifier, not a button. */
+export function BuildLogo({ tone = 'primary', fontSize, label, className }: BuildLogoProps) {
   const { t } = useTranslation();
   return (
-    <svg
+    <span
       className={[styles.logo, styles[tone], className].filter(Boolean).join(' ')}
-      viewBox={LOGO.viewBox}
-      height={height}
-      width={(height * VIEW_WIDTH) / VIEW_HEIGHT}
-      fill="currentColor"
+      style={{ borderRadius: CORNER_RADIUS, ...(fontSize ? { fontSize } : {}) }}
       role="img"
       aria-label={label ?? t('panel.widget.build.badge')}
     >
-      {LOGO.paths.map((p) => <path key={p.d} d={p.d} fillRule={p.evenOdd ? 'evenodd' : undefined} />)}
-    </svg>
+      <span aria-hidden="true">{t('panel.widget.build.badge')}</span>
+    </span>
   );
 }

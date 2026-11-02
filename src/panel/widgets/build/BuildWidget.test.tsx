@@ -94,6 +94,22 @@ describe('BuildWidget', () => {
     expect(screen.queryByText(/panel\.widget\.build\.cta/)).toBeNull();
   });
 
+  it('no case and no image yet mounts the seed with no case, still showing the open-air placeholder meanwhile', async () => {
+    const { container } = await renderWidget('4x4');
+    const seed = screen.getByTestId('seed');
+    expect(seed.getAttribute('data-case')).toBeNull();
+    expect(container.querySelector('[data-view="no-case"] img[data-open-air]')).not.toBeNull();
+  });
+
+  it('no case with a snapshot the service holds for it shows that snapshot, not the placeholder, and mounts no seed', async () => {
+    h.preview.mockResolvedValue(image());
+    const { container } = await renderWidget('4x2');
+    expect(container.querySelector('[data-view="preview"]')).not.toBeNull();
+    expect(container.querySelector('img[data-open-air]')).toBeNull();
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:preview-1');
+    expect(screen.queryByTestId('seed')).toBeNull();
+  });
+
   it('shows only the preview image when one is stored', async () => {
     h.caseId.mockResolvedValue('hyte-y70');
     h.preview.mockResolvedValue(image());
@@ -103,7 +119,7 @@ describe('BuildWidget', () => {
     expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();
   });
 
-  it('a tile with a case and no image mounts the seed for that case, in release builds too; no case or an image mounts none', async () => {
+  it('a tile with a case and no image mounts the seed for that case, in release builds too; an image mounts none', async () => {
     h.devTools = true;
     h.caseId.mockResolvedValue('hyte-y70');
     const seeded = await renderWidget('4x4');
@@ -115,9 +131,6 @@ describe('BuildWidget', () => {
     stored.unmount();
     h.preview.mockResolvedValue({ kind: 'none' });
     h.caseId.mockResolvedValue(null);
-    const caseless = await renderWidget('4x4');
-    expect(screen.queryByTestId('seed')).toBeNull();
-    caseless.unmount();
     h.devTools = false;
     h.caseId.mockResolvedValue('hyte-y70');
     await renderWidget('4x4');
@@ -156,11 +169,11 @@ describe('BuildWidget', () => {
     document.documentElement.removeAttribute('data-theme');
   });
 
-  it('a case that is not a Y70 keeps the silhouette', async () => {
+  it('a case that is not a Y70 keeps the generic case picture', async () => {
     h.caseId.mockResolvedValue('some-other-case');
     const view = await renderWidget('2x2');
     expect(view.container.querySelector('img[data-stock]')).toBeNull();
-    expect(view.container.querySelector('svg:not([role="img"])')).not.toBeNull();
+    expect(view.container.querySelector('img[data-generic]')).not.toBeNull();
   });
 
   describe('the BUILD label', () => {
@@ -291,6 +304,18 @@ describe('BuildWidget', () => {
       registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.getByTestId('seed').getAttribute('data-size')).toBe('270');
+      h.preview.mockResolvedValue(header(270));
+      await changed();
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('the image of a PC with no case is drawn again at the wanted size by the same rule, with the seed told no case', async () => {
+      h.preview.mockResolvedValue(header(1024));
+      registerPreviewSize('test', 270);
+      await renderWidget('4x4');
+      const seed = screen.getByTestId('seed');
+      expect(seed.getAttribute('data-case')).toBeNull();
+      expect(seed.getAttribute('data-size')).toBe('270');
       h.preview.mockResolvedValue(header(270));
       await changed();
       expect(screen.queryByTestId('seed')).toBeNull();

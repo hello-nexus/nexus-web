@@ -1,8 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { clearSeedFailures, recordSeedFailure, SEED_RETRY_MS, seedAttemptKey, seedFailedRecently } from './seedAttempts';
+import { isValidCaseId } from '../../../components/views/BuildPage/buildMachine';
+import { clearSeedFailures, NO_CASE_KEY, recordSeedFailure, SEED_RETRY_MS, seedAttemptKey, seedFailedRecently } from './seedAttempts';
 
 describe('seed attempts', () => {
   afterEach(() => clearSeedFailures());
+
+  it('keys a PC with no case by a value no real case id can have', () => {
+    expect(isValidCaseId(NO_CASE_KEY)).toBe(false);
+  });
 
   it('holds a failed attempt off for a day, then allows another', () => {
     const key = seedAttemptKey('case-1', 'setup-a');

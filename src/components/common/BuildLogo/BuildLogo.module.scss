@@ -1,8 +1,20 @@
-// Neutral by design, never the accent: the theme's full-contrast ink (--logo-contrast: pure white on dark, pure black on
-// light) by default, or a text token when asked.
+@use '../../../styles/text' as *;
+
+// Neutral by design, never the accent: a text token, or the theme's full-contrast ink (--logo-contrast: pure white on dark,
+// pure black on light). Set like the Cooling widget's mode label (SILENT) with the label mixin.
 .logo {
-  display: block;
+  display: inline-block;
   flex: none;
+  box-sizing: border-box;
+  @include text-label;
+  font-family: var(--panel-font, var(--font-sans));
+  font-size: var(--type-body);
+  white-space: nowrap;
+  pointer-events: none;
+  // Padding is in em of the type size, with the proportions the small header logo has; the corner radius is in em too (set in
+  // the component), so every size is rounded the same relative to its height. The stroke grows with the size but never drops below its smallest weight.
+  border: max(1.5px, 0.09375em) solid currentColor;
+  padding: 0.3em 0.6em;
 }
 
 .contrast {

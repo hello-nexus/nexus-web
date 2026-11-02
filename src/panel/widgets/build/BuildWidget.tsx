@@ -9,16 +9,20 @@ import { isMacAppShell } from '../../../app/windowActions';
 import { DEV_TOOLS } from '../../../lib/devTools';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
-import { BuildCaseSilhouette } from './BuildCaseSilhouette';
+import { BuildLogo } from '../../../components/common/BuildLogo/BuildLogo';
 import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState';
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
 import { sizeShowsSpecs, type BuildSpecRow } from './buildSpecRows';
 import { isY70CaseId } from './y70Cases';
+import { NO_CASE_KEY } from './seedAttempts';
 import y70Dark from './assets/y70-touch-dark.png';
 import y70Light from './assets/y70-touch-light.png';
-// Every part draws in the accent, so one image serves both themes.
-import openAir from './assets/open-air.png?inline';
+// Rendered ahead of time by the Build portal's renderer (scripts/render-widget-fallbacks.mjs there), one picture per theme because the case lines are the theme's ink.
+import openFrameDark from './assets/open-frame-dark.png?inline';
+import openFrameLight from './assets/open-frame-light.png?inline';
+import genericDark from './assets/generic-case-dark.png?inline';
+import genericLight from './assets/generic-case-light.png?inline';
 import styles from './BuildWidget.module.scss';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
@@ -159,7 +163,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
   const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
-  const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
+  const generic = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
@@ -169,12 +173,12 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
-        {isOpenAir && <DrawingImage className={styles.image} src={openAir} openAir />}
-        {silhouette && <BuildCaseSilhouette />}
+        {isOpenAir && <DrawingImage className={styles.image} src={scope.theme === 'light' ? openFrameLight : openFrameDark} openAir />}
+        {generic && <DrawingImage className={styles.image} src={scope.theme === 'light' ? genericLight : genericDark} generic />}
       </div>
       {withSpecs && (
         <div className={styles.side}>
-          <span className={styles.label} aria-hidden="true">{t('panel.widget.build.badge')}</span>
+          <span className={styles.mark} aria-hidden="true"><BuildLogo /></span>
           <ul className={styles.specs}>
             {rows.map((row) => (
               <li key={row.key} className={styles.spec}>
@@ -210,7 +214,9 @@ export function BuildWidget({ widget }: WidgetProps) {
   const onImageWidth = measuring ? (cssWidth: number) => reportSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
   // A stored image outside the window around a size that has held still is drawn again, within a small budget per case (see `mayRedraw`).
   const settled = useSettled(wanted, SEED_SETTLE_MS);
-  const staleKey = live.caseId && settled ? `${live.caseId}|${settled}` : null;
+  // A PC with no case chosen has its own image, redrawn by the same rule under its own key.
+  const caseKey = live.caseId ?? NO_CASE_KEY;
+  const staleKey = settled ? `${caseKey}|${settled}` : null;
   const tooFar = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0);
   const [redrawing, setRedrawing] = useState<string | null>(null);
   // After the portal's save, nothing is decided until the refreshed image has landed: its width is what is judged.
@@ -220,11 +226,10 @@ export function BuildWidget({ widget }: WidgetProps) {
   }, [holdUrl, live.previewUrl]);
   const [due, setDue] = useState(0);
   useEffect(() => {
-    const caseId = live.caseId;
-    if (!tooFar || !staleKey || !caseId || redrawing !== null || holdUrl !== null) return undefined;
-    const record = redrawn.get(caseId);
+    if (!tooFar || !staleKey || redrawing !== null || holdUrl !== null) return undefined;
+    const record = redrawn.get(caseKey);
     if (mayRedraw(record, Date.now())) {
-      redrawn.set(caseId, { count: (record?.count ?? 0) + 1, last: Date.now() });
+      redrawn.set(caseKey, { count: (record?.count ?? 0) + 1, last: Date.now() });
       setRedrawing(staleKey);
       return undefined;
     }
@@ -232,7 +237,7 @@ export function BuildWidget({ widget }: WidgetProps) {
     // Still too far once the interval has passed: look again then.
     const timer = window.setTimeout(() => setDue((n) => n + 1), Math.max(0, REDRAW_INTERVAL_MS - (Date.now() - record.last)));
     return () => window.clearTimeout(timer);
-  }, [tooFar, staleKey, live.caseId, redrawing, holdUrl, due]);
+  }, [tooFar, staleKey, caseKey, redrawing, holdUrl, due]);
   // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change, or when what is stored is no longer too far off.
   useEffect(() => {
     if (redrawing === null) return undefined;
@@ -242,11 +247,13 @@ export function BuildWidget({ widget }: WidgetProps) {
     return () => window.removeEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
   }, [redrawing, tooFar, live.previewUrl]);
   const stale = redrawing !== null;
-  const seed = !preview && (view === 'no-preview' || stale) && live.caseId;
+  // A PC with no case chosen is framed too (a null case), so its open-air picture is drawn without the Build page having been opened.
+  const seedCase: string | null | false = preview ? false : (view === 'no-preview' || stale) ? live.caseId : view === 'no-case' ? null : false;
+  const seed = seedCase === false ? false : (seedCase ?? NO_CASE_KEY);
   return (
     <>
       <BuildWidgetView view={view} size={widget.size} previewUrl={live.previewUrl} stock={isY70CaseId(live.caseId)} rows={rows} onImageWidth={onImageWidth} />
-      {seed && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seed} size={settled ?? wanted} /></Suspense>}
+      {seed !== false && <Suspense fallback={null}><BuildPreviewSeed key={seed} caseId={seedCase || null} size={settled ?? wanted} /></Suspense>}
     </>
   );
 }
