@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { acknowledgeGuardTrip, fetchGuard, keepHeal, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
+import { acknowledgeGuardTrip, fetchGuard, keepHeal, restoreGuardCurves, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
 import { useTranslation } from '../lib/i18n';
 import { newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -19,6 +19,7 @@ export function useThermalGuard(serviceOnline: boolean) {
   // When the guard was last fetched: the notice's age cut-off needs a clock that is not read during render.
   const [fetchedAtMs, setFetchedAtMs] = useState(0);
   const [error, setError] = useState<GuardErrorState | null>(null);
+  const [restoring, setRestoring] = useState(false);
   // The switch and the limit each report their own failure, beside their own control.
   const [toggleError, setToggleError] = useState<GuardErrorState | null>(null);
   const [limitError, setLimitError] = useState<GuardErrorState | null>(null);
@@ -53,6 +54,8 @@ export function useThermalGuard(serviceOnline: boolean) {
         setFetchedAtMs(Date.now());
         // A failed Undo is moot once the service no longer holds the snapshot.
         if (!next.heal.undoAvailable) setError(prev => (prev?.kind === 'undo' ? null : prev));
+        // A failed restore is moot once full speed is no longer holding.
+        if (next.restoreAvailable !== true) setError(prev => (prev?.kind === 'restore' ? null : prev));
       }
     } finally {
       if (inFlightRef.current === generation) inFlightRef.current = null;
@@ -202,6 +205,24 @@ export function useThermalGuard(serviceOnline: boolean) {
     return true;
   }, [applyHeal]);
 
+  /** Ends full speed and resumes the curves. True when the service accepted it; a failed one sets `error`. */
+  const restore = useCallback(async (): Promise<boolean> => {
+    setRestoring(true);
+    try {
+      const res = await restoreGuardCurves();
+      if (!res || res.error || !res.state) {
+        setError(newGuardError(tRef.current('cooling.guard.error.restore'), 'restore'));
+        return false;
+      }
+      setError(null);
+      seqRef.current += 1;
+      setGuard(res);
+      return true;
+    } finally {
+      setRestoring(false);
+    }
+  }, []);
+
   /** Dismisses an ended trip. True when the service accepted it and its guard became the state. */
   const acknowledgeTrip = useCallback(async (): Promise<boolean> => {
     const res = await acknowledgeGuardTrip();
@@ -222,5 +243,5 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, fetchedAtMs, pendingEnabled, pendingLintWarnings, pendingLimit, error, toggleError, limitError, lintWarningsError, ackError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, applyHeal };
+  return { guard, fetchedAtMs, pendingEnabled, pendingLintWarnings, pendingLimit, error, toggleError, limitError, lintWarningsError, ackError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, restore, restoring, applyHeal };
 }

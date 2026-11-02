@@ -6,7 +6,7 @@ import { useThermalGuard } from './useThermalGuard';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn(), keepHeal: vi.fn(), acknowledgeGuardTrip: vi.fn() }));
+const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn(), keepHeal: vi.fn(), acknowledgeGuardTrip: vi.fn(), restoreGuardCurves: vi.fn() }));
 
 vi.mock('../api/cooling', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/cooling')>()),
@@ -251,6 +251,25 @@ describe('useThermalGuard', () => {
     await act(async () => { ok = await handle.current!.keep(); });
     expect(ok).toBe(false);
     await screen.findByText('cooling.guard.error.keep');
+  });
+
+  it('restore applies the returned guard and reports true', async () => {
+    mount();
+    api.restoreGuardCurves.mockResolvedValue(guard('normal'));
+    let ok = false;
+    await act(async () => { ok = await handle.current!.restore(); });
+    expect(ok).toBe(true);
+    expect(screen.getByTestId('state').textContent).toContain('normal');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it.each([[null], [{ ...guard('normal'), error: true }]])('a failed restore (%#) sets an inline error and reports false', async (reply) => {
+    mount();
+    api.restoreGuardCurves.mockResolvedValue(reply);
+    let ok = true;
+    await act(async () => { ok = await handle.current!.restore(); });
+    expect(ok).toBe(false);
+    await screen.findByText('cooling.guard.error.restore');
   });
 
   it('sends the hazard-warning switch as its own request', async () => {
