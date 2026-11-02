@@ -12,6 +12,8 @@ interface BuildLogoProps {
   height?: number;
   /** muted is the quiet default; primary is the body text color. Never the accent. */
   tone?: 'muted' | 'primary';
+  /** The accessible name; a host with its own translations passes it. Defaults to the app's BUILD string. */
+  label?: string;
   className?: string;
 }
 
@@ -21,7 +23,7 @@ export function logoCutFor(height: number): 'small' | 'full' {
 }
 
 /** The BUILD logo, drawn inline in a neutral theme color. A quiet identifier, not a button. */
-export function BuildLogo({ height = 24, tone = 'muted', className }: BuildLogoProps) {
+export function BuildLogo({ height = 24, tone = 'muted', label, className }: BuildLogoProps) {
   const { t } = useTranslation();
   const cut = logoCutFor(height) === 'small' ? LOGO_SMALL : LOGO_FULL;
   const [, , w, h] = cut.viewBox.split(' ').map(Number);
@@ -33,7 +35,7 @@ export function BuildLogo({ height = 24, tone = 'muted', className }: BuildLogoP
       width={(height * w) / h}
       fill="currentColor"
       role="img"
-      aria-label={t('panel.widget.build.badge')}
+      aria-label={label ?? t('panel.widget.build.badge')}
     >
       {cut.paths.map((p) => <path key={p.d} d={p.d} fillRule={p.evenOdd ? 'evenodd' : undefined} />)}
     </svg>

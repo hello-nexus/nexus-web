@@ -28,6 +28,11 @@ describe('BuildLogo', () => {
     expect(svg.getAttribute('aria-label')).toBe('panel.widget.build.badge');
   });
 
+  it('takes its accessible name from the host when it passes one', () => {
+    const svg = render(<BuildLogo label="Build" />).container.querySelector('svg')!;
+    expect(svg.getAttribute('aria-label')).toBe('Build');
+  });
+
   it('uses currentColor ink from a neutral token, never the accent', () => {
     const svg = render(<BuildLogo />).container.querySelector('svg')!;
     expect(svg.getAttribute('fill')).toBe('currentColor');
