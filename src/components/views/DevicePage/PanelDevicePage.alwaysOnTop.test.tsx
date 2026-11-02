@@ -7,9 +7,6 @@ const patchPanelDeviceMock = vi.fn();
 const fetchServiceMock = vi.fn();
 const postServiceMock = vi.fn();
 
-const platformState = vi.hoisted(() => ({ value: '' }));
-vi.mock('../../../hooks/useServicePlatform', () => ({ useServicePlatform: () => platformState.value }));
-
 vi.mock('../../../api/service', () => ({
   fetchService: (...a: unknown[]) => fetchServiceMock(...a),
   postService: (...a: unknown[]) => postServiceMock(...a),
@@ -102,7 +99,6 @@ const DEVICE: PanelDevice = {
 } as PanelDevice;
 
 beforeEach(() => {
-  platformState.value = '';
   fetchPanelDevicesMock.mockReset().mockResolvedValue({ devices: [] });
   patchPanelDeviceMock.mockReset().mockResolvedValue({ ok: true });
   fetchServiceMock.mockReset().mockResolvedValue(null);
@@ -158,9 +154,8 @@ describe('PanelDevicePage Y70 always on top', () => {
   });
 
   it('hides the toggle on a Linux host, whose kiosk host has no on-top support', async () => {
-    platformState.value = 'linux';
     servePrefs({ reserveMonitor: true, alwaysOnTop: true });
-    render(<PanelDevicePage device={DEVICE} />);
+    render(<PanelDevicePage device={DEVICE} platform="linux" />);
     await openSettingsTab();
 
     await screen.findByRole('switch', { name: RESERVE_LABEL });
