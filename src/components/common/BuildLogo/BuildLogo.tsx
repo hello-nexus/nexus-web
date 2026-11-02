@@ -1,8 +1,8 @@
 import { useTranslation } from '../../../lib/i18n';
 import styles from './BuildLogo.module.scss';
 
-// In em of the type size, so every size is rounded the same relative to its height.
-const CORNER_RADIUS = '0.75em';
+// In em of the type size: the outer corner is 7/24 of the box height (1.885em), the same ratio as BuildIcon's rounded square.
+const CORNER_RADIUS = '0.55em';
 
 interface BuildLogoProps {
   /** contrast is the theme's full-contrast ink (pure white on dark, pure black on light); muted is the dim text token; primary the body text color (the default). Never the accent. */

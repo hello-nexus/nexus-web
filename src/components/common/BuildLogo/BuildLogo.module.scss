@@ -11,10 +11,9 @@
   font-size: var(--type-body);
   white-space: nowrap;
   pointer-events: none;
-  // Padding is in em of the type size, with the proportions the small header logo has; the corner radius is in em too (set in
-  // the component), so every size is rounded the same relative to its height. The stroke grows with the size but never drops below its smallest weight.
+  // Padding, stroke and the corner radius are in em, so every size keeps the same proportions.
   border: 0.1674em solid currentColor;
-  padding: 0.3em 0.6em;
+  padding: 0.15em 0.4em;
 }
 
 .contrast {

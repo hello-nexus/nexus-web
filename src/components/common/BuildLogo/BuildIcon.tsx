@@ -6,7 +6,7 @@ interface BuildIconProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
   color?: string;
 }
 
-// Lucide-compatible mark for Build: a rounded square holding a stroked B.
+// Lucide-compatible mark for Build: a stroked B in a rounded square that fills the icon box.
 export function BuildIcon({ size = 24, strokeWidth = 2, color = 'currentColor', ...rest }: BuildIconProps) {
   return (
     <svg
@@ -21,8 +21,8 @@ export function BuildIcon({ size = 24, strokeWidth = 2, color = 'currentColor', 
       strokeLinejoin="round"
       {...rest}
     >
-      <rect x="3" y="3" width="18" height="18" rx="4" />
-      <path d="M9.5 7.5v9M9.5 7.5h3a2.25 2.25 0 0 1 0 4.5h-3M9.5 12h3.5a2.25 2.25 0 0 1 0 4.5H9.5" />
+      <rect x="1" y="1" width="22" height="22" rx="6" />
+      <path d="M8.5 6.5v11M8.5 6.5h4a2.75 2.75 0 0 1 0 5.5h-4M8.5 12h4.5a2.75 2.75 0 0 1 0 5.5H8.5" />
     </svg>
   );
 }
