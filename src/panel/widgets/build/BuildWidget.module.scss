@@ -11,9 +11,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  // The badge's own margin from the tile edge is the tile's padding; this is the clear gap between it and the content.
+  gap: var(--space-md);
   color: var(--text-dim);
-  // The tile's own box is the unit the left region is cut from.
+}
+
+// The BUILD badge sits at the middle of one edge of the tile (BADGE_POSITION), in every size and state; the content takes
+// the height that is left.
+.badge {
+  flex: none;
+  pointer-events: none;
+}
+
+.widget[data-badge='bottom'] .badge {
+  order: 2;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  // The content's own box is the unit the left region is cut from.
   container-type: size;
 }
 
@@ -28,12 +51,11 @@
   justify-content: center;
 }
 
-// Wide tiles: the left part is exactly the 2x2 tile's content, a two-cell square (its padding included) holding the logo
-// and the case image at the 2x2's size, derived from the tile's own box and the grid gap so it matches at any scale. The
-// rest of the width is the specs. Browsers without container units fall back to 40%.
-.widget[data-specs] {
+// Wide tiles: the case image in a square on the left, as large as the content allows (two cells wide at most, derived from the
+// content's own box and the grid gap, so it holds at any scale and shrinks to leave the badge its height); the rest of
+// the width is the specs. Browsers without container units fall back to 40%.
+.body[data-specs] {
   flex-direction: row;
-  gap: 0;
 
   .media {
     flex: 0 0 40%;
@@ -44,8 +66,8 @@
     --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2));
 
     .media {
-      flex-basis: calc(var(--left-region) - 2 * var(--space-md));
-      width: calc(var(--left-region) - 2 * var(--space-md));
+      flex-basis: var(--left-region);
+      width: var(--left-region);
     }
   }
 }
@@ -129,16 +151,9 @@
   }
 }
 
-// Cropped to the drawing: the box hugs it, and the logo and the drawing sit together, centered in the column.
+// Cropped to the drawing: the box hugs it, so the drawing is centered in its column.
 .image[data-cropped] {
   flex: 0 1 auto;
   object-fit: contain;
 }
 
-// The BUILD logo sits directly above the case image, centered on it; the shared component draws it.
-.logoSlot {
-  flex: none;
-  align-self: center;
-  margin-bottom: var(--space-sm);
-  pointer-events: none;
-}

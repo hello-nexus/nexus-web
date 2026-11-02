@@ -20,8 +20,9 @@ import y70Light from './assets/y70-touch-light.png';
 import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
 
-// The BUILD logo's drawing height in px: a small tag above the case image.
-const LOGO_HEIGHT = 17;
+// The BUILD logo's drawing height in px, in the tile's own scaled units, and which edge of the tile it sits on.
+const LOGO_HEIGHT = 26;
+export const BADGE_POSITION: 'top' | 'bottom' = 'bottom';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
@@ -60,10 +61,11 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
-    <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-specs={rows.length > 0 ? '' : undefined}>
+    <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-badge={BADGE_POSITION}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
+      <span className={styles.badge} aria-hidden="true"><BuildLogo height={LOGO_HEIGHT} tone="muted" /></span>
+      <div className={styles.body} data-specs={rows.length > 0 ? '' : undefined}>
       <div className={styles.media}>
-        <span className={styles.logoSlot} aria-hidden="true"><BuildLogo height={LOGO_HEIGHT} /></span>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
@@ -83,6 +85,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }
