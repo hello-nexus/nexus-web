@@ -67,7 +67,7 @@ describe('BuildWidget', () => {
   it('2x2 without a case shows the open-air system and no text', async () => {
     const { container } = await renderWidget('2x2');
     expect(container.querySelector('[data-view="no-case"] img[data-open-air]')).not.toBeNull();
-    expect(container.querySelector('svg')).toBeNull();
+    expect(container.querySelector('svg:not([role="img"])')).toBeNull();
     expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();
   });
 
@@ -87,7 +87,7 @@ describe('BuildWidget', () => {
     h.preview.mockResolvedValue(image());
     const { container } = await renderWidget('4x4');
     expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:preview-1');
-    expect(container.querySelector('svg')).toBeNull();
+    expect(container.querySelector('svg:not([role="img"])')).toBeNull();
     expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();
   });
 
@@ -118,7 +118,7 @@ describe('BuildWidget', () => {
     const view = await renderWidget('4x4');
     expect(view.container.querySelectorAll('img[data-stock]')).toHaveLength(1);
     expect(view.container.querySelector('img[data-stock="dark"]')).not.toBeNull();
-    expect(view.container.querySelector('svg')).toBeNull();
+    expect(view.container.querySelector('svg:not([role="img"])')).toBeNull();
     expect(screen.getByTestId('seed')).toBeTruthy();
     view.unmount();
     h.preview.mockResolvedValue(image());
@@ -148,14 +148,16 @@ describe('BuildWidget', () => {
     h.caseId.mockResolvedValue('some-other-case');
     const view = await renderWidget('2x2');
     expect(view.container.querySelector('img[data-stock]')).toBeNull();
-    expect(view.container.querySelector('svg')).not.toBeNull();
+    expect(view.container.querySelector('svg:not([role="img"])')).not.toBeNull();
   });
 
-  it('carries the quiet BUILD tag in every view, hidden from assistive tech', async () => {
-    const { container } = await renderWidget('2x2');
-    const slot = container.querySelector('[data-placement]');
-    expect(slot?.textContent).toBe('panel.widget.build.badge');
-    expect(slot?.getAttribute('aria-hidden')).toBe('true');
+  it('carries the BUILD logo bottom-left in every view and size, hidden from assistive tech', async () => {
+    for (const size of ['2x2', '4x2', '4x4'] as const) {
+      const { container, unmount } = await renderWidget(size);
+      const slot = container.querySelector('[aria-hidden="true"] svg[role="img"]');
+      expect(slot?.getAttribute('aria-label')).toBe('panel.widget.build.badge');
+      unmount();
+    }
   });
 
   it('names the tile in its accessible text', async () => {
@@ -173,7 +175,7 @@ describe('BuildWidget', () => {
   it('macOS shows the Apple logo and makes no case or preview fetch', async () => {
     h.macShell = true;
     const { container } = await renderWidget('4x4');
-    expect(container.querySelector('[data-view="mac"] svg path')).not.toBeNull();
+    expect(container.querySelector('[data-view="mac"] svg:not([role="img"]) path')).not.toBeNull();
     expect(h.caseId).not.toHaveBeenCalled();
     expect(h.preview).not.toHaveBeenCalled();
     expect(screen.queryByText(/panel\.widget\.build\.(cta|spec)/)).toBeNull();

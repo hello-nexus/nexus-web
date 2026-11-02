@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { BuildBadge } from '../../../components/common/BuildBadge/BuildBadge';
+import { BuildLogo } from '../../../components/common/BuildLogo/BuildLogo';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { isMacAppShell } from '../../../app/windowActions';
@@ -18,9 +18,6 @@ import y70Light from './assets/y70-touch-light.png';
 // Every part draws in the accent, so one image serves both themes.
 import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
-
-// Where the quiet BUILD tag sits on the tile.
-const BADGE_PLACEMENT: 'bottom-left' | 'top-left' = 'bottom-left';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
@@ -61,7 +58,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-specs={rows.length > 0 ? '' : undefined}>
       <span className={styles.srOnly}>{t('panel.widget.build')}</span>
-      <span className={styles.badgeSlot} data-placement={BADGE_PLACEMENT} aria-hidden="true"><BuildBadge size="0.7rem" /></span>
+      <span className={styles.logoSlot} aria-hidden="true"><BuildLogo height={20} /></span>
       <div className={styles.media}>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
         {view === 'preview' && previewUrl && <img className={styles.image} src={previewUrl} alt="" draggable={false} />}

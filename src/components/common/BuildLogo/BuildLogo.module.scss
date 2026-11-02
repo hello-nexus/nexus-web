@@ -1,0 +1,13 @@
+// Neutral by design: a muted or primary text token, never the accent, so it reads in dark and light.
+.logo {
+  display: block;
+  flex: none;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.primary {
+  color: var(--text);
+}

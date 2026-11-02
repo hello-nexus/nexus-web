@@ -111,12 +111,10 @@
   }
 }
 
-// Where the BUILD tag sits in the tile; the tag itself is the shared component.
-.badgeSlot {
+// The BUILD logo sits in the tile's bottom-left corner; the logo itself is the shared component.
+.logoSlot {
   position: absolute;
   left: var(--space-md);
+  bottom: var(--space-md);
   pointer-events: none;
-
-  &[data-placement='bottom-left'] { bottom: var(--space-md); }
-  &[data-placement='top-left'] { top: var(--space-md); }
 }
