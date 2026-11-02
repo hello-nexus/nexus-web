@@ -23,8 +23,17 @@
   pointer-events: none;
 }
 
-.widget[data-badge='bottom'] .badge {
-  order: 2;
+.widget[data-badge='bottom'] {
+  // The gap under the badge matches the gap the content leaves above it.
+  padding-bottom: var(--space-lg);
+
+  .badge {
+    order: 2;
+  }
+}
+
+.widget[data-badge='top'] {
+  padding-top: var(--space-lg);
 }
 
 .body {
