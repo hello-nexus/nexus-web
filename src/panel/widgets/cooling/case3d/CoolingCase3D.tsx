@@ -356,23 +356,32 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
-        {result && model && (
-          <div className={`${styles.overlay} ${styles.overlayTop}`}>
-            <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
-              {model.fanCount === 0 && !caseLayout.fanSlots.some(slot => slot.taken === 'fan') ? (
-                <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
-              ) : (
-                <>
-                  <span className={`${styles.mode} ${styles[result.mode]}`}>{t(modeKey)}</span>
-                  <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.net')}</span>{result.netCfm >= 0 ? '+' : '-'}{cfm(result.netCfm)}</span>
-                  <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.intake')}</span>{cfm(result.intakeCfm)}</span>
-                  <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.exhaust')}</span>{cfm(result.exhaustCfm)}</span>
-                  {model.estimated && <span className={styles.control}><Badge compact label={t('cooling.case3d.estimate')} tooltip={{ body: t('cooling.case3d.estimate.body') }} /></span>}
-                </>
-              )}
+        <div className={styles.topStack}>
+          {result && model && (
+            <div className={`${styles.overlay} ${styles.overlayTop}`}>
+              <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
+                {model.fanCount === 0 && !caseLayout.fanSlots.some(slot => slot.taken === 'fan') ? (
+                  <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
+                ) : (
+                  <>
+                    <span className={`${styles.mode} ${styles[result.mode]}`}>{t(modeKey)}</span>
+                    <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.net')}</span>{result.netCfm >= 0 ? '+' : '-'}{cfm(result.netCfm)}</span>
+                    <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.intake')}</span>{cfm(result.intakeCfm)}</span>
+                    <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.exhaust')}</span>{cfm(result.exhaustCfm)}</span>
+                    {model.estimated && <span className={styles.control}><Badge compact label={t('cooling.case3d.estimate')} tooltip={{ body: t('cooling.case3d.estimate.body') }} /></span>}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          {particles && flowSupported && (
+            <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend', { from: legendFrom, to: legendTo })}>
+              <span>{legendFrom}</span>
+              <span className={styles.legendBar} aria-hidden="true" />
+              <span>{legendTo}</span>
+            </div>
+          )}
+        </div>
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>
           <div className={styles.bottomMain}>
             <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
@@ -407,15 +416,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 </label>
               )}
             </div>
-            {particles && flowSupported && (
-              <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend', { from: legendFrom, to: legendTo })}>
-                <span>{legendFrom}</span>
-                <span className={styles.legendBar} aria-hidden="true" />
-                <span>{legendTo}</span>
-              </div>
-            )}
           </div>
-          <Button className={styles.control} size="sm" tone="neutral" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
+          <Button className={styles.control} size="sm" tone="accent" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (
