@@ -6,7 +6,10 @@ import { RADIATOR_LOSS_K, seriesLoss, solveCasePressure, type FanDirection, type
 
 export const GPU_FAN_PREFIX = 'gpu:fan:';
 export const AIO_FAN_PREFIX = 'rad:';
+export const CPU_FAN_PREFIX = 'cpu:fan:';
 export const isGpuSlotKey = (key: string): boolean => key.startsWith(GPU_FAN_PREFIX);
+/** A fan that blows through its own part (a card's shroud, an air cooler's fins): its air recirculates inside the case. */
+export const isInternalSlotKey = (key: string): boolean => key.startsWith(GPU_FAN_PREFIX) || key.startsWith(CPU_FAN_PREFIX);
 
 const gpuIndex = (key: string): number => Number.parseInt(key.slice(GPU_FAN_PREFIX.length), 10) || 0;
 
@@ -43,10 +46,10 @@ export function withDefaultBindings(bindings: readonly FanBinding[], slots: read
   return [...merged, ...[...derived].filter(([id]) => !stored.has(id)).map(([channelId, keys]) => ({ channelId, slotKeys: keys }))];
 }
 
-/** Each slot's direction: the user's override, else the GPU's fans blow into the card (intake), else the position's default. */
+/** Each slot's direction: the user's override, else the GPU's and an air cooler's fans blow into their part (intake), else the position's default. */
 export function slotDirections(slots: readonly Pick<CaseFanSlot, 'key' | 'position'>[], overrides: Readonly<Record<string, FanDirection>>): Record<string, FanDirection> {
   const out: Record<string, FanDirection> = {};
-  for (const slot of slots) out[slot.key] = overrides[slot.key] ?? (isGpuSlotKey(slot.key) ? 'intake' : defaultDirection(slot.position));
+  for (const slot of slots) out[slot.key] = overrides[slot.key] ?? (isInternalSlotKey(slot.key) ? 'intake' : defaultDirection(slot.position));
   return out;
 }
 
@@ -86,7 +89,7 @@ export function pressureFans(slots: readonly CaseFanSlot[], catalog: readonly Ca
   let estimated = false;
   const fans: PressureFan[] = [];
   for (const slot of slots) {
-    if (isGpuSlotKey(slot.key)) continue;
+    if (isInternalSlotKey(slot.key)) continue;
     for (const fan of slotModelFans(slot, catalog)) {
       const speed = speeds.get(fan.key);
       const live = speed ? { ...scaledSpec(fan, speed.fraction), estimated: fan.estimated || speed.estimated } : fan;

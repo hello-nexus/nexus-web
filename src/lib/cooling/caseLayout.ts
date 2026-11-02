@@ -1,6 +1,7 @@
 import type { SceneLayout } from '../scene/pcScene';
 import type { FanDirection } from './pressureModel';
 import { SIM_PREFIX } from './fanSpeed';
+import { coolerFanSlots } from './coolerFans';
 import { gpuFanSlots } from './gpuFans';
 import { radiatorFanSlots } from './radiatorFans';
 
@@ -45,7 +46,7 @@ export interface CaseBox {
   cadSolid?: boolean;
   /** A part that collides with another, drawn in the warning color. */
   conflict?: boolean;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -218,7 +219,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans) };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(finite(fans.stack) && Number.isInteger(fans.stack) && fans.stack > 1 && fans.stack <= 4 ? { stack: fans.stack } : {}), ...(positiveNum(fans.airflowCfm) !== undefined ? { airflowCfm: positiveNum(fans.airflowCfm) } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans) };
   }
   parseShapes(b, box);
   return box;
@@ -350,7 +351,7 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
     boxes,
     ...(tubes.length > 0 ? { tubes } : {}),
     ...(lines.length > 0 ? { lines } : {}),
-    fanSlots: [...slots, ...gpuFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
+    fanSlots: [...slots, ...gpuFanSlots(boxes), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
     ...(mount ? { radiatorMount: mount } : {}),
     ...(options.length >= 2 ? { radiatorOptions: options } : {}),
     ...(radiatorMove ? { radiatorMove } : {}),
@@ -475,14 +476,14 @@ export interface MountCollapse {
 
 /**
  * One drawn slot per physical mount, chosen greedily: installed first, then bound, then the larger size, then slot order.
- * Radiator (`rad:`) and graphics card (`gpu:`) fan slots always stand alone: each is a real fan, never an alternative mount, and a card's neighbors can overlap by the frame padding. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
+ * Radiator (`rad:`), graphics card (`gpu:`) and air cooler (`cpu:`) fan slots always stand alone: each is a real fan, never an alternative mount, and a card's neighbors can overlap by the frame padding. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
  * Drawn slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
  */
 export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[]): MountCollapse {
   const slots = layout.fanSlots;
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
-  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:');
+  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:');
   const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
   const chosen: number[] = [];
   for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
