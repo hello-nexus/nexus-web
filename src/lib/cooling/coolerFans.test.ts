@@ -17,7 +17,7 @@ describe('air cooler fan slots', () => {
     const [fan] = cpuFans(l);
     expect(cpuFans(l)).toHaveLength(1);
     expect(fan).toMatchObject({ key: 'cpu:fan:0', position: 'cpu', size: 92, taken: 'fan', axis: [0, 0, 1] });
-    expect(fan.box?.min[2]).toBe(120);
+    expect(fan.box?.min[2]).toBe(107.5);
     expect(fan.box?.size).toEqual([92, 92, 25]);
     expect(fan.box?.min.slice(0, 2)).toEqual([63, 103]);
   });
@@ -31,7 +31,7 @@ describe('air cooler fan slots', () => {
     const l = withCooler({ axis: 'x', side: 'min', count: 1, diameter: 114, stack: 2 }, [60, 100, 120], [150, 126, 155]);
     const fans = cpuFans(l);
     expect(fans.map(f => f.key)).toEqual(['cpu:fan:0', 'cpu:fan:1']);
-    expect(fans.map(f => f.box?.min[0])).toEqual([60, 185]);
+    expect(fans.map(f => f.box?.min[0])).toEqual([47.5, 122.5]);
     expect(fans.every(f => f.axis?.[0] === 1)).toBe(true);
   });
 

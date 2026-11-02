@@ -16,8 +16,7 @@ export function coolerFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
     const along = box.size[plane[0]] >= box.size[plane[1]] ? plane[0] : plane[1];
     const across = plane[0] === along ? plane[1] : plane[0];
     const frame = diameter + 6;
-    const depth = Math.min(FAN_DEPTH_MM, box.size[k]);
-    const room = box.size[k] - depth;
+    const depth = FAN_DEPTH_MM;
     const into: Vec3 = [0, 0, 0];
     into[k] = side === 'max' ? -1 : 1;
     for (let s = 0; s < stack; s++) {
@@ -26,8 +25,9 @@ export function coolerFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
         const size: Vec3 = [0, 0, 0];
         size[k] = depth;
         size[along] = size[across] = frame;
-        const step = stack > 1 ? (room * s) / (stack - 1) : 0;
-        min[k] = side === 'max' ? box.min[k] + room - step : box.min[k] + step;
+        // The first fan is centered on the cooler's face, where Build draws its ring, so the cooler's own solid never hides it; the rest sit deeper along the axis.
+        const center = side === 'max' ? box.min[k] + box.size[k] - (box.size[k] * s) / stack : box.min[k] + (box.size[k] * s) / stack;
+        min[k] = center - depth / 2;
         min[along] = box.min[along] + (box.size[along] * (i + 0.5)) / count - frame / 2;
         min[across] = box.min[across] + box.size[across] / 2 - frame / 2;
         out.push({
