@@ -312,6 +312,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
+  const [panelAlwaysOnTop, setPanelAlwaysOnTop] = useState<boolean | undefined>(undefined);
   const [qSeriesBrightness, setQSeriesBrightness] = useState(100);
   const [qSeriesScreenOff, setQSeriesScreenOff] = useState(false);
   const [qSeriesSleepWithHost, setQSeriesSleepWithHost] = useState(true);
@@ -446,6 +447,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // keeps its own input.
   const glassTouch = recordTouch ?? device?.capabilities.touch;
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
+  // The toggle is offered exactly where the see-through (desktop) background exists, the same gate as the backdrop picker.
+  const alwaysOnTopAvailable = supportsDesktopWallpaper(glassSurface, !!device?.displayId);
   const genericDisplay = isGenericDisplayPanel(glassSurface, recordFamily, isMonitorPanel);
   // Touch-capable panels with a bound record; the glassSurface clause excludes phone sessions.
   const restrictedToggleShown = !!editingDeviceId && glassSurface !== 'phone' && surfaceSupportsTouch(glassSurface, glassTouch);
@@ -769,6 +772,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       if (prefs) {
         setAutoLaunch(prefs.panel?.autoLaunch ?? true);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
+        setPanelAlwaysOnTop(prefs.panel?.alwaysOnTop);
       }
       setLoaded(true);
       // Non-Xeneon panels re-enable the hardware-reset button once these
@@ -1844,10 +1848,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordAutoOrient(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
                       }}
-                      alwaysOnTop={genericDisplay ? recordAlwaysOnTop && theme.backdrop === 'desktop' : null}
+                      alwaysOnTop={isMonitorPanel && alwaysOnTopAvailable ? (genericDisplay ? recordAlwaysOnTop && theme.backdrop === 'desktop' : recordAlwaysOnTop) : null}
                       alwaysOnTopDisabled={genericDisplay && theme.backdrop !== 'desktop'}
                       onAlwaysOnTopToggle={() => {
-                        if (theme.backdrop !== 'desktop') return;
+                        if (genericDisplay && theme.backdrop !== 'desktop') return;
                         const next = !recordAlwaysOnTop;
                         setRecordAlwaysOnTop(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { alwaysOnTop: next }).catch(() => {});
@@ -1933,8 +1937,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (!supportsAutoLaunch) return;
                         savePreferences({ panel: { reserveMonitor: next } }).catch(() => {});
                       }}
-                      alwaysOnTop={undefined}
-                      onAlwaysOnTopToggle={() => {}}
+                      alwaysOnTop={alwaysOnTopAvailable ? panelAlwaysOnTop : undefined}
+                      onAlwaysOnTopToggle={() => {
+                        if (panelAlwaysOnTop === undefined) return;
+                        const next = !panelAlwaysOnTop;
+                        setPanelAlwaysOnTop(next);
+                        if (!supportsAutoLaunch) return;
+                        savePreferences({ panel: { alwaysOnTop: next } }).catch(() => {});
+                      }}
                       restrictedMode={restrictedToggleShown ? recordRestricted : undefined}
                       onRestrictedModeToggle={toggleRestricted}
                       showDisplayControls={supportsDisplayControls}
