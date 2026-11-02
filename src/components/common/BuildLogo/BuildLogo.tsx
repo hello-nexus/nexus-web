@@ -4,14 +4,14 @@ import styles from './BuildLogo.module.scss';
 interface BuildLogoProps {
   /** contrast is the theme's full-contrast ink (pure white on dark, pure black on light); muted is the dim text token; primary the body text color (the default). Never the accent. */
   tone?: 'contrast' | 'muted' | 'primary';
-  /** The type size in CSS px, with the padding scaled to it and the outline kept at 1.5px. Omitted, the body type token and its 4px by 8px padding apply. */
+  /** The type size in CSS px, with the padding scaled to it. Omitted, the body type token and its stylesheet padding apply. */
   fontSize?: number;
   /** The accessible name; a host with its own translations passes it. Defaults to the app's BUILD string. */
   label?: string;
   className?: string;
 }
 
-/** The BUILD logo: the name in the label style inside a 1.5px rounded outline. A quiet identifier, not a button. */
+/** The BUILD logo: the name in the label style inside a rounded outline. A quiet identifier, not a button. */
 export function BuildLogo({ tone = 'primary', fontSize, label, className }: BuildLogoProps) {
   const { t } = useTranslation();
   return (
