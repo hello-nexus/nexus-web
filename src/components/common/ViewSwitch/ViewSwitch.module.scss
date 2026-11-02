@@ -17,7 +17,6 @@
   padding: 0 0.35rem;
   border-radius: var(--radius-pill);
   @include text-caption;
-  // Idle and hover: the label's own color (text-dim, then text) on the neutral track.
   background: var(--border);
   color: inherit;
 }

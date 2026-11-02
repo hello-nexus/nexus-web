@@ -408,6 +408,7 @@
   "cooling.case3d.build.customize": "在 Build 中自定义部件",
   "cooling.case3d.canvas": "显示风扇和气流方向的机箱 3D 视图",
   "cooling.case3d.cfm": "{value} CFM",
+  "cooling.case3d.crashed": "无法启动气流视图，因此显示曲线。选择“气流”可重试。",
   "cooling.case3d.device.label": "已绑定设备",
   "cooling.case3d.direction.exhaust": "出风",
   "cooling.case3d.direction.intake": "进风",

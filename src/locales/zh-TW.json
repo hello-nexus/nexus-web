@@ -408,6 +408,7 @@
   "cooling.case3d.build.customize": "在 Build 中自訂零件",
   "cooling.case3d.canvas": "顯示風扇與氣流方向的機殼 3D 檢視",
   "cooling.case3d.cfm": "{value} CFM",
+  "cooling.case3d.crashed": "無法啟動氣流檢視，因此顯示曲線。選擇「氣流」可重試。",
   "cooling.case3d.device.label": "已綁定裝置",
   "cooling.case3d.direction.exhaust": "出風",
   "cooling.case3d.direction.intake": "進風",

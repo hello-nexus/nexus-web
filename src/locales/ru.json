@@ -408,6 +408,7 @@
   "cooling.case3d.build.customize": "Настроить компоненты в Build",
   "cooling.case3d.canvas": "3D-вид вашего корпуса с вентиляторами и направлением воздушного потока",
   "cooling.case3d.cfm": "{value} CFM",
+  "cooling.case3d.crashed": "Не удалось запустить вид воздушного потока, поэтому показаны кривые. Выберите «Воздушный поток», чтобы повторить попытку.",
   "cooling.case3d.device.label": "Привязанное устройство",
   "cooling.case3d.direction.exhaust": "Выброс",
   "cooling.case3d.direction.intake": "Забор",

@@ -408,6 +408,7 @@
   "cooling.case3d.build.customize": "Personalizar componentes no Build",
   "cooling.case3d.canvas": "Visualização 3D do seu gabinete com os ventiladores e a direção do fluxo de ar",
   "cooling.case3d.cfm": "{value} CFM",
+  "cooling.case3d.crashed": "A visualização de fluxo de ar não pôde iniciar, então as curvas estão sendo exibidas. Escolha Fluxo de ar para tentar de novo.",
   "cooling.case3d.device.label": "Dispositivo vinculado",
   "cooling.case3d.direction.exhaust": "Saída",
   "cooling.case3d.direction.intake": "Entrada",

@@ -408,6 +408,7 @@
   "cooling.case3d.build.customize": "Personnaliser les composants dans Build",
   "cooling.case3d.canvas": "Vue 3D de votre boîtier avec les ventilateurs et le sens du flux d'air",
   "cooling.case3d.cfm": "{value} CFM",
+  "cooling.case3d.crashed": "La vue du flux d'air n'a pas pu démarrer, les courbes sont donc affichées. Choisissez Flux d'air pour réessayer.",
   "cooling.case3d.device.label": "Appareil associé",
   "cooling.case3d.direction.exhaust": "Extraction",
   "cooling.case3d.direction.intake": "Admission",

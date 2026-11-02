@@ -408,6 +408,7 @@
   "cooling.case3d.build.customize": "Dostosuj podzespoły w Build",
   "cooling.case3d.canvas": "Widok 3D obudowy z wentylatorami i kierunkiem przepływu powietrza",
   "cooling.case3d.cfm": "{value} CFM",
+  "cooling.case3d.crashed": "Widok przepływu powietrza nie mógł się uruchomić, dlatego pokazano krzywe. Wybierz Przepływ powietrza, aby spróbować ponownie.",
   "cooling.case3d.device.label": "Przypisane urządzenie",
   "cooling.case3d.direction.exhaust": "Wylot",
   "cooling.case3d.direction.intake": "Wlot",

@@ -14,6 +14,10 @@ interface Props {
    * boundary instance is stable across navigations.
    */
   resetKey?: string | number | null;
+  /** Shown in place of the diagnostic crash view, for a boundary whose parent has its own way on. */
+  fallback?: ReactNode;
+  /** Called once per caught error, after it is reported. */
+  onError?: (error: Error) => void;
 }
 interface State { error: Error | null; lastResetKey: string | number | null | undefined }
 
@@ -38,10 +42,12 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('[ErrorBoundary] caught:', error, info);
     const frames = (info.componentStack ?? '').split('\n').filter((l) => l.trim() !== '').slice(0, 3).join(' | ');
     reportError(error, 'render', frames);
+    this.props.onError?.(error);
   }
 
   render() {
     if (this.state.error) {
+      if (this.props.fallback !== undefined) return this.props.fallback;
       return (
         <div style={{ padding: '2rem', color: 'var(--bad)', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
           {/* eslint-disable-next-line i18next/no-literal-string -- class component cannot use the t() hook; diagnostic crash fallback */}

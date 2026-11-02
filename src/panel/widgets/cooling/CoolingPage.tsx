@@ -57,6 +57,7 @@ import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
 import { Notice } from '../../../components/common/Notice/Notice';
+import { ErrorBoundary } from '../../../components/common/ErrorBoundary/ErrorBoundary';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { FirmwareRecoveryBanner } from '../../../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
@@ -788,8 +789,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // fan, so a curve can be assigned to a group in one action. Declared here
   // because the curve-creation paths below clear it.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
-  const view3d = settings.coolingView3d;
-  const setView3d = useCallback((next: boolean) => updateUi({ coolingView3d: next }), [updateUi]);
+  // A view that threw (no WebGL, a failed chunk) falls back to the curves for this visit; choosing Airflow again retries.
+  const [case3dFailed, setCase3dFailed] = useState(false);
+  const view3d = settings.coolingView3d && !case3dFailed;
+  const setView3d = useCallback((next: boolean) => { setCase3dFailed(false); updateUi({ coolingView3d: next }); }, [updateUi]);
 
   // A device page's jump to one of its fans: select it once it is listed, which opens its curve.
   const fanIntentRef = useRef<string | null>(null);
@@ -2025,6 +2028,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </aside>
         <div className={styles.curveCol}>
           {view3d ? (
+            <ErrorBoundary label={t('cooling.view.airflow')} resetKey="airflow" fallback={null} onError={() => setCase3dFailed(true)}>
             <Suspense fallback={null}>
             <CoolingAutoResolve>
               {autoResolve => (
@@ -2045,8 +2049,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               )}
             </CoolingAutoResolve>
             </Suspense>
+            </ErrorBoundary>
           ) : (
           <>
+          {case3dFailed && settings.coolingView3d && <Notice tone="warning" role="status">{t('cooling.case3d.crashed')}</Notice>}
           {/* Curve buttons are their own section under the "Curve" title; the
               editor below is a separate section with its own heading. With
               fans selected, the highlight follows what THEY are wearing, and
