@@ -180,11 +180,14 @@ function styleFor(box: SceneBox, palette: Palette): Style {
   }
 }
 
+// Every scene line is drawn this much heavier than its style's width, so the whole wireframe reads a little bolder in one place.
+export const LINE_WEIGHT = 1.3;
+
 // Fat lines draw after the faces (renderOrder) so a part's faces hide the edges behind it.
 export function lineMaterial(style: Style, materials: LineMaterial[]): LineMaterial {
   const material = new LineMaterial({
     color: style.color,
-    linewidth: style.width,
+    linewidth: style.width * LINE_WEIGHT,
     transparent: true,
     opacity: style.opacity,
     dashed: style.dashed,
