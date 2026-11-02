@@ -13,6 +13,8 @@
   align-items: center;
   justify-content: center;
   color: var(--text-dim);
+  // The tile's own box is the unit the left region is cut from.
+  container-type: size;
 }
 
 .media {
@@ -26,27 +28,33 @@
   justify-content: center;
 }
 
-// Image on the left, one row per spec on the right.
+// Wide tiles: the left part is exactly the 2x2 tile's content, a two-cell square (its padding included) holding the logo
+// and the case image at the 2x2's size, derived from the tile's own box and the grid gap so it matches at any scale. The
+// rest of the width is the specs. Browsers without container units fall back to 40%.
 .widget[data-specs] {
   flex-direction: row;
-  gap: var(--space-md);
+  gap: 0;
+  --left-region: min(100cqh, calc((100cqw - var(--panel-gap, 0px)) / 2));
 
   .media {
-    flex: 0 1 40%;
+    flex: 0 0 40%;
     height: 100%;
+    flex-basis: calc(var(--left-region) - 2 * var(--space-md));
+    width: calc(var(--left-region) - 2 * var(--space-md));
   }
 }
 
 .specs {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 var(--space-md);
   list-style: none;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  overflow: hidden;
 }
 
 // The short type label sits above the name.
@@ -68,9 +76,13 @@
   @include text-button;
   color: var(--text);
   min-width: 0;
+  // A long value wraps to a second line, then ends in an ellipsis (the full value is in the tooltip).
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .srOnly {
@@ -109,6 +121,12 @@
     width: 45%;
     height: 45%;
   }
+}
+
+// Cropped to the drawing: the box hugs it, and the logo and the drawing sit together, centered in the column.
+.image[data-cropped] {
+  flex: 0 1 auto;
+  object-fit: contain;
 }
 
 // The BUILD logo sits directly above the case image, centered on it; the shared component draws it.
