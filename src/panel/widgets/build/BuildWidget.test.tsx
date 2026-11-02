@@ -170,9 +170,9 @@ describe('BuildWidget', () => {
     it('sits above the specs list on 4x2 and 4x4, hidden from assistive tech', async () => {
       for (const size of ['4x2', '4x4'] as const) {
         const { container, unmount } = await renderWidget(size);
-        const label = container.querySelector('[aria-hidden="true"][data-variant]');
+        const label = [...container.querySelectorAll('[aria-hidden="true"]')].find((el) => el.textContent === 'panel.widget.build.badge');
         const list = container.querySelector('ul');
-        expect(label?.textContent).toBe('panel.widget.build.badge');
+        expect(label).toBeDefined();
         expect(list).not.toBeNull();
         expect(label!.compareDocumentPosition(list!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(label!.parentElement).toBe(list!.parentElement);
@@ -182,8 +182,7 @@ describe('BuildWidget', () => {
 
     it('is absent on 2x2, which is the image alone', async () => {
       const { container } = await renderWidget('2x2');
-      expect(container.querySelector('[data-variant]')).toBeNull();
-      expect(container.querySelector('ul')).toBeNull();
+            expect(container.querySelector('ul')).toBeNull();
       expect(container.textContent).not.toContain('panel.widget.build.badge');
     });
   });

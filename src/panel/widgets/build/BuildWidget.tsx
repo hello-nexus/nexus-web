@@ -20,20 +20,6 @@ import y70Light from './assets/y70-touch-light.png';
 import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
 
-// Temporary exploration switch: the BUILD label's look, read from a dev override so one bundle shoots every variant.
-export const LABEL_VARIANTS = ['plain', 'outline-1-tight', 'outline-15-pill', 'outline-1-loose', 'outline-1-tight-dim', 'outline-15-tight'] as const;
-export type LabelVariant = (typeof LABEL_VARIANTS)[number];
-export const LABEL_VARIANT_KEY = 'nexus.dev.buildLabel';
-function labelVariant(): LabelVariant {
-  try {
-    const raw = localStorage.getItem(LABEL_VARIANT_KEY);
-    if (raw && (LABEL_VARIANTS as readonly string[]).includes(raw)) return raw as LabelVariant;
-  } catch {
-    // Storage is unusable; the default stays.
-  }
-  return 'outline-1-tight';
-}
-
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
 // Case and size pairs whose image was redrawn once already.
@@ -138,7 +124,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
       </div>
       {rows.length > 0 && (
         <div className={styles.side}>
-          <span className={styles.label} data-variant={labelVariant()} aria-hidden="true">{t('panel.widget.build.badge')}</span>
+          <span className={styles.label} aria-hidden="true">{t('panel.widget.build.badge')}</span>
           <ul className={styles.specs}>
             {rows.map((row) => (
               <li key={row.key} className={styles.spec}>

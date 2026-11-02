@@ -90,37 +90,9 @@
   color: var(--text);
   white-space: nowrap;
   pointer-events: none;
-
-  &:not([data-variant='plain']) {
-    border: 1px solid currentColor;
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-  }
-
-  &[data-variant='outline-1-tight'] {
-    padding: 4px 8px;
-  }
-
-  &[data-variant='outline-15-pill'] {
-    border-width: 1.5px;
-    border-radius: var(--radius-pill);
-    padding: 4px 12px;
-  }
-
-  &[data-variant='outline-1-loose'] {
-    border-radius: var(--radius-sm);
-    padding: 8px 14px;
-  }
-
-  &[data-variant='outline-1-tight-dim'] {
-    color: var(--text-dim);
-    padding: 3px 6px;
-  }
-
-  &[data-variant='outline-15-tight'] {
-    border-width: 1.5px;
-    padding: 4px 8px;
-  }
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
 }
 
 .specs {
