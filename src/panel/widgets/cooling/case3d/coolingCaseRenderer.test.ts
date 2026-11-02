@@ -85,6 +85,23 @@ describe('createCaseRenderer', () => {
   });
 });
 
+describe('camera across rebuilds', () => {
+  it('keeps the orbit view through a layout edit and reframes only for a different case shape', () => {
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), simulated: new Set<string>(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 } });
+    r.setState(state(layout));
+    const cam = r.camera;
+    const framed = cam.position.clone();
+    cam.position.set(11, 22, 33);
+    r.setState(state({ ...layout, fanSlots: layout.fanSlots.map(s => ({ ...s, taken: 'fan' as const })) }));
+    expect(cam.position.toArray()).toEqual([11, 22, 33]);
+    r.setState(state({ ...layout, size: [500, 230, 470] }));
+    expect(cam.position.toArray()).not.toEqual([11, 22, 33]);
+    expect(cam.position.toArray()).not.toEqual(framed.toArray());
+    r.dispose();
+  });
+});
+
 describe('ringMaterial', () => {
   it('draws a simulated fan ring dashed and a real one solid', () => {
     const dashed = ringMaterial(new Color('#fff'), 1, 40, true);

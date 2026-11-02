@@ -82,6 +82,12 @@ describe('CoolingPage canvas header', () => {
     await waitFor(() => expect(screen.getByTestId('case3d')).toBeTruthy());
   });
 
+  it('shows no airflow view in Simple mode, which is why opening it from Build switches to Advanced', async () => {
+    mountWith({ coolingDashboardMode: 'simple', coolingView3d: true });
+    await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).toBeNull());
+    expect(screen.queryByTestId('case3d')).toBeNull();
+  });
+
   it('opens on 2D when only Lighting has a stored 3D view', async () => {
     mountWith({ lightingView3d: true, coolingView3d: false });
     const radios = within(await screen.findByRole('radiogroup', { name: 'cooling.case3d.viewSwitch' })).getAllByRole('radio');

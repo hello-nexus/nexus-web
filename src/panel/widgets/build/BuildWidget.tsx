@@ -14,7 +14,6 @@ import { selectBuildWidgetView, type BuildWidgetView } from './buildWidgetState'
 import { useBuildPreview, useHostIsMac } from './useBuildPreview';
 import { useBuildSpecs } from './useBuildSpecs';
 import { sizeShowsSpecs, type BuildSpecRow } from './buildSpecRows';
-import { specsClearance } from './logoReserve';
 import { isY70CaseId } from './y70Cases';
 import { NO_CASE_KEY } from './seedAttempts';
 import y70Dark from './assets/y70-touch-dark.png';
@@ -34,13 +33,6 @@ const redrawn = new Map<string, RedrawRecord>();
 /** Test seam. */
 export function resetResizedPreviews(): void {
   redrawn.clear();
-}
-
-/** The room above the specs, and how many leading rows end short of the logo's width (markWidth). */
-interface ClearanceState {
-  top: number;
-  narrowRows: number;
-  markWidth: number;
 }
 
 interface BuildWidgetViewProps {
@@ -161,9 +153,6 @@ function useScopeTheme() {
 
 export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [], onImageWidth }: BuildWidgetViewProps) {
   const { t } = useTranslation();
-  const markRef = useRef<HTMLSpanElement>(null);
-  const specsRef = useRef<HTMLUListElement>(null);
-  const [clearance, setClearance] = useState<ClearanceState>({ top: 0, narrowRows: 0, markWidth: 0 });
   // The layout is known from the tile's size, not from the spec rows having loaded, so the first report is already the final square.
   const wide = sizeShowsSpecs(size);
   const withSpecs = rows.length > 0;
@@ -174,32 +163,6 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
   const isOpenAir = view === 'no-case';
   // A wide tile's picture square, from the measured side; until then the stylesheet's own sizes apply.
   const mediaStyle: CSSProperties | undefined = withSpecs && geometry.side !== null ? { flex: '0 0 auto', width: geometry.side, padding: geometry.side * INSET } : undefined;
-  // The specs keep clear of the corner logo: this reserves room above them and narrows the rows that still reach the logo.
-  useLayoutEffect(() => {
-    const mark = markRef.current;
-    const body = geometry.bodyRef.current;
-    const list = specsRef.current;
-    if (!mark || !body || !list || !withSpecs) {
-      setClearance({ top: 0, narrowRows: 0, markWidth: 0 });
-      return undefined;
-    }
-    const measure = () => {
-      // The column is the body, which centers the specs. The mark's box includes its clearance, and all three are read in layout px, so a transform scale does not skew them.
-      const markBottom = mark.offsetTop + mark.offsetHeight;
-      const { top, crowded } = specsClearance(markBottom - body.offsetTop, body.offsetHeight, list.offsetHeight);
-      // Rows run downward, so the ones above the logo's lower edge are a leading run. Narrowing only makes the list taller, so this settles.
-      const narrowRows = crowded ? [...list.children].filter((row) => (row as HTMLElement).offsetTop < markBottom).length : 0;
-      const next = { top, narrowRows, markWidth: mark.offsetWidth };
-      setClearance((prev) => (Math.abs(prev.top - next.top) < 0.5 && prev.narrowRows === next.narrowRows && prev.markWidth === next.markWidth ? prev : next));
-    };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(measure);
-    observer.observe(mark);
-    observer.observe(body);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [withSpecs, geometry.bodyRef]);
   const generic = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view}>
@@ -214,10 +177,10 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         {generic && <DrawingImage className={styles.image} src={scope.theme === 'light' ? genericLight : genericDark} generic />}
       </div>
       {withSpecs && (
-        <div className={styles.side} style={clearance.top > 0 ? { paddingTop: clearance.top } : undefined}>
-          <ul ref={specsRef} className={styles.specs}>
-            {rows.map((row, index) => (
-              <li key={row.key} className={styles.spec} style={index < clearance.narrowRows ? { paddingRight: clearance.markWidth } : undefined}>
+        <div className={styles.side}>
+          <ul className={styles.specs}>
+            {rows.map((row) => (
+              <li key={row.key} className={styles.spec}>
                 <span className={styles.specLabel} aria-hidden="true">{t(row.labelKey)}</span>
                 <span className={styles.srOnly}>{t(row.fullKey)}</span>
                 <HoverTooltip title={t(row.fullKey)} body={row.full} side="top">
@@ -229,7 +192,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
         </div>
       )}
       </div>
-      {withSpecs && <span ref={markRef} className={styles.mark} aria-hidden="true"><BuildLogo tone="muted" /></span>}
+      {withSpecs && <span className={styles.mark} aria-hidden="true"><BuildLogo tone="muted" /></span>}
     </div>
   );
 }
