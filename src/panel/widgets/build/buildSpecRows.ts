@@ -1,4 +1,5 @@
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import { shortBoard, shortCooler, shortCpu, shortGpu, shortRam, shortStorage } from './shortSpecs';
 
 export type BuildSpecKey = 'cpu' | 'gpu' | 'ram' | 'storage' | 'motherboard' | 'cooler';
 
@@ -8,7 +9,10 @@ export interface BuildSpecRow {
   labelKey: string;
   /** The full type name, for the tooltip and assistive tech; an existing translation key. */
   fullKey: string;
+  /** The family-level name the tile shows. */
   value: string;
+  /** The reported string, for the tooltip. */
+  full: string;
 }
 
 export interface BuildSpecInputs {
@@ -57,7 +61,7 @@ export function coolerNames(devices: { category?: string; vendor?: string; model
 export function buildSpecRows({ specs, coolers }: BuildSpecInputs, size: string): BuildSpecRow[] {
   const keys = KEYS_BY_SIZE[size];
   if (!keys || !specs) return [];
-  const values: Record<BuildSpecKey, string | undefined> = {
+  const reported: Record<BuildSpecKey, string | undefined> = {
     cpu: specs.processor,
     gpu: specs.primaryGpu || specs.graphicsCard,
     ram: specs.memory,
@@ -65,8 +69,16 @@ export function buildSpecRows({ specs, coolers }: BuildSpecInputs, size: string)
     motherboard: specs.motherboard,
     cooler: coolers.join(', '),
   };
+  const short: Record<BuildSpecKey, (full: string) => string> = {
+    cpu: shortCpu,
+    gpu: shortGpu,
+    ram: shortRam,
+    storage: shortStorage,
+    motherboard: shortBoard,
+    cooler: (full) => full.split(', ').map(shortCooler).join(', '),
+  };
   return keys.flatMap((key) => {
-    const value = values[key]?.trim();
-    return value ? [{ key, labelKey: LABEL_KEYS[key], fullKey: FULL_KEYS[key], value }] : [];
+    const full = reported[key]?.trim();
+    return full ? [{ key, labelKey: LABEL_KEYS[key], fullKey: FULL_KEYS[key], value: short[key](full), full }] : [];
   });
 }

@@ -20,9 +20,10 @@ import { SYSTEM_CASE_TOPIC } from '../../../api/systemPreview';
 import { relaySceneExport } from './buildScene';
 import { relaySetupGet, relaySetupPush, relaySetupPut } from './buildSetup';
 import { buildMachine, fetchMachineCaseState, fetchMachineDevices, isValidCaseId, layoutKeyOf, type BuildDevice, type BuildMachine } from './buildMachine';
+import { resolveBuildOrigin } from './buildOrigin';
 import styles from './BuildPage.module.scss';
 
-export const BUILD_ORIGIN = 'https://build.hellonexus.com';
+export const BUILD_ORIGIN = resolveBuildOrigin();
 const DEFAULT_PATH = '/builder';
 const HEADLESS_PATH = '/builder?headless=1';
 const READY_TIMEOUT_MS = 8000;

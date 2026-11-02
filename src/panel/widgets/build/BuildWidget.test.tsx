@@ -381,14 +381,14 @@ describe('useBuildPreview', () => {
       serve();
       const { container } = await renderWidget('4x2');
       const rows = Array.from(container.querySelectorAll('li')).map((li) => li.textContent);
-      expect(rows).toEqual(['panel.widget.build.spec.cpudevices.specs.row.processorAMD Ryzen 7 9800X3D', 'panel.widget.build.spec.gpudevices.specs.row.graphicsCardNVIDIA GeForce RTX 5080', 'panel.widget.build.spec.ramdevices.specs.row.memory32 GB DDR5-5600']);
+      expect(rows).toEqual(['panel.widget.build.spec.cpudevices.specs.row.processorRyzen 7 9800X3D', 'panel.widget.build.spec.gpudevices.specs.row.graphicsCardRTX 5080', 'panel.widget.build.spec.ramdevices.specs.row.memory32 GB DDR5']);
     });
 
     it('4x4 adds storage, board and the detected cooler', async () => {
       serve();
       const { container } = await renderWidget('4x4');
       expect(container.querySelectorAll('li')).toHaveLength(6);
-      expect(container.textContent).toContain('Corsair H150i');
+      expect(container.textContent).toContain('H150i');
     });
   });
 });

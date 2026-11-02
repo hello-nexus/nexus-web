@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { DrawingImage } from './DrawingImage';
 import { BuildLogo } from '../../../components/common/BuildLogo/BuildLogo';
 import { AppleIcon } from '../../../components/icons/PlatformIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
@@ -20,7 +21,7 @@ import openAir from './assets/open-air.png?inline';
 import styles from './BuildWidget.module.scss';
 
 // The BUILD logo's drawing height in px: a small tag above the case image.
-const LOGO_HEIGHT = 11;
+const LOGO_HEIGHT = 17;
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
@@ -51,64 +52,12 @@ function useScopeTheme() {
   return { ref, theme };
 }
 
-interface ContentBox { aspect: number; inset: string }
-
-/**
- * The drawn part of a transparent snapshot, found once the image loads: the picture is fitted into its square with empty
- * margins, so the logo above it would float apart from the drawing. Cropping the image's box to its content (object-view-box)
- * lets the logo sit just above the drawing, centered on it. Where the browser cannot read the pixels or crop the view
- * (an old kiosk Chromium), the box stays whole and the logo centers on it.
- */
-function useContentBox(src: string | null): ContentBox | null {
-  const [box, setBox] = useState<ContentBox | null>(null);
-  useEffect(() => {
-    setBox(null);
-    if (!src || typeof document === 'undefined') return undefined;
-    let cancelled = false;
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const side = 128;
-        const canvas = document.createElement('canvas');
-        canvas.width = side;
-        canvas.height = side;
-        const ctx = canvas.getContext('2d');
-        if (!ctx || !img.naturalWidth || !img.naturalHeight) return;
-        ctx.drawImage(img, 0, 0, side, side);
-        const { data } = ctx.getImageData(0, 0, side, side);
-        let x0 = side, y0 = side, x1 = -1, y1 = -1;
-        for (let y = 0; y < side; y++) {
-          for (let x = 0; x < side; x++) {
-            if (data[(y * side + x) * 4 + 3] > 8) {
-              x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
-            }
-          }
-        }
-        if (x1 < 0 || cancelled) return;
-        const pct = (n: number) => `${((n / side) * 100).toFixed(2)}%`;
-        const w = x1 - x0 + 1;
-        const h = y1 - y0 + 1;
-        setBox({ aspect: (w * img.naturalWidth) / (h * img.naturalHeight), inset: `inset(${pct(y0)} ${pct(side - 1 - x1)} ${pct(side - 1 - y1)} ${pct(x0)})` });
-      } catch {
-        // The pixels are unreadable here; the whole box stays.
-      }
-    };
-    img.src = src;
-    return () => { cancelled = true; };
-  }, [src]);
-  return box;
-}
-
-const croppedStyle = (box: ContentBox | null) => (box ? ({ aspectRatio: String(box.aspect), objectViewBox: box.inset } as React.CSSProperties) : undefined);
-
 export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = [] }: BuildWidgetViewProps) {
   const { t } = useTranslation();
   const scope = useScopeTheme();
   const showStock = stock && view === 'no-preview';
   // No case yet: the parts stand open-air, drawn by the same scene code as the case image.
   const isOpenAir = view === 'no-case';
-  const drawing = view === 'preview' ? previewUrl : isOpenAir ? openAir : null;
-  const content = useContentBox(drawing);
   const silhouette = (view === 'loading' || view === 'no-preview') && !showStock;
   return (
     <div ref={scope.ref} className={styles.widget} data-size={size} data-view={view} data-specs={rows.length > 0 ? '' : undefined}>
@@ -116,9 +65,9 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
       <div className={styles.media}>
         <span className={styles.logoSlot} aria-hidden="true"><BuildLogo height={LOGO_HEIGHT} /></span>
         {view === 'mac' && <span className={styles.logo}><AppleIcon size={64} /></span>}
-        {view === 'preview' && previewUrl && <img className={styles.image} src={previewUrl} alt="" draggable={false} data-cropped={content ? '' : undefined} style={croppedStyle(content)} />}
+        {view === 'preview' && previewUrl && <DrawingImage className={styles.image} src={previewUrl} />}
         {showStock && <img className={styles.image} src={scope.theme === 'light' ? y70Light : y70Dark} alt="" draggable={false} data-stock={scope.theme} />}
-        {isOpenAir && <img className={styles.image} src={openAir} alt="" draggable={false} data-open-air data-cropped={content ? '' : undefined} style={croppedStyle(content)} />}
+        {isOpenAir && <DrawingImage className={styles.image} src={openAir} openAir />}
         {silhouette && <BuildCaseSilhouette />}
       </div>
       {rows.length > 0 && (
@@ -127,7 +76,7 @@ export function BuildWidgetView({ view, size, previewUrl, stock = false, rows = 
             <li key={row.key} className={styles.spec}>
               <span className={styles.specLabel} aria-hidden="true">{t(row.labelKey)}</span>
               <span className={styles.srOnly}>{t(row.fullKey)}</span>
-              <HoverTooltip title={t(row.fullKey)} body={row.value} side="top">
+              <HoverTooltip title={t(row.fullKey)} body={row.full} side="top">
                 <span className={styles.specValue}>{row.value}</span>
               </HoverTooltip>
             </li>

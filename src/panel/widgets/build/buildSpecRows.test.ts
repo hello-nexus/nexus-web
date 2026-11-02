@@ -19,13 +19,19 @@ describe('buildSpecRows', () => {
   });
 
   it('names the card that renders games, not the integrated one', () => {
-    expect(buildSpecRows({ specs, coolers: [] }, '4x2')[1].value).toBe('NVIDIA GeForce RTX 5080');
+    expect(buildSpecRows({ specs, coolers: [] }, '4x2')[1].value).toBe('RTX 5080');
     expect(buildSpecRows({ specs: { ...specs, primaryGpu: undefined }, coolers: [] }, '4x2')[1].value).toContain('Radeon');
   });
 
   it('lists nothing for the image-only size or before the specs arrive', () => {
     expect(buildSpecRows({ specs, coolers: [] }, '2x2')).toEqual([]);
     expect(buildSpecRows({ specs: null, coolers: [] }, '4x4')).toEqual([]);
+  });
+
+  it('shows family-level values and keeps the reported string for the tooltip', () => {
+    const rows = buildSpecRows({ specs: { ...specs, memory: '32 GB DDR5-5600 (2 × 16 GB Crucial CP16G60C48U5.M8B2)', storage: '1.82 TB WDS200T1X0E-00AFY0 NVMe' }, coolers: ['Corsair iCUE H150i'] }, '4x4');
+    expect(rows.map((r) => r.value)).toEqual(['Ryzen 7 9800X3D', 'RTX 5080', '32 GB DDR5', '2 TB NVMe', 'B850I AORUS PRO', 'iCUE H150i']);
+    expect(rows[2].full).toContain('Crucial');
   });
 
   it('skips a blank spec', () => {
