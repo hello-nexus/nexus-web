@@ -39,7 +39,7 @@ import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
 import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
-import { createCaseRenderer, ringMaterial } from './coolingCaseRenderer';
+import { createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -99,6 +99,17 @@ describe('camera across rebuilds', () => {
     expect(cam.position.toArray()).not.toEqual([11, 22, 33]);
     expect(cam.position.toArray()).not.toEqual(framed.toArray());
     r.dispose();
+  });
+});
+
+describe('ringFaceShift', () => {
+  it('moves a card fan ring from the middle of the card to the face the air enters through', () => {
+    expect(ringFaceShift('gpu:fan:0', 40, 1)).toBe(-20);
+    expect(ringFaceShift('gpu:fan:1', 40, -1)).toBe(20);
+  });
+
+  it('leaves case, cooler and radiator fan rings on their own box', () => {
+    for (const key of ['fan:front:0', 'cpu:fan:0', 'rad:fan:0']) expect(ringFaceShift(key, 25, 1)).toBe(0);
   });
 });
 

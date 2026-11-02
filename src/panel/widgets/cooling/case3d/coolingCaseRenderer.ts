@@ -87,6 +87,14 @@ export function ringMaterial(color: Color, opacity: number, radius: number, simu
   return simulated ? new LineDashedMaterial({ ...base, dashSize: radius * 0.2, gapSize: radius * 0.14 }) : new LineBasicMaterial(base);
 }
 
+/**
+ * A card's fan slot box spans the whole card, so its center is inside the card's solid, which hides a ring drawn there.
+ * The distance along the ring axis from the box center to the card face the fan draws air in through; 0 for every other slot, whose box is the fan itself.
+ */
+export function ringFaceShift(slotKey: string, thickness: number, into: number): number {
+  return slotKey.startsWith('gpu:') && into !== 0 ? -Math.sign(into) * (thickness / 2) : 0;
+}
+
 function ringGeometry(radius: number, axis: 'x' | 'y' | 'z'): BufferGeometry {
   const pts: number[] = [];
   for (let i = 0; i < RING_SEGMENTS; i++) {
@@ -249,6 +257,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
       const frameMm = Math.min(...box.size.filter((_, i) => i !== axisIndex));
       const radii = fanRadii(frameMm);
+      const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
       // Tip ring and hub ring: the air moves through the open ring between them.
       for (const r of [radii.tip, radii.hub]) {
         const geo = ringGeometry(r, axis);
@@ -257,6 +266,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         mat.depthTest = !emphasised;
         fanDisposables.push(mat);
         const ring = new LineLoop(geo, mat);
+        ring.position[axis] = faceShift;
         if (mat instanceof LineDashedMaterial) ring.computeLineDistances();
         group.add(ring);
       }
