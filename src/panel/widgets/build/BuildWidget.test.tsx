@@ -193,82 +193,17 @@ describe('BuildWidget', () => {
       }
     });
 
-    // jsdom has no layout, so each box's size is set here: the frame, the specs list, the logo, and each row's offset from the list's top.
-    const mockLayout = (layout: { body: number; list: number; mark: number; row: number; listTop?: number }) => {
-      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
-        if (this.tagName === 'UL') return layout.list;
-        if (this.className.includes('body')) return layout.body;
-        if (this.className.includes('mark')) return layout.mark;
-        return 0;
-      });
-      vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
-        return this.tagName === 'LI' ? (layout.listTop ?? 0) + [...this.parentElement!.children].indexOf(this) * layout.row : 0;
-      });
-      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
-        return this.className.includes('mark') ? 24 : 0;
-      });
-    };
-    const sideOf = (container: HTMLElement) => container.querySelector('ul')!.parentElement!;
-    const rowPadding = (container: HTMLElement) => [...container.querySelectorAll('li')].map((li) => li.style.paddingRight);
-
-    it('narrows every row that still reaches the logo when the list fills the frame', async () => {
-      // The list is as tall as the frame, so nothing can be lifted; the logo reaches past the first row into the second.
-      mockLayout({ body: 100, list: 100, mark: 50, row: 40 });
+    it('adds no inline padding to the specs column or rows, so the logo does not move the specs', async () => {
       for (const size of ['4x2', '4x4'] as const) {
         const { container, unmount } = await renderWidget(size);
-        expect(sideOf(container).style.paddingTop).toBe('');
-        expect(sideOf(container).style.paddingBottom).toBe('');
-        const padding = rowPadding(container);
-        expect(padding.slice(0, 2)).toEqual(['24px', '24px']);
-        expect(padding.slice(2).every((value) => value === '')).toBe(true);
+        const list = container.querySelector('ul')!;
+        const side = list.parentElement!;
+        expect(side.getAttribute('style')).toBeNull();
+        expect(list.getAttribute('style')).toBeNull();
+        expect(container.querySelectorAll('li').length).toBeGreaterThan(0);
+        [...container.querySelectorAll('li')].forEach((li) => expect(li.getAttribute('style')).toBeNull());
         unmount();
       }
-    });
-
-    it('adds no reserve and narrows nothing when centering already clears the logo', async () => {
-      mockLayout({ body: 100, list: 20, mark: 30, row: 10 });
-      const { container } = await renderWidget('4x2');
-      expect(sideOf(container).style.paddingTop).toBe('');
-      expect(rowPadding(container).every((value) => value === '')).toBe(true);
-    });
-
-    it('adds just the reserve that lifts the first row below the logo, within the free height', async () => {
-      mockLayout({ body: 100, list: 60, mark: 30, row: 20, listTop: 50 });
-      const { container } = await renderWidget('4x4');
-      expect(sideOf(container).style.paddingTop).toBe('20px');
-      expect(rowPadding(container).every((value) => value === '')).toBe(true);
-    });
-
-    describe('when the boxes resize', () => {
-      const observers: { callback: () => void; disconnect: ReturnType<typeof vi.fn> }[] = [];
-      beforeEach(() => {
-        observers.length = 0;
-        vi.stubGlobal('ResizeObserver', class {
-          callback: () => void;
-          disconnect = vi.fn();
-          observe = vi.fn();
-          unobserve = vi.fn();
-          constructor(callback: () => void) {
-            this.callback = callback;
-            observers.push(this);
-          }
-        });
-      });
-      afterEach(() => vi.unstubAllGlobals());
-
-      it('measures again on the observer callback, and disconnects on unmount', async () => {
-        mockLayout({ body: 100, list: 20, mark: 30, row: 10 });
-        const { container, unmount } = await renderWidget('4x2');
-        expect(sideOf(container).style.paddingTop).toBe('');
-        vi.restoreAllMocks();
-        // The list grows (a font loaded, a language changed): the reserve follows.
-        mockLayout({ body: 100, list: 60, mark: 30, row: 20, listTop: 50 });
-        await act(async () => { observers.forEach((o) => o.callback()); });
-        expect(sideOf(container).style.paddingTop).toBe('20px');
-        unmount();
-        expect(observers.length).toBeGreaterThan(0);
-        expect(observers.every((o) => o.disconnect.mock.calls.length > 0)).toBe(true);
-      });
     });
 
     it('is absent on 2x2, which is the image alone', async () => {
