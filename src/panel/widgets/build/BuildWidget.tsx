@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { isStaleSize, mayRedraw, previewSizeFor, REDRAW_INTERVAL_MS, usePreviewSize, usePreviewSizeReporter } from '../../../components/views/BuildPage/previewSize';
+import { isStaleSize, mayRedraw, previewSizeFor, MAX_REDRAWS, REDRAW_INTERVAL_MS, type RedrawRecord, usePreviewSize, usePreviewSizeReporter } from '../../../components/views/BuildPage/previewSize';
 import { SYSTEM_PREVIEW_CHANGED_EVENT } from '../../../api/systemPreview';
 import { useTranslation } from '../../../lib/i18n';
 import { DrawingImage } from './DrawingImage';
@@ -23,8 +23,8 @@ import styles from './BuildWidget.module.scss';
 
 const BuildPreviewSeed = lazy(() => import('./BuildPreviewSeed'));
 
-// When each case and size pair was last redrawn by this context.
-const redrawn = new Map<string, number>();
+// How often, and when last, each case's image was redrawn by this context.
+const redrawn = new Map<string, RedrawRecord>();
 
 /** Test seam. */
 export function resetResizedPreviews(): void {
@@ -208,32 +208,39 @@ export function BuildWidget({ widget }: WidgetProps) {
   const measuring = !preview && isMac === false;
   const reportSize = usePreviewSizeReporter(measuring);
   const onImageWidth = measuring ? (cssWidth: number) => reportSize(previewSizeFor(cssWidth, window.devicePixelRatio || 1)) : undefined;
-  // A stored image narrower than a size that has held still is drawn again, at most once per interval for each case and size, so a portal that ignores the size, or another context's smaller save, cannot loop.
+  // A stored image outside the window around a size that has held still is drawn again, within a small budget per case (see `mayRedraw`).
   const settled = useSettled(wanted, SEED_SETTLE_MS);
   const staleKey = live.caseId && settled ? `${live.caseId}|${settled}` : null;
-  const tooSmall = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0);
+  const tooFar = view === 'preview' && staleKey !== null && live.previewWidth !== null && isStaleSize(live.previewWidth, settled ?? 0);
   const [redrawing, setRedrawing] = useState<string | null>(null);
+  // After the portal's save, nothing is decided until the refreshed image has landed: its width is what is judged.
+  const [holdUrl, setHoldUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (holdUrl !== null && live.previewUrl !== holdUrl) setHoldUrl(null);
+  }, [holdUrl, live.previewUrl]);
   const [due, setDue] = useState(0);
   useEffect(() => {
-    if (!tooSmall || !staleKey || redrawing !== null) return undefined;
-    const last = redrawn.get(staleKey);
-    if (mayRedraw(last, Date.now())) {
-      redrawn.set(staleKey, Date.now());
+    const caseId = live.caseId;
+    if (!tooFar || !staleKey || !caseId || redrawing !== null || holdUrl !== null) return undefined;
+    const record = redrawn.get(caseId);
+    if (mayRedraw(record, Date.now())) {
+      redrawn.set(caseId, { count: (record?.count ?? 0) + 1, last: Date.now() });
       setRedrawing(staleKey);
       return undefined;
     }
-    // Still too small once the interval has passed: look again then.
-    const timer = window.setTimeout(() => setDue((n) => n + 1), REDRAW_INTERVAL_MS - (Date.now() - (last ?? 0)));
+    if (record === undefined || record.count >= MAX_REDRAWS) return undefined;
+    // Still too far once the interval has passed: look again then.
+    const timer = window.setTimeout(() => setDue((n) => n + 1), Math.max(0, REDRAW_INTERVAL_MS - (Date.now() - record.last)));
     return () => window.clearTimeout(timer);
-  }, [tooSmall, staleKey, redrawing, due]);
-  // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change, or when what is stored is no longer too small.
+  }, [tooFar, staleKey, live.caseId, redrawing, holdUrl, due]);
+  // The attempt ends when the portal's image is stored, even when its bytes (so the stored ETag) did not change, or when what is stored is no longer too far off.
   useEffect(() => {
     if (redrawing === null) return undefined;
-    if (!tooSmall) { setRedrawing(null); return undefined; }
-    const done = () => setRedrawing(null);
+    if (!tooFar) { setRedrawing(null); return undefined; }
+    const done = () => { setHoldUrl(live.previewUrl); setRedrawing(null); };
     window.addEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
     return () => window.removeEventListener(SYSTEM_PREVIEW_CHANGED_EVENT, done);
-  }, [redrawing, tooSmall]);
+  }, [redrawing, tooFar, live.previewUrl]);
   const stale = redrawing !== null;
   const seed = !preview && (view === 'no-preview' || stale) && live.caseId;
   return (

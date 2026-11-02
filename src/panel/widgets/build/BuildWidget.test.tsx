@@ -308,20 +308,43 @@ describe('BuildWidget', () => {
       expect(screen.queryByTestId('seed')).toBeNull();
     });
 
-    it('a too-small image is redrawn at most once per interval for the same case and size', async () => {
+    it('a stored image outside the window is redrawn at most once per interval, and at most three times per launch', async () => {
+      h.caseId.mockResolvedValue('hyte-y70');
+      h.preview.mockResolvedValue(header(1024));
+      registerPreviewSize('test', 270);
+      await renderWidget('4x4');
+      // The portal ignores the size and keeps storing the large image, under a new ETag each time.
+      let n = 0;
+      const seeds: boolean[] = [];
+      for (let attempt = 0; attempt < 5; attempt++) {
+        seeds.push(screen.queryByTestId('seed') !== null);
+        if (!seeds[attempt]) {
+          await act(async () => { await vi.advanceTimersByTimeAsync(9 * 60 * 1000); });
+          expect(screen.queryByTestId('seed')).toBeNull();
+          await act(async () => { await vi.advanceTimersByTimeAsync(2 * 60 * 1000); });
+          seeds[attempt] = screen.queryByTestId('seed') !== null;
+        }
+        if (!seeds[attempt]) break;
+        h.preview.mockResolvedValue({ ...header(1024), etag: `again-${++n}` });
+        await changed();
+        await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      }
+      expect(seeds.filter(Boolean)).toHaveLength(3);
+      await act(async () => { await vi.advanceTimersByTimeAsync(60 * 60 * 1000); });
+      expect(screen.queryByTestId('seed')).toBeNull();
+    });
+
+    it('nothing is decided after the portal saved until the refreshed image has landed', async () => {
       h.caseId.mockResolvedValue('hyte-y70');
       h.preview.mockResolvedValue(header(1024));
       registerPreviewSize('test', 270);
       await renderWidget('4x4');
       expect(screen.getByTestId('seed')).toBeTruthy();
+      // The save signal arrives and the refetch finds the same bytes: the old width is not judged again.
       h.preview.mockResolvedValue({ kind: 'unchanged' });
       await changed();
+      await act(async () => { await vi.advanceTimersByTimeAsync(30 * 60 * 1000); });
       expect(screen.queryByTestId('seed')).toBeNull();
-      // What is stored is still too small (another context's smaller save, or a portal that ignores the size): nothing happens inside the interval, and it is drawn again once it has passed.
-      await act(async () => { await vi.advanceTimersByTimeAsync(9 * 60 * 1000); });
-      expect(screen.queryByTestId('seed')).toBeNull();
-      await act(async () => { await vi.advanceTimersByTimeAsync(2 * 60 * 1000); });
-      expect(screen.getByTestId('seed')).toBeTruthy();
     });
 
     it('a change of the wanted size draws it again', async () => {
