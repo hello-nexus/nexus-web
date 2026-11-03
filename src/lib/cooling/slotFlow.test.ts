@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { remapToShown, withDefaultBindings } from './slotFlow';
+import { withDefaultBindings } from './slotFlow';
 
 const gpuSlots = ['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2'].map(key => ({ key, taken: null, size: 90 }));
 const channels = [{ id: 'g0', isGpu: true }, { id: 'g1', isGpu: true }, { id: 'g2', isGpu: true }];
@@ -24,18 +24,5 @@ describe('withDefaultBindings owners', () => {
   it('gives the case slots a radiator covers no default binding', () => {
     const slots = [{ key: 'top:120:0', taken: 'radiator' as const }, { key: 'rad:0', taken: 'fan' as const }];
     expect(withDefaultBindings([], slots, [{ id: 'a0', isAio: true }])).toEqual([{ channelId: 'a0', slotKeys: ['rad:0'] }]);
-  });
-});
-
-describe('remapToShown', () => {
-  const canonOf = (k: string) => (k === 'top:140:0' ? 'top:120:0' : k);
-  it('moves an override on a hidden alternative to the drawn slot', () => {
-    expect(remapToShown({ 'top:140:0': 'exhaust' }, canonOf)).toEqual({ 'top:120:0': 'exhaust' });
-  });
-  it('lets an override already on the drawn slot win', () => {
-    expect(remapToShown({ 'top:140:0': 'exhaust', 'top:120:0': 'intake' }, canonOf)).toEqual({ 'top:120:0': 'intake' });
-  });
-  it('passes overrides through without a mapper', () => {
-    expect(remapToShown({ a: 'intake' })).toEqual({ a: 'intake' });
   });
 });

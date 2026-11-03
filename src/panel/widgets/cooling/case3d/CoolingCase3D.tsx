@@ -26,7 +26,7 @@ import {
   channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, RADIATOR_PICK_KEY, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { settleFlows, simRpm, SIM_RPM_CEILING } from '../../../../lib/cooling/fanSpeed';
-import { boundSlotKeys, lumpedModel, remapToShown, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
+import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
 import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
 import { HEAT_COLOR_SPAN_C, ROOM_TEMP_C, VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
@@ -139,7 +139,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const airflowCase = isFullySupportedCase(parsedLayout?.caseModel);
   const temps = useComponentTemps(true);
 
-  const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], remapToShown(coolingLayout.directions, collapsed?.canonOf)), [caseLayout, collapsed, coolingLayout.directions]);
+  const directions = useMemo(() => slotDirections(caseLayout?.fanSlots ?? [], coolingLayout.directions), [caseLayout, coolingLayout.directions]);
 
   // Live speed of each drawn fan: the bound channel's tach (or simulated rpm) over the fan's top speed. A fan with an explicit none, or an empty mount, reads stopped like a 0 rpm fan.
   const speeds = useMemo(() => slotSpeeds(caseLayout?.fanSlots ?? [], bindings, channels), [caseLayout, bindings, channels]);

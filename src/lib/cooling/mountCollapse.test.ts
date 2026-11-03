@@ -164,4 +164,11 @@ describe('default fan size per mount', () => {
     const l = caseWith(slot('bottom', 140, 0, 0), slot('bottom', 120, 0, 0), slot('bottom', 140, 1, 200), slot('bottom', 120, 2, 200), slot('top', 140, 0, 0), slot('top', 120, 0, 0));
     expect(collapseMounts(l, ['bottom:140:0']).layout.fanSlots.map(s => s.key).sort()).toEqual(['bottom:140:0', 'bottom:140:1', 'top:120:0']);
   });
+
+  it('installed sizes take precedence over bound ones on a face', () => {
+    const l = caseWith(slot('top', 120, 0, 0), slot('top', 140, 0, 0), slot('top', 120, 1, 200), slot('top', 140, 1, 200), slot('top', 120, 2, 400), slot('top', 140, 2, 400));
+    l.fanSlots[0].taken = 'fan';
+    const keys = collapseMounts(l, ['top:140:2']).layout.fanSlots.map(s => s.key).sort();
+    expect(keys).toEqual(['top:120:0', 'top:120:1', 'top:140:2']);
+  });
 });

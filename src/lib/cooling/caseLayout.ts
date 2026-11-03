@@ -487,10 +487,15 @@ export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[])
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
   const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:');
-  // A face that already holds an installed or bound slot keeps that size for its other mounts; a face with none takes the default.
-  const faceSize = new Map<string, number>();
-  for (const s of slots) if (!own(s) && rank(s) > 0) faceSize.set(s.position, Math.max(faceSize.get(s.position) ?? 0, s.size));
-  const prefers = (s: CaseFanSlot) => Number(rank(s) === 0 && s.size === (faceSize.get(s.position) ?? DEFAULT_FAN_MM));
+  // A face that already holds an installed slot keeps the largest installed size for its other mounts, else the largest bound size; a face with neither takes the default.
+  const chosenSize = (position: string) => {
+    for (const tier of [2, 1]) {
+      const sizes = slots.filter(s => !own(s) && s.position === position && rank(s) === tier).map(s => s.size);
+      if (sizes.length > 0) return Math.max(...sizes);
+    }
+    return DEFAULT_FAN_MM;
+  };
+  const prefers = (s: CaseFanSlot) => Number(rank(s) === 0 && s.size === chosenSize(s.position));
   const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || prefers(slots[y]) - prefers(slots[x]) || slots[y].size - slots[x].size || x - y);
   const chosen: number[] = [];
   for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
