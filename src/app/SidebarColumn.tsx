@@ -11,7 +11,6 @@ import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { SidebarDevicesSection } from './SidebarDevicesSection';
 import { ICON_SIZE } from './sidebarNav';
-import { BUILD_APP_KEY, pinAtRenderedIndex, stripBuildFromArrangement, withBuildRow } from './buildEntry';
 import {
   DASHBOARD_APP_KEY,
   appendRecent,
@@ -111,16 +110,15 @@ export function SidebarColumn({
   const navItem = (key: string) => {
     const meta = getSidebarAppMeta(key);
     if (!meta) return [];
-    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined, fixed: key === BUILD_APP_KEY }];
+    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined }];
   };
-  const items = withBuildRow(tail).flatMap(navItem);
+  const items = tail.flatMap(navItem);
 
   // Right-click context menu state. Held here so the menu portal dismisses
   // on outside click without each row tracking its own open state. `pinned`
   // picks the menu: a pinned row offers Unpin; a lower row offers Pin.
   const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number; pinned: boolean } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
-    if (key === BUILD_APP_KEY) return; // dedicated row: nothing to pin or unpin
     setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: tail.includes(key) });
   };
   const handleUnpin = (key: string) => {
@@ -185,9 +183,7 @@ export function SidebarColumn({
   // undocks a pinned one at the drop slot. Collapsed, the undocked row becomes
   // the recent so it stays visible - unless the current page is itself
   // unpinned, which keeps the one collapsed slot.
-  const handleArrange = ({ pinned: pinnedIn, lower: lowerIn }: { pinned: string[]; lower: string[] }) => {
-    // Build rides in the sortable list but is positioned by withBuildRow.
-    const { pinned, lower } = stripBuildFromArrangement({ pinned: pinnedIn, lower: lowerIn });
+  const handleArrange = ({ pinned, lower }: { pinned: string[]; lower: string[] }) => {
     const patch: { pinnedSidebarApps?: string[]; sidebarAppOrder?: string[] } = {};
     if (!sameOrder(pinned, tail)) patch.pinnedSidebarApps = pinned;
     // Docking only removes a key; the saved order changes when a row moves
@@ -250,7 +246,10 @@ export function SidebarColumn({
   const handlePinDrop = (insertionIndex: number) => {
     if (!draggingPinnableType || !isPinnableAppKey(draggingPinnableType)) return;
     if (tail.includes(draggingPinnableType)) return;
-    update({ pinnedSidebarApps: pinAtRenderedIndex(tail, draggingPinnableType, insertionIndex) });
+    const next = [...tail];
+    const idx = Math.max(0, Math.min(insertionIndex, next.length));
+    next.splice(idx, 0, draggingPinnableType);
+    update({ pinnedSidebarApps: next });
     setRecents(storedRecentsRaw.filter(k => k !== draggingPinnableType));
   };
 

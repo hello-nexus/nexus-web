@@ -12,19 +12,20 @@ import { catalogEntriesFor } from '../panel/editor/PanelWidgetCatalog';
 import { listSidebarAppKeys } from './sidebarApps';
 
 describe('page-only apps without dev tools', () => {
-  it('registers the store and pins it as the bottom default row: it ships on release builds', () => {
+  it('registers the store and lets it be pinned, but not by default: it ships on release builds', () => {
     expect(isPageOnlyAppKey('store')).toBe(true);
     expect(isPinnableAppKey('store')).toBe(true);
     expect(sanitizePinnedTail(['store'])).toEqual(['store']);
-    expect(sanitizePinnedTail(undefined).at(-1)).toBe('store');
+    expect(sanitizePinnedTail(undefined)).not.toContain('store');
+    expect(sanitizePinnedTail(undefined)).not.toContain('build');
   });
 
-  it('keeps build out of the pinnable set: it is a dedicated row, and its tile still clicks through', () => {
-    expect(PAGE_ONLY_APPS.build).toBeUndefined();
-    expect(isPageOnlyAppKey('build')).toBe(false);
-    expect(isPinnableAppKey('build')).toBe(false);
-    expect(sanitizePinnedTail(['build'])).toEqual([]);
-    expect(listSidebarAppKeys()).not.toContain('build');
+  it('registers build and lets it be pinned: the page and the widget tile both ship on release builds', () => {
+    expect(PAGE_ONLY_APPS.build).toBeDefined();
+    expect(isPageOnlyAppKey('build')).toBe(true);
+    expect(isPinnableAppKey('build')).toBe(true);
+    expect(sanitizePinnedTail(['build'])).toEqual(['build']);
+    expect(listSidebarAppKeys()).toContain('build');
     expect(catalogEntriesFor('desktop').map(([type]) => type)).toContain('build');
   });
 

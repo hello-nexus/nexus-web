@@ -6,7 +6,6 @@
 
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
 import { isPageOnlyAppKey } from './pageOnlyApps';
-import { BUILD_APP_KEY } from './buildEntry';
 import { getPreinstalledPageAppTypes, hasMarketplaceLoadedOnce, isMarketplaceType, normalizeAppType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
@@ -16,8 +15,8 @@ export type SidebarAppKey = string; // any app type that has a Page, or 'dashboa
 // outright; every other key must be a widget type shipping a desktop SPA Page,
 // read from the static registry for built-ins or from the synthetic manifest
 // for marketplace (SDK) apps, so a page-capable SDK app pins like a native one.
-// Not the same as click-through: that needs a tile, so it excludes page-only apps
-// and admits Build by key (see isDashboardClickthroughType).
+// Not the same as click-through: that needs a tile, so it admits a page-only app
+// only when APP_REGISTRY holds one (see isDashboardClickthroughType).
 export function isPinnableAppKey(s: string): boolean {
   if (isPageOnlyAppKey(s)) return true;
   if (APP_REGISTRY[s]?.Page != null) return true;
@@ -37,13 +36,11 @@ export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling
 // preinstalled set is registry-derived, so it's empty until the marketplace
 // registry loads and only non-empty on a build that bundles such an app; the
 // sidebar re-renders on registry load (same path as user-pinned SDK apps).
-// The store is the default tail's bottom row, below any preinstalled app.
 function defaultPinnedTail(): string[] {
   const out = [...DEFAULT_PINNED_TAIL];
   for (const type of getPreinstalledPageAppTypes()) {
     if (!out.includes(type) && isPinnableAppKey(type)) out.push(type);
   }
-  out.push('store');
   return out;
 }
 
@@ -110,7 +107,6 @@ export function sanitizeAppOrder(input: readonly unknown[] | undefined): string[
   for (const entry of input) {
     if (typeof entry !== 'string') continue;
     const key = normalizeAppType(entry);
-    if (key === BUILD_APP_KEY) continue; // dedicated row, never an ordered app
     if (!out.includes(key)) out.push(key);
   }
   return out;

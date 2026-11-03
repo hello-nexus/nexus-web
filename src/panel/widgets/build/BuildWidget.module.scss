@@ -81,7 +81,7 @@
 
   // A step smaller than the body type.
   > span {
-    font-size: calc(var(--type-small) * 0.88);
+    font-size: var(--type-mini);
   }
 }
 

@@ -262,7 +262,7 @@ export function getDefaultSettings(): NexusSettings {
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
       rememberLastPage: true,
-      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics', 'store'],
+      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
       sidebarAppOrder: [],
       sidebarCollapsed: false,
       widgetAdvancedMode: false,
