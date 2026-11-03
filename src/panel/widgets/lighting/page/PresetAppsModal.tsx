@@ -63,6 +63,24 @@ export function PresetAppsModal({ presetName, apps, taken, onSave, onClose }: Pr
       onClose={onClose}
       title={t('lighting.layoutPresets.appsTitle', { name: presetName })}
       medium
+      cancelDisabled={saving}
+      footer={(
+        <Button
+          tone="accent"
+          size="md"
+          disabled={saving}
+          onClick={() => {
+            // Stays open until the write lands, so a failed PUT does not
+            // discard the edit silently.
+            setSaving(true);
+            void Promise.resolve(onSave(selected))
+              .then(error => { if (error) setAlert({ message: error.message, tone: error.failed ? 'critical' : 'warning' }); })
+              .finally(() => setSaving(false));
+          }}
+        >
+          {t('lighting.layoutPresets.appsSave')}
+        </Button>
+      )}
     >
       <div className={styles.body}>
         <p className={styles.hint}>{t('lighting.layoutPresets.appsHint')}</p>
@@ -108,23 +126,6 @@ export function PresetAppsModal({ presetName, apps, taken, onSave, onClose }: Pr
           onSelect={toggle}
           showRunning
         />
-        <div className={styles.actions}>
-          <Button tone="ghost" onClick={onClose} disabled={saving}>{t('confirm.cancel')}</Button>
-          <Button
-            tone="accent"
-            disabled={saving}
-            onClick={() => {
-              // Stays open until the write lands, so a failed PUT does not
-              // discard the edit silently.
-              setSaving(true);
-              void Promise.resolve(onSave(selected))
-                .then(error => { if (error) setAlert({ message: error.message, tone: error.failed ? 'critical' : 'warning' }); })
-                .finally(() => setSaving(false));
-            }}
-          >
-            {t('lighting.layoutPresets.appsSave')}
-          </Button>
-        </div>
       </div>
     </DeviceModal>
   );

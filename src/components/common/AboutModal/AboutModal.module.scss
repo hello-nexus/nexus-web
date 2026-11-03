@@ -88,6 +88,8 @@
 }
 
 .actions {
+  display: flex;
+  justify-content: flex-start;
   margin-top: 0.25rem;
 
   // Floor width so the label's locale length does not resize the button.

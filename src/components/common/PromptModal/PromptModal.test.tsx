@@ -119,6 +119,14 @@ describe('PromptModal', () => {
     expect(screen.getByRole('button', { name: 'confirm.ok' })).not.toBeDisabled();
   });
 
+  describe('footer layout', () => {
+    it('puts Cancel first, then secondary and primary, with no close X', () => {
+      renderModal({ secondary: { label: 'Alt', onClick: vi.fn() } });
+      const labels = screen.getAllByRole('button').map(b => b.textContent);
+      expect(labels).toEqual(['confirm.cancel', 'Alt', 'confirm.ok']);
+    });
+  });
+
   describe('secondary action', () => {
     it('commits through its own handler, and Enter still runs the primary', () => {
       const onClick = vi.fn();

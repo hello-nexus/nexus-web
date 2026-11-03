@@ -288,7 +288,14 @@ export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, 
   const controlsDisabled = busy || !layout;
 
   return (
-    <DeviceModal open onClose={busy ? () => {} : onCancel} title={t('cropper.title')} large>
+    <DeviceModal open onClose={busy ? () => {} : onCancel} title={t('cropper.title')} large
+      cancelLabel={t('cropper.cancel')} cancelDisabled={busy}
+      footer={(
+        <>
+          <Button tone="ghost" onClick={handleReset} disabled={busy}>{t('cropper.reset')}</Button>
+          <Button tone="accent" onClick={confirm} disabled={busy}>{t('cropper.confirm')}</Button>
+        </>
+      )}>
       <div
         ref={wrapRef}
         className={styles.canvasWrap}
@@ -398,11 +405,6 @@ export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, round, 
             <span>{t('cropper.keepTransparency')}</span>
           </label>
         )}
-      </div>
-      <div className={styles.footer}>
-        <Button tone="ghost" className={styles.resetBtn} onClick={handleReset} disabled={busy}>{t('cropper.reset')}</Button>
-        <Button tone="neutral" onClick={onCancel} disabled={busy}>{t('cropper.cancel')}</Button>
-        <Button tone="accent" onClick={confirm} disabled={busy}>{t('cropper.confirm')}</Button>
       </div>
     </DeviceModal>
   );

@@ -21,33 +21,10 @@
   width: min(760px, 100%);
 }
 
-.closeBtn {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background var(--ease-fast);
-
-  &:hover { background: var(--bg-card-hover); }
-}
-
 .title {
   margin: 0;
   font-size: var(--type-heading);
   color: var(--text);
-}
-
-.titleClosable {
-  padding-right: 2.25rem;
 }
 
 .titleRow {
@@ -108,9 +85,18 @@
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.35rem;
+}
+
+.actionsEnd {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 

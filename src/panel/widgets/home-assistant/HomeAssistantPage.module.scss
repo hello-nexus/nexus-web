@@ -239,6 +239,11 @@
   flex-wrap: wrap;
 }
 
+.moreInfoFooter {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .moreInfoNote {
   margin: 0;
   font-size: var(--type-small);

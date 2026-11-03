@@ -16,12 +16,6 @@
   color: var(--text-dim);
 }
 
-.actionRow {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
 .warnIcon {
   display: flex;
   color: var(--warn);

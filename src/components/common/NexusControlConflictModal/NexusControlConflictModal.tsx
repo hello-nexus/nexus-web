@@ -3,7 +3,6 @@ import { AlertTriangle } from 'lucide-react';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import type { PendingControlEnable } from '../../../hooks/useConflictGuardedEnable';
 import { useTranslation } from '../../../lib/i18n';
-import { Button } from '../Button/Button';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import styles from './NexusControlConflictModal.module.scss';
@@ -40,6 +39,7 @@ export function NexusControlConflictModal({ pending, onConfirm, onCancel }: Nexu
     <DeviceModal
       open
       onClose={onCancel}
+      cancelLabel={t('confirm.cancel')}
       title={t('devices.conflictEnable.title', vars)}
       icon={<span className={styles.warnIcon}><AlertTriangle size={18} /></span>}
     >
@@ -47,9 +47,6 @@ export function NexusControlConflictModal({ pending, onConfirm, onCancel }: Nexu
         <p className={styles.intro}>{t('devices.conflictEnable.intro', vars)}</p>
         {/* Live row, so a respawned app shows its current pid. */}
         <ConflictAppCard conflict={live ?? pending.conflict} onTerminated={onConfirm} />
-        <div className={styles.actionRow}>
-          <Button tone="neutral" size="sm" onClick={onCancel}>{t('confirm.cancel')}</Button>
-        </div>
       </div>
     </DeviceModal>
   );

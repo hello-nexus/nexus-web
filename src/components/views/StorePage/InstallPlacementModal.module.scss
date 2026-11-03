@@ -211,6 +211,7 @@
 .count {
   @include text-button;
   flex: 1;
+  text-align: center;
   color: var(--text-dim);
 }
 

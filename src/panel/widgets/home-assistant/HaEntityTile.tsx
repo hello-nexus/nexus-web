@@ -226,6 +226,9 @@ export function HaMoreInfoDialog({
           {entity.codeRequired && <p className={styles.moreInfoNote}>{t('homeAssistant.lockCodeRequired')}</p>}
         </>
       )}
+      <div className={styles.moreInfoFooter}>
+        <Button size="sm" tone="neutral" onClick={onClose}>{t('app.window.close')}</Button>
+      </div>
     </Overlay>
   );
 }

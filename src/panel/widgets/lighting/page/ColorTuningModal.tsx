@@ -191,7 +191,13 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
   const showCap = globalBrightness != null && bright.value > master;
 
   return (
-    <DeviceModal open onClose={close} title={t('lighting.colorTuning.title')} medium>
+    <DeviceModal open onClose={close} title={t('lighting.colorTuning.title')} medium
+      footer={(
+        <Button tone="ghost" size="md" disabled={empty} onClick={handleReset}>
+          {t('lighting.colorTuning.reset')}
+        </Button>
+      )}
+      cancelLabel={t('app.window.close')}>
       <div className={styles.body}>
         {/* Read-only: the scope is whatever the device rail had selected when
             the menu was opened, so this states what is about to change rather
@@ -345,15 +351,6 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
             onChange={v => write({ colorOrder: v as ColorOrder }, true)}
           />
         </section>
-
-        <div className={styles.actions}>
-          <Button tone="ghost" size="sm" disabled={empty} onClick={handleReset}>
-            {t('lighting.colorTuning.reset')}
-          </Button>
-          <Button tone="accent" size="sm" onClick={close}>
-            {t('lighting.colorTuning.done')}
-          </Button>
-        </div>
       </div>
     </DeviceModal>
   );

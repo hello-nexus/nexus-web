@@ -2219,7 +2219,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         open={pendingSource !== null}
         destructive={false}
         size="wider"
-        closeButton
         enterOnPrimary
         title={t('cooling.curve.sourceSplit.title')}
         message={t('cooling.curve.sourceSplit.message', {

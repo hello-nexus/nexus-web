@@ -1,5 +1,4 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
@@ -41,8 +40,6 @@ interface ConfirmModalProps {
    * keeps Discard as the confirm.
    */
   primaryAction?: { label: string; onSelect: () => void; disabled?: boolean; disabledReason?: string };
-  /** Replaces the Cancel button with a close X in the top-right corner; Esc and backdrop click still cancel. */
-  closeButton?: boolean;
   /** Enter triggers the highlighted primaryAction instead of confirm. */
   enterOnPrimary?: boolean;
   onConfirm: () => void;
@@ -56,6 +53,7 @@ interface ConfirmModalProps {
  * elevated surface + accent token for the primary button). Used instead of
  * window.confirm so the UI is themed and can carry multi-line context.
  *
+ * Footer: Cancel on the left, the submit buttons on the right, no header X.
  * Esc cancels, Enter confirms, click outside cancels. Autofocuses Cancel so
  * destructive actions require an explicit user intent.
  */
@@ -77,7 +75,6 @@ export function ConfirmModal({
   hideConfirm = false,
   primaryAction,
   enterOnPrimary = false,
-  closeButton = false,
   onConfirm,
   onCancel,
   onDismiss,
@@ -100,17 +97,12 @@ export function ConfirmModal({
   return (
     <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={enterHandler}
       className={size === 'wider' ? `${styles.modal} ${styles.wider}` : size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
-      {closeButton && (
-        <button type="button" className={styles.closeBtn} onClick={onCancel} aria-label={t('app.window.close')}>
-          <X size={18} />
-        </button>
-      )}
       {icon ? (
-        <div className={closeButton ? `${styles.titleRow} ${styles.titleClosable}` : styles.titleRow}>
+        <div className={styles.titleRow}>
           <span className={styles.icon}>{icon}</span>
           <h2 className={styles.title}>{title}</h2>
         </div>
-      ) : <h2 className={closeButton ? `${styles.title} ${styles.titleClosable}` : styles.title}>{title}</h2>}
+      ) : <h2 className={styles.title}>{title}</h2>}
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}
         {bullets && bullets.length > 0 && (
@@ -122,11 +114,10 @@ export function ConfirmModal({
         {children}
       </div>
       <div className={styles.actions}>
-        {!closeButton && (
-          <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
-            {cancelLabel ?? t('confirm.cancel')}
-          </Button>
-        )}
+        <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
+          {cancelLabel ?? t('confirm.cancel')}
+        </Button>
+        <div className={styles.actionsEnd}>
         {!hideConfirm && (
           <Button
             // With a primary action present, confirm is the other way out and
@@ -152,6 +143,7 @@ export function ConfirmModal({
             ? <HoverTooltip body={primaryAction.disabledReason} side="top">{btn}</HoverTooltip>
             : btn;
         })()}
+        </div>
       </div>
     </Overlay>
   );

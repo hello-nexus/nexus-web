@@ -161,6 +161,7 @@ export function PromptModal({
         <Button tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
         </Button>
+        <div className={styles.actionsEnd}>
         {secondary && (
           <Button tone="neutral" size="md" onClick={() => submit(secondary.onClick)}
             disabled={submitDisabled || !!secondary.disabled?.(value)}>
@@ -170,6 +171,7 @@ export function PromptModal({
         <Button tone="accent" size="md" onClick={() => submit()} disabled={submitDisabled}>
           {confirmLabel ?? t('confirm.ok')}
         </Button>
+        </div>
       </div>
     </Overlay>
   );

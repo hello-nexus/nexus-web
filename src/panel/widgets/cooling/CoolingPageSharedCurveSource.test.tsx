@@ -182,15 +182,16 @@ describe('CoolingPage temp source on a shared curve', () => {
     expect(lastSave().curves[0].input.id).toBe('gpu-core');
   });
 
-  it('the close X leaves the curve and its source unchanged, and there is no Cancel button', async () => {
+  it('Cancel leaves the curve and its source unchanged, and there is no close X', async () => {
     renderAdvanced();
     await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
     fireEvent.click(screen.getByText('1,100'));
     await pickGpuSource();
 
     const dlg = await screen.findByRole('alertdialog');
-    expect(within(dlg).queryByRole('button', { name: 'confirm.cancel' })).toBeNull();
-    fireEvent.click(within(dlg).getByRole('button', { name: 'app.window.close' }));
+    expect(within(dlg).queryByRole('button', { name: 'app.window.close' })).toBeNull();
+    expect(within(dlg).getAllByRole('button')[0].textContent).toBe('confirm.cancel');
+    fireEvent.click(within(dlg).getByRole('button', { name: 'confirm.cancel' }));
 
     await waitFor(() => { expect(dialog()).toBeNull(); });
     expect(saveCurves).not.toHaveBeenCalled();
