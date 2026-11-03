@@ -46,6 +46,15 @@ export function withDefaultBindings(bindings: readonly FanBinding[], slots: read
   return [...merged, ...[...derived].filter(([id]) => !stored.has(id)).map(([channelId, keys]) => ({ channelId, slotKeys: keys }))];
 }
 
+/** Overrides with each key on a hidden alternative slot moved to the drawn slot of its mount; a key already on a drawn slot wins. */
+export function remapToShown(overrides: Readonly<Record<string, FanDirection>>, canonOf?: (key: string) => string): Readonly<Record<string, FanDirection>> {
+  if (!canonOf) return overrides;
+  const out: Record<string, FanDirection> = {};
+  for (const [key, dir] of Object.entries(overrides)) if (canonOf(key) !== key) out[canonOf(key)] ??= dir;
+  for (const [key, dir] of Object.entries(overrides)) if (canonOf(key) === key) out[key] = dir;
+  return out;
+}
+
 /** Each slot's direction: the user's override, else the GPU's and an air cooler's fans blow into their part (intake), else the position's default. */
 export function slotDirections(slots: readonly Pick<CaseFanSlot, 'key' | 'position'>[], overrides: Readonly<Record<string, FanDirection>>): Record<string, FanDirection> {
   const out: Record<string, FanDirection> = {};
