@@ -468,6 +468,9 @@ function planeOverlap(a: CaseFanSlot, b: CaseFanSlot): number {
 /** Face-plane overlap up to this many mm counts as touching, not overlapping; box coordinates carry rounding. */
 const TOUCH_MM = 0.05;
 
+/** The size a mount draws by default when it supports it and nothing installed or bound picks another. */
+const DEFAULT_FAN_MM = 120;
+
 export interface MountCollapse {
   layout: CaseLayout;
   /** The shown slot standing for `key`: the key itself, or the shown slot it overlaps most. */
@@ -475,7 +478,7 @@ export interface MountCollapse {
 }
 
 /**
- * One drawn slot per physical mount, chosen greedily: installed first, then bound, then the larger size, then slot order.
+ * One drawn slot per physical mount, chosen greedily: installed first, then bound, then (for slots neither installed nor bound) 120 mm, then the larger size, then slot order.
  * Radiator (`rad:`), graphics card (`gpu:`) and air cooler (`cpu:`) fan slots always stand alone: each is a real fan, never an alternative mount, and a card's neighbors can overlap by the frame padding. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
  * Drawn slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
  */
@@ -484,7 +487,7 @@ export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[])
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
   const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:');
-  const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
+  const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || Number(rank(slots[y]) === 0 && slots[y].size === DEFAULT_FAN_MM) - Number(rank(slots[x]) === 0 && slots[x].size === DEFAULT_FAN_MM) || slots[y].size - slots[x].size || x - y);
   const chosen: number[] = [];
   for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
   const shown = new Set([...chosen, ...slots.flatMap((s, i) => (own(s) ? [i] : []))]);
