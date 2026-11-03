@@ -185,6 +185,28 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'Evening' });
   });
 
+  it('renames a preset to a different case without deleting it', async () => {
+    await mount(state({ preset: 'Mine', bands: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }));
+    await act(async () => { bar().onRename('Mine', 'MINE'); });
+    expect(api.saveSpeakerPreset).toHaveBeenCalledWith('MINE', [1, 1, 1, 0, 0, 0, 0, 0, 0, 0]);
+    expect(api.deleteSpeakerPreset).not.toHaveBeenCalled();
+    expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'MINE' });
+  });
+
+  it('does not rename onto a built-in name', async () => {
+    await mount(state({ preset: 'Mine' }));
+    await act(async () => { bar().onRename('Mine', 'flat'); });
+    expect(api.saveSpeakerPreset).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('cooling.presets.duplicateName');
+  });
+
+  it('says so when a rename saved the new name but could not remove the old one', async () => {
+    await mount(state({ preset: 'Mine', bands: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }));
+    api.deleteSpeakerPreset.mockResolvedValueOnce(null);
+    await act(async () => { bar().onRename('Mine', 'Evening'); });
+    expect(screen.getByRole('alert')).toHaveTextContent(`${P}renameIncomplete`);
+  });
+
   it('keeps the old preset when the rename could not be saved', async () => {
     await mount(state({ preset: 'Mine', bands: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }));
     api.saveSpeakerPreset.mockResolvedValueOnce(null);
@@ -196,6 +218,38 @@ describe('LogitechSpeakerDevicePage', () => {
     await mount(state({ preset: 'Mine' }));
     await act(async () => { bar().onDelete('Mine'); });
     expect(api.deleteSpeakerPreset).toHaveBeenCalledWith('Mine');
+  });
+
+  it('keeps an earlier band change when a second one is made before the first is answered', async () => {
+    await mount(state());
+    let release!: () => void;
+    api.setSpeakerEq.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve(state({ bands: [0, 0, -3, 0, 0, 0, 0, 0, 0, 0] })); }));
+    const first = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
+    fireEvent.change(first, { target: { value: '-3' } });
+    await act(async () => { fireEvent.keyUp(first); await new Promise(r => setTimeout(r, 5)); });
+    const second = screen.getByRole('slider', { name: `${P}band:{"hz":250}` });
+    fireEvent.change(second, { target: { value: '-5' } });
+    await act(async () => { fireEvent.keyUp(second); await new Promise(r => setTimeout(r, 5)); });
+    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -3, -5, 0, 0, 0, 0, 0, 0] });
+    await act(async () => { release(); });
+  });
+
+  it('keeps a band being dragged when a poll lands', async () => {
+    vi.useFakeTimers();
+    await mount(state());
+    const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
+    fireEvent.change(band, { target: { value: '-7' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
+    expect(api.fetchSpeaker.mock.calls.length).toBeGreaterThan(1);
+    expect(band).toHaveValue('-7');
+  });
+
+  it('reports a test sound that did not play', async () => {
+    await mount(state());
+    surround();
+    api.testSpeakerChannel.mockResolvedValueOnce(null);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}channel.center` })); });
+    expect(screen.getByRole('alert')).toHaveTextContent(`${P}testFailed`);
   });
 
   describe('Surround sound', () => {

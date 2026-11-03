@@ -83,11 +83,8 @@ export interface SliderProps {
   valueText?: string;
 }
 
-/** Width of the range thumb, as set in src/styles/global.scss. */
-const THUMB_PX = 14;
-
 /** A value at `pct` (0..100) of the range, placed on the thumb's path: its centre stops half a thumb short of each end, so the two only agree at 50%. */
-const onThumbPath = (pct: number) => `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${pct / 100})`;
+const onThumbPath = (pct: number) => `calc(var(--slider-thumb-size) / 2 + (100% - var(--slider-thumb-size)) * ${pct / 100})`;
 
 export function Slider({
   label = '', info, value, min, max, step = 1,

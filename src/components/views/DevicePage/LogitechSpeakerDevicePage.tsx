@@ -43,7 +43,7 @@ const TEST_LIT_MS = 1300;
 const TEST_GAP_MS = 1600;
 const ICON_PX = 20;
 
-interface TabProps { state: SpeakerState; change: Change }
+interface TabProps { state: SpeakerState; change: Change; report: (key: string) => void }
 
 // One scale for the bands: the labels above and below the track, and the gap between them, are
 // shared with the scale column and the zero line so all three line up.
@@ -59,16 +59,40 @@ function EqBands({ state, change }: TabProps) {
   const eqOn = state.eqEnabled;
   const min = state.bandMinDb;
   const max = state.bandMaxDb;
-  // A fresh state replaces any value still being dragged.
-  useEffect(() => { setLive({}); }, [state.bands]);
+  // Bands being dragged, and how many commits still await an answer.
+  const open = useRef(new Set<number>());
+  const inflight = useRef(0);
+  // The latest bands this page has asked for, so a second commit keeps the first.
+  const wanted = useRef(state.bands);
+  const latest = useRef(state.bands);
+  latest.current = state.bands;
+  const key = state.bands.join(',');
+
+  // Once nothing is awaiting an answer, the service's bands win and only open drags keep a local value.
+  const settle = () => {
+    if (inflight.current > 0) return;
+    wanted.current = latest.current;
+    setLive(prev => {
+      const keep = Object.entries(prev).filter(([i]) => open.current.has(Number(i)));
+      return keep.length === Object.keys(prev).length ? prev : Object.fromEntries(keep);
+    });
+  };
+  // The key changes with the values, not with a poll's new array.
+  useEffect(settle, [key]);
 
   const commit = (index: number, db: number) => {
-    const bands = state.bands.map((b, i) => (i === index ? db : b));
-    void change(() => setSpeakerEq({ bands }));
+    open.current.delete(index);
+    wanted.current = wanted.current.map((b, i) => (i === index ? db : b));
+    const bands = wanted.current;
+    inflight.current += 1;
+    void change(() => setSpeakerEq({ bands })).finally(() => {
+      inflight.current -= 1;
+      settle();
+    });
   };
   // Where a gain sits down the track, 0 at the top (max) to 1 at the bottom (min).
   const down = (db: number) => (max - db) / (max - min);
-  const along = (frac: number) => `calc(7px + (var(--eq-length) - 14px) * ${frac})`;
+  const along = (frac: number) => `calc(var(--slider-thumb-size) / 2 + (var(--eq-length) - var(--slider-thumb-size)) * ${frac})`;
 
   return (
     <div className={styles.eq} style={{ ...EQ_VARS, '--eq-length': `${EQ_LENGTH_PX}px` } as CSSProperties}>
@@ -98,7 +122,7 @@ function EqBands({ state, change }: TabProps) {
               value={live[i] ?? band}
               formatValue={signedDb}
               disabled={!eqOn}
-              onChange={v => setLive(prev => ({ ...prev, [i]: v }))}
+              onChange={v => { open.current.add(i); setLive(prev => ({ ...prev, [i]: v })); }}
               onCommit={v => commit(i, v)}
             />
           );
@@ -108,7 +132,7 @@ function EqBands({ state, change }: TabProps) {
   );
 }
 
-function AcousticsTab({ state, change }: TabProps) {
+function AcousticsTab({ state, change, report }: TabProps) {
   const { t } = useTranslation();
   const [volume, setVolume] = useState<number | null>(null);
   const [sub, setSub] = useState<number | null>(null);
@@ -125,7 +149,7 @@ function AcousticsTab({ state, change }: TabProps) {
           max={100}
           value={volume ?? Math.round((state.volume ?? 0) * 100)}
           onChange={v => setVolume(v)}
-          onCommit={v => { void change(() => setSpeakerVolume(v / 100)).then(() => setVolume(null)); }}
+          onCommit={v => { void change(() => setSpeakerVolume(v / 100)).then(() => setVolume(cur => (cur === v ? null : cur))); }}
         />
         <SettingSlider
           label={t(`${P}subwoofer`)}
@@ -136,7 +160,7 @@ function AcousticsTab({ state, change }: TabProps) {
           disabled={state.subwooferLevel === undefined}
           value={sub ?? state.subwooferLevel ?? 0}
           onChange={v => setSub(v)}
-          onCommit={v => { void change(() => setSpeakerSubwoofer(Math.round(v))).then(() => setSub(null)); }}
+          onCommit={v => { void change(() => setSpeakerSubwoofer(Math.round(v))).then(() => setSub(cur => (cur === v ? null : cur))); }}
         />
       </SettingsSection>
 
@@ -154,14 +178,14 @@ function AcousticsTab({ state, change }: TabProps) {
           checked={eqOn}
           onChange={on => { void change(() => setSpeakerEq({ enabled: on })); }}
         />
-        <EqBands state={state} change={change} />
+        <EqBands state={state} change={change} report={report} />
       </SettingsSection>
     </>
   );
 }
 
 /** The EQ presets as the shared preset dropdown: G HUB's own first, then the user's, with new, rename and delete. */
-function SpeakerPresets({ state, change }: TabProps) {
+function SpeakerPresets({ state, change, report }: TabProps) {
   const current = currentPreset(state.presets, state.preset);
   const own = state.presets.filter(p => !p.builtIn);
   const builtIns = state.presets.filter(p => p.builtIn);
@@ -192,11 +216,18 @@ function SpeakerPresets({ state, change }: TabProps) {
         const preset = own.find(p => p.name === id);
         const trimmed = name.trim();
         if (!preset || trimmed === id) return;
-        // The new name is selected last: with the bands equal to several presets the service names none.
+        if (builtIns.some(p => p.name.toLowerCase() === trimmed.toLowerCase())) {
+          report('cooling.presets.duplicateName');
+          return;
+        }
+        // The service matches names without case, so a case-only rename is a replace and must not delete.
+        const sameName = trimmed.toLowerCase() === id.toLowerCase();
         void (async () => {
           if (!(await change(() => saveSpeakerPreset(trimmed, preset.bands)))) return;
-          await change(() => deleteSpeakerPreset(id));
+          const removed = sameName || await change(() => deleteSpeakerPreset(id));
+          // The new name is selected last: with the bands equal to several presets the service names none.
           await change(() => setSpeakerEq({ preset: trimmed }));
+          if (!removed) report(`${P}renameIncomplete`);
         })();
       }}
       onDelete={id => { void change(() => deleteSpeakerPreset(id)); }}
@@ -204,7 +235,7 @@ function SpeakerPresets({ state, change }: TabProps) {
   );
 }
 
-function SurroundTab({ state, change }: TabProps) {
+function SurroundTab({ state, change, report }: TabProps) {
   const { t } = useTranslation();
   const [lit, setLit] = useState<number | null>(null);
   const [testingAll, setTestingAll] = useState(false);
@@ -224,7 +255,7 @@ function SurroundTab({ state, change }: TabProps) {
     setLit(index);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setLit(null), TEST_LIT_MS);
-    void testSpeakerChannel(index);
+    void testSpeakerChannel(index).then(res => { if (!res || res.error) report(`${P}testFailed`); });
   };
 
   const testAll = async () => {
@@ -267,7 +298,7 @@ function SurroundTab({ state, change }: TabProps) {
         ? <Speaker size={ICON_PX} aria-hidden />
         : <Volume2 size={ICON_PX} aria-hidden style={{ transform: `rotate(${SPEAKER_FACING[channel] ?? 0}deg)` }} />,
       control: (
-        <Stepper orientation="horizontal" label={t(`${P}volumeOf`, { speaker: name })} min={0} max={max} value={pending[index] ?? volOf(state.channelGains[index])} onChange={v => setVol(index, v)} />
+        <Stepper orientation="horizontal" pad={false} label={t(`${P}volumeOf`, { speaker: name })} min={0} max={max} value={pending[index] ?? volOf(state.channelGains[index])} onChange={v => setVol(index, v)} />
       ),
     }];
   });
@@ -319,7 +350,7 @@ function SurroundTab({ state, change }: TabProps) {
 export function LogitechSpeakerDevicePage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('acoustics');
-  const { state, loadFailed, failed, change } = useLogitechSpeaker();
+  const { state, loadFailed, failure, report, change } = useLogitechSpeaker();
 
   return (
     <div className={styles.page}>
@@ -329,10 +360,10 @@ export function LogitechSpeakerDevicePage() {
         tabs={state?.present ? TABS.map(({ key, icon }) => ({ key, icon, label: t(`${P}${key}`) })) : undefined}
         activeTab={tab}
         onTabChange={key => setTab(key as Tab)}
-        tabActions={state?.present && tab === 'acoustics' ? <SpeakerPresets state={state} change={change} /> : undefined}
+        tabActions={state?.present && tab === 'acoustics' ? <SpeakerPresets state={state} change={change} report={report} /> : undefined}
       />
       <div className={styles.body}>
-        {failed && <Notice tone="critical" role="alert">{t(`${P}failed`)}</Notice>}
+        {failure && <Notice tone="critical" role="alert">{t(failure)}</Notice>}
         {loadFailed && !state && <Notice tone="critical" role="alert">{t(`${P}loadFailed`)}</Notice>}
         {!state && !loadFailed && <div className={styles.loading}><Spinner size={28} /></div>}
         {state && !state.present && (
@@ -340,7 +371,9 @@ export function LogitechSpeakerDevicePage() {
         )}
         {state?.present && (
           <div className={styles.tab}>
-            {tab === 'surround' ? <SurroundTab state={state} change={change} /> : <AcousticsTab state={state} change={change} />}
+            {tab === 'surround'
+              ? <SurroundTab state={state} change={change} report={report} />
+              : <AcousticsTab state={state} change={change} report={report} />}
           </div>
         )}
       </div>

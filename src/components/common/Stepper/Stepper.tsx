@@ -16,10 +16,12 @@ export interface StepperProps {
   label?: string;
   /** Vertical (up over value over down, the default) or horizontal (minus, value, plus). */
   orientation?: 'vertical' | 'horizontal';
+  /** Zero-pads the value to two digits. Default on; pass false for plain numbers. */
+  pad?: boolean;
   onChange?: (value: number) => void;
 }
 
-export function Stepper({ value, step = 1, min, max, disabled = false, label, orientation = 'vertical', onChange }: StepperProps) {
+export function Stepper({ value, step = 1, min, max, disabled = false, label, orientation = 'vertical', pad = true, onChange }: StepperProps) {
   const { t } = useTranslation();
   const atMax = max != null && value >= max;
   const atMin = min != null && value <= min;
@@ -49,7 +51,7 @@ export function Stepper({ value, step = 1, min, max, disabled = false, label, or
       onClick={() => emit(value - step)}
     ><span aria-hidden="true">{horizontal ? <Minus size={12} /> : DOWN}</span></button>
   );
-  const readout = <span className={styles.value}>{String(value).padStart(2, '0')}</span>;
+  const readout = <span className={styles.value}>{pad ? String(value).padStart(2, '0') : String(value)}</span>;
   return (
     <div className={`${styles.root} ${horizontal ? styles.horizontal : ''}`} role={label ? 'group' : undefined} aria-label={label}>
       {horizontal ? <>{down}{readout}{up}</> : <>{up}{readout}{down}</>}

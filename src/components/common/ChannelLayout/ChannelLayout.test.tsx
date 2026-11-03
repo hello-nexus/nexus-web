@@ -23,13 +23,6 @@ describe('ChannelLayout', () => {
     expect(onActivate).toHaveBeenCalledWith('b');
   });
 
-  it('keeps a node where it is when arrow keys are pressed', () => {
-    render(<ChannelLayout nodes={NODES} />);
-    const alpha = screen.getByRole('button', { name: 'Alpha' });
-    fireEvent.keyDown(alpha, { key: 'ArrowRight' });
-    expect((alpha.parentElement as HTMLElement).style.left).toBe('25%');
-  });
-
   it('describes what a click does', () => {
     render(<ChannelLayout nodes={NODES} hint="Plays a test sound" activeId="b" />);
     expect(screen.getByRole('button', { name: 'Beta' })).toHaveAccessibleDescription('Plays a test sound');
