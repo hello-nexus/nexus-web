@@ -499,7 +499,7 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Source de température",
   "cooling.curve.source.help": "La température que cette courbe surveille. Les ventilateurs qui y sont liés ne réagissent qu'à cette mesure.",
-  "cooling.curve.sourceSplit.applyAll": "Appliquer aux {count} ventilateurs",
+  "cooling.curve.sourceSplit.applyAll": "Sélectionner les {count} ventilateurs et appliquer",
   "cooling.curve.sourceSplit.copyName": "{curve} ({source})",
   "cooling.curve.sourceSplit.message": "La courbe « {curve} » a une seule source de température, partagée par tous ses ventilateurs. Voulez-vous la changer pour tous, ou donner aux ventilateurs sélectionnés leur propre copie utilisant {source} ?",
   "cooling.curve.sourceSplit.newCurve": "Nouvelle courbe pour la sélection",

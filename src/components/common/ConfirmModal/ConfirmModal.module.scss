@@ -10,10 +10,34 @@
   flex-direction: column;
   gap: 0.75rem;
   box-shadow: var(--shadow-xl);
+  position: relative;
 }
 
 .wide {
   width: min(600px, 100%);
+}
+
+.wider {
+  width: min(760px, 100%);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--ease-fast);
+
+  &:hover { background: var(--bg-card-hover); }
 }
 
 .title {

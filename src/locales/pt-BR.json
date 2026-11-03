@@ -499,7 +499,7 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Fonte de temp",
   "cooling.curve.source.help": "A temperatura que esta curva observa. As ventoinhas nela só reagem a essa leitura.",
-  "cooling.curve.sourceSplit.applyAll": "Aplicar às {count} ventoinhas",
+  "cooling.curve.sourceSplit.applyAll": "Selecionar as {count} ventoinhas e aplicar",
   "cooling.curve.sourceSplit.copyName": "{curve} ({source})",
   "cooling.curve.sourceSplit.message": "A curva \"{curve}\" tem uma única fonte de temperatura compartilhada por todas as ventoinhas. Alterar para todas ou dar às ventoinhas selecionadas uma cópia própria com {source}?",
   "cooling.curve.sourceSplit.newCurve": "Nova curva para as selecionadas",

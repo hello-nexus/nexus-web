@@ -182,14 +182,15 @@ describe('CoolingPage temp source on a shared curve', () => {
     expect(lastSave().curves[0].input.id).toBe('gpu-core');
   });
 
-  it('Cancel leaves the curve and its source unchanged', async () => {
+  it('the close X leaves the curve and its source unchanged, and there is no Cancel button', async () => {
     renderAdvanced();
     await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
     fireEvent.click(screen.getByText('1,100'));
     await pickGpuSource();
 
     const dlg = await screen.findByRole('alertdialog');
-    fireEvent.click(within(dlg).getByRole('button', { name: 'confirm.cancel' }));
+    expect(within(dlg).queryByRole('button', { name: 'confirm.cancel' })).toBeNull();
+    fireEvent.click(within(dlg).getByRole('button', { name: 'app.window.close' }));
 
     await waitFor(() => { expect(dialog()).toBeNull(); });
     expect(saveCurves).not.toHaveBeenCalled();
@@ -276,5 +277,16 @@ describe('CoolingPage temp source on a shared curve', () => {
     await waitFor(() => { expect(saveCurves).toHaveBeenCalledTimes(1); });
     expect(dialog()).toBeNull();
     expect(lastSave().curves[0].input.id).toBe('cpu-package');
+  });
+
+  it('Escape dismisses the prompt without writing', async () => {
+    renderAdvanced();
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    fireEvent.click(screen.getByText('1,100'));
+    await pickGpuSource();
+    await screen.findByRole('alertdialog');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => { expect(dialog()).toBeNull(); });
+    expect(saveCurves).not.toHaveBeenCalled();
   });
 });

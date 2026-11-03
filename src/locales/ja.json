@@ -499,7 +499,7 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "温度ソース",
   "cooling.curve.source.help": "このカーブが監視する温度です。このカーブのファンはこの値だけに反応します。",
-  "cooling.curve.sourceSplit.applyAll": "{count} 台すべてのファンに適用",
+  "cooling.curve.sourceSplit.applyAll": "{count} 台すべてのファンを選択して適用",
   "cooling.curve.sourceSplit.copyName": "{curve}（{source}）",
   "cooling.curve.sourceSplit.message": "カーブ「{curve}」の温度ソースは、そのカーブ上のすべてのファンで共有されています。すべてのファンで変更しますか、それとも選択したファンだけに {source} を使う専用のコピーを作成しますか。",
   "cooling.curve.sourceSplit.newCurve": "選択したファン用の新しいカーブ",

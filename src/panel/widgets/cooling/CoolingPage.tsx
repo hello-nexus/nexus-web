@@ -2203,7 +2203,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       <ConfirmModal
         open={pendingSource !== null}
         destructive={false}
-        size="wide"
+        size="wider"
+        closeButton
         enterOnPrimary
         title={t('cooling.curve.sourceSplit.title')}
         message={t('cooling.curve.sourceSplit.message', {
