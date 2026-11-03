@@ -6,10 +6,10 @@ $handle-size: 2.75rem;
 .root {
   position: relative;
   width: 100%;
-  max-width: var(--channel-layout-max-width, 34rem);
+  max-width: var(--channel-layout-max-width, 40rem);
   margin: 0 auto;
   // Room around the field for the labels and controls that hang off the nodes.
-  padding: 5rem 4.5rem 2rem;
+  padding: 0.5rem 5rem 6rem;
   box-sizing: border-box;
 }
 
@@ -44,15 +44,19 @@ $handle-size: 2.75rem;
 
 .node {
   position: absolute;
-  width: $handle-size;
-  height: $handle-size;
-  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  // Centered on the button, so the position is where the icon sits.
+  transform: translate(-50%, calc(#{$handle-size} / -2));
   z-index: 1;
 }
 
 .handle {
-  width: 100%;
-  height: 100%;
+  width: $handle-size;
+  height: $handle-size;
+  flex: none;
   padding: 0;
   display: flex;
   align-items: center;
@@ -72,21 +76,7 @@ $handle-size: 2.75rem;
 
 .label {
   @include text-caption;
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 0.25rem;
   white-space: nowrap;
   color: var(--text-dim);
   pointer-events: none;
-}
-
-.control {
-  position: absolute;
-  display: flex;
-
-  &.left { right: calc(100% + 0.5rem); top: 50%; transform: translateY(-50%); }
-  &.right { left: calc(100% + 0.5rem); top: 50%; transform: translateY(-50%); }
-  &.top { bottom: calc(100% + 0.4rem); left: 50%; transform: translateX(-50%); }
 }

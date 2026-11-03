@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SpeakerState } from '../../../api/logitechSpeaker';
+import type { ComponentProps } from 'react';
+import type { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
 import { LogitechSpeakerDevicePage } from './LogitechSpeakerDevicePage';
 
 vi.mock('../../../lib/i18n', () => ({
@@ -23,6 +25,14 @@ const api = vi.hoisted(() => ({
   testSpeakerChannel: vi.fn(),
 }));
 vi.mock('../../../api/logitechSpeaker', () => api);
+
+// The toolbar has its own tests; here its props are captured and its callbacks called directly.
+type ToolbarProps = ComponentProps<typeof PresetToolbar>;
+const toolbar = vi.hoisted(() => ({ props: null as unknown }));
+vi.mock('../../common/PresetToolbar/PresetToolbar', () => ({
+  PresetToolbar: (props: unknown) => { toolbar.props = props; return <div data-testid="presets" />; },
+}));
+const bar = () => toolbar.props as ToolbarProps;
 
 const FLAT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 const state = (over: Partial<SpeakerState> = {}): SpeakerState => ({
@@ -118,45 +128,74 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'Flat' });
   });
 
-  it('offers rename and delete only for a user preset, and deletes after confirming', async () => {
+  it('lists G HUB presets as built-ins and the user presets as presets, marking the active one', async () => {
     await mount(state({ preset: 'Mine', bands: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }));
-    expect(screen.getByRole('button', { name: `${P}rename` })).toBeInTheDocument();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}deletePreset` })); });
-    const confirms = screen.getAllByRole('button', { name: `${P}deletePreset` });
-    await act(async () => { fireEvent.click(confirms[confirms.length - 1]); });
-    expect(api.deleteSpeakerPreset).toHaveBeenCalledWith('Mine');
+    expect(bar().builtins?.map(b => b.id)).toEqual(['Flat', 'Bass Boost']);
+    expect(bar().presets.map(p => p.id)).toEqual(['Mine']);
+    expect(bar().activeId).toBe('Mine');
+    expect(bar().activeBuiltinId).toBeNull();
   });
 
-  it('hides rename and delete for a built-in preset', async () => {
+  it('marks a built-in as active and none when the bands were edited by hand', async () => {
     await mount(state({ preset: 'Flat' }));
-    expect(screen.queryByRole('button', { name: `${P}rename` })).toBeNull();
-    expect(screen.queryByRole('button', { name: `${P}deletePreset` })).toBeNull();
+    expect(bar().activeBuiltinId).toBe('Flat');
+    expect(bar().activeId).toBeNull();
+  });
+
+  it('shows the preset toolbar on Acoustics only', async () => {
+    await mount(state());
+    expect(screen.getByTestId('presets')).toBeInTheDocument();
+    surround();
+    expect(screen.queryByTestId('presets')).toBeNull();
+  });
+
+  it('selects a preset by name', async () => {
+    await mount(state());
+    await act(async () => { bar().onSelectBuiltin?.('Bass Boost'); });
+    expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'Bass Boost' });
+    await act(async () => { bar().onLoad('Mine'); });
+    expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'Mine' });
   });
 
   it('saves the live bands as a new preset and selects it', async () => {
     await mount(state({ bands: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0] }));
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}savePreset` })); });
-    fireEvent.change(screen.getByPlaceholderText(`${P}presetName`), { target: { value: ' Night ' } });
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}save` })); });
+    let result: { error: boolean } | undefined;
+    await act(async () => { result = await bar().onCreate(' Night '); });
     expect(api.saveSpeakerPreset).toHaveBeenCalledWith('Night', [2, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'Night' });
+    expect(result?.error).toBe(false);
+  });
+
+  it('refuses a new preset named like a built-in, and reports a failed save', async () => {
+    await mount(state());
+    let result: { error: boolean } | undefined;
+    await act(async () => { result = await bar().onCreate('flat'); });
+    expect(result?.error).toBe(true);
+    expect(api.saveSpeakerPreset).not.toHaveBeenCalled();
+    api.saveSpeakerPreset.mockResolvedValueOnce(null);
+    await act(async () => { result = await bar().onCreate('Night'); });
+    expect(result?.error).toBe(true);
   });
 
   it('renames by saving under the new name and removing the old one', async () => {
     await mount(state({ preset: 'Mine', bands: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }));
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}rename` })); });
-    fireEvent.change(screen.getByPlaceholderText(`${P}presetName`), { target: { value: 'Evening' } });
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}save` })); });
+    await act(async () => { bar().onRename('Mine', 'Evening'); });
     expect(api.saveSpeakerPreset).toHaveBeenCalledWith('Evening', [1, 1, 1, 0, 0, 0, 0, 0, 0, 0]);
     expect(api.deleteSpeakerPreset).toHaveBeenCalledWith('Mine');
+    expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'Evening' });
   });
 
-  it('refuses a preset name that is already taken', async () => {
-    await mount(state());
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}savePreset` })); });
-    fireEvent.change(screen.getByPlaceholderText(`${P}presetName`), { target: { value: 'flat' } });
-    expect(screen.getByText(`${P}nameTaken`)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: `${P}save` })).toBeDisabled();
+  it('keeps the old preset when the rename could not be saved', async () => {
+    await mount(state({ preset: 'Mine', bands: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0] }));
+    api.saveSpeakerPreset.mockResolvedValueOnce(null);
+    await act(async () => { bar().onRename('Mine', 'Evening'); });
+    expect(api.deleteSpeakerPreset).not.toHaveBeenCalled();
+  });
+
+  it('deletes a user preset', async () => {
+    await mount(state({ preset: 'Mine' }));
+    await act(async () => { bar().onDelete('Mine'); });
+    expect(api.deleteSpeakerPreset).toHaveBeenCalledWith('Mine');
   });
 
   describe('Surround sound', () => {

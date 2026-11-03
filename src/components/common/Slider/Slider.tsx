@@ -309,7 +309,7 @@ export function Slider({
           {range}
           {scaleNode}
         </div>
-        {valueNode}
+        <span className={styles.verticalValue}>{valueNode}</span>
       </div>
     );
   }

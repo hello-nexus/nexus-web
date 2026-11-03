@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentPreset, hzLabel, isFlat, presetNameTaken, signedDb, testOrder, volMax, volOf } from './speakerUtils';
+import { currentPreset, hzLabel, isFlat, signedDb, testOrder, volMax, volOf } from './speakerUtils';
 
 const PRESETS = [
   { name: 'Flat', bands: [0, 0], builtIn: true },
@@ -46,13 +46,6 @@ describe('presets', () => {
     expect(currentPreset(PRESETS, 'Mine')?.builtIn).toBe(false);
     expect(currentPreset(PRESETS, undefined)).toBeUndefined();
     expect(currentPreset(PRESETS, 'Gone')).toBeUndefined();
-  });
-
-  it('treats a name as taken regardless of case and spaces, except the one being renamed', () => {
-    expect(presetNameTaken(PRESETS, ' flat ')).toBe(true);
-    expect(presetNameTaken(PRESETS, 'MINE')).toBe(true);
-    expect(presetNameTaken(PRESETS, 'Mine', 'Mine')).toBe(false);
-    expect(presetNameTaken(PRESETS, 'New')).toBe(false);
   });
 
   it('knows a flat curve', () => {
