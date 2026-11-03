@@ -36,8 +36,7 @@ interface PresetToolbarProps {
   presetCount: number;
   cap?: number;
   onLoad: (id: string) => void;
-  /** `fresh` is true for "New preset" (a blank preset) and false for
-   *  "Duplicate current" (a copy of the active preset). */
+  /** `fresh`: true starts from the stock defaults, false copies the active preset. */
   onCreate: (name: string, opts: { fresh: boolean }) => Promise<{ error: boolean; msg?: string }>;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
