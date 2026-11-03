@@ -500,6 +500,7 @@
   "cooling.curve.source": "Источник темп.",
   "cooling.curve.source.help": "Температура, за которой следит эта кривая. Вентиляторы на ней реагируют только на это значение.",
   "cooling.curve.sourceSplit.applyAll": "Применить ко всем {count} вентиляторам",
+  "cooling.curve.sourceSplit.copyName": "{curve} ({source})",
   "cooling.curve.sourceSplit.message": "У кривой «{curve}» один источник температуры для всех её вентиляторов. Изменить его для всех или дать выбранным вентиляторам отдельную копию с источником {source}?",
   "cooling.curve.sourceSplit.newCurve": "Новая кривая для выбранных вентиляторов",
   "cooling.curve.sourceSplit.title": "Эта кривая общая",

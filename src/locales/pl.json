@@ -500,6 +500,7 @@
   "cooling.curve.source": "Zrodlo temp.",
   "cooling.curve.source.help": "Temperatura, którą obserwuje ta krzywa. Wentylatory na niej reagują tylko na ten odczyt.",
   "cooling.curve.sourceSplit.applyAll": "Zastosuj do wszystkich {count} wentylatorów",
+  "cooling.curve.sourceSplit.copyName": "{curve} ({source})",
   "cooling.curve.sourceSplit.message": "Krzywa „{curve}” ma jedno źródło temperatury wspólne dla wszystkich jej wentylatorów. Zmienić je dla wszystkich czy dać wybranym wentylatorom własną kopię ze źródłem {source}?",
   "cooling.curve.sourceSplit.newCurve": "Nowa krzywa dla wybranych wentylatorów",
   "cooling.curve.sourceSplit.title": "Ta krzywa jest współdzielona",

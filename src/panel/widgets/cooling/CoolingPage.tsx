@@ -1107,43 +1107,73 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // A curve owns one temp source for every fan on it. Editing it with only some
   // of those fans selected would silently re-point the rest, so the change
   // waits here for the user to pick: all fans, or a copy for the selection.
-  const [pendingSource, setPendingSource] = useState<CurveDef | null>(null);
+  const [pendingSource, setPendingSource] = useState<{ curveId: string; sourceId: string } | null>(null);
+
+  // Mirrors what pushCurves writes as outputs, so a disconnected fan still
+  // bound to the curve counts as a fan the change would affect.
+  const fanIdsOnCurve = useCallback((curveId: string) => (
+    Object.entries(fanStates).filter(([, st]) => st.curveId === curveId).map(([id]) => id)
+  ), [fanStates]);
+
+  const selectionWithin = useCallback((onCurve: string[]) => {
+    const set = new Set(onCurve);
+    return selectedFanIds.size > 0 && [...selectedFanIds].every(id => set.has(id));
+  }, [selectedFanIds]);
 
   const handleCurveEdit = useCallback((updated: CurveDef) => {
     const current = curves.find(c => c.id === updated.id);
-    if (current && updated.sourceId !== current.sourceId && selectedFanIds.size > 0) {
-      const onCurve = new Set(channels.filter(c => fanStates[c.id]?.curveId === current.id).map(c => c.id));
-      if (onCurve.size > selectedFanIds.size && [...selectedFanIds].every(id => onCurve.has(id))) {
-        setPendingSource(updated);
+    if (current && updated.sourceId !== current.sourceId) {
+      const onCurve = fanIdsOnCurve(current.id);
+      if (onCurve.length > selectedFanIds.size && selectionWithin(onCurve)) {
+        setPendingSource({ curveId: current.id, sourceId: updated.sourceId });
         return;
       }
     }
     saveCurveAndPush(updated);
-  }, [channels, curves, fanStates, saveCurveAndPush, selectedFanIds]);
+  }, [curves, fanIdsOnCurve, saveCurveAndPush, selectedFanIds, selectionWithin]);
 
-  const splitCurveForSelection = useCallback(() => {
-    const pending = pendingSource;
+  // The dialog can outlive the state it was opened on; both actions re-read
+  // the live curve and selection and drop the change if they no longer fit.
+  const livePending = () => {
+    if (!pendingSource) return null;
+    const curve = curves.find(c => c.id === pendingSource.curveId);
+    if (!curve || !selectionWithin(fanIdsOnCurve(curve.id))) return null;
+    return { curve, sourceId: pendingSource.sourceId };
+  };
+
+  const copyName = (curve: CurveDef, sourceId: string) => {
+    const nameFor = (base: string, name: string) => t('cooling.curve.sourceSplit.copyName', { curve: base, source: name });
+    // A copy of a copy would stack suffixes; drop one this feature added.
+    let base = curve.name;
+    for (const s of sources) {
+      const suffix = nameFor('', s.name);
+      if (base.endsWith(suffix) && base.length > suffix.length) { base = base.slice(0, -suffix.length); break; }
+    }
+    const sourceName = sources.find(s => s.id === sourceId)?.name ?? sourceId;
+    return nameFor(base, sourceName);
+  };
+
+  const splitCurveForSelection = () => {
+    const live = livePending();
     setPendingSource(null);
-    if (!pending || curves.length >= MAX_CURVES) return;
+    if (!live || curves.length >= MAX_CURVES) return;
     pushHistory();
     const id = `curve-${Date.now()}`;
-    const sourceName = sources.find(s => s.id === pending.sourceId)?.name ?? pending.sourceId;
-    const copy: CurveDef = { ...pending, id, name: `${pending.name} (${sourceName})`, preset: undefined, isDefault: undefined };
+    const copy: CurveDef = { ...live.curve, id, sourceId: live.sourceId, name: copyName(live.curve, live.sourceId), preset: undefined, isDefault: undefined };
     const nextCurves = [...curves, copy];
     const nextStates = { ...fanStates };
     for (const fanId of selectedFanIds) nextStates[fanId] = { softwareControl: true, curveId: id };
     setCurves(nextCurves);
     setFanStates(nextStates);
     setSelectedCurveId(id);
-    curveEditLockUntilRef.current = Date.now() + 2000;
     pushCurves(nextCurves, nextStates);
-  }, [curves, fanStates, pendingSource, pushCurves, pushHistory, selectedFanIds, setSelectedCurveId, sources]);
+  };
 
-  const applySourceToAll = useCallback(() => {
-    const pending = pendingSource;
+  const applySourceToAll = () => {
+    const live = livePending();
     setPendingSource(null);
-    if (pending) saveCurveAndPush(pending);
-  }, [pendingSource, saveCurveAndPush]);
+    if (live) saveCurveAndPush({ ...live.curve, sourceId: live.sourceId });
+  };
 
   const runCalibration = useCallback(async () => {
     setCalConfirmOpen(false);
@@ -2166,18 +2196,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         open={pendingSource !== null}
         destructive={false}
         size="wide"
+        enterOnPrimary
         title={t('cooling.curve.sourceSplit.title')}
         message={t('cooling.curve.sourceSplit.message', {
-          curve: pendingSource?.name ?? '',
+          curve: curves.find(c => c.id === pendingSource?.curveId)?.name ?? '',
           source: sources.find(s => s.id === pendingSource?.sourceId)?.name ?? '',
         })}
         confirmLabel={t('cooling.curve.sourceSplit.applyAll', {
-          count: channels.filter(c => fanStates[c.id]?.curveId === pendingSource?.id).length,
+          count: pendingSource ? fanIdsOnCurve(pendingSource.curveId).length : 0,
         })}
         primaryAction={{
           label: t('cooling.curve.sourceSplit.newCurve'),
           onSelect: splitCurveForSelection,
           disabled: curves.length >= MAX_CURVES,
+          disabledReason: t('cooling.curves.maxReached', { max: MAX_CURVES }),
         }}
         onCancel={() => setPendingSource(null)}
         onConfirm={applySourceToAll}

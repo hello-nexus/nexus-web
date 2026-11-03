@@ -3,6 +3,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { Notice } from '../Notice/Notice';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './ConfirmModal.module.scss';
 
 interface ConfirmModalProps {
@@ -38,7 +39,9 @@ interface ConfirmModalProps {
    * rather than abandoning it: "you have unsaved edits" offers Save here and
    * keeps Discard as the confirm.
    */
-  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean };
+  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean; disabledReason?: string };
+  /** Enter triggers the highlighted primaryAction instead of confirm. */
+  enterOnPrimary?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   /** Esc or a backdrop click, when it should differ from the Cancel button; defaults to onCancel. */
@@ -70,6 +73,7 @@ export function ConfirmModal({
   confirmDisabled = false,
   hideConfirm = false,
   primaryAction,
+  enterOnPrimary = false,
   onConfirm,
   onCancel,
   onDismiss,
@@ -83,10 +87,14 @@ export function ConfirmModal({
 
   if (!open) return null;
 
+  const enterHandler = enterOnPrimary && primaryAction
+    ? (primaryAction.disabled ? undefined : primaryAction.onSelect)
+    : (confirmDisabled || hideConfirm ? undefined : onConfirm);
+
   const paragraphs = message.split(/\n+/).filter(p => p.length > 0);
 
   return (
-    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={confirmDisabled || hideConfirm ? undefined : onConfirm}
+    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={enterHandler}
       className={size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
       {icon ? (
         <div className={styles.titleRow}>
@@ -119,15 +127,20 @@ export function ConfirmModal({
             {confirmLabel ?? t('confirm.ok')}
           </Button>
         )}
-        {primaryAction && (
-          <Button
-            tone="accent"
-            size="md"
-            onClick={primaryAction.onSelect}
-            disabled={primaryAction.disabled}>
-            {primaryAction.label}
-          </Button>
-        )}
+        {primaryAction && (() => {
+          const btn = (
+            <Button
+              tone="accent"
+              size="md"
+              onClick={primaryAction.onSelect}
+              disabled={primaryAction.disabled}>
+              {primaryAction.label}
+            </Button>
+          );
+          return primaryAction.disabled && primaryAction.disabledReason
+            ? <HoverTooltip body={primaryAction.disabledReason} side="top">{btn}</HoverTooltip>
+            : btn;
+        })()}
       </div>
     </Overlay>
   );

@@ -500,6 +500,7 @@
   "cooling.curve.source": "Sorgente temperatura",
   "cooling.curve.source.help": "La temperatura che questa curva osserva. Le ventole su di essa reagiscono solo a questa lettura.",
   "cooling.curve.sourceSplit.applyAll": "Applica a tutte le {count} ventole",
+  "cooling.curve.sourceSplit.copyName": "{curve} ({source})",
   "cooling.curve.sourceSplit.message": "La curva \"{curve}\" ha una sola sorgente di temperatura condivisa da tutte le sue ventole. La cambi per tutte o dai alle ventole selezionate una copia propria che usa {source}?",
   "cooling.curve.sourceSplit.newCurve": "Nuova curva per le ventole selezionate",
   "cooling.curve.sourceSplit.title": "Questa curva è condivisa",

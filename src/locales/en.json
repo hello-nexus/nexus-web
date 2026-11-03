@@ -500,6 +500,7 @@
   "cooling.curve.source": "Temp source",
   "cooling.curve.source.help": "The temperature this curve watches. The fans on it react to this reading and nothing else.",
   "cooling.curve.sourceSplit.applyAll": "Apply to all {count} fans",
+  "cooling.curve.sourceSplit.copyName": "{curve} ({source})",
   "cooling.curve.sourceSplit.message": "The curve \"{curve}\" has one temp source shared by every fan on it. Change it for all of them, or give the selected fans their own copy that uses {source}?",
   "cooling.curve.sourceSplit.newCurve": "New curve for selected fans",
   "cooling.curve.sourceSplit.title": "This curve is shared",

@@ -500,6 +500,7 @@
   "cooling.curve.source": "溫度來源",
   "cooling.curve.source.help": "此曲線監測的溫度。掛在它上面的風扇只會對這個讀數做出反應。",
   "cooling.curve.sourceSplit.applyAll": "套用到全部 {count} 個風扇",
+  "cooling.curve.sourceSplit.copyName": "{curve}（{source}）",
   "cooling.curve.sourceSplit.message": "曲線「{curve}」只有一個溫度來源，由其上的所有風扇共用。要為所有風扇變更，還是為所選風扇另外建立一個使用 {source} 的副本？",
   "cooling.curve.sourceSplit.newCurve": "為所選風扇新增曲線",
   "cooling.curve.sourceSplit.title": "此曲線為共用曲線",

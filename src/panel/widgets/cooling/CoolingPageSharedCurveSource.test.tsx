@@ -4,10 +4,20 @@ import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import type { ServiceState } from '../../../types/service';
 import { CoolingPage } from './CoolingPage';
 
-// Rendered outside I18nProvider, so t() falls back to raw keys.
+// Keys render raw; only the copy-name template is expanded so names can be asserted.
+vi.mock('../../../lib/i18n', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../lib/i18n')>()),
+  useTranslation: () => ({
+    language: 'en',
+    t: (key: string, p?: Record<string, string | number>) =>
+      key === 'cooling.curve.sourceSplit.copyName' ? `${p?.curve} (${p?.source})` : key,
+  }),
+}));
 
 // A curve owns one temp source for all its fans. Changing it with only some of
 // them selected must ask first, not silently re-point the others.
+
+const fixture = vi.hoisted(() => ({ extraFans: [] as string[], name: 'Silent' }));
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../api/cooling')>();
@@ -30,9 +40,9 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     fetchCurves: vi.fn(async () => ({
       globalSpeedModifier: 1,
       curves: [{
-        id: 'curve-silent', name: 'Silent', type: 'Linear',
+        id: 'curve-silent', name: fixture.name, type: 'Linear',
         input: { id: 'cpu-package', type: 'Temperature', device: '' },
-        outputs: [{ id: 'fan-a', type: 'Fan' }, { id: 'fan-b', type: 'Fan' }, { id: 'fan-c', type: 'Fan' }],
+        outputs: ['fan-a', 'fan-b', 'fan-c', ...fixture.extraFans].map(id => ({ id, type: 'Fan' })),
         linear: { responseTime: 2.5, minTemp: 30, maxTemp: 70, minSpeed: 20, maxSpeed: 80 },
       }],
     })),
@@ -82,6 +92,8 @@ describe('CoolingPage temp source on a shared curve', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    fixture.extraFans = [];
+    fixture.name = 'Silent';
   });
 
   it('asks before changing the source when only some of the curve fans are selected', async () => {
@@ -168,5 +180,46 @@ describe('CoolingPage temp source on a shared curve', () => {
     await waitFor(() => { expect(dialog()).toBeNull(); });
     expect(saveCurves).not.toHaveBeenCalled();
     expect(sourcePicker().textContent).toContain('CPU Package');
+  });
+
+  it('prompts, and counts the fan, when a disconnected fan is still bound to the curve', async () => {
+    fixture.extraFans = ['fan-gone'];
+    renderAdvanced();
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    // All three connected fans selected, yet fan-gone would be re-pointed too.
+    fireEvent.click(screen.getByText('1,100'));
+    fireEvent.click(screen.getByText('1,200'), { ctrlKey: true });
+    fireEvent.click(screen.getByText('1,300'), { ctrlKey: true });
+    await pickGpuSource();
+
+    expect(await screen.findByRole('alertdialog')).toBeTruthy();
+    expect(saveCurves).not.toHaveBeenCalled();
+
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'cooling.curve.sourceSplit.newCurve' }));
+    await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
+    const body = lastSave();
+    expect(body.curves.find(c => c.id === 'curve-silent')!.outputs.map(o => o.id)).toEqual(['fan-gone']);
+  });
+
+  it('does not stack the source suffix when a copy of a copy is made', async () => {
+    fixture.name = 'Silent (CPU Package)';
+    renderAdvanced();
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    fireEvent.click(screen.getByText('1,100'));
+    await pickGpuSource();
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'cooling.curve.sourceSplit.newCurve' }));
+    await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
+    expect(lastSave().curves.map(c => c.name)).toContain('Silent (GPU Core)');
+  });
+
+  it('Enter picks the highlighted New curve action, not Apply to all', async () => {
+    renderAdvanced();
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    fireEvent.click(screen.getByText('1,100'));
+    await pickGpuSource();
+    await screen.findByRole('alertdialog');
+    fireEvent.keyDown(document, { key: 'Enter' });
+    await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
+    expect(lastSave().curves).toHaveLength(2);
   });
 });
