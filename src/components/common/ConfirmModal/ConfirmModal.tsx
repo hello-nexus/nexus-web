@@ -1,8 +1,10 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { X } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { Notice } from '../Notice/Notice';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './ConfirmModal.module.scss';
 
 interface ConfirmModalProps {
@@ -15,7 +17,7 @@ interface ConfirmModalProps {
   /** Optional bulleted list rendered below the message (e.g. items affected). */
   bullets?: string[];
   /** Modal width: wide fits a line of prose or a list of sentences; default suits a short question. */
-  size?: 'default' | 'wide';
+  size?: 'default' | 'wide' | 'wider';
   /** 'warning' colours the bullet markers in the warning tone, for a list of hazards. */
   bulletTone?: 'default' | 'warning';
   /** Optional secondary line, shown as a Notice of level `noteTone` below the main message. */
@@ -38,7 +40,11 @@ interface ConfirmModalProps {
    * rather than abandoning it: "you have unsaved edits" offers Save here and
    * keeps Discard as the confirm.
    */
-  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean };
+  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean; disabledReason?: string };
+  /** Replaces the Cancel button with a close X in the top-right corner; Esc and backdrop click still cancel. */
+  closeButton?: boolean;
+  /** Enter triggers the highlighted primaryAction instead of confirm. */
+  enterOnPrimary?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   /** Esc or a backdrop click, when it should differ from the Cancel button; defaults to onCancel. */
@@ -70,6 +76,8 @@ export function ConfirmModal({
   confirmDisabled = false,
   hideConfirm = false,
   primaryAction,
+  enterOnPrimary = false,
+  closeButton = false,
   onConfirm,
   onCancel,
   onDismiss,
@@ -83,17 +91,26 @@ export function ConfirmModal({
 
   if (!open) return null;
 
+  const enterHandler = enterOnPrimary && primaryAction
+    ? (primaryAction.disabled ? undefined : primaryAction.onSelect)
+    : (confirmDisabled || hideConfirm ? undefined : onConfirm);
+
   const paragraphs = message.split(/\n+/).filter(p => p.length > 0);
 
   return (
-    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={confirmDisabled || hideConfirm ? undefined : onConfirm}
-      className={size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
+    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={enterHandler}
+      className={size === 'wider' ? `${styles.modal} ${styles.wider}` : size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
+      {closeButton && (
+        <button type="button" className={styles.closeBtn} onClick={onCancel} aria-label={t('app.window.close')}>
+          <X size={18} />
+        </button>
+      )}
       {icon ? (
-        <div className={styles.titleRow}>
+        <div className={closeButton ? `${styles.titleRow} ${styles.titleClosable}` : styles.titleRow}>
           <span className={styles.icon}>{icon}</span>
           <h2 className={styles.title}>{title}</h2>
         </div>
-      ) : <h2 className={styles.title}>{title}</h2>}
+      ) : <h2 className={closeButton ? `${styles.title} ${styles.titleClosable}` : styles.title}>{title}</h2>}
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}
         {bullets && bullets.length > 0 && (
@@ -105,9 +122,11 @@ export function ConfirmModal({
         {children}
       </div>
       <div className={styles.actions}>
-        <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
-          {cancelLabel ?? t('confirm.cancel')}
-        </Button>
+        {!closeButton && (
+          <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
+            {cancelLabel ?? t('confirm.cancel')}
+          </Button>
+        )}
         {!hideConfirm && (
           <Button
             // With a primary action present, confirm is the other way out and
@@ -119,15 +138,20 @@ export function ConfirmModal({
             {confirmLabel ?? t('confirm.ok')}
           </Button>
         )}
-        {primaryAction && (
-          <Button
-            tone="accent"
-            size="md"
-            onClick={primaryAction.onSelect}
-            disabled={primaryAction.disabled}>
-            {primaryAction.label}
-          </Button>
-        )}
+        {primaryAction && (() => {
+          const btn = (
+            <Button
+              tone="accent"
+              size="md"
+              onClick={primaryAction.onSelect}
+              disabled={primaryAction.disabled}>
+              {primaryAction.label}
+            </Button>
+          );
+          return primaryAction.disabled && primaryAction.disabledReason
+            ? <HoverTooltip body={primaryAction.disabledReason} side="top">{btn}</HoverTooltip>
+            : btn;
+        })()}
       </div>
     </Overlay>
   );

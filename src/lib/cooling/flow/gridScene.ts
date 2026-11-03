@@ -151,6 +151,9 @@ interface Plan {
   radiators: { box: { min: Vec3; size: Vec3; rotationY?: number } }[];
 }
 
+/** A fan inside its own part (a card's shroud, an air cooler's fins), not on a case face. */
+const isInternalFan = (slot: Pick<CaseFanSlot, 'position'>): boolean => slot.position === 'gpu' || slot.position === 'cpu';
+
 function diskRadii(frame: number): { radius: number; hub: number; frame: number } {
   const r = fanRadii(frame);
   return { radius: r.tip, hub: r.hub, frame };
@@ -187,7 +190,7 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
 
 /** Distance in mm from a case fan's centre out to the case face it blows through, or null for a fan that does not sit on a face (a card's fan, or one deeper than a mount reach). */
 function faceDistance(f: PlannedFan, extents: Vec3): number | null {
-  if (f.slot.position === 'gpu') return null;
+  if (isInternalFan(f.slot)) return null;
   const k = axisIndex(f.disk.axis);
   const lo = f.disk.axis[k] > 0;
   const c = f.disk.center[k];
@@ -200,7 +203,7 @@ function mountSides(fans: readonly PlannedFan[], extents: Vec3): [boolean, boole
   const sides: [boolean, boolean][] = [[false, false], [false, false], [false, false]];
   for (const f of fans) {
     // A card's fans sit inside the case, so they never put outside air on a side.
-    if (f.slot.position === 'gpu') continue;
+    if (isInternalFan(f.slot)) continue;
     const k = axisIndex(f.disk.axis);
     const lo = f.disk.axis[k] > 0;
     const c = f.disk.center[k];
@@ -292,15 +295,18 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   }
 
   // A fan's disc is never walled in: structure plates and collision solids within its thickness plus the clearance, on both sides, open up across the disc. The hull cut and the case shell stay.
+  // An air cooler's fan opens only cells inside its own cooler box: its disc reaches past the heatsink, and the neighboring memory or board must stay solid.
+  const coolerBoxes = layout.boxes.filter(b => b.slot === 'cooler' && b.role === 'part');
   for (const p of plan.fans) {
     // A stopped card fan leaves the card's heatsink shut, as before.
-    if (p.slot.taken === null || (p.slot.position === 'gpu' && p.cfm <= 0)) continue;
+    if (p.slot.taken === null || (isInternalFan(p.slot) && p.cfm <= 0)) continue;
     const { center, axis, radius, halfThickness } = p.disk;
     const span = halfThickness + FAN_CLEARANCE_MM;
     const reach = Math.hypot(radius, span);
     eachCellIn(sub(center, [reach, reach, reach]), add(center, [reach, reach, reach]), (i, j, k) => {
       const c = id(i, j, k);
       if (!solid[c] || outside[c] || onCaseShell(i, j, k) || !inCase(i, j, k)) return;
+      if (p.slot.position === 'cpu' && !coolerBoxes.some(b => boxContains(b, layoutMm(i, j, k), 0))) return;
       const d = sub(layoutMm(i, j, k), center);
       const along = dot(d, axis);
       if (Math.abs(along) > span) return;
@@ -361,7 +367,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     return { annulus, blocked, layers: layers.size, perLayer: layers.size > 0 ? annulus.length / layers.size : 0 };
   };
 
-  const cellsOf = plan.fans.map(p => (p.cfm > 0 || (!p.porousBox && p.slot.position !== 'gpu') ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
+  const cellsOf = plan.fans.map(p => (p.cfm > 0 || (!p.porousBox && !isInternalFan(p.slot)) ? classify(p) : { annulus: [], blocked: [], layers: 0, perLayer: 0 }));
   const cellAreaM2 = (cellMm / MM_PER_M) ** 2;
   // Air speed through the ring: the fan's flow over the area its ring cells cover, so a coarse grid still moves the fan's CFM.
   const velocityMps = (p: PlannedFan, c: FanCells) => (c.perLayer > 0 && p.cfm > 0 ? (p.cfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : 0);
@@ -387,7 +393,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       const c = [0, 1, 2].map(a => (p.disk.center[a] + origin[a]) / cellMm - 0.5);
       const face = faceDistance(p, extents);
       // On a face the particles start outside it: from a share of the reach out to a larger one, measured from the face.
-      const back = p.slot.position === 'gpu' ? p.disk.halfThickness / cellMm + 1 : face === null ? 0 : (face + OUTSIDE_SPAWN_FROM * OUTSIDE_REACH_MM) / cellMm;
+      const back = isInternalFan(p.slot) ? p.disk.halfThickness / cellMm + 1 : face === null ? 0 : (face + OUTSIDE_SPAWN_FROM * OUTSIDE_REACH_MM) / cellMm;
       const span = face === null ? 0 : ((OUTSIDE_SPAWN_TO - OUTSIDE_SPAWN_FROM) * OUTSIDE_REACH_MM) / cellMm;
       for (let m = 0; m < entries; m++) {
         emitters.push(c[0], c[1], c[2], spawnHub(p) / cellMm, p.disk.axis[0], p.disk.axis[1], p.disk.axis[2], p.disk.radius / cellMm, e1[0], e1[1], e1[2], back, span, 0, 0, 0);
@@ -414,6 +420,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const kind = speed > 0 ? (p.direction === 'intake' ? OPENING_INTAKE : OPENING_EXHAUST) : p.porousBox ? OPENING_NONE : OPENING_VENT;
     for (const c of cells.annulus) {
       const i = c % NX, j = Math.floor(c / NX) % NY, k = Math.floor(c / (NX * NY));
+      // A cooler fan's ring reaches past the heatsink: a solid neighbor outside the cooler box stays shut.
+      if (p.slot.position === 'cpu' && solid[c] && !coolerBoxes.some(b => boxContains(b, layoutMm(i, j, k), 0))) continue;
       solid[c] = 0;
       if (onCaseShell(i, j, k) && kind !== OPENING_NONE) opening[c] = kind;
       if (speed > 0 && !solid[c]) {
@@ -464,8 +472,6 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     if (speed > 0) {
       fanCount++;
       if (p.direction === 'intake') addSpawns(p, p.cfm);
-    } else if (!p.porousBox && p.slot.position !== 'gpu' && input.ventCfm < 0) {
-      addSpawns(p, Math.abs(input.ventCfm) / 4);
     }
   });
 

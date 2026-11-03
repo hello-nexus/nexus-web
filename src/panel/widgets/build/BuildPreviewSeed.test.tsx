@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HeadlessBuild } from '../../../components/views/BuildPage/BuildPage';
 import { BuildPreviewSeed, resetPreviewSeed, SEED_TIMEOUT_MS } from './BuildPreviewSeed';
+import { recordSeedFailure, seedAttemptKey, seedFailedRecently } from './seedAttempts';
 
 const h = vi.hoisted(() => ({
   machine: null as { caseId?: string } | null,
@@ -78,5 +79,78 @@ describe('BuildPreviewSeed', () => {
     await flush();
     await act(async () => { await vi.advanceTimersByTimeAsync(SEED_TIMEOUT_MS); });
     expect(view.queryByTestId('frame')).toBeNull();
+  });
+
+  it('keeps a timed-out attempt for a day: the next launch frames nothing until the setup changes', async () => {
+    const first = render(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    expect(first.queryByTestId('frame')).not.toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(SEED_TIMEOUT_MS + 1); });
+    expect(first.queryByTestId('frame')).toBeNull();
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70'))).toBe(true);
+    first.unmount();
+    // A new page: the in-memory memory is gone, the stored failure holds.
+    const stored = localStorage.getItem('nexus.buildSeed.failed');
+    resetPreviewSeed();
+    localStorage.setItem('nexus.buildSeed.failed', stored ?? '{}');
+    const second = render(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    expect(second.queryByTestId('frame')).toBeNull();
+    second.unmount();
+    // A changed setup is a new attempt (on a new page, as the in-memory memory is per page).
+    const kept = localStorage.getItem('nexus.buildSeed.failed');
+    resetPreviewSeed();
+    localStorage.setItem('nexus.buildSeed.failed', kept ?? '{}');
+    h.key = 'case=y70,gpu=other';
+    const third = render(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    expect(third.queryByTestId('frame')).not.toBeNull();
+  });
+
+  it('frames again once the stored failure is a day old', async () => {
+    recordSeedFailure(seedAttemptKey('y70', 'case=y70'), Date.now() - 25 * 60 * 60 * 1000);
+    const view = render(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    expect(view.queryByTestId('frame')).not.toBeNull();
+  });
+
+  it('never mounts the frame in the day after a failure, even when the setup key arrives after the first render', async () => {
+    recordSeedFailure(seedAttemptKey('y70', 'case=y70'), Date.now());
+    h.key = null;
+    const view = render(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    h.key = 'case=y70';
+    view.rerender(<BuildPreviewSeed caseId="y70" />);
+    await flush();
+    expect(view.queryByTestId('frame')).toBeNull();
+    expect(h.frames).toHaveLength(0);
+  });
+
+  it('keeps the failure memory per image size: a timed-out size does not hold off another', async () => {
+    const first = render(<BuildPreviewSeed caseId="y70" size={270} />);
+    await flush();
+    await act(async () => { await vi.advanceTimersByTimeAsync(SEED_TIMEOUT_MS + 1); });
+    expect(first.queryByTestId('frame')).toBeNull();
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70', 270))).toBe(true);
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70', 540))).toBe(false);
+    expect(seedFailedRecently(seedAttemptKey('y70', 'case=y70'))).toBe(false);
+    first.unmount();
+    const same = render(<BuildPreviewSeed caseId="y70" size={270} />);
+    await flush();
+    expect(same.queryByTestId('frame')).toBeNull();
+    same.unmount();
+    const other = render(<BuildPreviewSeed caseId="y70" size={540} />);
+    await flush();
+    expect(other.queryByTestId('frame')).not.toBeNull();
+  });
+
+  it('a mounted seed that is given a new size is a new attempt', async () => {
+    const view = render(<BuildPreviewSeed caseId="y70" size={270} />);
+    await flush();
+    act(() => h.frames.at(-1)!.onUnavailable());
+    expect(view.queryByTestId('frame')).toBeNull();
+    view.rerender(<BuildPreviewSeed caseId="y70" size={540} />);
+    await flush();
+    expect(view.queryByTestId('frame')).not.toBeNull();
   });
 });

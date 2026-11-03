@@ -256,3 +256,6 @@ describe('LightingPage canvas header', () => {
     expect(within(group).getAllByRole('radio')[0].getAttribute('aria-checked')).toBe('true');
   });
 });
+
+// The desk is shelved in the product; this test keeps the 3D view switch working.
+vi.mock('../../../lib/scene/sceneFeature', () => ({ DESK_ENABLED: true, SCENE_3D: true }));

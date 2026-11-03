@@ -134,6 +134,11 @@ export function scenePalette(host: Element): Palette {
   return { part: cssColor(host, '--accent', '#3b82f6'), frame: cssColor(host, '--text-dim', '#888888'), bad: cssColor(host, '--bad', '#ef4444'), limit: cssColor(host, '--warn', '#f59e0b') };
 }
 
+/** The Cooling view's palette: parts in the theme's primary text color, so they stay out of the way of the blue and red air temperatures. */
+export function coolingPalette(host: Element): Palette {
+  return { ...scenePalette(host), part: cssColor(host, '--text', '#f5f5f5') };
+}
+
 /** Frees the geometry and materials of everything under `group`. */
 export function disposeGroup(group: Group) {
   group.traverse((obj) => {
@@ -180,11 +185,14 @@ function styleFor(box: SceneBox, palette: Palette): Style {
   }
 }
 
+// Every scene line is drawn this much heavier than its style's width, so the whole wireframe reads a little bolder in one place.
+export const LINE_WEIGHT = 1.3;
+
 // Fat lines draw after the faces (renderOrder) so a part's faces hide the edges behind it.
 export function lineMaterial(style: Style, materials: LineMaterial[]): LineMaterial {
   const material = new LineMaterial({
     color: style.color,
-    linewidth: style.width,
+    linewidth: style.width * LINE_WEIGHT,
     transparent: true,
     opacity: style.opacity,
     dashed: style.dashed,
@@ -382,7 +390,7 @@ export function boxShape(box: SceneBox): BufferGeometry {
   return box.plate ? plateGeometry(box) : box.faces ? solidGeometry(box) : box.rings ? loftGeometry(box) : box.chamfers ? chamferedGeometry(box.size, box.chamfers) : new BoxGeometry(...box.size);
 }
 
-export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false): Group {
+export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, solidLines = false): Group {
   const group = new Group();
   const [D, W, H] = layout.size;
   group.position.set(-D / 2, -H / 2, -W / 2);
@@ -391,7 +399,8 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     if (staticView && (box.role === 'ghost' || box.role === 'limit')) continue;
     // The cooling view draws its own fan rings, interactive and colored by direction, in place of the case's.
     if (omitFans && box.slot === 'fan') continue;
-    const style = styleFor(box, palette);
+    // A snapshot draws estimated parts solid too: dashes read as noise at a small size.
+    const style = solidLines ? { ...styleFor(box, palette), dashed: false } : styleFor(box, palette);
     const id = box.select ?? box.slot;
     const dimmable: Dimmable | null = !box.conflict && (box.role === 'part' || box.role === 'detail') ? { id, materials: [], base: [] } : null;
     // Each box is built around its own centre, so a turned box turns in place.
@@ -443,7 +452,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     if (style.dashed) edges.computeLineDistances();
     node.add(edges);
     if (box.fans && !omitFans) {
-      const dashRings = box.fans.source === 'estimate' && !style.dashed;
+      const dashRings = box.fans.source === 'estimate' && !style.dashed && !solidLines;
       const ringMaterial = dashRings ? lineMaterial({ ...style, dashed: true }, materials) : material;
       if (dashRings) {
         dimmable?.materials.push(ringMaterial);

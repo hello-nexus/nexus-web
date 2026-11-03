@@ -76,13 +76,18 @@ describe('buildFlowScene', () => {
   });
 
 
-  it('treats empty slots as vents and spawns there only while air is drawn in', () => {
+  it('treats empty slots as vents that never spawn particles or carry fan flow', () => {
     const empty = [slotSpec('top:120:0', 'top', null, [120, 415, 120], [120, 25, 120], [0, -1, 0])];
     const base = inputFor(empty, [], () => 'intake');
     const closed = buildFlowScene({ ...base, ventCfm: 10 }, LOW);
     expect(closed.opening.some(v => v === OPENING_VENT)).toBe(true);
     expect(closed.spawns.length).toBe(0);
-    expect(buildFlowScene({ ...base, ventCfm: -40 }, LOW).spawns.length).toBeGreaterThan(0);
+    const drawn = buildFlowScene({ ...base, ventCfm: -40 }, LOW);
+    expect(drawn.spawns.length).toBe(0);
+    expect(drawn.emitters.length).toBe(0);
+    expect(drawn.emitterCounts['top:120:0'] ?? 0).toBe(0);
+    expect(drawn.fanCell.some(v => v === 1)).toBe(false);
+    expect(drawn.target.every(v => v === 0)).toBe(true);
   });
 
   it('adds the fans of a radiator slot, with porous cells and heat', () => {

@@ -63,7 +63,7 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
       expect(s.box, s.key).toBeDefined();
       expect(s.axis, s.key).toBeDefined();
       expect(Math.hypot(...s.axis!)).toBeCloseTo(1, 6);
-      if (s.position === 'gpu') continue;
+      if (s.position === 'gpu' || s.position === 'cpu') continue;
       const c = centerOf(s);
       expect(s.axis!.reduce((sum, v, a) => sum + v * (center[a] - c[a]), 0), `${s.key} faces outward`).toBeGreaterThan(0);
     }

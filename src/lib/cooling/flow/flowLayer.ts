@@ -3,7 +3,7 @@ import {
   Mesh, NearestFilter, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
 } from 'three';
 import { DEV_TOOLS } from '../../devTools';
-import { isGpuSlotKey } from '../slotFlow';
+import { isInternalSlotKey } from '../slotFlow';
 import { HeatVolume } from './heatVolume';
 import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
@@ -641,12 +641,12 @@ function speedDrift(solved: FlowInput, next: FlowInput): { mean: number; worst: 
   return { mean, worst };
 }
 
-/** Air leaving the case, CFM: the exhaust fans plus whatever the unfanned openings let out. GPU fans recirculate and are left out. */
+/** Air leaving the case, CFM: the exhaust fans plus whatever the unfanned openings let out. GPU and air cooler fans recirculate and are left out. */
 function exhaustFlowCfm(input: FlowInput): number {
   let total = Math.max(0, input.ventCfm);
   for (const key of Object.keys(input.fanCfm)) {
     const slot = key.split('#')[0];
-    if (!isGpuSlotKey(slot) && input.directions[slot] === 'exhaust') total += input.fanCfm[key];
+    if (!isInternalSlotKey(slot) && input.directions[slot] === 'exhaust') total += input.fanCfm[key];
   }
   return total;
 }

@@ -50,4 +50,10 @@ describe('systemPreview api', () => {
     h.putServiceBytes.mockResolvedValueOnce(null);
     expect(await putSystemPreview('c', new ArrayBuffer(1))).toBe(false);
   });
+
+  it('PUTs with no case id for a PC with no case chosen', async () => {
+    h.putServiceBytes.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    expect(await putSystemPreview(null, new Uint8Array([3]).buffer)).toBe(true);
+    expect(h.putServiceBytes).toHaveBeenCalledWith('/system/preview', new Uint8Array([3]), 'image/png');
+  });
 });

@@ -43,10 +43,9 @@ function noOverlaps(l: CaseLayout) {
 
 describe('collapseMounts on the Y70', () => {
   // The Y70 holds two 140 mm or three 120 mm fans on top and on the right, two 140 mm (or two 120 mm) on the bottom, and one on the rear.
-  it('with nothing installed or bound, shows the larger size: 2 top, 2 right, 2 bottom, 1 rear', () => {
+  it('with nothing installed or bound, defaults every mount to 120 mm where supported', () => {
     const { layout: out } = collapseMounts(layout, []);
-    expect(perFace(out)).toEqual({ top: 2, right: 2, bottom: 2, rear: 1 });
-    expect(out.fanSlots.map(s => s.key).sort()).toEqual(['bottom:140:0', 'bottom:140:1', 'rear:140:0', 'right:140:0', 'right:140:1', 'top:140:0', 'top:140:1']);
+    expect(out.fanSlots.map(s => s.key).sort()).toEqual(['bottom:120:0', 'bottom:120:1', 'rear:120:0', 'right:120:0', 'right:120:1', 'right:120:2', 'top:120:0', 'top:120:1', 'top:120:2']);
     expect(fans(out)).toHaveLength(0);
     noOverlaps(out);
   });
@@ -120,5 +119,56 @@ describe('graphics card fans on the real T1 layout (RTX 5080, three fans)', () =
     const c = collapseMounts(t1, []);
     expect(gpuKeys(c.layout)).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
     expect(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2'].map(c.canonOf)).toEqual(['gpu:fan:0', 'gpu:fan:1', 'gpu:fan:2']);
+  });
+});
+
+// Synthetic Y50 and X50 style mounts: a 120 and a 140 alternative at one spot, plus a rear mount that only takes 140.
+const slot = (position: string, size: number, index: number, x: number) => ({
+  key: `${position}:${size}:${index}`, position, size, index, taken: null,
+  box: { min: [x, 10, 0], size: [size, 25, size] }, axis: [0, -1, 0],
+});
+const caseWith = (...slots: ReturnType<typeof slot>[]) => parseCaseLayout({ size: [400, 300, 400], boxes: [], fanSlots: slots }) as CaseLayout;
+
+describe('default fan size per mount', () => {
+  it('defaults a mount offering 120 and 140 to 120', () => {
+    const out = collapseMounts(caseWith(slot('top', 140, 0, 0), slot('top', 120, 0, 0), slot('top', 120, 1, 120)), []).layout;
+    expect(out.fanSlots.map(s => s.key).sort()).toEqual(['top:120:0', 'top:120:1']);
+  });
+
+  it('defaults a two-face case to 120 on both faces', () => {
+    const out = collapseMounts(caseWith(slot('top', 140, 0, 0), slot('top', 120, 0, 0), slot('front', 140, 0, 0), slot('front', 120, 0, 0)), []).layout;
+    expect(out.fanSlots.map(s => s.key).sort()).toEqual(['front:120:0', 'top:120:0']);
+  });
+
+  it('keeps a stored 140 choice', () => {
+    const l = caseWith(slot('top', 140, 0, 0), slot('top', 120, 0, 0));
+    const out = collapseMounts(l, ['top:140:0']).layout;
+    expect(out.fanSlots.map(s => s.key)).toEqual(['top:140:0']);
+    const installed = caseWith(slot('top', 140, 0, 0), slot('top', 120, 0, 0));
+    installed.fanSlots[0].taken = 'fan';
+    expect(collapseMounts(installed, []).layout.fanSlots.map(s => s.key)).toEqual(['top:140:0']);
+  });
+
+  it('keeps a 140-only mount at 140', () => {
+    const out = collapseMounts(caseWith(slot('rear', 140, 0, 0)), []).layout;
+    expect(out.fanSlots.map(s => s.key)).toEqual(['rear:140:0']);
+  });
+
+  it('an installed 140 keeps the rest of its face at 140 while other faces stay 120', () => {
+    const l = caseWith(slot('top', 140, 0, 0), slot('top', 120, 0, 0), slot('top', 140, 1, 200), slot('top', 120, 2, 200), slot('bottom', 140, 0, 0), slot('bottom', 120, 0, 0));
+    l.fanSlots[0].taken = 'fan';
+    expect(collapseMounts(l, []).layout.fanSlots.map(s => s.key).sort()).toEqual(['bottom:120:0', 'top:140:0', 'top:140:1']);
+  });
+
+  it('a bound 140 keeps the rest of its face at 140 while other faces stay 120', () => {
+    const l = caseWith(slot('bottom', 140, 0, 0), slot('bottom', 120, 0, 0), slot('bottom', 140, 1, 200), slot('bottom', 120, 2, 200), slot('top', 140, 0, 0), slot('top', 120, 0, 0));
+    expect(collapseMounts(l, ['bottom:140:0']).layout.fanSlots.map(s => s.key).sort()).toEqual(['bottom:140:0', 'bottom:140:1', 'top:120:0']);
+  });
+
+  it('installed sizes take precedence over bound ones on a face', () => {
+    const l = caseWith(slot('top', 120, 0, 0), slot('top', 140, 0, 0), slot('top', 120, 1, 200), slot('top', 140, 1, 200), slot('top', 120, 2, 400), slot('top', 140, 2, 400));
+    l.fanSlots[0].taken = 'fan';
+    const keys = collapseMounts(l, ['top:140:2']).layout.fanSlots.map(s => s.key).sort();
+    expect(keys).toEqual(['top:120:0', 'top:120:1', 'top:140:2']);
   });
 });

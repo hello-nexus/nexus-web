@@ -93,6 +93,8 @@
   // Text - two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
   // The dim tier is neutral white, deliberately not the --text triplet.
   --text: #f5f5f5;
+  // The BUILD logo's full-contrast ink: pure white on dark, pure black on light.
+  --logo-contrast: #fff;
   --text-dim: rgba(255, 255, 255, 0.6);
   // Separator/divider lines - the text hue at low alpha. The single source for
   // every dividing rule (app + panel). Keep the triplet synced with --text.
@@ -290,6 +292,7 @@
   --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 22%, transparent);
 
   --text: #1a1a2e;
+  --logo-contrast: #000;
   // Two ink tiers; the dim tier is neutral black, deliberately not the --text triplet.
   --text-dim: rgba(0, 0, 0, 0.6);
   --separator: rgba(26, 26, 46, 0.12);

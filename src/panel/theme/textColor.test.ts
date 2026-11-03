@@ -164,7 +164,7 @@ describe('adaptive ink palettes', () => {
   const variables = readFileSync(join(__dirname, '../../styles/variables.scss'), 'utf8');
   const tokens = readFileSync(join(__dirname, '../styles/tokens.scss'), 'utf8');
   // Accent is set per panel at runtime; the backdrop is what the ink is measured against.
-  const themeOnly = /^--(accent|slider-fill-dim|backdrop-)/;
+  const themeOnly = /^--(accent|slider-fill-dim|backdrop-|logo-)/;
 
   it.each([
     ['light', ':root,\n[data-theme="dark"]'],

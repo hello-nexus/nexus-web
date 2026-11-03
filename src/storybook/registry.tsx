@@ -113,6 +113,7 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../comp
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
+import { BuildLogo } from '../components/common/BuildLogo/BuildLogo';
 import { ConflictRunningBadge } from '../components/common/ConflictRunningBadge/ConflictRunningBadge';
 import { NotRespondingBadge } from '../components/common/NotRespondingBadge/NotRespondingBadge';
 import { FixLightingModal } from '../components/common/FixLightingModal/FixLightingModal';
@@ -724,7 +725,7 @@ function PreviewNotice() {
         <NoticeSecondary>A dimmer line gives the cause.</NoticeSecondary>
       </Notice>
       <Notice tone="critical" role="alert">
-        <span>Critical: the fans were handed back to the BIOS.</span>
+        <span>Critical: all fans are running at full speed.</span>
       </Notice>
     </div>
   );
@@ -2356,6 +2357,10 @@ function PreviewDesktopOnlyBadge() {
   return <DesktopOnlyBadge />;
 }
 
+function PreviewBuildLogo() {
+  return <BuildLogo />;
+}
+
 function PreviewExperimentalBadge() {
   return <ExperimentalBadge />;
 }
@@ -3059,7 +3064,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ThermalGuardPanel', category: 'cards',
     filePath: 'src/panel/widgets/cooling/page/ThermalGuardPanel.tsx',
-    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or handed them back to the BIOS (escalated), a banner when the engine watchdog latched the fans to the BIOS, and the post-heal notice with Undo and Keep (Keep is the primary action). The switch lives in Settings. With the guard off the block shows nothing (last row).',
+    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or held them at full speed after the CPU kept heating (escalated), a banner when the engine watchdog latched cooling mode (all fans at full speed), and the post-heal notice with Undo and Keep (Keep is the primary action). The switch lives in Settings. With the guard off the block shows nothing (last row).',
     Preview: PreviewThermalGuardPanel,
   },
   {
@@ -3496,6 +3501,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/DesktopOnlyBadge/DesktopOnlyBadge.tsx',
     description: 'Pill badge shown below a field or control that is unavailable on keyboard-less surfaces (Y70 / Q-series). Monitor icon + caption from common.desktopOnly. No props required; usable anywhere a feature is gated on surfaceSupportsTextInput returning false.',
     Preview: PreviewDesktopOnlyBadge,
+  },
+  {
+    name: 'BuildLogo', category: 'status',
+    filePath: 'src/components/common/BuildLogo/BuildLogo.tsx',
+    description: 'The BUILD logo: the name in the label style inside a rounded outline, the same as the Cooling widget\'s SILENT label. Primary text color by default, with contrast (pure white on dark, pure black on light) and muted tones on request, never the accent. fontSize sizes the type, and the padding, corner radius and stroke scale with it so every size has the same proportions. The Build widget shows it muted, a step smaller, in the top-right corner of its wide tiles, with the specs kept clear of it; the Build site header, footer and the in-app open-in-browser button use the same component.',
+    Preview: PreviewBuildLogo,
   },
   {
     name: 'ExperimentalBadge', category: 'status',

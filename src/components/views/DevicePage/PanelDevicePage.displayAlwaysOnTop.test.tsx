@@ -132,6 +132,15 @@ function serveRecord(extra: Record<string, unknown> = {}) {
 }
 
 describe('PanelDevicePage promoted display always on top', () => {
+  it('hides the toggle on a Linux host, whose kiosk host has no on-top support', async () => {
+    serveRecord();
+    render(<PanelDevicePage device={DEVICE} platform="linux" />);
+    await openSettingsTab();
+
+    await screen.findByRole('switch', { name: RESERVE_LABEL });
+    expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
+  });
+
   it('defaults on when the record has no value and sits before the reserve toggle', async () => {
     serveRecord();
     render(<PanelDevicePage device={DEVICE} />);
@@ -194,13 +203,31 @@ describe('PanelDevicePage promoted display always on top', () => {
     expect(patchPanelDeviceMock).not.toHaveBeenCalledWith('rec1', expect.objectContaining({ alwaysOnTop: expect.anything() }));
   });
 
-  it('is not offered on a known device display such as the Xeneon Edge', async () => {
-    serveRecord({ family: 'xeneon-edge' });
+  it('is offered on a known device display on any background, as a plain toggle', async () => {
+    themeState.backdrop = 'theme';
+    serveRecord({ family: 'xeneon-edge', alwaysOnTop: true });
     render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: ALWAYS_ON_TOP_LABEL });
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+    expect(toggle).not.toBeDisabled();
+    expect(screen.getAllByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).toHaveLength(1);
+    fireEvent.click(toggle);
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { alwaysOnTop: false }));
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    // Widget lock stays generic-display only.
+    expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
+  });
+
+  it('is not offered where the see-through background does not exist', async () => {
+    serveRecord({ family: 'xeneon-edge' });
+    // A display-bound record on a non-monitor surface: isMonitorPanel holds, the desktop backdrop check does not.
+    const lcd = { ...DEVICE, runtimeSurface: 'phone' } as PanelDevice;
+    render(<PanelDevicePage device={lcd} />);
     await openSettingsTab();
 
     await screen.findByRole('switch', { name: RESERVE_LABEL });
     expect(screen.queryByRole('switch', { name: ALWAYS_ON_TOP_LABEL })).not.toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: 'panel.widget.menu.lockWidgets' })).not.toBeInTheDocument();
   });
 });

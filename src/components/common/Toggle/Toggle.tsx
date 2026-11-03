@@ -19,10 +19,12 @@ export interface ToggleProps {
   /** The controlled targets disagree: indeterminate knob. Renders as a checkbox with
    *  `aria-checked="mixed"` (a switch cannot be mixed, so it would read as off). A click sets all on. */
   mixed?: boolean;
+  /** `sm` is a compact 28x16 pill for dense overlays. */
+  size?: 'md' | 'sm';
 }
 
 export function Toggle({
-  checked, onChange, disabled, ariaLabel, ariaLabelledBy, className, mixed = false,
+  checked, onChange, disabled, ariaLabel, ariaLabelledBy, className, mixed = false, size = 'md',
 }: ToggleProps) {
   return (
     <button
@@ -31,6 +33,7 @@ export function Toggle({
       aria-checked={mixed ? 'mixed' : checked}
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
+      data-size={size === 'sm' ? 'sm' : undefined}
       data-on={mixed ? 'mixed' : (checked ? 'true' : 'false')}
       disabled={disabled}
       onClick={() => onChange(mixed ? true : !checked)}

@@ -7,6 +7,7 @@ import type { PanelLayout } from './types';
 const fetchMock = vi.fn();
 const patchMock = vi.fn();
 const patchCapsMock = vi.fn();
+const pingState = vi.hoisted(() => ({ platform: undefined as string | undefined }));
 
 vi.mock('../api/panel', async importOriginal => ({
   ...await importOriginal<typeof import('../api/panel')>(),
@@ -24,7 +25,7 @@ vi.mock('../hooks/useMultiplexSocket', async importOriginal => ({
 
 vi.mock('../hooks/useServiceStatus', async importOriginal => ({
   ...await importOriginal<typeof import('../hooks/useServiceStatus')>(),
-  useServiceStatus: () => ({ state: 'online', ping: null }),
+  useServiceStatus: () => ({ state: 'online', ping: pingState.platform ? { platform: pingState.platform } : null }),
 }));
 
 vi.mock('./engine/panelSync', () => ({
@@ -92,6 +93,7 @@ async function rightClickWidgetThenEmptySpace() {
 }
 
 beforeEach(() => {
+  pingState.platform = undefined;
   fetchMock.mockReset();
   patchMock.mockReset();
   patchCapsMock.mockReset().mockResolvedValue(null);
@@ -144,5 +146,27 @@ describe('PanelApp empty space on a generic display', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'panel.actions.label', hidden: true }));
 
     await waitFor(() => expect(tray()?.dataset.state).toBe('open'));
+  });
+});
+
+describe('PanelApp widget menu Always on top on a generic display', () => {
+  const alwaysOnTopItem = () => screen.queryByRole('button', { name: 'panel.widget.menu.alwaysOnTop', hidden: true });
+
+  it('offers the entry on a non-Linux host', async () => {
+    pingState.platform = 'windows';
+    await mount({ clickThrough: false, alwaysOnTop: false });
+    fireEvent.contextMenu(widget());
+    await screen.findByRole('button', { name: 'panel.widget.menu.remove', hidden: true });
+
+    expect(alwaysOnTopItem()).not.toBeNull();
+  });
+
+  it('hides the entry on a Linux host, whose kiosk host has no on-top support', async () => {
+    pingState.platform = 'linux';
+    await mount({ clickThrough: false, alwaysOnTop: false });
+    fireEvent.contextMenu(widget());
+    await screen.findByRole('button', { name: 'panel.widget.menu.remove', hidden: true });
+
+    expect(alwaysOnTopItem()).toBeNull();
   });
 });

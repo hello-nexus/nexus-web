@@ -9,6 +9,10 @@ interface ThermalGuardPanelProps {
   guard: GuardResponse | null;
   onUndo: () => void;
   onKeep: () => void;
+  /** Ends full speed and resumes the curves; the button also needs the service to offer it. */
+  onRestore?: () => void;
+  /** A restore is in flight. */
+  restoring?: boolean;
   /** A failed save, undo or toggle, shown inline. */
   error?: string | null;
 }
@@ -57,7 +61,7 @@ export function GuardError({ message, className }: { message: string; className?
  * watchdog-latched banner, the post-heal notice with Undo, and inline errors.
  * The on/off switch lives in Settings. While the guard is off it shows nothing.
  */
-export function ThermalGuardPanel({ guard, onUndo, onKeep, error = null }: ThermalGuardPanelProps) {
+export function ThermalGuardPanel({ guard, onUndo, onKeep, onRestore, restoring = false, error = null }: ThermalGuardPanelProps) {
   const { t } = useTranslation();
   // Save failures do not depend on the guard having loaded.
   const errorNode = error ? <GuardError message={error} /> : null;
@@ -65,17 +69,24 @@ export function ThermalGuardPanel({ guard, onUndo, onKeep, error = null }: Therm
 
   const banner = guardBannerText(guard, t);
   const heal = guard.heal.undoAvailable ? guard.heal : null;
+  const restoreButton = (show: boolean) => (show && onRestore && guard.restoreAvailable === true) ? (
+    <Button type="button" size="sm" tone="neutral" loading={restoring} onClick={onRestore}>{t('cooling.guard.restore')}</Button>
+  ) : undefined;
   if (!banner && !guard.watchdogLatched && !heal && !errorNode) return null;
 
   return (
     <div className={styles.panel}>
       {guard.watchdogLatched && (
-        <Notice tone="critical" role="alert">
+        <Notice tone="critical" role="alert" actions={restoreButton(true)}>
           <span>{t(guard.watchdogResumes === true ? 'cooling.guard.latched' : 'cooling.guard.latchedHeld')}</span>
         </Notice>
       )}
       {banner && (
-        <Notice tone={guard.state === 'escalated' ? 'critical' : 'warning'} role="alert">
+        <Notice
+          tone={guard.state === 'escalated' ? 'critical' : 'warning'}
+          role="alert"
+          actions={restoreButton(guard.state === 'tripped' || guard.state === 'escalated')}
+        >
           <span>{banner}</span>
         </Notice>
       )}

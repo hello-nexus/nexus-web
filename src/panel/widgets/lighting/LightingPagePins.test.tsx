@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchLightingDevices, fetchPins, fetchStaticSettings, saveAnimateTemplates, setPins, startAnimate, startStatic, type Pin } from '../../../api/lighting';
+import { fetchAnimateSettings, fetchLightingDevices, fetchPins, fetchStaticSettings, saveAnimateTemplates, setPins, startAnimate, startStatic, type Pin } from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { loadSettings } from '../../../lib/settings';
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
@@ -209,6 +209,14 @@ const renderPage = (platform = '') => render(
 
 // The rail stub shows device a's pin once the pins have loaded.
 const pinsLoaded = () => waitFor(() => expect(screen.getByTestId('rail').dataset.pin).not.toBe(''));
+
+// An edit or preset pick is a no-op until the animate settings fetch has landed
+// and hydrated the effect bundles. Awaits that fetch, then one macrotask turn so
+// the hydrate's own promise chain has drained.
+const hydrated = async () => {
+  await Promise.all(vi.mocked(fetchAnimateSettings).mock.results.map(r => r.value));
+  await waitFor(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
+};
 
 const device = (id: string, name: string) => ({ id, name, ledsOn: true, ledCount: 10, canvasX: 0, canvasY: 0, canvasW: 1, canvasH: 1, canvasRotation: 0 });
 const withDevices = (...ids: string[]) => vi.mocked(fetchLightingDevices).mockImplementation(
@@ -784,7 +792,8 @@ describe('LightingPage pins', () => {
       expect(startAnimate).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole('button', { name: 'lighting.fullscreen' }));
-      expect(screen.getByTestId('fullscreen').dataset.effect).toBe('aurora');
+      // The fullscreen shows only once the effect's hydrated bundle is in.
+      expect((await screen.findByTestId('fullscreen')).dataset.effect).toBe('aurora');
 
       fireEvent.click(screen.getByText('clear-selection'));
       await waitFor(() => expect(screen.getByTestId('preview').dataset.effect).toBe('fire'));
@@ -798,6 +807,8 @@ describe('LightingPage pins', () => {
       fireEvent.click(screen.getByTestId('grid-effect'));
       await waitFor(() => expect(loadSettings().general.recentAnimations).toEqual(['stripes@0']));
       await waitFor(() => expect(screen.getByTestId('pick-preset-3')).toBeTruthy());
+      // A preset pick is a no-op until the effect's bundle has hydrated.
+      await hydrated();
       vi.mocked(saveAnimateTemplates).mockClear();
 
       fireEvent.click(screen.getByTestId('pick-preset-3'));
@@ -816,6 +827,8 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(pinOf()?.effect).toBe('aurora'));
       fireEvent.click(screen.getByText('select-a'));
       await waitFor(() => expect(screen.getByTestId('type-intensity').dataset.effect).toBe('aurora'));
+      // The edit is a no-op until the effect's state has hydrated.
+      await hydrated();
       await waitFor(() => expect(startAnimate).toHaveBeenCalled());
       vi.mocked(startAnimate).mockClear();
       vi.mocked(saveAnimateTemplates).mockClear();
@@ -841,6 +854,7 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(pinOf()?.effect).toBe('stripes'));
       fireEvent.click(screen.getByText('select-ab'));
       await waitFor(() => expect(screen.getByTestId('type-intensity').dataset.effect).toBe('stripes'));
+      await hydrated();
       fireEvent.click(screen.getByTestId('type-intensity'));
       await waitFor(() => expect(setPins).toHaveBeenCalled());
       expect(lastPinsCall()[0]).toEqual(['a']);
@@ -857,6 +871,7 @@ describe('LightingPage pins', () => {
       fireEvent.click(screen.getByText('select-a'));
       await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('stripes'));
       await waitFor(() => expect(screen.getByTestId('type-intensity').dataset.effect).toBe('stripes'));
+      await hydrated();
       vi.mocked(startStatic).mockClear();
 
       fireEvent.click(screen.getByTestId('type-intensity'));
@@ -944,7 +959,7 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('aurora'));
       fireEvent.click(screen.getByRole('button', { name: 'lighting.fullscreen' }));
       const at = ANIMATE_EFFECTS.findIndex(e => e.key === 'aurora');
-      fireEvent.click(screen.getByText('fs-prev'));
+      fireEvent.click(await screen.findByText('fs-prev'));
       expect(lastPinsCall()).toEqual([['a'], { kind: 'animate', effect: ANIMATE_EFFECTS[at - 1].key }]);
       // The pin moved, so the screen moves with it and the next press steps on from there.
       await waitFor(() => expect(screen.getByTestId('fullscreen').dataset.effect).toBe(ANIMATE_EFFECTS[at - 1].key));
@@ -957,8 +972,9 @@ describe('LightingPage pins', () => {
       await waitFor(() => expect(screen.getByTestId('grid-effect').textContent).toBe('fire'));
       fireEvent.click(screen.getByRole('button', { name: 'lighting.fullscreen' }));
       const at = ANIMATE_EFFECTS.findIndex(e => e.key === 'fire');
+      const prev = await screen.findByText('fs-prev');
       vi.mocked(startAnimate).mockClear();
-      fireEvent.click(screen.getByText('fs-prev'));
+      fireEvent.click(prev);
       await waitFor(() => expect(vi.mocked(startAnimate).mock.calls.some(c => c[0] === ANIMATE_EFFECTS[at - 1].key)).toBe(true));
       expect(setPins).not.toHaveBeenCalled();
     });
@@ -970,7 +986,7 @@ describe('LightingPage pins', () => {
       fireEvent.click(screen.getByText('select-a'));
       await waitFor(() => expect(screen.getByRole('button', { name: 'lighting.fullscreen' })).toBeTruthy());
       fireEvent.click(screen.getByRole('button', { name: 'lighting.fullscreen' }));
-      expect(screen.getByTestId('fullscreen')).toBeTruthy();
+      expect(await screen.findByTestId('fullscreen')).toBeTruthy();
 
       // Beside a card pinned to Mirror, the selection is not all on Animation: no effect to edit.
       fireEvent.click(screen.getByText('select-ab'));

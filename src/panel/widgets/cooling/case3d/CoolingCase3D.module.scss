@@ -10,6 +10,13 @@
   box-sizing: border-box;
 }
 
+// The pane's height follows the fan list, so a centered notice sinks below the fold on a long list; dock it at the top instead.
+.root .notice {
+  justify-content: flex-start;
+  height: auto;
+  padding-top: 2.5rem;
+}
+
 .emptyActions {
   display: flex;
   gap: 0.5rem;
@@ -119,19 +126,8 @@
 
 .overlayTop {
   top: 0;
-  // Clear of the info button at the right end.
-  padding-right: 3rem;
 }
 
-.corner {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.75rem;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 .overlayBottom {
   bottom: 0;
   flex-direction: row;
@@ -153,10 +149,70 @@
   pointer-events: auto;
 }
 
+// The logo takes the button's ink so it reads in the enabled, hover and disabled states.
+.control .buildLogo {
+  color: inherit;
+}
+
+// The status bar and the temperature legend stack at the canvas top, out of flow, so the legend coming and going moves nothing else.
+.topStack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  pointer-events: none;
+
+  .overlay {
+    position: static;
+    align-self: stretch;
+    pointer-events: auto;
+  }
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding: 0 0.75rem;
+}
+
+// Heat volume toggle then the info button, at the far right of the legend's row.
+.legendActions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  pointer-events: auto;
+}
+
+.legendInfo {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+.legendToggle {
+  display: inline-flex;
+  align-items: center;
+  @include text-caption;
+  color: var(--text-dim);
+
+  > span {
+    margin-left: 0.4rem;
+  }
+}
+
 .legend {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius);
+  background: rgb(0 0 0 / var(--alpha-strong));
+  backdrop-filter: blur(var(--blur-backdrop));
   @include text-caption;
   color: var(--text-dim);
 }

@@ -348,10 +348,12 @@ export interface GuardResponse {
   fansNotResponding?: boolean;
   lastTrip: GuardLastTrip | null;
   heal: HealState;
-  /** The engine watchdog handed the fans to the BIOS. */
+  /** The engine watchdog latched cooling mode (all fans at full speed). */
   watchdogLatched?: boolean;
   /** The latch clears itself after steady ticks. False, or absent on an older service whose latch never clears itself: only a restart or a guard off/on clears it. */
   watchdogResumes?: boolean;
+  /** Full speed can be ended now and the saved curves resumed; absent on an older service. */
+  restoreAvailable?: boolean;
   /** Whether fans that can stop while the CPU is hot are flagged; absent on an older service (treat as on). */
   lintWarnings?: boolean;
   /** Critical hazards in the saved config; empty while warnings are off. Absent on an older service. */
@@ -379,6 +381,10 @@ export const setGuardConfig = (body: {
 /** Dismisses an ended trip's Diagnostics notice; answers with the guard, or error true while the trip is still active. */
 export const acknowledgeGuardTrip = () =>
   postService<GuardResponse & { error?: boolean; msg?: string }>('/cooling/guard/trip/acknowledge', {});
+
+/** Ends full speed and resumes the saved curves; answers with the guard, or error true when the service refused. */
+export const restoreGuardCurves = () =>
+  postService<GuardResponse & { error?: boolean; msg?: string }>('/cooling/guard/restore', {});
 
 export const undoHeal = () => postService<HealState>('/cooling/heal/undo', {});
 

@@ -1,0 +1,63 @@
+import { describe, expect, it } from 'vitest';
+import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import { buildSpecRows, coolerNames, sizeShowsSpecs } from './buildSpecRows';
+
+const specs: SystemSpecs = {
+  pcName: 'PC', osBuild: '', processor: 'AMD Ryzen 7 9800X3D', motherboard: 'Gigabyte B850I AORUS PRO',
+  memory: '32 GB DDR5-5600', storage: '1.82 TB NVMe', graphicsCard: 'AMD Radeon(TM) Graphics + NVIDIA GeForce RTX 5080',
+  primaryGpu: 'NVIDIA GeForce RTX 5080', monitor: '', soundCard: '', networkCard: '',
+};
+
+describe('buildSpecRows', () => {
+  it('4x2 lists processor, graphics card and memory', () => {
+    expect(buildSpecRows({ specs, coolers: [] }, '4x2').map((r) => r.key)).toEqual(['cpu', 'gpu', 'ram']);
+  });
+
+  it('4x4 adds storage, board and cooler where reported', () => {
+    expect(buildSpecRows({ specs, coolers: ['Corsair H150i'] }, '4x4').map((r) => r.key)).toEqual(['cpu', 'gpu', 'ram', 'storage', 'motherboard', 'cooler']);
+    expect(buildSpecRows({ specs, coolers: [] }, '4x4').map((r) => r.key)).toEqual(['cpu', 'gpu', 'ram', 'storage', 'motherboard']);
+  });
+
+  it('names the card that renders games, not the integrated one', () => {
+    expect(buildSpecRows({ specs, coolers: [] }, '4x2')[1].value).toBe('RTX 5080');
+    expect(buildSpecRows({ specs: { ...specs, primaryGpu: undefined }, coolers: [] }, '4x2')[1].value).toContain('Radeon');
+  });
+
+  it('lists nothing for the image-only size or before the specs arrive', () => {
+    expect(buildSpecRows({ specs, coolers: [] }, '2x2')).toEqual([]);
+    expect(buildSpecRows({ specs: null, coolers: [] }, '4x4')).toEqual([]);
+  });
+
+  it('shows family-level values and keeps the reported string for the tooltip', () => {
+    const rows = buildSpecRows({ specs: { ...specs, memory: '32 GB DDR5-5600 (2 × 16 GB Crucial CP16G60C48U5.M8B2)', storage: '1.82 TB WDS200T1X0E-00AFY0 NVMe' }, coolers: ['Corsair iCUE H150i'] }, '4x4');
+    expect(rows.map((r) => r.value)).toEqual(['Ryzen 7 9800X3D', 'RTX 5080', '32 GB DDR5', '2 TB NVMe', 'B850I AORUS PRO', 'iCUE H150i']);
+    expect(rows[2].full).toContain('Crucial');
+  });
+
+  it('skips a blank spec', () => {
+    expect(buildSpecRows({ specs: { ...specs, memory: '  ' }, coolers: [] }, '4x2').map((r) => r.key)).toEqual(['cpu', 'gpu']);
+  });
+
+  it('pairs each short label with the full type name', () => {
+    expect(buildSpecRows({ specs, coolers: [] }, '4x2').map((r) => [r.labelKey, r.fullKey])).toEqual([
+      ['panel.widget.build.spec.cpu', 'devices.specs.row.processor'],
+      ['panel.widget.build.spec.gpu', 'devices.specs.row.graphicsCard'],
+      ['panel.widget.build.spec.ram', 'devices.specs.row.memory'],
+    ]);
+  });
+
+  it('sizeShowsSpecs matches the sizes that list rows', () => {
+    expect(['2x2', '4x2', '4x4'].map(sizeShowsSpecs)).toEqual([false, true, true]);
+  });
+});
+
+describe('coolerNames', () => {
+  it('joins vendor and model once and drops other categories and duplicates', () => {
+    expect(coolerNames([
+      { category: 'cooler', vendor: 'Corsair', model: 'H150i' },
+      { category: 'cooler', vendor: 'Corsair', model: 'Corsair H150i' },
+      { category: 'cooler', vendor: 'Corsair', model: 'Corsair H150i' },
+      { category: 'mouse', vendor: 'Corsair', model: 'M65' },
+    ])).toEqual(['Corsair H150i']);
+  });
+});

@@ -40,7 +40,7 @@ describe('ThermalGuardPanel', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the latched banner when the watchdog handed the fans to the BIOS', () => {
+  it('shows the latched banner when the watchdog latched cooling mode', () => {
     render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true, watchdogResumes: true }} onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.getByRole('alert').textContent).toMatch(/cooling\.guard\.latched$/);
   });
@@ -113,5 +113,39 @@ describe('ThermalGuardPanel', () => {
   it('shows the latched banner and an error in the critical tone', () => {
     render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true }} error="oops" onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.getAllByRole('alert').map(a => a.getAttribute('data-tone'))).toEqual(['critical', 'critical']);
+  });
+
+  describe('restore curves', () => {
+    const shows = (g: GuardResponse, onRestore?: () => void) => {
+      render(<ThermalGuardPanel guard={g} onUndo={() => {}} onKeep={() => {}} onRestore={onRestore} />);
+      return screen.queryAllByRole('button', { name: 'cooling.guard.restore' });
+    };
+
+    it.each([
+      ['latched', { watchdogLatched: true }],
+      ['tripped', { state: 'tripped' }],
+      ['escalated', { state: 'escalated' }],
+    ] as const)('shows the button for %s when the service offers it', (_name, patch) => {
+      expect(shows({ ...base, ...patch, restoreAvailable: true } as GuardResponse, () => {})).toHaveLength(1);
+    });
+
+    it.each([
+      ['not offered', { watchdogLatched: true, restoreAvailable: false }],
+      ['absent on an older service', { watchdogLatched: true }],
+      ['floor state', { state: 'floor', restoreAvailable: true }],
+    ] as const)('hides the button when %s', (_name, patch) => {
+      expect(shows({ ...base, ...patch } as GuardResponse, () => {})).toHaveLength(0);
+    });
+
+    it('hides the button without a handler', () => {
+      expect(shows({ ...base, watchdogLatched: true, restoreAvailable: true })).toHaveLength(0);
+    });
+
+    it('calls onRestore on click', () => {
+      const onRestore = vi.fn();
+      shows({ ...base, state: 'tripped', restoreAvailable: true }, onRestore);
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.restore' }));
+      expect(onRestore).toHaveBeenCalledTimes(1);
+    });
   });
 });

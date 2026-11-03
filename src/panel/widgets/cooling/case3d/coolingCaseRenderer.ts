@@ -7,7 +7,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
-import { buildCase, disposeGroup, scenePalette, type Palette } from '../../../../lib/scene/pcScene';
+import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -50,6 +50,8 @@ export interface CaseSceneRenderer {
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
   readonly flowSupported: boolean;
+  /** The orbit camera, so a caller can read the view the user left. */
+  readonly camera: PerspectiveCamera;
 }
 
 /** A click that lands on a fan slot or on nothing; x and y are CSS pixels inside the canvas. */
@@ -83,6 +85,14 @@ function token(el: Element, name: string, fallback: string): Color {
 export function ringMaterial(color: Color, opacity: number, radius: number, simulated: boolean): LineBasicMaterial | LineDashedMaterial {
   const base = { color, transparent: true, opacity, depthWrite: false };
   return simulated ? new LineDashedMaterial({ ...base, dashSize: radius * 0.2, gapSize: radius * 0.14 }) : new LineBasicMaterial(base);
+}
+
+/**
+ * A card's fan slot box spans the whole card, so its center is inside the card's solid, which hides a ring drawn there.
+ * The distance along the ring axis from the box center to the card face the fan draws air in through; 0 for every other slot, whose box is the fan itself.
+ */
+export function ringFaceShift(slotKey: string, thickness: number, into: number): number {
+  return slotKey.startsWith('gpu:') && into !== 0 ? -Math.sign(into) * (thickness / 2) : 0;
 }
 
 function ringGeometry(radius: number, axis: 'x' | 'y' | 'z'): BufferGeometry {
@@ -205,9 +215,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   };
 
   // The case is Build's own scene (lib/scene/pcScene), built from the same layout; the fans are this view's overlay.
-  const buildStatic = (l: CaseLayout) => {
+  const buildStatic = (l: CaseLayout, refit: boolean) => {
     clearCase();
-    const palette: Palette = scenePalette(canvas);
+    const palette: Palette = coolingPalette(canvas);
     const [D, W, H] = l.size;
     const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true);
     // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.
@@ -216,7 +226,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     holder.add(group);
     staticGroup.add(holder);
     lineMaterials.forEach(m => m.resolution.set(canvas.clientWidth, canvas.clientHeight));
-    fit(l);
+    if (refit) fit(l);
   };
 
   const buildFans = (state: CaseSceneState) => {
@@ -247,6 +257,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
       const frameMm = Math.min(...box.size.filter((_, i) => i !== axisIndex));
       const radii = fanRadii(frameMm);
+      const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
       // Tip ring and hub ring: the air moves through the open ring between them.
       for (const r of [radii.tip, radii.hub]) {
         const geo = ringGeometry(r, axis);
@@ -255,6 +266,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         mat.depthTest = !emphasised;
         fanDisposables.push(mat);
         const ring = new LineLoop(geo, mat);
+        ring.position[axis] = faceShift;
         if (mat instanceof LineDashedMaterial) ring.computeLineDistances();
         group.add(ring);
       }
@@ -339,10 +351,12 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (state.layout !== layout) {
         const previous = layout;
         layout = state.layout;
-        buildStatic(state.layout);
-        // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
         const extents = caseExtents(state.layout);
-        if (!flowLayer || !previous || caseExtents(previous).some((v, i) => v !== extents[i])) {
+        const reshaped = !previous || caseExtents(previous).some((v, i) => v !== extents[i]);
+        // The camera frames the case once and again only for a different case shape: a fan edit or radiator move rebuilds the layout object but keeps the view.
+        buildStatic(state.layout, reshaped);
+        // The flow layer lives as long as the case shape: a fan edit changes the layout object but keeps the field and the particles.
+        if (!flowLayer || reshaped) {
           flowLayer?.dispose();
           flowInput = null;
           const [ex, ey, ez] = extents;
@@ -382,6 +396,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       spanListener = listener;
       if (flowLayer) flowLayer.onSpan = listener;
     },
+    camera,
     get flowSupported() {
       return flowLayer?.supported ?? true;
     },

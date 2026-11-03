@@ -38,6 +38,7 @@ import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
+import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import styles from './CoolingCase3D.module.scss';
 
 export interface CoolingCase3DProps {
@@ -70,6 +71,7 @@ const POSITION_KEYS: Record<string, string> = {
   'front-left': 'cooling.case3d.position.frontLeft',
   'front-right': 'cooling.case3d.position.frontRight',
   gpu: 'cooling.case3d.position.gpu',
+  cpu: 'cooling.case3d.position.cpu',
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
@@ -196,7 +198,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
-  const flowOptions = useMemo<FlowOptions>(() => ({ particles, collisions: DEV_TOOLS && collisions && showCase, heat: DEV_TOOLS && heatVolume, speed: slowMo ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slowMo ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE }), [particles, collisions, heatVolume, showCase, slowMo]);
+  const flowOptions = useMemo<FlowOptions>(() => {
+    const slow = DEV_TOOLS && slowMo;
+    return { particles, collisions: DEV_TOOLS && collisions && showCase, heat: heatVolume, speed: slow ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slow ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE };
+  }, [particles, collisions, heatVolume, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -273,6 +278,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     return (
       <div className={styles.root}>
         <EmptyState
+          className={styles.notice}
           icon={<Box size={28} strokeWidth={1.6} />}
           title={t('cooling.case3d.resolveFailed.title')}
           hint={t('cooling.case3d.resolveFailed.hint')}
@@ -291,6 +297,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     return (
       <div className={styles.root}>
         <EmptyState
+          className={styles.notice}
           icon={<Box size={28} strokeWidth={1.6} />}
           title={t('cooling.case3d.unsupported.title')}
           hint={t('cooling.case3d.unsupported.hint')}
@@ -349,28 +356,47 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       {layoutFailed && <Notice tone="warning" role="status">{t('cooling.case3d.layoutError')}</Notice>}
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
-        <div className={`${styles.corner} ${styles.control}`}>
-          <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
-        </div>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
-        {result && model && (
-          <div className={`${styles.overlay} ${styles.overlayTop}`}>
-            <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
-              {model.fanCount === 0 && !caseLayout.fanSlots.some(slot => slot.taken === 'fan') ? (
-                <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
-              ) : (
-                <>
-                  <span className={`${styles.mode} ${styles[result.mode]}`}>{t(modeKey)}</span>
-                  <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.net')}</span>{result.netCfm >= 0 ? '+' : '-'}{cfm(result.netCfm)}</span>
-                  <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.intake')}</span>{cfm(result.intakeCfm)}</span>
-                  <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.exhaust')}</span>{cfm(result.exhaustCfm)}</span>
-                  {model.estimated && <span className={styles.control}><Badge compact label={t('cooling.case3d.estimate')} tooltip={{ body: t('cooling.case3d.estimate.body') }} /></span>}
-                </>
+        <div className={styles.topStack}>
+          {result && model && (
+            <div className={`${styles.overlay} ${styles.overlayTop}`}>
+              <div className={styles.stats} role="group" aria-label={t('cooling.case3d.stats.label')}>
+                {model.fanCount === 0 && !caseLayout.fanSlots.some(slot => slot.taken === 'fan') ? (
+                  <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
+                ) : (
+                  <>
+                    <span className={`${styles.mode} ${styles[result.mode]}`}>{t(modeKey)}</span>
+                    <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.net')}</span>{result.netCfm >= 0 ? '+' : '-'}{cfm(result.netCfm)}</span>
+                    <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.intake')}</span>{cfm(result.intakeCfm)}</span>
+                    <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.exhaust')}</span>{cfm(result.exhaustCfm)}</span>
+                    {model.estimated && <span className={styles.control}><Badge compact label={t('cooling.case3d.estimate')} tooltip={{ body: t('cooling.case3d.estimate.body') }} /></span>}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          <div className={styles.legendRow}>
+            {flowSupported && (
+              <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend', { from: legendFrom, to: legendTo })}>
+                <span>{legendFrom}</span>
+                <span className={styles.legendBar} aria-hidden="true" />
+                <span>{legendTo}</span>
+              </div>
+            )}
+            <div className={styles.legendActions}>
+              {flowSupported && (
+                <label className={styles.legendToggle}>
+                  <Toggle size="sm" checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
+                  <span>{t('cooling.case3d.flow.heat')}</span>
+                </label>
               )}
+              <span className={styles.legendInfo}>
+                <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
+              </span>
             </div>
           </div>
-        )}
+        </div>
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>
           <div className={styles.bottomMain}>
             <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
@@ -394,26 +420,13 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               )}
               {DEV_TOOLS && particles && (
                 <label className={`${styles.flowToggle} ${styles.control}`}>
-                  <Toggle checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
-                  <span>{t('cooling.case3d.flow.heat')}</span>
-                </label>
-              )}
-              {particles && (
-                <label className={`${styles.flowToggle} ${styles.control}`}>
                   <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
                   <span>{t('cooling.case3d.flow.slowMo')}</span>
                 </label>
               )}
             </div>
-            {particles && flowSupported && (
-              <div className={styles.legend} role="group" aria-label={t('cooling.case3d.flow.legend', { from: legendFrom, to: legendTo })}>
-                <span>{legendFrom}</span>
-                <span className={styles.legendBar} aria-hidden="true" />
-                <span>{legendTo}</span>
-              </div>
-            )}
           </div>
-          <Button className={styles.control} size="sm" tone="neutral" icon={<Box size={14} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
+          <Button className={styles.control} size="sm" tone="accent" icon={<span aria-hidden="true"><BuildLogo className={styles.buildLogo} fontSize={9} /></span>} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (

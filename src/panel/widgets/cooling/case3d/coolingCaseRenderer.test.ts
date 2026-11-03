@@ -37,9 +37,9 @@ import { LineBasicMaterial, LineDashedMaterial, Color } from 'three';
 import { Group } from 'three';
 import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
-import { buildCase, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
+import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
-import { createCaseRenderer, ringMaterial } from './coolingCaseRenderer';
+import { createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -82,6 +82,34 @@ describe('createCaseRenderer', () => {
     expect(layers.created).toBe(2);
     expect(layers.disposed).toBe(1);
     r.dispose();
+  });
+});
+
+describe('camera across rebuilds', () => {
+  it('keeps the orbit view through a layout edit and reframes only for a different case shape', () => {
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), simulated: new Set<string>(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 } });
+    r.setState(state(layout));
+    const cam = r.camera;
+    const framed = cam.position.clone();
+    cam.position.set(11, 22, 33);
+    r.setState(state({ ...layout, fanSlots: layout.fanSlots.map(s => ({ ...s, taken: 'fan' as const })) }));
+    expect(cam.position.toArray()).toEqual([11, 22, 33]);
+    r.setState(state({ ...layout, size: [500, 230, 470] }));
+    expect(cam.position.toArray()).not.toEqual([11, 22, 33]);
+    expect(cam.position.toArray()).not.toEqual(framed.toArray());
+    r.dispose();
+  });
+});
+
+describe('ringFaceShift', () => {
+  it('moves a card fan ring from the middle of the card to the face the air enters through', () => {
+    expect(ringFaceShift('gpu:fan:0', 40, 1)).toBe(-20);
+    expect(ringFaceShift('gpu:fan:1', 40, -1)).toBe(20);
+  });
+
+  it('leaves case, cooler and radiator fan rings on their own box', () => {
+    for (const key of ['fan:front:0', 'cpu:fan:0', 'rad:fan:0']) expect(ringFaceShift(key, 25, 1)).toBe(0);
   });
 });
 
@@ -146,10 +174,21 @@ describe('the case is Build\'s scene', () => {
     const expected = new Group();
     expected.position.set(D / 2, H / 2, W / 2);
     // Build's call for a still view of a case; the fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
-    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, scenePalette(canvas), [], [], [], true, false, true, true));
+    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true));
     expect(staticGroup.children).toHaveLength(1);
     expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
     r.dispose();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('case palette', () => {
+  // jsdom has no 2D context, so the token reader returns each fallback: text f5f5f5, accent 3b82f6.
+  it('Cooling draws parts in the theme text color while Build keeps the accent', () => {
+    const host = document.createElement('div');
+    host.style.setProperty('--accent', '#ff0000');
+    host.style.setProperty('--text', '#f5f5f5');
+    expect(coolingPalette(host).part.getHexString()).toBe('f5f5f5');
+    expect(scenePalette(host).part.getHexString()).not.toBe('f5f5f5');
   });
 });

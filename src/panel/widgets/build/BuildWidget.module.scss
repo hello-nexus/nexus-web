@@ -7,12 +7,122 @@
   min-height: 0;
   position: relative;
   box-sizing: border-box;
-  padding: 12px;
+  // Room between the content and every tile edge, the same on all sides and at every size.
+  --tile-pad: 20px;
+  padding: var(--tile-pad);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-dim);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.media {
+  // The picture's own breathing room inside its square, a share of the width so it is even on all sides. A wide tile sets its own in px once measured.
+  box-sizing: border-box;
+  padding: 9%;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// Wide tiles: the case image in a square on the left, the rest of the width the specs. The square's side is measured in script
+// (the 2x2 content), which needs no container units; until then the image takes a share of the width.
+.body[data-specs] {
+  flex-direction: row;
+
+  .media {
+    flex: 0 0 40%;
+    height: 100%;
+  }
+}
+
+// Measures the grid gap, which the square's side is cut from.
+.gapProbe {
+  position: absolute;
+  width: var(--panel-gap, 0px);
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.side {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 0 0 var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+// The BUILD logo sits in the tile's top-right corner, out of the specs' flow, over them, on the tile's content padding.
+.mark {
+  position: absolute;
+  top: var(--tile-pad);
+  right: var(--tile-pad);
+  display: block;
+
+  // A step smaller than the body type.
+  > span {
+    font-size: var(--type-mini);
+  }
+}
+
+.specs {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+// The short type label sits above the name.
+.spec {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.specLabel {
+  @include text-caption;
   color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.specValue {
+  @include text-button;
+  color: var(--text);
+  min-width: 0;
+  // A long value wraps to a second line, then ends in an ellipsis (the full value is in the tooltip).
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .srOnly {
@@ -22,13 +132,6 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-.silhouette {
-  // Same size on every tile size.
-  flex: none;
-  width: 110px;
-  height: 88px;
 }
 
 .image {
@@ -53,13 +156,9 @@
   }
 }
 
-.notice {
-  flex-shrink: 0;
-  margin-top: 6px;
-  max-width: 100%;
-  text-align: center;
-  @include text-button;
-  // Reserved on the large tile so the text appearing never moves the silhouette.
-  min-height: 1.25em;
-  color: var(--text-dim);
+// Cropped to the drawing: the box hugs it, so the drawing is centered in its column.
+.image[data-cropped] {
+  flex: 0 1 auto;
+  object-fit: contain;
 }
+
