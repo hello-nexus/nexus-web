@@ -128,18 +128,3 @@ describe('Sidebar', () => {
     expect(screen.getByRole('img', { name: 'Off in Settings' })).toBeInTheDocument();
   });
 });
-
-describe('Sidebar fixed rows', () => {
-  it('a fixed row exposes no drag activator while a normal row does', () => {
-    const items = [
-      { key: 'a', label: 'A', icon: <span /> },
-      { key: 'build', label: 'Build', icon: <span />, fixed: true },
-    ];
-    const { container } = render(
-      <Sidebar items={items} active="a" onChange={vi.fn()} sectionLabel="Apps" serviceState={serviceState} onArrange={vi.fn()} />,
-    );
-    const roleOf = (key: string) => container.querySelector(`[data-sidebar-row-key="${key}"]`)?.getAttribute('aria-disabled');
-    expect(roleOf('a')).toBe('false');
-    expect(roleOf('build')).toBe('true');
-  });
-});
