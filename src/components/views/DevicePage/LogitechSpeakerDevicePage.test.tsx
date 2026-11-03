@@ -41,7 +41,7 @@ const state = (over: Partial<SpeakerState> = {}): SpeakerState => ({
   volume: 0.5,
   subwooferLevel: 50,
   eqEnabled: true,
-  bands: FLAT,
+  bands: [...FLAT],
   bandHz: [48, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
   bandMinDb: -20,
   bandMaxDb: 6,
@@ -68,6 +68,7 @@ const surround = () => fireEvent.click(screen.getByText(`${P}surround`, { select
 
 describe('LogitechSpeakerDevicePage', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     api.setSpeakerEq.mockImplementation(async () => state());
     api.setSpeakerSurround.mockImplementation(async () => state());
@@ -92,7 +93,7 @@ describe('LogitechSpeakerDevicePage', () => {
     await mount(state());
     const volume = screen.getByRole('slider', { name: `${P}volume` });
     fireEvent.change(volume, { target: { value: '30' } });
-    await act(async () => { fireEvent.keyUp(volume); await Promise.resolve(); await new Promise(r => setTimeout(r, 5)); });
+    await act(async () => { fireEvent.keyUp(volume); await vi.advanceTimersByTimeAsync(0); });
     expect(api.setSpeakerVolume).toHaveBeenCalledWith(0.3);
   });
 
@@ -113,7 +114,7 @@ describe('LogitechSpeakerDevicePage', () => {
     await mount(state());
     const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
     fireEvent.change(band, { target: { value: '-3' } });
-    await act(async () => { fireEvent.keyUp(band); await new Promise(r => setTimeout(r, 5)); });
+    await act(async () => { fireEvent.keyUp(band); await vi.advanceTimersByTimeAsync(0); });
     expect(api.setSpeakerEq).toHaveBeenCalledWith({ bands: [0, 0, -3, 0, 0, 0, 0, 0, 0, 0] });
   });
 
@@ -166,15 +167,17 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(result?.error).toBe(false);
   });
 
-  it('refuses a new preset named like a built-in, and reports a failed save', async () => {
+  it('reports a failed save of a new preset to the prompt', async () => {
     await mount(state());
-    let result: { error: boolean } | undefined;
-    await act(async () => { result = await bar().onCreate('flat'); });
-    expect(result?.error).toBe(true);
-    expect(api.saveSpeakerPreset).not.toHaveBeenCalled();
     api.saveSpeakerPreset.mockResolvedValueOnce(null);
+    let result: { error: boolean } | undefined;
     await act(async () => { result = await bar().onCreate('Night'); });
     expect(result?.error).toBe(true);
+  });
+
+  it('keeps the built-in names out of reach of a new or renamed preset', async () => {
+    await mount(state());
+    expect(bar().reservedNames).toEqual(['Flat', 'Bass Boost']);
   });
 
   it('renames by saving under the new name and removing the old one', async () => {
@@ -191,13 +194,6 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(api.saveSpeakerPreset).toHaveBeenCalledWith('MINE', [1, 1, 1, 0, 0, 0, 0, 0, 0, 0]);
     expect(api.deleteSpeakerPreset).not.toHaveBeenCalled();
     expect(api.setSpeakerEq).toHaveBeenCalledWith({ preset: 'MINE' });
-  });
-
-  it('does not rename onto a built-in name', async () => {
-    await mount(state({ preset: 'Mine' }));
-    await act(async () => { bar().onRename('Mine', 'flat'); });
-    expect(api.saveSpeakerPreset).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toHaveTextContent('cooling.presets.duplicateName');
   });
 
   it('says so when a rename saved the new name but could not remove the old one', async () => {
@@ -226,22 +222,34 @@ describe('LogitechSpeakerDevicePage', () => {
     api.setSpeakerEq.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve(state({ bands: [0, 0, -3, 0, 0, 0, 0, 0, 0, 0] })); }));
     const first = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
     fireEvent.change(first, { target: { value: '-3' } });
-    await act(async () => { fireEvent.keyUp(first); await new Promise(r => setTimeout(r, 5)); });
+    await act(async () => { fireEvent.keyUp(first); await vi.advanceTimersByTimeAsync(0); });
     const second = screen.getByRole('slider', { name: `${P}band:{"hz":250}` });
     fireEvent.change(second, { target: { value: '-5' } });
-    await act(async () => { fireEvent.keyUp(second); await new Promise(r => setTimeout(r, 5)); });
+    await act(async () => { fireEvent.keyUp(second); await vi.advanceTimersByTimeAsync(0); });
     expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -3, -5, 0, 0, 0, 0, 0, 0] });
     await act(async () => { release(); });
   });
 
-  it('keeps a band being dragged when a poll lands', async () => {
-    vi.useFakeTimers();
+  it('keeps a band being dragged when a poll lands with fresh state', async () => {
     await mount(state());
+    api.fetchSpeaker.mockImplementation(async () => state());
     const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
     fireEvent.change(band, { target: { value: '-7' } });
+    const before = api.fetchSpeaker.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
-    expect(api.fetchSpeaker.mock.calls.length).toBeGreaterThan(1);
+    expect(api.fetchSpeaker.mock.calls.length).toBeGreaterThan(before);
     expect(band).toHaveValue('-7');
+  });
+
+  it('drops a half-made band change when the EQ is turned off', async () => {
+    await mount(state());
+    api.fetchSpeaker.mockImplementation(async () => state({ eqEnabled: false }));
+    const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
+    fireEvent.change(band, { target: { value: '-7' } });
+    expect(band).toHaveValue('-7');
+    await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
+    expect(band).toBeDisabled();
+    expect(band).toHaveValue('0');
   });
 
   it('reports a test sound that did not play', async () => {
@@ -278,7 +286,6 @@ describe('LogitechSpeakerDevicePage', () => {
     });
 
     it('plays every speaker in turn on Test all, and resets the speakers', async () => {
-      vi.useFakeTimers();
       await mount(state());
       surround();
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: `${P}testAll` })); });

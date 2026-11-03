@@ -56,15 +56,28 @@ describe('useLogitechSpeaker', () => {
     expect(result.current.state?.volume).toBe(0.9);
   });
 
-  it('shows a failure until the next good reply, and clears it after a while', async () => {
+  it('applies a poll that starts after a write finished', async () => {
+    const { result } = await mount();
+    await act(async () => { await result.current.change(async () => st(0.9)); });
+    api.fetchSpeaker.mockResolvedValue(st(0.4));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(result.current.state?.volume).toBe(0.4);
+  });
+
+  it('ends the generic failure on the next good poll', async () => {
     const { result } = await mount();
     await act(async () => { await result.current.change(async () => null); });
     expect(result.current.failure).toBe('devices.logitechSpeaker.failed');
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     expect(result.current.failure).toBeNull();
+  });
+
+  it('keeps a specific notice through polls until its own timer ends', async () => {
+    const { result } = await mount();
     act(() => result.current.report('x.key'));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     expect(result.current.failure).toBe('x.key');
-    await act(async () => { await vi.advanceTimersByTimeAsync(7000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3500); });
     expect(result.current.failure).toBeNull();
   });
 });

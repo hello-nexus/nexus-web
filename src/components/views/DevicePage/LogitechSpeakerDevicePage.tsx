@@ -79,6 +79,12 @@ function EqBands({ state, change }: TabProps) {
   };
   // The key changes with the values, not with a poll's new array.
   useEffect(settle, [key]);
+  // A disabled slider drops its gesture without committing, so its local values go too.
+  useEffect(() => {
+    if (eqOn) return;
+    open.current.clear();
+    setLive({});
+  }, [eqOn]);
 
   const commit = (index: number, db: number) => {
     open.current.delete(index);
@@ -205,9 +211,9 @@ function SpeakerPresets({ state, change, report }: TabProps) {
       activeBuiltinId={current?.builtIn ? current.name : null}
       onSelectBuiltin={select}
       onLoad={select}
+      reservedNames={builtIns.map(p => p.name)}
       onCreate={async name => {
         const trimmed = name.trim();
-        if (builtIns.some(p => p.name.toLowerCase() === trimmed.toLowerCase())) return { error: true, msg: t('cooling.presets.duplicateName') };
         if (!(await change(() => saveSpeakerPreset(trimmed, state.bands)))) return { error: true, msg: t(`${P}failed`) };
         await change(() => setSpeakerEq({ preset: trimmed }));
         return { error: false };
@@ -216,10 +222,6 @@ function SpeakerPresets({ state, change, report }: TabProps) {
         const preset = own.find(p => p.name === id);
         const trimmed = name.trim();
         if (!preset || trimmed === id) return;
-        if (builtIns.some(p => p.name.toLowerCase() === trimmed.toLowerCase())) {
-          report('cooling.presets.duplicateName');
-          return;
-        }
         // The service matches names without case, so a case-only rename is a replace and must not delete.
         const sameName = trimmed.toLowerCase() === id.toLowerCase();
         void (async () => {

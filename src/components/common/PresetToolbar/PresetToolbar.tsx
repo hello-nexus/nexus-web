@@ -99,6 +99,8 @@ interface PresetToolbarProps {
   builtins?: PresetToolbarEntry[];
   activeBuiltinId?: string | null;
   onSelectBuiltin?: (id: string) => void;
+  /** Names a preset may not take besides its siblings', e.g. built-ins the caller lists itself; matched without case. */
+  reservedNames?: readonly string[];
 }
 
 export function PresetToolbar({
@@ -110,7 +112,7 @@ export function PresetToolbar({
   resetLabelKey, resetConfirmKey,
   allowCreateRename = true,
   allowDelete = true,
-  builtins = [], activeBuiltinId = null, onSelectBuiltin,
+  builtins = [], activeBuiltinId = null, onSelectBuiltin, reservedNames = [],
   rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
@@ -193,7 +195,7 @@ export function PresetToolbar({
 
   const validate = (v: string): string | null => {
     const excludeId = promptMode === 'rename' ? (activeId ?? undefined) : undefined;
-    if (isNameTaken(presets, v, excludeId)) return t(key('duplicateName'));
+    if (isNameTaken(presets, v, excludeId) || isNameTaken(reservedNames.map(name => ({ id: name, name })), v)) return t(key('duplicateName'));
     return promptMode === 'create' ? createValidate(v) : null;
   };
 

@@ -123,3 +123,21 @@ describe('PresetToolbar duplicate-name validation (rename)', () => {
     expect(screen.getByRole('button', { name: 'lighting.layoutPresets.rename' })).not.toBeDisabled();
   });
 });
+
+describe('PresetToolbar reserved names', () => {
+  it('blocks a create or rename onto a reserved name, without case', () => {
+    render(<PresetToolbar {...defaultProps({ activeId: 'a', reservedNames: ['Flat'] })} />);
+    openCreatePrompt();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'flat' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('lighting.layoutPresets.duplicateName');
+    expect(screen.getByRole('button', { name: 'lighting.layoutPresets.new' })).toBeDisabled();
+  });
+
+  it('blocks a rename onto a reserved name', () => {
+    render(<PresetToolbar {...defaultProps({ activeId: 'a', reservedNames: ['Flat'] })} />);
+    openRenamePrompt();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'FLAT' } });
+    expect(screen.getByRole('button', { name: 'lighting.layoutPresets.rename' })).toBeDisabled();
+  });
+});
+

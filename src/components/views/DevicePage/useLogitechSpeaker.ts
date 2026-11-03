@@ -24,17 +24,25 @@ export function useLogitechSpeaker() {
   const lastWrite = useRef(0);
   const writing = useRef(0);
   const noticeTimer = useRef(0);
+  const noticeKey = useRef<string | null>(null);
 
-  const clearNotice = useCallback(() => {
+  // A good reply ends the generic failure; a specific notice is left to its own timer.
+  const clearGeneric = useCallback(() => {
+    if (noticeKey.current !== FAILED_KEY) return;
     window.clearTimeout(noticeTimer.current);
+    noticeKey.current = null;
     setFailure(null);
   }, []);
 
-  /** Shows a failure notice (an i18n key) until the next good reply or a short while. */
+  /** Shows a failure notice (an i18n key) for a short while; the generic one also ends on the next good reply. */
   const report = useCallback((key: string) => {
     window.clearTimeout(noticeTimer.current);
+    noticeKey.current = key;
     setFailure(key);
-    noticeTimer.current = window.setTimeout(() => setFailure(null), NOTICE_MS);
+    noticeTimer.current = window.setTimeout(() => {
+      noticeKey.current = null;
+      setFailure(null);
+    }, NOTICE_MS);
   }, []);
 
   useEffect(() => {
@@ -63,7 +71,7 @@ export function useLogitechSpeaker() {
         if (mine > lastWrite.current && mine > applied.current && writing.current === 0) {
           applied.current = mine;
           setState(next);
-          clearNotice();
+          clearGeneric();
         }
       });
     };
@@ -73,7 +81,7 @@ export function useLogitechSpeaker() {
       window.clearInterval(timer);
       ctl.abort();
     };
-  }, [clearNotice]);
+  }, [clearGeneric]);
 
   const change = useCallback(async (call: Change) => {
     const mine = ++seq.current;
@@ -93,10 +101,10 @@ export function useLogitechSpeaker() {
     if (mine > applied.current) {
       applied.current = mine;
       setState(next);
-      clearNotice();
+      clearGeneric();
     }
     return true;
-  }, [report, clearNotice]);
+  }, [report, clearGeneric]);
 
   return { state, loadFailed, failure, report, change };
 }
