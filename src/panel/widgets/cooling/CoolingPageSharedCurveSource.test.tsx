@@ -246,7 +246,10 @@ describe('CoolingPage temp source on a shared curve', () => {
 
     fixture.only = ['fan-a'];
     await act(async () => { fixture.cooling[0]?.(); });
-    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    // The curve chip's fan count drops from 3 to 1 once the refresh lands.
+    await waitFor(() => {
+      expect(document.querySelector('[class*="curveBtnCount"]')?.textContent?.trim()).toBe('1');
+    });
 
     fireEvent.click(within(dlg).getByRole('button', { name: 'cooling.curve.sourceSplit.newCurve' }));
     await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
