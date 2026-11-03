@@ -2776,7 +2776,6 @@
   "lighting.colorTuning.colorOrder": "Renk sırası",
   "lighting.colorTuning.colorOrderInfo": "Renkler yer değiştirmiş görünüyorsa kullanın, örneğin kırmızı yeşil olarak görünüyorsa.",
   "lighting.colorTuning.cool": "Soğuk",
-  "lighting.colorTuning.done": "Bitti",
   "lighting.colorTuning.effectiveBrightnessInfo": "Ana parlaklık çıkışı %{master} ile sınırlar, bu yüzden bu cihaz daha parlak olamaz.",
   "lighting.colorTuning.green": "Yeşil",
   "lighting.colorTuning.legendSource": "Kaynak",

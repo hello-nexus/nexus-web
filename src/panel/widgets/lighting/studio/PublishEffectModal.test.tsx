@@ -77,7 +77,8 @@ describe('PublishEffectModal', () => {
     signedIn(null);
     publishEffect.mockResolvedValue({ ok: true, value: listing });
     const save = show();
-    fireEvent.click(await screen.findByRole('button', { name: 'lighting.studio.publish.signIn' }));
+    await screen.findByText('lighting.studio.publish.needsAccount');
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.publish.signIn' }));
     expect(publishEffect).not.toHaveBeenCalled();
     signedIn('alice');
     fireEvent.click(screen.getByRole('button', { name: 'signed-in' }));
@@ -103,7 +104,8 @@ describe('PublishEffectModal', () => {
     const save = vi.fn().mockResolvedValue(null);
     const props = { initialName: 'Spin', recipe, link: null, save, onClose: () => {} };
     const { rerender } = render(<PublishEffectModal open {...props} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'lighting.studio.publish.signIn' }));
+    await screen.findByText('lighting.studio.publish.needsAccount');
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.studio.publish.signIn' }));
     fireEvent.click(screen.getByRole('button', { name: 'signed-in' }));
     await waitFor(() => expect(fetchCloudAccounts).toHaveBeenCalledTimes(2));
     rerender(<PublishEffectModal open={false} {...props} />);

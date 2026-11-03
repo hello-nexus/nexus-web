@@ -2792,7 +2792,6 @@
   "lighting.colorTuning.colorOrder": "Порядок цветов",
   "lighting.colorTuning.colorOrderInfo": "Используйте, если цвета поменялись местами, например красный отображается как зелёный.",
   "lighting.colorTuning.cool": "Холодная",
-  "lighting.colorTuning.done": "Готово",
   "lighting.colorTuning.effectiveBrightnessInfo": "Общая яркость ограничивает вывод до {master}%, поэтому это устройство не может быть ярче.",
   "lighting.colorTuning.green": "Зелёный",
   "lighting.colorTuning.legendSource": "Источник",

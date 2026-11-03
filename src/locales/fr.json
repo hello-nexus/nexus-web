@@ -2776,7 +2776,6 @@
   "lighting.colorTuning.colorOrder": "Ordre des couleurs",
   "lighting.colorTuning.colorOrderInfo": "À utiliser si les couleurs semblent inversées, par exemple le rouge qui s'affiche en vert.",
   "lighting.colorTuning.cool": "Froid",
-  "lighting.colorTuning.done": "Terminé",
   "lighting.colorTuning.effectiveBrightnessInfo": "La luminosité générale plafonne la sortie à {master}%, donc cet appareil ne peut pas être plus lumineux.",
   "lighting.colorTuning.green": "Vert",
   "lighting.colorTuning.legendSource": "Source",

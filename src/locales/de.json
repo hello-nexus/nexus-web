@@ -2776,7 +2776,6 @@
   "lighting.colorTuning.colorOrder": "Farbreihenfolge",
   "lighting.colorTuning.colorOrderInfo": "Verwenden Sie diese Option, wenn Farben vertauscht erscheinen, zum Beispiel Rot als Grün.",
   "lighting.colorTuning.cool": "Kühl",
-  "lighting.colorTuning.done": "Fertig",
   "lighting.colorTuning.effectiveBrightnessInfo": "Die Gesamthelligkeit begrenzt die Ausgabe auf {master}%, sodass dieses Gerät nicht heller werden kann.",
   "lighting.colorTuning.green": "Grün",
   "lighting.colorTuning.legendSource": "Quelle",

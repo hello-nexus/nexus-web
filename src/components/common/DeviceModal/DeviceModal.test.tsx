@@ -21,7 +21,7 @@ describe('DeviceModal footer layout', () => {
     expect(screen.getAllByRole('button').map(b => b.textContent)).toEqual(['confirm.cancel', 'Save']);
   });
 
-  it('honours a cancelLabel override', () => {
+  it('honors a cancelLabel override', () => {
     render(<DeviceModal open onClose={() => {}} title="T" cancelLabel="Done"><p>body</p></DeviceModal>);
     expect(screen.getAllByRole('button').map(b => b.textContent)).toEqual(['Done']);
   });

@@ -2776,7 +2776,6 @@
   "lighting.colorTuning.colorOrder": "Kleurvolgorde",
   "lighting.colorTuning.colorOrderInfo": "Gebruik dit als kleuren verwisseld lijken, bijvoorbeeld rood dat als groen wordt weergegeven.",
   "lighting.colorTuning.cool": "Koel",
-  "lighting.colorTuning.done": "Klaar",
   "lighting.colorTuning.effectiveBrightnessInfo": "De hoofdhelderheid beperkt de uitvoer tot {master}%, dus dit apparaat kan niet helderder worden.",
   "lighting.colorTuning.green": "Groen",
   "lighting.colorTuning.legendSource": "Bron",

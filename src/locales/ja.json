@@ -2776,7 +2776,6 @@
   "lighting.colorTuning.colorOrder": "色の順序",
   "lighting.colorTuning.colorOrderInfo": "色が入れ替わって表示される場合（例：赤が緑に見える）に使用します。",
   "lighting.colorTuning.cool": "寒色",
-  "lighting.colorTuning.done": "完了",
   "lighting.colorTuning.effectiveBrightnessInfo": "マスター明るさが出力を{master}%に制限するため、このデバイスはこれ以上明るくなりません。",
   "lighting.colorTuning.green": "緑",
   "lighting.colorTuning.legendSource": "元の色",
