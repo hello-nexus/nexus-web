@@ -1104,6 +1104,47 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     pushCurves(next, fanStates);
   }, [curves, fanStates, pushCurves, pushHistory]);
 
+  // A curve owns one temp source for every fan on it. Editing it with only some
+  // of those fans selected would silently re-point the rest, so the change
+  // waits here for the user to pick: all fans, or a copy for the selection.
+  const [pendingSource, setPendingSource] = useState<CurveDef | null>(null);
+
+  const handleCurveEdit = useCallback((updated: CurveDef) => {
+    const current = curves.find(c => c.id === updated.id);
+    if (current && updated.sourceId !== current.sourceId && selectedFanIds.size > 0) {
+      const onCurve = new Set(channels.filter(c => fanStates[c.id]?.curveId === current.id).map(c => c.id));
+      if (onCurve.size > selectedFanIds.size && [...selectedFanIds].every(id => onCurve.has(id))) {
+        setPendingSource(updated);
+        return;
+      }
+    }
+    saveCurveAndPush(updated);
+  }, [channels, curves, fanStates, saveCurveAndPush, selectedFanIds]);
+
+  const splitCurveForSelection = useCallback(() => {
+    const pending = pendingSource;
+    setPendingSource(null);
+    if (!pending || curves.length >= MAX_CURVES) return;
+    pushHistory();
+    const id = `curve-${Date.now()}`;
+    const sourceName = sources.find(s => s.id === pending.sourceId)?.name ?? pending.sourceId;
+    const copy: CurveDef = { ...pending, id, name: `${pending.name} (${sourceName})`, preset: undefined, isDefault: undefined };
+    const nextCurves = [...curves, copy];
+    const nextStates = { ...fanStates };
+    for (const fanId of selectedFanIds) nextStates[fanId] = { softwareControl: true, curveId: id };
+    setCurves(nextCurves);
+    setFanStates(nextStates);
+    setSelectedCurveId(id);
+    curveEditLockUntilRef.current = Date.now() + 2000;
+    pushCurves(nextCurves, nextStates);
+  }, [curves, fanStates, pendingSource, pushCurves, pushHistory, selectedFanIds, setSelectedCurveId, sources]);
+
+  const applySourceToAll = useCallback(() => {
+    const pending = pendingSource;
+    setPendingSource(null);
+    if (pending) saveCurveAndPush(pending);
+  }, [pendingSource, saveCurveAndPush]);
+
   const runCalibration = useCallback(async () => {
     setCalConfirmOpen(false);
     setCalibrationResults(null);
@@ -2088,7 +2129,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 sources={sources}
                 channels={channels}
                 syncExcludedIds={syncExcludedIds}
-                onChange={curveEditorInert || curveManaged ? noopCurveEdit : saveCurveAndPush}
+                onChange={curveEditorInert || curveManaged ? noopCurveEdit : handleCurveEdit}
                 onDelete={curveEditorInert || curveManaged ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
                 onResetPreset={selectedCurve.preset
                   ? (curveEditorInert || curveManaged ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))
@@ -2121,6 +2162,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           onDismiss={calibrateHint.dismiss}
         />
       )}
+      <ConfirmModal
+        open={pendingSource !== null}
+        destructive={false}
+        size="wide"
+        title={t('cooling.curve.sourceSplit.title')}
+        message={t('cooling.curve.sourceSplit.message', {
+          curve: pendingSource?.name ?? '',
+          source: sources.find(s => s.id === pendingSource?.sourceId)?.name ?? '',
+        })}
+        confirmLabel={t('cooling.curve.sourceSplit.applyAll', {
+          count: channels.filter(c => fanStates[c.id]?.curveId === pendingSource?.id).length,
+        })}
+        primaryAction={{
+          label: t('cooling.curve.sourceSplit.newCurve'),
+          onSelect: splitCurveForSelection,
+          disabled: curves.length >= MAX_CURVES,
+        }}
+        onCancel={() => setPendingSource(null)}
+        onConfirm={applySourceToAll}
+      />
       <ConfirmModal
         open={calConfirmOpen && !calibrating}
         destructive={false}
