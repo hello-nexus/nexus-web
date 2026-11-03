@@ -272,9 +272,12 @@ describe('CoolingPage temp source on a shared curve', () => {
     // past the edit lock so the refresh is not dropped.
     const realNow = Date.now();
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow + 5000);
-    await act(async () => { fixture.cooling[0]?.(); });
-    await waitFor(() => { expect(fetchFanChannels).toHaveBeenCalledTimes(2); });
-    nowSpy.mockRestore();
+    try {
+      await act(async () => { fixture.cooling[0]?.(); });
+      await waitFor(() => { expect(fetchFanChannels).toHaveBeenCalledTimes(2); });
+    } finally {
+      nowSpy.mockRestore();
+    }
     expect(stored()).toEqual(['fan-a', 'fan-b', 'fan-c']);
 
     vi.mocked(saveCurves).mockClear();

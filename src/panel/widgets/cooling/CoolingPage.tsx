@@ -145,6 +145,12 @@ const coolingHistoryStore = {
 // controls, so this is what actually keeps the edit from landing.
 const noopCurveEdit = () => {};
 
+/** The rail's select rule: a fan the user can drive and see as a card. */
+const isSelectableFan = (c: FanChannel) => !isFanDisconnected(c)
+  && !(c.readOnly ?? false)
+  && c.classification !== 'Fixed'
+  && c.controlled !== false;
+
 /** The fans a preset retargets (skipping pinned ones), or with `includePinned` the ones Off hands back. */
 const presetReach = (channels: readonly FanChannel[], includePinned = false): Set<string> => new Set(channels
   .filter(ch => (includePinned || !ch.pinned) && ch.controlled !== false && !ch.readOnly
@@ -1120,8 +1126,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const selectableOnCurve = useCallback((curveId: string) => {
     const ids = new Set(fanIdsOnCurve(curveId));
     return channels
-      .filter(c => ids.has(c.id) && !isFanDisconnected(c) && !(c.readOnly ?? false)
-        && c.classification !== 'Fixed' && c.controlled !== false)
+      .filter(c => ids.has(c.id) && isSelectableFan(c))
       .map(c => c.id);
   }, [channels, fanIdsOnCurve]);
 
@@ -1396,10 +1401,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // A search narrows it to the matches, for the same reason.
   const selectableFanIds = useMemo(
     () => (railSearch.active ? visibleChannels : orderedChannels)
-      .filter(c => !isFanDisconnected(c)
-        && !(c.readOnly ?? false)
-        && c.classification !== 'Fixed'
-        && c.controlled !== false)
+      .filter(isSelectableFan)
       .map(c => c.id),
     [orderedChannels, visibleChannels, railSearch.active],
   );
