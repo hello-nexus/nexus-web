@@ -1,7 +1,7 @@
 import { useTranslation } from '../../../lib/i18n';
 import styles from './BuildLogo.module.scss';
 
-// In em of the type size: the outer corner is 7/24 of the box height (1.885em), the same ratio as BuildIcon's rounded square.
+// In em of the type size: the outer corner is 7/24 of the box height (1.885em).
 const CORNER_RADIUS = '0.55em';
 
 interface BuildLogoProps {
