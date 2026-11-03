@@ -1,14 +1,14 @@
 import { useId, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { controlSide, type ChannelPos } from './channelLayoutUtils';
 import styles from './ChannelLayout.module.scss';
 
 export interface ChannelNode {
   id: string;
   label: string;
-  pos: ChannelPos;
+  /** From the center: x runs left (-1) to right (1), y runs front (-1) to back (1). */
+  pos: { x: number; y: number };
   icon?: ReactNode;
-  /** Rendered beside the node, e.g. a volume stepper. */
+  /** Rendered under the label, e.g. a volume stepper. */
   control?: ReactNode;
 }
 
@@ -29,10 +29,11 @@ export interface ChannelLayoutProps {
 }
 
 /**
- * Labeled nodes placed compactly around a center, e.g. speakers around a listener. Positions
- * run from -1 to 1 on each axis from the center. Each node is a button that reports a click.
+ * Labeled nodes placed around a center, e.g. speakers around a listener. Every node has the
+ * same anatomy: a round button (the icon), its label, and an optional control, stacked and
+ * centered on its position. Each button reports a click.
  */
-export function ChannelLayout({ nodes, onActivate, activeId, hint, center, aspect = 1.4, ariaLabel, className }: ChannelLayoutProps) {
+export function ChannelLayout({ nodes, onActivate, activeId, hint, center, aspect = 1.1, ariaLabel, className }: ChannelLayoutProps) {
   const hintId = useId();
   return (
     <div className={classNames(styles.root, className)} role="group" aria-label={ariaLabel}>
@@ -55,7 +56,7 @@ export function ChannelLayout({ nodes, onActivate, activeId, hint, center, aspec
               {node.icon}
             </button>
             <span className={styles.label} aria-hidden>{node.label}</span>
-            {node.control && <div className={classNames(styles.control, styles[controlSide(node.pos.x)])}>{node.control}</div>}
+            {node.control}
           </div>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Music, Radio, Speaker, User, Volume2 } from 'lucide-react';
 import {
   deleteSpeakerPreset, resetSpeakerChannels, saveSpeakerPreset, setSpeakerChannel, setSpeakerEq,
@@ -9,11 +9,10 @@ import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../common/Button/Button';
 import { ChannelLayout, type ChannelNode } from '../../common/ChannelLayout/ChannelLayout';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
-import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Notice } from '../../common/Notice/Notice';
-import { PromptModal } from '../../common/PromptModal/PromptModal';
-import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
+import { SettingRow, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Slider } from '../../common/Slider/Slider';
 import { Spinner } from '../../common/Spinner/Spinner';
@@ -21,7 +20,7 @@ import { Stepper } from '../../common/Stepper/Stepper';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useLogitechSpeaker } from './useLogitechSpeaker';
 import {
-  SPEAKER_FACING, SPEAKER_POS, currentPreset, hzLabel, isFlat, presetNameTaken, signedDb, testOrder, volMax, volOf,
+  SPEAKER_FACING, SPEAKER_POS, currentPreset, hzLabel, isFlat, signedDb, testOrder, volMax, volOf,
 } from './speakerUtils';
 import styles from './LogitechSpeakerDevicePage.module.scss';
 
@@ -34,7 +33,11 @@ const TABS: readonly { key: Tab; icon: ReactNode }[] = [
   { key: 'surround', icon: <Radio size={14} /> },
 ];
 const ROOMS: readonly SpeakerRoom[] = ['gaming', 'movie'];
-const EQ_LENGTH_PX = 170;
+const EQ_LENGTH_PX = 190;
+const HZ = 'Hz';
+const DB = 'dB';
+// The service keeps any number of user presets; the toolbar needs a cap.
+const PRESET_LIMIT = 999;
 // How long a speaker stays lit after its test sound starts, and the gap between speakers in Test all.
 const TEST_LIT_MS = 1300;
 const TEST_GAP_MS = 1600;
@@ -42,10 +45,20 @@ const ICON_PX = 20;
 
 interface TabProps { state: SpeakerState; change: Change }
 
+// One scale for the bands: the labels above and below the track, and the gap between them, are
+// shared with the scale column and the zero line so all three line up.
+const EQ_VARS = {
+  '--slider-vertical-label-height': '1.25rem',
+  '--slider-vertical-value-height': '1.5rem',
+  '--slider-vertical-gap': '0.35rem',
+} as CSSProperties;
+
 function EqBands({ state, change }: TabProps) {
   const { t } = useTranslation();
   const [live, setLive] = useState<Record<number, number>>({});
   const eqOn = state.eqEnabled;
+  const min = state.bandMinDb;
+  const max = state.bandMaxDb;
   // A fresh state replaces any value still being dragged.
   useEffect(() => { setLive({}); }, [state.bands]);
 
@@ -53,32 +66,44 @@ function EqBands({ state, change }: TabProps) {
     const bands = state.bands.map((b, i) => (i === index ? db : b));
     void change(() => setSpeakerEq({ bands }));
   };
+  // Where a gain sits down the track, 0 at the top (max) to 1 at the bottom (min).
+  const down = (db: number) => (max - db) / (max - min);
+  const along = (frac: number) => `calc(7px + (var(--eq-length) - 14px) * ${frac})`;
 
   return (
-    <div className={styles.bands} role="group" aria-label={t(`${P}bands`)}>
-      {state.bands.map((band, i) => {
-        const hz = state.bandHz[i] ?? 0;
-        return (
-          <Slider
-            key={hz || i}
-            orientation="vertical"
-            length={EQ_LENGTH_PX}
-            editable
-            zeroMarker
-            trackFill
-            label={hzLabel(hz)}
-            ariaLabel={t(`${P}band`, { hz })}
-            min={state.bandMinDb}
-            max={state.bandMaxDb}
-            step={0.5}
-            value={live[i] ?? band}
-            formatValue={signedDb}
-            disabled={!eqOn}
-            onChange={v => setLive(prev => ({ ...prev, [i]: v }))}
-            onCommit={v => commit(i, v)}
-          />
-        );
-      })}
+    <div className={styles.eq} style={{ ...EQ_VARS, '--eq-length': `${EQ_LENGTH_PX}px` } as CSSProperties}>
+      <span className={styles.zeroLine} style={{ top: `calc(var(--eq-top) + ${along(down(0))})` }} aria-hidden />
+      <div className={styles.scale} aria-hidden>
+        <span className={styles.unit}>{HZ}</span>
+        <div className={styles.marks}>
+          {[max, 0, min].map(db => <span key={db} className={styles.mark} style={{ top: along(down(db)) }}>{signedDb(db)}</span>)}
+        </div>
+        <span className={styles.unit}>{DB}</span>
+      </div>
+      <div className={styles.bands} role="group" aria-label={t(`${P}bands`)}>
+        {state.bands.map((band, i) => {
+          const hz = state.bandHz[i] ?? 0;
+          return (
+            <Slider
+              key={hz || i}
+              orientation="vertical"
+              length={EQ_LENGTH_PX}
+              editable
+              trackFill
+              label={hzLabel(hz)}
+              ariaLabel={t(`${P}band`, { hz })}
+              min={min}
+              max={max}
+              step={0.5}
+              value={live[i] ?? band}
+              formatValue={signedDb}
+              disabled={!eqOn}
+              onChange={v => setLive(prev => ({ ...prev, [i]: v }))}
+              onCommit={v => commit(i, v)}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -87,43 +112,7 @@ function AcousticsTab({ state, change }: TabProps) {
   const { t } = useTranslation();
   const [volume, setVolume] = useState<number | null>(null);
   const [sub, setSub] = useState<number | null>(null);
-  const [dialog, setDialog] = useState<'save' | 'rename' | 'delete' | null>(null);
   const eqOn = state.eqEnabled;
-  const current = currentPreset(state.presets, state.preset);
-  const custom = current && !current.builtIn ? current : undefined;
-  const builtIns = state.presets.filter(p => p.builtIn);
-  const own = state.presets.filter(p => !p.builtIn);
-
-  const options = [
-    ...(builtIns.length > 0 ? [{ value: '', label: t(`${P}presetsDefault`), header: true }] : []),
-    ...builtIns.map(p => ({ value: p.name, label: p.name })),
-    ...(own.length > 0 ? [{ value: '', label: t(`${P}presetsCustom`), header: true }] : []),
-    ...own.map(p => ({ value: p.name, label: p.name })),
-  ];
-
-  const nameError = (name: string, except?: string) => {
-    if (name.trim() === '') return t(`${P}nameEmpty`);
-    return presetNameTaken(state.presets, name, except) ? t(`${P}nameTaken`) : null;
-  };
-
-  const save = async (name: string) => {
-    const trimmed = name.trim();
-    if (!(await change(() => saveSpeakerPreset(trimmed, state.bands)))) return t(`${P}failed`);
-    await change(() => setSpeakerEq({ preset: trimmed }));
-    setDialog(null);
-    return null;
-  };
-
-  const rename = async (name: string) => {
-    if (!custom) return null;
-    const trimmed = name.trim();
-    if (trimmed !== custom.name) {
-      if (!(await change(() => saveSpeakerPreset(trimmed, custom.bands)))) return t(`${P}failed`);
-      await change(() => deleteSpeakerPreset(custom.name));
-    }
-    setDialog(null);
-    return null;
-  };
 
   return (
     <>
@@ -151,64 +140,67 @@ function AcousticsTab({ state, change }: TabProps) {
         />
       </SettingsSection>
 
-      <SettingsSection title={t(`${P}equalizer`)} description={t(`${P}equalizerHint`, { min: state.bandMinDb, max: state.bandMaxDb })} boxClassName={styles.box}>
+      <SettingsSection
+        title={t(`${P}equalizer`)}
+        boxClassName={styles.box}
+        action={(
+          <Button size="sm" disabled={!eqOn || isFlat(state.bands)} onClick={() => { void change(() => setSpeakerEq({ preset: 'Flat' })); }}>
+            {t(`${P}flat`)}
+          </Button>
+        )}
+      >
         <SettingToggle
           label={t(`${P}advancedEq`)}
           checked={eqOn}
           onChange={on => { void change(() => setSpeakerEq({ enabled: on })); }}
         />
-        <SettingSelect
-          label={t(`${P}preset`)}
-          value={current?.name ?? ''}
-          placeholder={t(`${P}custom`)}
-          options={options}
-          disabled={!eqOn}
-          onChange={v => { if (v) void change(() => setSpeakerEq({ preset: v })); }}
-        />
-        <div className={styles.actions}>
-          <Button size="sm" disabled={!eqOn} onClick={() => setDialog('save')}>{t(`${P}savePreset`)}</Button>
-          {custom && <Button size="sm" onClick={() => setDialog('rename')}>{t(`${P}rename`)}</Button>}
-          {custom && <Button size="sm" tone="danger" onClick={() => setDialog('delete')}>{t(`${P}deletePreset`)}</Button>}
-          <Button size="sm" tone="ghost" disabled={!eqOn || isFlat(state.bands)} onClick={() => { void change(() => setSpeakerEq({ preset: 'Flat' })); }}>
-            {t(`${P}flat`)}
-          </Button>
-        </div>
         <EqBands state={state} change={change} />
       </SettingsSection>
-
-      <PromptModal
-        open={dialog === 'save'}
-        title={t(`${P}saveTitle`)}
-        placeholder={t(`${P}presetName`)}
-        maxLength={40}
-        confirmLabel={t(`${P}save`)}
-        validate={name => nameError(name)}
-        onConfirm={save}
-        onCancel={() => setDialog(null)}
-      />
-      <PromptModal
-        open={dialog === 'rename' && custom !== undefined}
-        title={t(`${P}renameTitle`)}
-        placeholder={t(`${P}presetName`)}
-        initialValue={custom?.name ?? ''}
-        maxLength={40}
-        confirmLabel={t(`${P}save`)}
-        validate={name => nameError(name, custom?.name)}
-        onConfirm={rename}
-        onCancel={() => setDialog(null)}
-      />
-      <ConfirmModal
-        open={dialog === 'delete' && custom !== undefined}
-        title={t(`${P}deleteTitle`)}
-        message={t(`${P}deleteMessage`, { name: custom?.name ?? '' })}
-        confirmLabel={t(`${P}deletePreset`)}
-        onConfirm={() => {
-          if (custom) void change(() => deleteSpeakerPreset(custom.name));
-          setDialog(null);
-        }}
-        onCancel={() => setDialog(null)}
-      />
     </>
+  );
+}
+
+/** The EQ presets as the shared preset dropdown: G HUB's own first, then the user's, with new, rename and delete. */
+function SpeakerPresets({ state, change }: TabProps) {
+  const current = currentPreset(state.presets, state.preset);
+  const own = state.presets.filter(p => !p.builtIn);
+  const builtIns = state.presets.filter(p => p.builtIn);
+  const { t } = useTranslation();
+  const select = (preset: string) => { void change(() => setSpeakerEq({ preset })); };
+
+  return (
+    <PresetToolbar
+      rail
+      showHistory={false}
+      translationPrefix="cooling.presets"
+      cap={PRESET_LIMIT}
+      presetCount={own.length}
+      presets={own.map(p => ({ id: p.name, name: p.name }))}
+      activeId={current && !current.builtIn ? current.name : null}
+      builtins={builtIns.map(p => ({ id: p.name, label: p.name }))}
+      activeBuiltinId={current?.builtIn ? current.name : null}
+      onSelectBuiltin={select}
+      onLoad={select}
+      onCreate={async name => {
+        const trimmed = name.trim();
+        if (builtIns.some(p => p.name.toLowerCase() === trimmed.toLowerCase())) return { error: true, msg: t('cooling.presets.duplicateName') };
+        if (!(await change(() => saveSpeakerPreset(trimmed, state.bands)))) return { error: true, msg: t(`${P}failed`) };
+        await change(() => setSpeakerEq({ preset: trimmed }));
+        return { error: false };
+      }}
+      onRename={(id, name) => {
+        const preset = own.find(p => p.name === id);
+        const trimmed = name.trim();
+        if (!preset || trimmed === id) return;
+        // The new name is selected last: with the bands equal to several presets the service names none.
+        void (async () => {
+          if (!(await change(() => saveSpeakerPreset(trimmed, preset.bands)))) return;
+          await change(() => deleteSpeakerPreset(id));
+          await change(() => setSpeakerEq({ preset: trimmed }));
+        })();
+      }}
+      onDelete={id => { void change(() => deleteSpeakerPreset(id)); }}
+    />
   );
 }
 
@@ -275,7 +267,7 @@ function SurroundTab({ state, change }: TabProps) {
         ? <Speaker size={ICON_PX} aria-hidden />
         : <Volume2 size={ICON_PX} aria-hidden style={{ transform: `rotate(${SPEAKER_FACING[channel] ?? 0}deg)` }} />,
       control: (
-        <Stepper label={t(`${P}volumeOf`, { speaker: name })} min={0} max={max} value={pending[index] ?? volOf(state.channelGains[index])} onChange={v => setVol(index, v)} />
+        <Stepper orientation="horizontal" label={t(`${P}volumeOf`, { speaker: name })} min={0} max={max} value={pending[index] ?? volOf(state.channelGains[index])} onChange={v => setVol(index, v)} />
       ),
     }];
   });
@@ -298,19 +290,26 @@ function SurroundTab({ state, change }: TabProps) {
         </SettingRow>
       </SettingsSection>
 
-      <SettingsSection title={t(`${P}speakers`)} description={t(`${P}speakersHint`)} boxClassName={styles.box}>
+      <SettingsSection
+        title={t(`${P}speakers`)}
+        description={t(`${P}speakersHint`)}
+        boxClassName={styles.box}
+        action={(
+          <div className={styles.actions}>
+            <Button size="sm" icon={<Volume2 size={14} />} disabled={testingAll} onClick={() => { void testAll(); }}>{t(`${P}testAll`)}</Button>
+            <Button size="sm" onClick={() => { setPending({}); void change(() => resetSpeakerChannels()); }}>{t(`${P}reset`)}</Button>
+          </div>
+        )}
+      >
         <ChannelLayout
           nodes={nodes}
+          aspect={1.25}
           activeId={lit === null ? null : String(lit)}
           hint={t(`${P}testHint`)}
           ariaLabel={t(`${P}speakers`)}
           center={<><User size={ICON_PX} aria-hidden /><span>{t(`${P}listener`)}</span></>}
           onActivate={id => test(Number(id))}
         />
-        <div className={styles.actions}>
-          <Button size="sm" icon={<Volume2 size={14} />} disabled={testingAll} onClick={() => { void testAll(); }}>{t(`${P}testAll`)}</Button>
-          <Button size="sm" tone="ghost" onClick={() => { setPending({}); void change(() => resetSpeakerChannels()); }}>{t(`${P}reset`)}</Button>
-        </div>
       </SettingsSection>
     </>
   );
@@ -330,6 +329,7 @@ export function LogitechSpeakerDevicePage() {
         tabs={state?.present ? TABS.map(({ key, icon }) => ({ key, icon, label: t(`${P}${key}`) })) : undefined}
         activeTab={tab}
         onTabChange={key => setTab(key as Tab)}
+        tabActions={state?.present && tab === 'acoustics' ? <SpeakerPresets state={state} change={change} /> : undefined}
       />
       <div className={styles.body}>
         {failed && <Notice tone="critical" role="alert">{t(`${P}failed`)}</Notice>}

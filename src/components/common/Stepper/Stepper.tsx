@@ -1,3 +1,4 @@
+import { Minus, Plus } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './Stepper.module.scss';
@@ -13,10 +14,12 @@ export interface StepperProps {
   disabled?: boolean;
   /** Names the stepper for assistive tech, e.g. which speaker's volume it sets. */
   label?: string;
+  /** Vertical (up over value over down, the default) or horizontal (minus, value, plus). */
+  orientation?: 'vertical' | 'horizontal';
   onChange?: (value: number) => void;
 }
 
-export function Stepper({ value, step = 1, min, max, disabled = false, label, onChange }: StepperProps) {
+export function Stepper({ value, step = 1, min, max, disabled = false, label, orientation = 'vertical', onChange }: StepperProps) {
   const { t } = useTranslation();
   const atMax = max != null && value >= max;
   const atMin = min != null && value <= min;
@@ -27,23 +30,29 @@ export function Stepper({ value, step = 1, min, max, disabled = false, label, on
     if (max != null) v = Math.min(max, v);
     onChange(v);
   };
+  const horizontal = orientation === 'horizontal';
+  const up = (
+    <button
+      type="button" aria-label={t('common.increment')}
+      className={styles.btn}
+      style={{ opacity: disabled || atMax ? 0.35 : 1 } as CSSProperties}
+      disabled={disabled || atMax}
+      onClick={() => emit(value + step)}
+    ><span aria-hidden="true">{horizontal ? <Plus size={12} /> : UP}</span></button>
+  );
+  const down = (
+    <button
+      type="button" aria-label={t('common.decrement')}
+      className={styles.btn}
+      style={{ opacity: disabled || atMin ? 0.35 : 1 } as CSSProperties}
+      disabled={disabled || atMin}
+      onClick={() => emit(value - step)}
+    ><span aria-hidden="true">{horizontal ? <Minus size={12} /> : DOWN}</span></button>
+  );
+  const readout = <span className={styles.value}>{String(value).padStart(2, '0')}</span>;
   return (
-    <div className={styles.root} role={label ? 'group' : undefined} aria-label={label}>
-      <button
-        type="button" aria-label={t('common.increment')}
-        className={styles.btn}
-        style={{ opacity: disabled || atMax ? 0.35 : 1 } as CSSProperties}
-        disabled={disabled || atMax}
-        onClick={() => emit(value + step)}
-      ><span aria-hidden="true">{UP}</span></button>
-      <span className={styles.value}>{String(value).padStart(2, '0')}</span>
-      <button
-        type="button" aria-label={t('common.decrement')}
-        className={styles.btn}
-        style={{ opacity: disabled || atMin ? 0.35 : 1 } as CSSProperties}
-        disabled={disabled || atMin}
-        onClick={() => emit(value - step)}
-      ><span aria-hidden="true">{DOWN}</span></button>
+    <div className={`${styles.root} ${horizontal ? styles.horizontal : ''}`} role={label ? 'group' : undefined} aria-label={label}>
+      {horizontal ? <>{down}{readout}{up}</> : <>{up}{readout}{down}</>}
     </div>
   );
 }

@@ -2555,7 +2555,12 @@ function PreviewAreaCells() {
 
 function PreviewStepper() {
   const [v, setV] = useState(12);
-  return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
+  return (
+    <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+      <StorybookStepper value={v} min={0} max={59} onChange={setV} />
+      <StorybookStepper orientation="horizontal" value={v} min={0} max={59} onChange={setV} />
+    </div>
+  );
 }
 
 function PreviewColorSlots() {
@@ -2717,7 +2722,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Stepper', category: 'inputs',
     filePath: 'src/components/common/Stepper/Stepper.tsx',
-    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping, disabled state and a label that names it for assistive tech. Host-renderer bridge for the SDK Stepper element.',
+    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping, disabled state and a label that names it for assistive tech, and a horizontal form (minus, value, plus). Host-renderer bridge for the SDK Stepper element.',
     Preview: PreviewStepper,
   },
   {
@@ -2757,7 +2762,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ChannelLayout', category: 'inputs',
     filePath: 'src/components/common/ChannelLayout/ChannelLayout.tsx',
-    description: 'Labeled nodes placed compactly around a center, such as speakers around a listener. Positions run from -1 to 1 on each axis from the center. A click on a node reports onActivate; activeId lights one node. Each node can carry a control, such as a Stepper, placed beside it.', Preview: PreviewChannelLayout,
+    description: 'Labeled nodes placed around a center, such as speakers around a listener. Positions run from -1 to 1 on each axis from the center. A click on a node reports onActivate; activeId lights one node. Every node stacks a round button (the icon), its label and an optional control such as a Stepper.', Preview: PreviewChannelLayout,
   },
   {
     name: 'RangeSlider (temperature)', category: 'inputs',

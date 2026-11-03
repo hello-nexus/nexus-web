@@ -1,5 +1,4 @@
 import type { SpeakerEqPreset } from '../../../api/logitechSpeaker';
-import type { ChannelPos } from '../../common/ChannelLayout/channelLayoutUtils';
 
 /** A band's frequency as G HUB labels it: "48", "500", "1K", "16K". */
 export function hzLabel(hz: number): string {
@@ -22,16 +21,22 @@ export function volMax(channelMaxGain: number | undefined): number {
   return Math.round((typeof channelMaxGain === 'number' && channelMaxGain > 0 ? channelMaxGain : 2) * 10);
 }
 
-/** Where each speaker sits around the listener, as G HUB draws them; y runs front (-1) to back (1). */
-export const SPEAKER_POS: Readonly<Record<string, ChannelPos>> = {
-  subwoofer: { x: -0.9, y: -0.9 },
-  center: { x: 0, y: -0.85 },
-  frontLeft: { x: -0.5, y: -0.4 },
-  frontRight: { x: 0.5, y: -0.4 },
-  sideLeft: { x: -0.85, y: 0.1 },
-  sideRight: { x: 0.85, y: 0.1 },
-  rearLeft: { x: -0.5, y: 0.55 },
-  rearRight: { x: 0.5, y: 0.55 },
+const RING = 0.8;
+const ring = (degrees: number) => ({
+  x: Math.round(Math.sin((degrees * Math.PI) / 180) * RING * 1000) / 1000,
+  y: Math.round(-Math.cos((degrees * Math.PI) / 180) * RING * 1000) / 1000,
+});
+
+/** Where each speaker sits around the listener, evenly on a ring from the front clockwise; y runs front (-1) to back (1). The subwoofer is not positional and sits below the ring. */
+export const SPEAKER_POS: Readonly<Record<string, { x: number; y: number }>> = {
+  center: ring(0),
+  frontRight: ring(45),
+  sideRight: ring(90),
+  rearRight: ring(135),
+  rearLeft: ring(225),
+  sideLeft: ring(270),
+  frontLeft: ring(315),
+  subwoofer: { x: 0, y: 1.2 },
 };
 
 /** Which way each speaker's icon faces, in degrees, 0 being sound going right, so it points at the listener. */
@@ -50,12 +55,6 @@ export function testOrder(channels: readonly string[]): number[] {
 /** The preset the live bands came from, if the service names one. */
 export function currentPreset(presets: readonly SpeakerEqPreset[], name: string | undefined): SpeakerEqPreset | undefined {
   return name === undefined ? undefined : presets.find(p => p.name === name);
-}
-
-/** Whether another preset, built-ins included, already has this name, ignoring case and surrounding spaces. */
-export function presetNameTaken(presets: readonly SpeakerEqPreset[], name: string, except?: string): boolean {
-  const wanted = name.trim().toLowerCase();
-  return presets.some(p => p.name !== except && p.name.trim().toLowerCase() === wanted);
 }
 
 export const isFlat = (bands: readonly number[]) => bands.every(b => b === 0);

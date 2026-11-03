@@ -25,4 +25,10 @@ describe('Stepper', () => {
     rerender(<Stepper value={5} />);
     expect(screen.queryByRole('group')).toBeNull();
   });
+
+  it('puts minus before plus in the horizontal form', () => {
+    render(<Stepper value={5} orientation="horizontal" />);
+    const names = screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
+    expect(names).toEqual(['common.decrement', 'common.increment']);
+  });
 });
