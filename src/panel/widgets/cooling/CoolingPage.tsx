@@ -1115,6 +1115,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     Object.entries(fanStates).filter(([, st]) => st.curveId === curveId).map(([id]) => id)
   ), [fanStates]);
 
+  // Fans the user can select, by the same rule as the rail's select-all. The
+  // others still follow the curve but never count as "unselected" by themselves.
+  const selectableOnCurve = useCallback((curveId: string) => {
+    const ids = new Set(fanIdsOnCurve(curveId));
+    return channels
+      .filter(c => ids.has(c.id) && !isFanDisconnected(c) && !(c.readOnly ?? false)
+        && c.classification !== 'Fixed' && c.controlled !== false)
+      .map(c => c.id);
+  }, [channels, fanIdsOnCurve]);
+
+  const hasUnselectedSelectable = useCallback((curveId: string) => (
+    selectableOnCurve(curveId).some(id => !selectedFanIds.has(id))
+  ), [selectableOnCurve, selectedFanIds]);
+
   const selectionWithin = useCallback((onCurve: string[]) => {
     const set = new Set(onCurve);
     return selectedFanIds.size > 0 && [...selectedFanIds].every(id => set.has(id));
@@ -1123,14 +1137,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const handleCurveEdit = useCallback((updated: CurveDef) => {
     const current = curves.find(c => c.id === updated.id);
     if (current && updated.sourceId !== current.sourceId) {
-      const onCurve = fanIdsOnCurve(current.id);
-      if (onCurve.length > selectedFanIds.size && selectionWithin(onCurve)) {
+      if (selectionWithin(fanIdsOnCurve(current.id)) && hasUnselectedSelectable(current.id)) {
         setPendingSource({ curveId: current.id, sourceId: updated.sourceId });
         return;
       }
     }
     saveCurveAndPush(updated);
-  }, [curves, fanIdsOnCurve, saveCurveAndPush, selectedFanIds, selectionWithin]);
+  }, [curves, fanIdsOnCurve, hasUnselectedSelectable, saveCurveAndPush, selectionWithin]);
 
   // The dialog can outlive the state it was opened on; both actions re-read
   // the live curve and selection and drop the change if they no longer fit.
@@ -1139,7 +1152,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const curve = curves.find(c => c.id === pendingSource.curveId);
     const onCurve = fanIdsOnCurve(curve?.id ?? '');
     if (!curve || !selectionWithin(onCurve)) return null;
-    return { curve, sourceId: pendingSource.sourceId, covers: onCurve.length <= selectedFanIds.size };
+    return { curve, sourceId: pendingSource.sourceId, covers: !hasUnselectedSelectable(curve.id) };
   };
 
   const copyName = (curve: CurveDef, sourceId: string) => {
@@ -1180,7 +1193,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (!live) return;
     saveCurveAndPush({ ...live.curve, sourceId: live.sourceId });
     // The edit now spans the whole curve, so the selection follows it.
-    setSelectedFanIds(new Set(fanIdsOnCurve(live.curve.id)));
+    setSelectedFanIds(new Set(selectableOnCurve(live.curve.id)));
   };
 
   const runCalibration = useCallback(async () => {
@@ -2211,7 +2224,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           curve: curves.find(c => c.id === pendingSource?.curveId)?.name ?? '',
           source: sources.find(s => s.id === pendingSource?.sourceId)?.name ?? '',
         })}
-        confirmLabel={t('cooling.curve.sourceSplit.applyAll', {
+        confirmLabel={t(pluralKey('cooling.curve.sourceSplit.applyAll', language, pendingSource ? fanIdsOnCurve(pendingSource.curveId).length : 0), {
           count: pendingSource ? fanIdsOnCurve(pendingSource.curveId).length : 0,
         })}
         primaryAction={{

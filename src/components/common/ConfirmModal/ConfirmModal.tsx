@@ -106,11 +106,11 @@ export function ConfirmModal({
         </button>
       )}
       {icon ? (
-        <div className={styles.titleRow}>
+        <div className={closeButton ? `${styles.titleRow} ${styles.titleClosable}` : styles.titleRow}>
           <span className={styles.icon}>{icon}</span>
           <h2 className={styles.title}>{title}</h2>
         </div>
-      ) : <h2 className={styles.title}>{title}</h2>}
+      ) : <h2 className={closeButton ? `${styles.title} ${styles.titleClosable}` : styles.title}>{title}</h2>}
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}
         {bullets && bullets.length > 0 && (

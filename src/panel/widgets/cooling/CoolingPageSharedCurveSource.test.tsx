@@ -68,7 +68,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
   };
 });
 
-import { saveCurves } from '../../../api/cooling';
+import { fetchFanChannels, saveCurves } from '../../../api/cooling';
 import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
 
 allowSlowAsyncUtils();
@@ -127,7 +127,7 @@ describe('CoolingPage temp source on a shared curve', () => {
     await pickGpuSource();
 
     const dlg = await screen.findByRole('alertdialog');
-    fireEvent.click(within(dlg).getByRole('button', { name: 'cooling.curve.sourceSplit.applyAll' }));
+    fireEvent.click(within(dlg).getByRole('button', { name: /cooling\.curve\.sourceSplit\.applyAll/ }));
 
     await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
     const body = lastSave();
@@ -197,23 +197,20 @@ describe('CoolingPage temp source on a shared curve', () => {
     expect(sourcePicker().textContent).toContain('CPU Package');
   });
 
-  it('prompts, and counts the fan, when a disconnected fan is still bound to the curve', async () => {
+  it('does not prompt when every selectable fan is selected and an absent fan is still on the curve', async () => {
     fixture.extraFans = ['fan-gone'];
     renderAdvanced();
     await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
-    // All three connected fans selected, yet fan-gone would be re-pointed too.
     fireEvent.click(screen.getByText('1,100'));
     fireEvent.click(screen.getByText('1,200'), { ctrlKey: true });
     fireEvent.click(screen.getByText('1,300'), { ctrlKey: true });
     await pickGpuSource();
 
-    expect(await screen.findByRole('alertdialog')).toBeTruthy();
-    expect(saveCurves).not.toHaveBeenCalled();
-
-    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'cooling.curve.sourceSplit.newCurve' }));
     await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
+    expect(dialog()).toBeNull();
     const body = lastSave();
-    expect(body.curves.find(c => c.id === 'curve-silent')!.outputs.map(o => o.id)).toEqual(['fan-gone']);
+    expect(body.curves[0].input.id).toBe('gpu-core');
+    expect(body.curves[0].outputs.map(o => o.id).sort()).toEqual(['fan-a', 'fan-b', 'fan-c', 'fan-gone']);
   });
 
   it('does not stack the source suffix when a copy of a copy is made', async () => {
@@ -260,16 +257,25 @@ describe('CoolingPage temp source on a shared curve', () => {
     expect(body.curves[0].outputs.map(o => o.id)).toEqual(['fan-a']);
   });
 
-  it('Apply to all widens the selection so a second source change does not prompt again', async () => {
+  it('Apply to all selects the selectable fans, which survive a channels refresh, so a second change does not prompt', async () => {
     fixture.extraFans = ['fan-gone'];
     renderAdvanced();
     await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
     fireEvent.click(screen.getByText('1,100'));
     await pickGpuSource();
-    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'cooling.curve.sourceSplit.applyAll' }));
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /cooling\.curve\.sourceSplit\.applyAll/ }));
     await waitFor(() => { expect(saveCurves).toHaveBeenCalledTimes(1); });
-    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]').sort())
-      .toEqual(['fan-a', 'fan-b', 'fan-c', 'fan-gone']);
+    const stored = () => JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]').sort();
+    expect(stored()).toEqual(['fan-a', 'fan-b', 'fan-c']);
+
+    // A realtime tick re-fetches channels and re-runs the pruning effect; get
+    // past the edit lock so the refresh is not dropped.
+    const realNow = Date.now();
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow + 5000);
+    await act(async () => { fixture.cooling[0]?.(); });
+    await waitFor(() => { expect(fetchFanChannels).toHaveBeenCalledTimes(2); });
+    nowSpy.mockRestore();
+    expect(stored()).toEqual(['fan-a', 'fan-b', 'fan-c']);
 
     vi.mocked(saveCurves).mockClear();
     fireEvent.click(sourcePicker());

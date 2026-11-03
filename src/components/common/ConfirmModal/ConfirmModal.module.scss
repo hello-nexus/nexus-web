@@ -46,6 +46,10 @@
   color: var(--text);
 }
 
+.titleClosable {
+  padding-right: 2.25rem;
+}
+
 .titleRow {
   display: flex;
   align-items: center;
@@ -105,6 +109,7 @@
 .actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.35rem;
 }
