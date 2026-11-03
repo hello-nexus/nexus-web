@@ -2558,7 +2558,7 @@ function PreviewStepper() {
   return (
     <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
       <StorybookStepper value={v} min={0} max={59} onChange={setV} />
-      <StorybookStepper orientation="horizontal" value={v} min={0} max={59} onChange={setV} />
+      <StorybookStepper orientation="horizontal" pad={false} value={v} min={0} max={59} onChange={setV} />
     </div>
   );
 }
@@ -2722,7 +2722,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Stepper', category: 'inputs',
     filePath: 'src/components/common/Stepper/Stepper.tsx',
-    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping, disabled state and a label that names it for assistive tech, and a horizontal form (minus, value, plus). Host-renderer bridge for the SDK Stepper element.',
+    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping, disabled state and a label that names it for assistive tech, a horizontal form (minus, value, plus) and an option to show plain numbers instead of zero-padded ones. Host-renderer bridge for the SDK Stepper element.',
     Preview: PreviewStepper,
   },
   {

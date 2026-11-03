@@ -31,4 +31,11 @@ describe('Stepper', () => {
     const names = screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
     expect(names).toEqual(['common.decrement', 'common.increment']);
   });
+
+  it('zero-pads the value by default and shows it plain with pad off', () => {
+    const { rerender } = render(<Stepper value={9} />);
+    expect(screen.getByText('09')).toBeInTheDocument();
+    rerender(<Stepper value={9} pad={false} />);
+    expect(screen.getByText('9')).toBeInTheDocument();
+  });
 });

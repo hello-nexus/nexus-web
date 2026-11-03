@@ -340,14 +340,14 @@ describe('Slider mixed', () => {
     render(<Slider value={40} min={0} max={100} ariaLabel="Level" trackFill onChange={() => {}} />);
     const range = screen.getByRole('slider', { name: 'Level' });
     expect(range).not.toHaveAttribute('data-mixed');
-    expect(range.style.getPropertyValue('--slider-fill-end')).toBe('calc(7px + (100% - 14px) * 0.4)');
+    expect(range.style.getPropertyValue('--slider-fill-end')).toBe('calc(var(--slider-thumb-size) / 2 + (100% - var(--slider-thumb-size)) * 0.4)');
   });
 });
 
-// The thumb's centre stops half a thumb (14px) short of each end of the track, so a value sits
+// The thumb's centre stops half a thumb short of each end of the track, so a value sits
 // that far along the thumb's path. The fill and the zero tick follow it.
 describe('Slider positions on the thumb path', () => {
-  const path = (fraction: number) => `calc(7px + (100% - 14px) * ${fraction})`;
+  const path = (fraction: number) => `calc(var(--slider-thumb-size) / 2 + (100% - var(--slider-thumb-size)) * ${fraction})`;
 
   it('starts a centre-out fill where the thumb sits at 0 when 0 is not the middle', () => {
     render(<Slider value={-5} min={-25} max={75} ariaLabel="Gain" onChange={() => {}} />);

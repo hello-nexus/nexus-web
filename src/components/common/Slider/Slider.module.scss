@@ -138,22 +138,22 @@ $inline-gap: 0.5rem;
   font-style: italic;
 }
 
-/* The thumb's path: its centre stops half a thumb (14px wide, global.scss) short of
+/* The thumb's path: its centre stops half a thumb (--slider-thumb-size, global.scss) short of
    each end of the track. The zero tick, band and marker are placed in it. No `inset`:
    the Q60 panel is Chromium 83. */
 .scale {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 7px;
-  right: 7px;
+  left: calc(var(--slider-thumb-size) / 2);
+  right: calc(var(--slider-thumb-size) / 2);
   pointer-events: none;
 }
 
 .scaleVertical {
   position: absolute;
-  top: 7px;
-  bottom: 7px;
+  top: calc(var(--slider-thumb-size) / 2);
+  bottom: calc(var(--slider-thumb-size) / 2);
   left: 0;
   right: 0;
   pointer-events: none;
