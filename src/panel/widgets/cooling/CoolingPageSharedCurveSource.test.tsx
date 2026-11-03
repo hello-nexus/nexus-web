@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import type { ServiceState } from '../../../types/service';
@@ -17,7 +17,19 @@ vi.mock('../../../lib/i18n', async importOriginal => ({
 // A curve owns one temp source for all its fans. Changing it with only some of
 // them selected must ask first, not silently re-point the others.
 
-const fixture = vi.hoisted(() => ({ extraFans: [] as string[], name: 'Silent' }));
+const fixture = vi.hoisted(() => ({
+  extraFans: [] as string[],
+  name: 'Silent',
+  only: null as string[] | null,
+  cooling: [] as (() => void)[],
+}));
+
+vi.mock('../../../hooks/useMultiplexSocket', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../hooks/useMultiplexSocket')>()),
+  useTopicCallback: (topic: string, _enabled: boolean, cb: () => void) => {
+    if (topic === 'cooling') fixture.cooling = [cb];
+  },
+}));
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../api/cooling')>();
@@ -42,7 +54,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
       curves: [{
         id: 'curve-silent', name: fixture.name, type: 'Linear',
         input: { id: 'cpu-package', type: 'Temperature', device: '' },
-        outputs: ['fan-a', 'fan-b', 'fan-c', ...fixture.extraFans].map(id => ({ id, type: 'Fan' })),
+        outputs: (fixture.only ?? ['fan-a', 'fan-b', 'fan-c', ...fixture.extraFans]).map(id => ({ id, type: 'Fan' })),
         linear: { responseTime: 2.5, minTemp: 30, maxTemp: 70, minSpeed: 20, maxSpeed: 80 },
       }],
     })),
@@ -94,6 +106,8 @@ describe('CoolingPage temp source on a shared curve', () => {
     localStorage.clear();
     fixture.extraFans = [];
     fixture.name = 'Silent';
+    fixture.only = null;
+    fixture.cooling = [];
   });
 
   it('asks before changing the source when only some of the curve fans are selected', async () => {
@@ -221,5 +235,24 @@ describe('CoolingPage temp source on a shared curve', () => {
     fireEvent.keyDown(document, { key: 'Enter' });
     await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
     expect(lastSave().curves).toHaveLength(2);
+  });
+
+  it('saves in place, with no copy, when a refresh leaves the selection owning every fan', async () => {
+    renderAdvanced();
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    fireEvent.click(screen.getByText('1,100'));
+    await pickGpuSource();
+    const dlg = await screen.findByRole('alertdialog');
+
+    fixture.only = ['fan-a'];
+    await act(async () => { fixture.cooling[0]?.(); });
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+
+    fireEvent.click(within(dlg).getByRole('button', { name: 'cooling.curve.sourceSplit.newCurve' }));
+    await waitFor(() => { expect(saveCurves).toHaveBeenCalled(); });
+    const body = lastSave();
+    expect(body.curves).toHaveLength(1);
+    expect(body.curves[0].input.id).toBe('gpu-core');
+    expect(body.curves[0].outputs.map(o => o.id)).toEqual(['fan-a']);
   });
 });

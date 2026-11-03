@@ -1137,8 +1137,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const livePending = () => {
     if (!pendingSource) return null;
     const curve = curves.find(c => c.id === pendingSource.curveId);
-    if (!curve || !selectionWithin(fanIdsOnCurve(curve.id))) return null;
-    return { curve, sourceId: pendingSource.sourceId };
+    const onCurve = fanIdsOnCurve(curve?.id ?? '');
+    if (!curve || !selectionWithin(onCurve)) return null;
+    return { curve, sourceId: pendingSource.sourceId, covers: onCurve.length <= selectedFanIds.size };
   };
 
   const copyName = (curve: CurveDef, sourceId: string) => {
@@ -1156,7 +1157,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const splitCurveForSelection = () => {
     const live = livePending();
     setPendingSource(null);
-    if (!live || curves.length >= MAX_CURVES) return;
+    if (!live) return;
+    // A refresh while the dialog was open can leave the selection owning every
+    // fan; a copy would then empty the original, so it is a plain save.
+    if (live.covers) { saveCurveAndPush({ ...live.curve, sourceId: live.sourceId }); return; }
+    if (curves.length >= MAX_CURVES) return;
     pushHistory();
     const id = `curve-${Date.now()}`;
     const copy: CurveDef = { ...live.curve, id, sourceId: live.sourceId, name: copyName(live.curve, live.sourceId), preset: undefined, isDefault: undefined };
