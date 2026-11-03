@@ -6,7 +6,7 @@ interface BuildIconProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
   color?: string;
 }
 
-// Lucide-compatible mark for Build: a screw head, the cross filled so its weight matches the ring stroke.
+// Lucide-compatible mark for Build: a screw head; the filled cross is sized for the default stroke width.
 export function BuildIcon({ size = 24, strokeWidth = 2, color = 'currentColor', ...rest }: BuildIconProps) {
   return (
     <svg
