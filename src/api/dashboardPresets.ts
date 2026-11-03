@@ -11,8 +11,8 @@ const presetPath = (presetId: string) => `${PATH}/${encodeURIComponent(presetId)
 export const fetchDashboardPresets = () =>
   fetchService<DashboardPresetsResponse>(PATH);
 
-export const createDashboardPreset = (name: string) =>
-  postService<DashboardPresetsResponse>(PATH, { name });
+export const createDashboardPreset = (name: string, fresh?: boolean) =>
+  postService<DashboardPresetsResponse>(PATH, fresh ? { name, fresh: true } : { name });
 
 export const renameDashboardPreset = (presetId: string, name: string) =>
   putService<DashboardPresetsResponse>(presetPath(presetId), { name });

@@ -392,8 +392,8 @@ const panelPresetsPath = (id: string) => `/panel/devices/${encodeURIComponent(id
 export const fetchPanelPresets = (id: string) =>
   fetchService<PanelPresetsResponse>(panelPresetsPath(id));
 
-export const createPanelPreset = (id: string, name: string) =>
-  postService<PanelPresetsResponse>(panelPresetsPath(id), { name });
+export const createPanelPreset = (id: string, name: string, fresh?: boolean) =>
+  postService<PanelPresetsResponse>(panelPresetsPath(id), fresh ? { name, fresh: true } : { name });
 
 export const renamePanelPreset = (id: string, presetId: string, name: string) =>
   putService<PanelPresetsResponse>(`${panelPresetsPath(id)}/${encodeURIComponent(presetId)}`, { name });

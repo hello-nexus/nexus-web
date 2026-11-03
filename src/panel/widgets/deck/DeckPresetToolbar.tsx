@@ -137,7 +137,8 @@ export function DeckPresetToolbar({
         activeBuiltinId={recentApps ? RECENT_APPS_ID : null}
         onSelectBuiltin={() => deck.setMode('recentApps')}
         onLoad={pick}
-        onCreate={name => deck.createPreset(name, pick)}
+        createFailedKey="panel.settings.deck.presets.createFailed"
+        onCreate={(name, { fresh }) => deck.createPreset(name, pick, fresh || !activeId ? { fresh: true } : { copyOfPresetId: activeId })}
         onRename={deck.renamePreset}
         onDelete={onDelete}
         onManageApps={desktopActions ? () => { if (activeSummary) setAppsTarget({ id: activeSummary.id, name: deckPresetDisplayName(activeSummary, t), apps: activeSummary.apps ?? [] }); } : undefined}

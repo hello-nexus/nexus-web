@@ -272,9 +272,9 @@ export const fetchCoolingPresets = () =>
   fetchService<CoolingPresetsResponse>('/cooling/presets');
 
 /** `preset` is null on the error paths (blank name, cap reached). */
-export const createCoolingPreset = (name: string) =>
+export const createCoolingPreset = (name: string, fresh?: boolean) =>
   postService<{ preset: CoolingPreset | null; activeId: string | null; error: boolean; msg: string }>(
-    '/cooling/presets', { name });
+    '/cooling/presets', fresh ? { name, fresh: true } : { name });
 
 /** saveCurrent re-captures the live configuration into the preset. */
 export const updateCoolingPreset = (id: string, body: { name?: string; saveCurrent?: boolean }) =>
