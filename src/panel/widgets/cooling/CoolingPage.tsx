@@ -1177,7 +1177,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const applySourceToAll = () => {
     const live = livePending();
     setPendingSource(null);
-    if (live) saveCurveAndPush({ ...live.curve, sourceId: live.sourceId });
+    if (!live) return;
+    saveCurveAndPush({ ...live.curve, sourceId: live.sourceId });
+    // The edit now spans the whole curve, so the selection follows it.
+    setSelectedFanIds(new Set(fanIdsOnCurve(live.curve.id)));
   };
 
   const runCalibration = useCallback(async () => {

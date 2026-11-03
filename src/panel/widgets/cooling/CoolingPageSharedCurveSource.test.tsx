@@ -258,4 +258,23 @@ describe('CoolingPage temp source on a shared curve', () => {
     expect(body.curves[0].input.id).toBe('gpu-core');
     expect(body.curves[0].outputs.map(o => o.id)).toEqual(['fan-a']);
   });
+
+  it('Apply to all widens the selection so a second source change does not prompt again', async () => {
+    fixture.extraFans = ['fan-gone'];
+    renderAdvanced();
+    await waitFor(() => { expect(screen.getByText('1,100')).toBeTruthy(); });
+    fireEvent.click(screen.getByText('1,100'));
+    await pickGpuSource();
+    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'cooling.curve.sourceSplit.applyAll' }));
+    await waitFor(() => { expect(saveCurves).toHaveBeenCalledTimes(1); });
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]').sort())
+      .toEqual(['fan-a', 'fan-b', 'fan-c', 'fan-gone']);
+
+    vi.mocked(saveCurves).mockClear();
+    fireEvent.click(sourcePicker());
+    fireEvent.click(await screen.findByRole('option', { name: /CPU Package/ }));
+    await waitFor(() => { expect(saveCurves).toHaveBeenCalledTimes(1); });
+    expect(dialog()).toBeNull();
+    expect(lastSave().curves[0].input.id).toBe('cpu-package');
+  });
 });
