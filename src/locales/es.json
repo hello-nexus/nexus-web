@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "No se pudieron cargar las direcciones ni las asociaciones de dispositivos guardadas. Se muestran los valores por defecto y los cambios no se guardan.",
   "cooling.case3d.linkedToMany": "Asociado a los ventiladores {slots}",
   "cooling.case3d.linkedToOne": "Asociado al ventilador {slot}",
+  "cooling.case3d.multi.title": "{count} ventiladores",
   "cooling.case3d.noFans": "No hay ventiladores instalados en esta caja.",
   "cooling.case3d.noneLinked": "Ningún ventilador asociado",
   "cooling.case3d.position.bottom": "Inferior",

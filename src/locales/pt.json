@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Não foi possível carregar as direções e as associações de dispositivos guardadas. São apresentados os valores predefinidos e as alterações não são guardadas.",
   "cooling.case3d.linkedToMany": "Associado às ventoinhas {slots}",
   "cooling.case3d.linkedToOne": "Associado à ventoinha {slot}",
+  "cooling.case3d.multi.title": "{count} ventoinhas",
   "cooling.case3d.noFans": "Não há ventoinhas instaladas nesta caixa.",
   "cooling.case3d.noneLinked": "Nenhuma ventoinha associada",
   "cooling.case3d.position.bottom": "Base",

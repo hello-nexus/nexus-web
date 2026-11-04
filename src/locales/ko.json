@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "저장된 방향과 장치 연결을 불러오지 못했습니다. 기본값을 표시하며 변경 사항은 저장되지 않습니다.",
   "cooling.case3d.linkedToMany": "{slots} 팬에 연결됨",
   "cooling.case3d.linkedToOne": "{slot} 팬에 연결됨",
+  "cooling.case3d.multi.title": "팬 {count}개",
   "cooling.case3d.noFans": "이 케이스에는 설치된 팬이 없습니다.",
   "cooling.case3d.noneLinked": "연결된 팬 없음",
   "cooling.case3d.position.bottom": "하단",

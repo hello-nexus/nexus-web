@@ -39,7 +39,7 @@ import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
 import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
-import { createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
+import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -173,10 +173,52 @@ describe('the case is Build\'s scene', () => {
     const [D, W, H] = parsed.size;
     const expected = new Group();
     expected.position.set(D / 2, H / 2, W / 2);
-    // Build's call for a still view of a case; the fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
-    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true));
+    // Build's call for a still view of a case, with the Cooling view's own treatment: solid outlines, drawn back while the airflow runs. The fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
+    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true, true, AIRFLOW_DIM));
     expect(staticGroup.children).toHaveLength(1);
     expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
+    r.dispose();
+    vi.unstubAllGlobals();
+  });
+
+  it('draws the case on its own brighter than behind the airflow, still through the shared scene module', () => {
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
+    drawn.length = 0;
+    const canvas = document.createElement('canvas');
+    const r = createCaseRenderer(canvas, () => {});
+    const parsed = parseCaseLayout(y70)!;
+    r.setState({ layout: parsed, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: false, collisions: false, speed: 1 } });
+    // The scene's first child is the case group; its one child holds Build's case, centered as Build centers it.
+    const staticGroup = drawn.at(-1)!.children[0] as Group;
+    const [D, W, H] = parsed.size;
+    const expected = new Group();
+    expected.position.set(D / 2, H / 2, W / 2);
+    // Build's call for a still view of a case, with the Cooling view's own treatment: solid outlines, drawn back while the airflow runs. The fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
+    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true, true, CASE_ONLY_DIM));
+    expect(staticGroup.children).toHaveLength(1);
+    expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
+    r.dispose();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('presses on the canvas', () => {
+  it('reports a drag past a click\'s slop and not a plain click', () => {
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
+    const canvas = document.createElement('canvas');
+    // jsdom has no pointer capture, which the orbit controls ask for.
+    canvas.setPointerCapture = vi.fn();
+    canvas.releasePointerCapture = vi.fn();
+    const onPick = vi.fn();
+    const onDrag = vi.fn();
+    const r = createCaseRenderer(canvas, onPick, onDrag);
+    const press = (type: string, x: number, y: number) => canvas.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }));
+    press('pointerdown', 10, 10);
+    press('pointerup', 30, 30);
+    expect(onDrag).toHaveBeenCalledTimes(1);
+    press('pointerdown', 10, 10);
+    press('pointerup', 11, 11);
+    expect(onDrag).toHaveBeenCalledTimes(1);
     r.dispose();
     vi.unstubAllGlobals();
   });

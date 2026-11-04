@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Saved directions and device links could not be loaded. Defaults are shown and changes are not saved.",
   "cooling.case3d.linkedToMany": "Linked to {slots} fans",
   "cooling.case3d.linkedToOne": "Linked to {slot} fan",
+  "cooling.case3d.multi.title": "{count} fans",
   "cooling.case3d.noFans": "No fans are installed in this case.",
   "cooling.case3d.noneLinked": "No fan linked",
   "cooling.case3d.position.bottom": "Bottom",

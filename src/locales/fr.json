@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Impossible de charger les sens et les associations d'appareils enregistrés. Les valeurs par défaut s'affichent et les modifications ne sont pas enregistrées.",
   "cooling.case3d.linkedToMany": "Associé aux ventilateurs {slots}",
   "cooling.case3d.linkedToOne": "Associé au ventilateur {slot}",
+  "cooling.case3d.multi.title": "{count} ventilateurs",
   "cooling.case3d.noFans": "Aucun ventilateur n'est installé dans ce boîtier.",
   "cooling.case3d.noneLinked": "Aucun ventilateur associé",
   "cooling.case3d.position.bottom": "Bas",

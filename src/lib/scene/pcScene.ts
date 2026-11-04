@@ -390,7 +390,7 @@ export function boxShape(box: SceneBox): BufferGeometry {
   return box.plate ? plateGeometry(box) : box.faces ? solidGeometry(box) : box.rings ? loftGeometry(box) : box.chamfers ? chamferedGeometry(box.size, box.chamfers) : new BoxGeometry(...box.size);
 }
 
-export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, solidLines = false): Group {
+export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, solidLines = false, dim = 1): Group {
   const group = new Group();
   const [D, W, H] = layout.size;
   group.position.set(-D / 2, -H / 2, -W / 2);
@@ -400,7 +400,9 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     // The cooling view draws its own fan rings, interactive and colored by direction, in place of the case's.
     if (omitFans && box.slot === 'fan') continue;
     // A snapshot draws estimated parts solid too: dashes read as noise at a small size.
-    const style = solidLines ? { ...styleFor(box, palette), dashed: false } : styleFor(box, palette);
+    const base = solidLines ? { ...styleFor(box, palette), dashed: false } : styleFor(box, palette);
+    // `dim` takes the whole drawing back by one factor, for a view where something else (the airflow) is the subject.
+    const style = dim === 1 ? base : { ...base, opacity: base.opacity * dim, face: base.face * dim };
     const id = box.select ?? box.slot;
     const dimmable: Dimmable | null = !box.conflict && (box.role === 'part' || box.role === 'detail') ? { id, materials: [], base: [] } : null;
     // Each box is built around its own centre, so a turned box turns in place.
@@ -483,7 +485,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     if (line.ribbon && line.points.length >= 2) {
       const { width, thickness, across } = line.ribbon;
       const data = ribbonData(line.points, across, width, thickness);
-      const base = 0.55;
+      const base = 0.55 * dim;
       const material = new MeshBasicMaterial({ color: palette.part, transparent: true, opacity: base, depthWrite: false, side: DoubleSide });
       dimmables.push({ id: line.slot, materials: [material], base: [base] });
       const geometry = new BufferGeometry();
@@ -492,8 +494,8 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       const band = new Mesh(geometry, material);
       band.renderOrder = 1;
       group.add(band);
-      const edgeMaterial = lineMaterial({ color: palette.part, width: 1, opacity: 0.8, dashed: false, face: 0 }, materials);
-      dimmables.push({ id: line.slot, materials: [edgeMaterial], base: [0.8] });
+      const edgeMaterial = lineMaterial({ color: palette.part, width: 1, opacity: 0.8 * dim, dashed: false, face: 0 }, materials);
+      dimmables.push({ id: line.slot, materials: [edgeMaterial], base: [0.8 * dim] });
       for (const edge of data.edges) {
         const rim = new Line2(new LineGeometry().setPositions(edge.flat()), edgeMaterial);
         rim.renderOrder = 1;
@@ -504,7 +506,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     const curve = line.points.length > 2 ? new CatmullRomCurve3(line.points.map((p) => new Vector3(...p))) : null;
     if (line.radius && curve) {
       // A hose: a solid tube in scene mm, in the part's face tint.
-      const base = 0.55;
+      const base = 0.55 * dim;
       const material = new MeshBasicMaterial({ color: palette.part, transparent: true, opacity: base, depthWrite: false });
       dimmables.push({ id: line.slot, materials: [material], base: [base] });
       const tube = new Mesh(new TubeGeometry(curve, 200, line.radius, 12), material);
@@ -512,7 +514,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       group.add(tube);
       continue;
     }
-    const opacity = detail ? 0.4 : 0.8;
+    const opacity = (detail ? 0.4 : 0.8) * dim;
     const material = lineMaterial({ color: palette.part, width: detail ? 1 : 1.4, opacity, dashed: false, face: 0 }, materials);
     dimmables.push({ id: line.slot, materials: [material], base: [opacity] });
     const points = curve ? curve.getPoints(32) : line.points.map((p) => new Vector3(...p));

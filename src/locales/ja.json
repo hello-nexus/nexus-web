@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "保存された向きとデバイスの割り当てを読み込めませんでした。既定値を表示しており、変更は保存されません。",
   "cooling.case3d.linkedToMany": "{slots}のファンに割り当て済み",
   "cooling.case3d.linkedToOne": "{slot}のファンに割り当て済み",
+  "cooling.case3d.multi.title": "{count} 個のファン",
   "cooling.case3d.noFans": "このケースにはファンが取り付けられていません。",
   "cooling.case3d.noneLinked": "ファンは割り当てられていません",
   "cooling.case3d.position.bottom": "底面",

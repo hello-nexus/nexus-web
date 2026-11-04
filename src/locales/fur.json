@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "No si à podût cjamâ lis direzions e lis associazions dai dispositîfs salvadis. A vegnin mostrâts i valôrs predefinîts e lis modifichis no vegnin salvadis.",
   "cooling.case3d.linkedToMany": "Associât a lis ventulis {slots}",
   "cooling.case3d.linkedToOne": "Associât a la ventule {slot}",
+  "cooling.case3d.multi.title": "{count} ventulis",
   "cooling.case3d.noFans": "In chest case no son instaladis ventulis.",
   "cooling.case3d.noneLinked": "Nissune ventule associade",
   "cooling.case3d.position.bottom": "Sot",

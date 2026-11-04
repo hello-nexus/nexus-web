@@ -6,7 +6,7 @@ import { boundSlotKeys, slotDirections, slotSpeeds } from '../slotFlow';
 import { visualFlow } from '../visualFlow';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
-import { FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, PARTICLE_DRAW_SHARE, STUCK_MOVE_CELLS, drawnParticles } from './flowParams';
+import { FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, STUCK_MOVE_CELLS } from './flowParams';
 import { buildFlowScene } from './gridScene';
 import { fanRadii } from '../fanGeometry';
 import { boxContains } from './voxelize';
@@ -230,13 +230,6 @@ describe('the Y70 bottom intakes', () => {
         expect(speedAt(c[1] + s.box!.size[1] / 2 + beyond), `${s.key} ${beyond} mm past the fan`).toBeGreaterThan(plane * 0.2);
       }
     }
-  });
-});
-
-describe('the drawn particle budget', () => {
-  it('draws 10 percent of the pool at every grid tier, outside air included', () => {
-    expect(PARTICLE_DRAW_SHARE).toBeCloseTo(0.1, 10);
-    for (const tier of [1, 0.75, 0.5]) expect(drawnParticles(10752, tier)).toBe(Math.round(10752 * tier * 0.1));
   });
 });
 

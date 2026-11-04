@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Не удалось загрузить сохранённые направления и привязки устройств. Показаны значения по умолчанию, изменения не сохраняются.",
   "cooling.case3d.linkedToMany": "Привязан к вентиляторам: {slots}",
   "cooling.case3d.linkedToOne": "Привязан к вентилятору: {slot}",
+  "cooling.case3d.multi.title": "Вентиляторы: {count}",
   "cooling.case3d.noFans": "В этом корпусе не установлены вентиляторы.",
   "cooling.case3d.noneLinked": "Вентилятор не привязан",
   "cooling.case3d.position.bottom": "Низ",
