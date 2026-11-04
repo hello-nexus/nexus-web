@@ -8,6 +8,16 @@ import styles from './LedMapEditor.module.scss';
 export const RATE_CAP_OPTIONS_HZ = [30, 25, 20, 15, 10, 5, 1] as const;
 const OFF = '';
 
+/** The preset caps, plus the card's own value when a device reports one outside them, sorted into place. */
+function rateCapChoices(current: number | null): number[] {
+  const hzs: number[] = [...RATE_CAP_OPTIONS_HZ];
+  if (current != null && current >= 1 && !hzs.includes(current)) {
+    hzs.push(current);
+    hzs.sort((a, b) => b - a);
+  }
+  return hzs;
+}
+
 interface Props {
   id: string;
   /** The stored cap in Hz; null = Off. */
@@ -45,7 +55,7 @@ export function RateCapSelect({ id, value, onFail, onSaved }: Props) {
 
   const options: SelectOption[] = [
     { value: OFF, label: t('lighting.ledMap.rateCapOff') },
-    ...RATE_CAP_OPTIONS_HZ.map(hz => ({
+    ...rateCapChoices(current).map(hz => ({
       value: String(hz), label: t('lighting.ledMap.rateCapHz', { hz }),
     })),
   ];

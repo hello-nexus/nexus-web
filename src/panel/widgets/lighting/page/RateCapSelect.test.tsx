@@ -26,6 +26,23 @@ describe('RateCapSelect', () => {
     ]);
   });
 
+  it('lists an off-preset value as the selected option, sorted into place', () => {
+    render(<RateCapSelect id="d1" value={2} onFail={vi.fn()} />);
+    const trigger = screen.getByRole('button', { name: 'lighting.ledMap.rateCap' });
+    expect(trigger.textContent).toContain('"hz":2');
+    fireEvent.click(trigger);
+    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([
+      'lighting.ledMap.rateCapOff',
+      ...[30, 25, 20, 15, 10, 5, 2, 1].map(hz => `lighting.ledMap.rateCapHz:{"hz":${hz}}`),
+    ]);
+  });
+
+  it('adds no extra option when the value is a preset', () => {
+    render(<RateCapSelect id="d1" value={5} onFail={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.ledMap.rateCap' }));
+    expect(screen.getAllByRole('option')).toHaveLength(8);
+  });
+
   it('renders the info tip with the explanation', () => {
     render(<RateCapSelect id="d1" value={null} onFail={vi.fn()} />);
     fireEvent.focus(screen.getByRole('button', { name: 'infoTooltip.ariaLabel' }));
