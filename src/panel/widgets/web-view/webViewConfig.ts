@@ -19,6 +19,11 @@ export function snapZoom(v: number): number {
   return clampZoom(Math.round(v / ZOOM_STEP) * ZOOM_STEP);
 }
 
+/** Config `allowMedia`: off unless explicitly stored as true, so a page never gets the microphone or camera by default. */
+export function resolveAllowMedia(raw: unknown): boolean {
+  return raw === true;
+}
+
 /** Config `interactive`: on unless explicitly stored as false, so instances saved before the setting existed take it. */
 export function resolveInteractive(raw: unknown): boolean {
   return raw !== false;

@@ -64,7 +64,7 @@ describe('MonitoringTouch - extras-backed devices', () => {
   it('resolves an extras-topic sensor (battery) to a live value in immersive view', () => {
     render(<MonitoringTouch widget={touchWidget()} />);
 
-    expect(gaugeReadings()).toContain('80%');
+    expect(gaugeReadings()).toContain('80.0%');
     expect(screen.queryByText('-')).not.toBeInTheDocument();
   });
 });

@@ -236,7 +236,7 @@ describe('MonitoringSettings', () => {
       slot0_valueColorReverse: null,
     });
     expect(screen.getByRole('button', { name: /select charge level/i })).toBeInTheDocument();
-    expect(gaugeReadings()).toContain('80%');
+    expect(gaugeReadings()).toContain('80.0%');
   });
 
   it('lists SSD SMART sensors (from a smart/*-keyed storage component) in the picker', () => {

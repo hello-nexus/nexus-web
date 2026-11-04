@@ -6,6 +6,7 @@
 import type { CSSProperties } from 'react';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { bareSensorLabel, prefixedSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
+import { decimalsForType, toFixedAway } from '../../../panel/widgets/monitoring/sensorValueFormat';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
 import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
@@ -249,26 +250,34 @@ export function tryxSensorPlaceholder(sensorType: string): string {
 }
 
 // Mirror the service's TryxPanoramaHub.FormatSensorValue byte-for-byte: the panel
-// firmware renders exactly this string, so the preview must round the same way (whole
-// numbers for temp/load/clock/power/fan, fixed decimals for voltage/data/throughput)
-// rather than the monitoring `formatted` string, which keeps a decimal the panel drops.
-export function formatTryxSensorValue(sensorType: string, value: number): string {
+// firmware renders exactly this string, so the preview must round the same way. The
+// number comes from the shared per-type decimals rule (and the whole-numbers setting);
+// the unit is the panel's own, with no space.
+export function formatTryxSensorValue(sensorType: string, value: number, wholeNumbers = false): string {
+  const decimals = decimalsForType(sensorType, wholeNumbers);
+  const number = decimals === null || !Number.isFinite(value) ? null : toFixedAway(value, decimals);
+  const shown = number ?? String(value);
   switch (sensorType) {
-    case 'Temperature': return `${Math.round(value)}°C`;
-    case 'Load': return `${Math.round(value)}%`;
+    case 'Temperature': return `${shown}°C`;
+    case 'Load':
+    case 'Control':
+    case 'Level': return `${shown}%`;
     case 'Clock':
-    case 'Frequency': return `${Math.round(value)}MHz`;
-    case 'Voltage': return `${value.toFixed(2)}V`;
+    case 'Frequency': return `${shown}MHz`;
+    case 'Voltage': return `${shown}V`;
+    case 'Current': return `${shown}A`;
     case 'Data': return `${value.toFixed(1)}GB`;
     case 'SmallData': return `${Math.round(value)}MB`;
-    case 'Power': return `${Math.round(value)}W`;
-    case 'Fan': return `${Math.round(value)}RPM`;
+    case 'Power': return `${shown}W`;
+    case 'Flow': return `${shown}L/h`;
+    case 'Noise': return `${shown}dBA`;
+    case 'Fan': return `${shown}RPM`;
     // Device-side LHM types these 'Throughput'; the web network topic types them 'Rate'. Both
     // are bytes/sec, so the panel and preview render identically.
     case 'Rate':
     case 'Throughput': return formatTryxThroughput(value);
-    case 'Framerate': return `${Math.round(value)}fps`;
-    case 'FrameTime': return `${value.toFixed(1)}ms`;
+    case 'Framerate': return `${shown}fps`;
+    case 'FrameTime': return `${shown}ms`;
     default: return String(value);
   }
 }
@@ -291,9 +300,10 @@ export function tryxOverlayPreviewValue(
   sensorId: string,
   fallbackType: string,
   sensorsByGroup: TryxSensorsByGroup,
+  wholeNumbers = false,
 ): string {
   const live = (sensorsByGroup[device] ?? []).find(s => s.id === sensorId);
-  return live ? formatTryxSensorValue(live.type, live.value) : tryxSensorPlaceholder(fallbackType);
+  return live ? formatTryxSensorValue(live.type, live.value, wholeNumbers) : tryxSensorPlaceholder(fallbackType);
 }
 
 // ── Media storage ────────────────────────────────────────────────────────────
