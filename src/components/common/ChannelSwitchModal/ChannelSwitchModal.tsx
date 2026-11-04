@@ -75,7 +75,7 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
   };
 
   let footer: ReactNode;
-  let cancelLabel: string | undefined;
+  let cancelLabel = t('confirm.cancel');
   if (state === 'failed') {
     cancelLabel = t('update.modal.close');
     footer = <Button tone="accent" size="md" onClick={() => setAttempt(a => a + 1)}>{t('update.switch.tryAgain')}</Button>;

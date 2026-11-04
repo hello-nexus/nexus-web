@@ -2795,6 +2795,7 @@
   "lighting.colorTuning.colorOrder": "Pořadí barev",
   "lighting.colorTuning.colorOrderInfo": "Použijte, pokud jsou barvy prohozené, například červená se zobrazuje jako zelená.",
   "lighting.colorTuning.cool": "Studená",
+  "lighting.colorTuning.done": "Hotovo",
   "lighting.colorTuning.effectiveBrightnessInfo": "Hlavní jas omezuje výstup na {master}%, takže toto zařízení nemůže svítit jasněji.",
   "lighting.colorTuning.green": "Zelená",
   "lighting.colorTuning.legendSource": "Zdroj",

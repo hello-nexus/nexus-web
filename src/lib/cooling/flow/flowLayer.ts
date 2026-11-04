@@ -101,7 +101,6 @@ export class FlowLayer {
   /** Layer-wide fade for the events that would otherwise end every streak at once: a rebuild on a new grid, a coarser tier, the particles switched off, the layer cleared. */
   private fadeT = 1;
   private fadeGoal = 1;
-  private frameMs = 0;
   private deferred: { warm: boolean } | null = null;
   private histTargets: WebGLRenderTarget[] = [];
   private histMat: ShaderMaterial | null = null;
@@ -219,18 +218,6 @@ export class FlowLayer {
       this.pendingTeardown = false;
       this.teardown();
     }
-  }
-
-  /** What the layer is drawing with, read by the dev-tools readout. */
-  debugInfo() {
-    const u = this.streakMat?.uniforms;
-    const hex = (c: Color) => `#${c.getHexString()}`;
-    return {
-      frameMs: this.frameMs, solverMsPerStep: this.timer?.msPerStep ?? 0, tier: this.tier, drawn: this.drawnCount(), fade: this.fadeT, solving: this.solving,
-      alpha: u?.uAlpha.value, alphaVar: u?.uAlphaVar.value, widthMm: u?.uWidthMm.value, minWidthPx: u?.uMinWidthPx.value, heatSpan: u?.uHeatSpan.value,
-      colors: { cool: hex(this.colors.cool), purple: hex(this.colors.purple), hot: hex(this.colors.hot) },
-      fanCfm: this.input?.fanCfm, directions: this.input?.directions, ventCfm: this.input?.ventCfm, referenceCfm: this.input?.referenceCfm, temps: this.temps,
-    };
   }
 
   setOptions(options: FlowOptions) {
@@ -518,7 +505,6 @@ export class FlowLayer {
     if (!this.supported || !flow || !scene || !this.runner) return;
     const dt = this.lastFrameAt ? now - this.lastFrameAt : 0;
     this.lastFrameAt = now;
-    if (dt > 0 && dt < 500) this.frameMs = this.frameMs === 0 ? dt : this.frameMs * 0.9 + dt * 0.1;
     this.stepFade(dt);
     // A rebuild or teardown that waited for the fade replaced the field this frame started with.
     if (this.flow !== flow) return;
