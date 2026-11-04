@@ -1003,6 +1003,13 @@
   gap: 12px;
 }
 
+// Spinner is display:block, so in the stretched card column it hugs the left
+// edge; a flex parent centers it above the heading.
+.panelPairGateSpinner {
+  display: flex;
+  justify-content: center;
+}
+
 .panelPairGateTitle {
   font: 700 17px/1.3 system-ui, sans-serif;
   color: rgba(255, 255, 255, 0.92);

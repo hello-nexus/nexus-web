@@ -204,7 +204,6 @@ import { OverlayScaleContext } from '../components/common/Overlay/overlayScale';
 import { Overlay } from '../components/common/Overlay/Overlay';
 import { IncomingPairCard } from '../app/IncomingPairModal';
 import { usePairApprovalRequest } from '../hooks/usePairApprovalRequest';
-import { usePairPromptSheet } from './pairPromptSheet';
 import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
   DragTargetHighlight,
@@ -1710,17 +1709,12 @@ export function PanelContent({
     setSheetMode(mode);
   }, [clearCloseTimer]);
 
-  // An incoming pairing approval opens the pairing slideout on the surfaces
-  // that have it, so a touch panel can answer without the dashboard.
+  // An incoming pairing approval shows as the same modal the dashboard uses,
+  // scaled with the panel chrome, so a touch panel can answer it in place
+  // without disturbing an open sheet.
   const pairPromptEnabled = localPairAvailable && kioskBehavior
     && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable) && !restricted;
   const pairApproval = usePairApprovalRequest(pairPromptEnabled);
-  const pairPromptPlacement = usePairPromptSheet({
-    pending: pairApproval.active !== null,
-    sheetMode,
-    openPairSheet: () => openSheet('pairRemote'),
-    closeSheet,
-  });
   const pairPromptCard = pairApproval.active ? (
     <IncomingPairCard
       sas={pairApproval.active.sas}
@@ -1732,7 +1726,6 @@ export function PanelContent({
       onDecide={approved => void pairApproval.decide(approved)}
     />
   ) : null;
-  const pairPrompt = pairPromptPlacement === 'sheet' ? pairPromptCard : null;
 
   useEffect(() => {
     if (!embedded || openCatalogSignal === undefined) return;
@@ -2830,7 +2823,6 @@ export function PanelContent({
           genericDisplay={genericDisplay}
           forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
-          pairPrompt={pairPrompt}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}
           immersiveOnLoad={editingImmersiveOnLoad}
@@ -2900,7 +2892,7 @@ export function PanelContent({
         </OverlayScaleContext.Provider>
       )}
 
-      {pairPromptPlacement === 'overlay' && pairPromptCard && (
+      {pairPromptCard && (
         <OverlayScaleContext.Provider value={sheetOverlayScale}>
           <Overlay
             open

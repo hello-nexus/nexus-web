@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Settings2, Trash2, X } from 'lucide-react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import { sizeToSpan } from '../engine/grid';
@@ -44,7 +44,6 @@ export function PanelEditorSheet({
   genericDisplay,
   forcedGrid,
   touchPanelChrome = false,
-  pairPrompt = null,
   editingWidget,
   immersiveOnLoadAvailable = false,
   immersiveOnLoad = false,
@@ -124,8 +123,6 @@ export function PanelEditorSheet({
   // Touch-driven host display (usesTouchPanelChrome): the sheet scales with
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
-  // Pending pairing approval, shown above the QR in the pairRemote sheet.
-  pairPrompt?: ReactNode;
   editingWidget: PanelWidget | null;
   // Whether this widget can be marked immersive-on-load: a first-page widget
   // with an immersive view in the panel's current orientation.
@@ -513,7 +510,6 @@ export function PanelEditorSheet({
 
         {mode === 'pairRemote' && (
           <div className={styles.settingsBody}>
-            {pairPrompt && <div className={styles.pairPrompt}>{pairPrompt}</div>}
             <PairRemoteContent active layout="stacked" />
           </div>
         )}

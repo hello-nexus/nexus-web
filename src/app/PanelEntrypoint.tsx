@@ -320,7 +320,7 @@ function PanelEntrypointGate({ onRetry, sas = null }: { onRetry?: () => void; sa
   return (
     <div className={styles.panelPairGate}>
       <div className={styles.panelPairGateCard}>
-        <Spinner size={28} />
+        <div className={styles.panelPairGateSpinner}><Spinner size={28} /></div>
         {sas !== null ? (
           <>
             <h2 className={styles.panelPairGateTitle}>{t('panel.gate.approval.headline')}</h2>
