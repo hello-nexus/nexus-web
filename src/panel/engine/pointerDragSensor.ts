@@ -1,4 +1,5 @@
 import { PointerSensor, type PointerActivationConstraint, type PointerSensorOptions, type SensorProps } from '@dnd-kit/core';
+import { primaryReleasedDuringMove } from './touchViaPointer';
 
 // Mouse travel that starts a drag, and the drift tolerated while a touch hold is arming.
 export const DRAG_DISTANCE_PX = 6;
@@ -37,7 +38,7 @@ function cancelOnLostRelease(sensor: SensorInternals, target: EventTarget | null
   const doc = target instanceof Node ? (target.ownerDocument ?? (target as Document)) : document;
   const win = doc.defaultView;
   const onMove = (event: Event) => {
-    if ((event as PointerEvent).buttons === 0) sensor.handleCancel();
+    if (primaryReleasedDuringMove(event as PointerEvent)) sensor.handleCancel();
   };
   const onBlur = () => sensor.handleCancel();
   doc.addEventListener('pointermove', onMove);

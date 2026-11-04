@@ -7,6 +7,9 @@ import { createContext, useContext } from 'react';
 // flag; under it the gesture hooks also accept a primary-button mouse drag
 // as a contact. Without the flag every host keeps the plain touch path.
 export const TOUCH_VIA_POINTER_PARAM = 'touchViaPointer';
+// The streamed-panel host's value: it synthesizes the contacts as mouse events, which WebKit
+// reports with no button held, so under it only the release ends a press.
+export const TOUCH_VIA_POINTER_INJECTED = 'injected';
 
 export const TouchViaPointerContext = createContext(false);
 
@@ -14,8 +17,29 @@ export function useTouchViaPointer(): boolean {
   return useContext(TouchViaPointerContext);
 }
 
-export function readTouchViaPointerFlag(search: string = typeof window === 'undefined' ? '' : window.location.search): boolean {
-  return new URLSearchParams(search).get(TOUCH_VIA_POINTER_PARAM) === '1';
+function currentSearch(): string {
+  return typeof window === 'undefined' ? '' : window.location.search;
+}
+
+export function readTouchViaPointerFlag(search: string = currentSearch()): boolean {
+  const value = new URLSearchParams(search).get(TOUCH_VIA_POINTER_PARAM);
+  return value === '1' || value === TOUCH_VIA_POINTER_INJECTED;
+}
+
+export function readPointerButtonsReported(search: string = currentSearch()): boolean {
+  return new URLSearchParams(search).get(TOUCH_VIA_POINTER_PARAM) !== TOUCH_VIA_POINTER_INJECTED;
+}
+
+let buttonsReported: boolean | undefined;
+
+/**
+ * A move with the primary button up: a release the page never saw (over a system
+ * prompt or another app). Never true under the injected flag, whose moves carry no
+ * button state.
+ */
+export function primaryReleasedDuringMove(e: PointerEvent): boolean {
+  buttonsReported ??= readPointerButtonsReported();
+  return buttonsReported && (e.buttons & 1) === 0;
 }
 
 // One contact of a swipe gesture, whatever produced it. The swipe hooks are
@@ -95,7 +119,7 @@ export function bindGestureContacts(
     // started without changing what it lands on; this matches that.
     const onPointerMove = (e: PointerEvent) => {
       if (!down) return;
-      if ((e.buttons & 1) === 0) { down = false; handlers.end(); return; }
+      if (primaryReleasedDuringMove(e)) { down = false; handlers.end(); return; }
       const c = contactFromPointer(e);
       if (c) handlers.move(c);
     };

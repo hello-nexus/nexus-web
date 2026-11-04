@@ -32,7 +32,7 @@ describe('simulated screen catalog', () => {
   });
 
   it('keeps the density literals equal to the surface defaults the real devices use', () => {
-    const measured = new Set(['lianli-hydroshift2-curve']);
+    const measured = new Set(['lianli-hydroshift2-curve', 'zmatrices-max-e87']);
     const cooler = SIMULATED_SCREEN_CATALOG.filter(x => x.surface.startsWith('lcd-') && !measured.has(x.id) && x.family !== 'nzxt-kraken');
     expect(cooler.length).toBeGreaterThan(0);
     for (const s of cooler) expect(s.dpi, s.id).toBe(DEFAULT_SURFACE_DPI[s.surface]);

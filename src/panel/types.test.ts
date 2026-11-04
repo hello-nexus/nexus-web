@@ -17,6 +17,11 @@ describe('surfaceInputMode', () => {
       ['lcd-round', undefined, 'none'],
       ['lcd-square', undefined, 'none'],
       ['lcd-wide', undefined, 'none'],
+      ['lcd-wide', false, 'none'],
+      ['lcd-wide', true, 'touch'],
+      ['lcd-square', true, 'touch'],
+      ['lcd-round', true, 'touch'],
+      ['q60', true, 'none'],
       ['monitor', undefined, 'none'],
       ['monitor', false, 'none'],
       ['monitor', true, 'touch'],
@@ -491,9 +496,19 @@ describe('largeChromeGrid', () => {
     expect(largeChromeGrid('monitor', undefined, null, dpis, 8)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
     // iCUE defaults to its grid, so chrome sizes from that, not from the one-tile Large.
     expect(largeChromeGrid('monitor', 'icue-link-lcd5', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
-    expect(largeChromeGrid('q60', undefined, null, dpis, 4)).toEqual({ surface: 'q60', shortSideSlots: undefined, dpi: undefined });
     // Lian Li 8.8 and Y60 default to the density grid, not the coarse stored Large.
     expect(largeChromeGrid('monitor', 'lianli-screen88', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
+  });
+
+  it('sizes chrome on one-tile glass from the density grid, never the tile', () => {
+    const tiles = { ...dpis, 'lcd-wide': 109, 'lcd-round': 109 } as Record<PanelSurface, number>;
+    expect(largeChromeGrid('q60', undefined, null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 220 });
+    // The record's own density wins (ZMatrices MAX E87), then the family's (HydroShift II Curved), then the surface estimate.
+    expect(largeChromeGrid('lcd-wide', 'zmatrices-max-e87', 218, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 218 });
+    expect(largeChromeGrid('lcd-wide', 'lianli-hydroshift2-curve', null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 379 });
+    expect(largeChromeGrid('lcd-wide', 'zmatrices-lcd', null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 109 });
+    // Round glass with no size switch is one tile too.
+    expect(largeChromeGrid('lcd-round', 'nzxt-kraken', null, tiles)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 109 });
   });
 
   it('is absent where no size choice exists, so chrome follows the grid in use', () => {
@@ -518,7 +533,7 @@ describe('stored widget size per device', () => {
       'large/y70/-', 'large/y70/-', 'large/y70/-', 'large/y70/-', 'medium/y70/6', 'compact/y70/8',
     ]);
     // Tile devices: large is the tile (100%), small the grid (50%); xsmall is not offered.
-    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve'], ['lcd-wide', 'zmatrices-lcd']] as const) {
+    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve'], ['lcd-wide', 'zmatrices-lcd'], ['lcd-wide', 'zmatrices-max-e87']] as const) {
       expect([undefined, 'large', 'small', 'xsmall'].map(v => resolvePanelWidgetSize(surface, family, v))).toEqual(['large', 'large', 'small', 'large']);
     }
     // Grid devices: unset and small are 100%, a stored large keeps its own 200% stop, xsmall was never offered so it stays the default, compact is the 50%.

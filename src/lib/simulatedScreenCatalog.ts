@@ -68,7 +68,8 @@ export const SIMULATED_SCREEN_CATALOG: readonly SimulatedScreen[] = [
 
   { id: 'idcooling-fx-lcd', name: 'ID-Cooling FX-LCD', vendor: 'ID-Cooling', surface: 'lcd-round', family: 'idcooling-fx-lcd', width: 240, height: 240, dpi: LCD_DPI },
   { id: 'asrock-lcd', name: 'ASRock AIO LCD', vendor: 'ASRock', surface: 'lcd-square', family: 'asrock-lcd', width: 480, height: 480, dpi: LCD_DPI },
-  { id: 'zmatrices-lcd', name: 'Aftershock Glacier Matrix', vendor: 'Aftershock', surface: 'lcd-wide', family: 'zmatrices-lcd', width: 1120, height: 540, dpi: LCD_DPI },
+  { id: 'zmatrices-lcd', name: 'Aftershock Glacier Matrix', vendor: 'Aftershock', surface: 'lcd-wide', family: 'zmatrices-lcd', width: 1120, height: 540, dpi: LCD_DPI, touch: true },
+  { id: 'zmatrices-max-e87', name: 'ZMatrices MAX E87', vendor: 'ZMatrices', surface: 'lcd-wide', family: 'zmatrices-max-e87', width: 1280, height: 440, dpi: 218, touch: true },
 
   { id: 'phone', name: 'Phone Panel', vendor: GENERIC_VENDOR, surface: 'phone', width: 1206, height: 2622, dpi: 460 },
   { id: 'tablet', name: 'Tablet Panel', vendor: GENERIC_VENDOR, surface: 'phone', width: 1640, height: 2360, dpi: 264 },
