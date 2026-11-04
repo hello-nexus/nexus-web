@@ -32,7 +32,7 @@
 import { resolveRelayWs } from './service';
 import { claimPanelPhonePairingLan, confirmPanelPhonePairingLan } from './panel';
 import { waitForPairApproval } from './pairApproval';
-import { pairOverRelay } from '../hooks/relayChannel';
+import { pairOverRelay, RelayProtocolError } from '../hooks/relayChannel';
 import { storePhoneToken } from './auth';
 import { getDeviceId } from './deviceId';
 
@@ -203,7 +203,9 @@ export async function pairOverRelayClaim(
       return { kind: 'relay', token: result.sessionToken, machineName: result.machineName, spki: result.spki };
     }
     return { kind: 'rejected', error: result.error };
-  } catch {
+  } catch (err) {
+    // A reply the client cannot act on is a protocol error, not a lost link.
+    if (err instanceof RelayProtocolError) return { kind: 'rejected', error: 'protocol-error' };
     // Transport/handshake failure: relay disabled, no host link, network down.
     return { kind: 'unreachable' };
   }

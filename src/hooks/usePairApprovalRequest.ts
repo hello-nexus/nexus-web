@@ -17,7 +17,7 @@ export interface PairApprovalRequest {
 /**
  * The host side of the numeric-comparison pairing prompt: follows the
  * `panel/phone/pair-code/request` topic and holds the one pending request.
- * Shared by the desktop modal and the touch-panel pairing slideout so both
+ * Shared by the dashboard modal and the panel modal so both
  * clear on the same signals: any cancelled frame for the request (the service
  * sends one whoever decided), a successful decide call, or the request's TTL.
  */

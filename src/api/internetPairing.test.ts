@@ -18,7 +18,7 @@ import {
 // browser pair-over-relay handshake end-to-end without a real socket.
 // ---------------------------------------------------------------------------
 
-type RelayBehavior = 'claim-ok' | 'claim-err' | 'no-peer-up' | 'open-error';
+type RelayBehavior = 'claim-ok' | 'claim-err' | 'pending-no-sas' | 'no-peer-up' | 'open-error';
 
 interface RelayCapture {
   rid: string;
@@ -98,6 +98,8 @@ class MockRelaySocket {
 
     const reply = behavior === 'claim-err'
       ? JSON.stringify({ type: 'claim-err', error: 'pair token expired' })
+      : behavior === 'pending-no-sas'
+      ? JSON.stringify({ type: 'claim-pending', requestId: 'r1' })
       : JSON.stringify({ type: 'claim-ok', sessionToken: 'SESS-relay-9999', machineName: 'NICOLA-PC', spki: 'AB:CD' });
     const replyFrame = await seal(key, DIR_HOST_TO_CLIENT, 0, reply);
     const out = new ArrayBuffer(replyFrame.byteLength);
@@ -340,6 +342,12 @@ describe('pairOverRelayClaim - TIER 2 relay-only path (no LAN fetch)', () => {
     expect(lanClaimMock).not.toHaveBeenCalled();
     expect(result).toEqual({ kind: 'rejected', error: 'pair token expired' });
     expect(storePhoneTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a claim-pending without a SAS to the protocol-error rejection, not unreachable', async () => {
+    behavior = 'pending-no-sas';
+    const result = await pairOverRelayClaim(PAIR_TOKEN, 'iPhone');
+    expect(result).toEqual({ kind: 'rejected', error: 'protocol-error' });
   });
 
   it('maps a relay open error to unreachable (no LAN fetch)', async () => {

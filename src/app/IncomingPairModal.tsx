@@ -4,7 +4,7 @@ import { usePairApprovalRequest } from '../hooks/usePairApprovalRequest';
 import { useTranslation } from '../lib/i18n';
 import styles from './IncomingPairModal.module.scss';
 
-export interface PairPromptBodyProps {
+interface PairPromptBodyProps {
   sas: string;
   deviceLabel: string;
   remoteAddress?: string;
@@ -15,7 +15,7 @@ export interface PairPromptBodyProps {
   onDecide: (approved: boolean) => void;
 }
 
-export function PairPromptBody({ sas, deviceLabel, remoteAddress, busy = false, error = null, touch = false, onDecide }: PairPromptBodyProps) {
+function PairPromptBody({ sas, deviceLabel, remoteAddress, busy = false, error = null, touch = false, onDecide }: PairPromptBodyProps) {
   const { t } = useTranslation();
   return (
     <>

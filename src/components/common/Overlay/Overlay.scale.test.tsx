@@ -28,9 +28,9 @@ describe('Overlay panel scale', () => {
     );
     const style = surfaceOf().style;
     expect(style.maxHeight).toContain('100dvh');
-    // jsdom normalizes the division by 2 to a 0.5 factor.
-    expect(style.maxHeight).toContain('0.5');
-    expect(style.maxWidth).toContain('0.5');
+    expect(style.maxHeight).toContain('/ 2)');
+    expect(style.maxWidth).toContain('/ 2)');
+    expect(style.maxHeight).toContain('--overlay-inset');
     expect(style.overflowY).toBe('auto');
   });
 

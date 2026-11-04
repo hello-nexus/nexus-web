@@ -419,6 +419,9 @@ const CLAIM_RETRYABLE_ERRORS = new Set(['unknown', 'update_required', 'claim-in-
 // Why one relay connection ended without a final answer.
 class RelayLinkDropped extends Error {}
 
+/** The PC answered with a reply this client cannot act on (e.g. claim-pending without a SAS). */
+export class RelayProtocolError extends Error {}
+
 /**
  * Pair a brand-new phone over the cloud relay (internet pairing with host approval).
  *
@@ -611,7 +614,7 @@ export async function pairOverRelay(
             }
             return;
           case 'claim-pending': {
-            if (!reply.requestId || !reply.sas) { abort(new Error('claim-pending without a request id or sas')); return; }
+            if (!reply.requestId || !reply.sas) { abort(new RelayProtocolError('claim-pending without a request id or sas')); return; }
             requestId = reply.requestId;
             deadline = Date.now() + RELAY_CLAIM_TTL_MS;
             if (announced !== requestId) {

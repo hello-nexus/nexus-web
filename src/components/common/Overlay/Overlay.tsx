@@ -120,13 +120,13 @@ export function Overlay({
 
 // Zoom multiplies every length inside, vh-based limits included, so the
 // viewport caps are divided by the scale (as the editor sheet does) and a
-// dialog taller than the screen scrolls instead of spilling off it. The 4rem is
-// the centered backdrop's 2rem padding on both sides.
+// dialog taller than the screen scrolls instead of spilling off it. The inset
+// is the backdrop's own padding, shared through --overlay-inset.
 function scaledSurfaceStyle(scale: number): CSSProperties {
   return {
     zoom: scale,
-    maxWidth: `calc((100vw - 4rem) / ${scale})`,
-    maxHeight: `calc((100dvh - 4rem) / ${scale})`,
+    maxWidth: `calc((100vw - 2 * var(--overlay-inset)) / ${scale})`,
+    maxHeight: `calc((100dvh - 2 * var(--overlay-inset)) / ${scale})`,
     overflowY: 'auto',
   };
 }
