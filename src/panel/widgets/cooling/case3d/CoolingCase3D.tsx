@@ -83,6 +83,8 @@ const SLOW_MO_FACTOR = 0.25;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
+// Matches no option, so the device list shows its placeholder while the selected fans disagree.
+const MIXED_VALUE = '\u0000mixed';
 const REF_KEY = '#ref';
 const NONE = '';
 const INTAKE: FanDirection = 'intake';
@@ -522,7 +524,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             {radiatorChips}
             <Select
               ariaLabel={t('cooling.case3d.device.label')}
-              value={multiSim ? SIM_VALUE : multiOwner.mixed ? '' : multiOwner.value === NONE_CHANNEL ? NONE : multiOwner.value ?? NONE}
+              value={multiSim ? SIM_VALUE : multiOwner.mixed ? MIXED_VALUE : multiOwner.value === NONE_CHANNEL ? NONE : multiOwner.value ?? NONE}
               placeholder={t('common.mixed')}
               options={deviceOptions}
               onChange={id => { if (id !== SIM_VALUE) linkChannels(id, multiKeys); else if (!multiSim) linkChannels(simChannelId(SIM_RPM_DEFAULT), multiKeys.filter(k => simRpm(channelOfSlot(bindings, k) ?? '') === null)); }}

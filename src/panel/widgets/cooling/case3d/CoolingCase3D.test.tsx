@@ -282,6 +282,12 @@ describe('CoolingCase3D device dropdown', () => {
       expect(directions['front:120:0']).toBe('exhaust');
     });
 
+    it('shows the mixed placeholder in the device list when the fans have different devices', () => {
+      mountReady(null, [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'fan-b', slotKeys: ['rear:120:0'] }]);
+      pickTwo();
+      expect(screen.getByRole('button', { name: 'cooling.case3d.device.label' }).textContent).toContain('common.mixed');
+    });
+
     it('links one device to every chosen fan in one update', () => {
       mountReady(null);
       pickTwo();
