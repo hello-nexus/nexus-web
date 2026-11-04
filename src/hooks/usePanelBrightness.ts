@@ -90,17 +90,37 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     return () => { cancelled = true; };
   }, [enabled, kind, displayId, recordId]);
 
+  // Record target: a drag step only previews the backlight (no record write or
+  // broadcast); the released value, and a drag cut short by unmount, persist.
+  const persistValue = useRef<number | null>(null);
+  const unpersisted = useRef<number | null>(null);
+
   const send = useCallback((v: number) => {
     if (kind === 'y70') return postService('/y70/brightness', { brightness: v });
-    if (kind === 'record' && recordId) return patchPanelDevice(recordId, { lcdBrightness: v });
+    if (kind === 'record' && recordId) {
+      if (persistValue.current === v) {
+        persistValue.current = null;
+        return patchPanelDevice(recordId, { lcdBrightness: v });
+      }
+      return postService(`/panel/devices/${encodeURIComponent(recordId)}/backlight-preview`, { lcdBrightness: v });
+    }
     return displayId ? setDisplayBrightness(displayId, v) : Promise.resolve(null);
   }, [kind, displayId, recordId]);
   const write = useLatestWriter(send, WRITE_INTERVAL_MS);
+
+  useEffect(() => () => {
+    const pending = unpersisted.current;
+    unpersisted.current = null;
+    if (kind === 'record' && recordId && pending !== null) {
+      void patchPanelDevice(recordId, { lcdBrightness: pending }).catch(() => null);
+    }
+  }, [kind, recordId]);
 
   const preview = useCallback((v: number) => {
     overrideUntil.current = Date.now() + OVERRIDE_MS;
     const clamped = Math.max(0, Math.min(100, Math.round(v)));
     setValue(clamped);
+    unpersisted.current = clamped;
     write(clamped);
   }, [write]);
 
@@ -108,6 +128,8 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     overrideUntil.current = Date.now() + OVERRIDE_MS;
     const clamped = Math.max(0, Math.min(100, Math.round(v)));
     setValue(clamped);
+    unpersisted.current = null;
+    persistValue.current = clamped;
     write(clamped, true);
   }, [write]);
 

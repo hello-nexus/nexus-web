@@ -15,6 +15,7 @@ vi.mock('../api/service', () => ({
 }));
 
 import { fetchPanelDeviceWithStatus, patchPanelDevice } from '../api/panel';
+import { postService } from '../api/service';
 import { fetchDisplayBrightness, setDisplayBrightness } from '../api/displays';
 import { brightnessTargetFor, usePanelBrightness } from './usePanelBrightness';
 
@@ -63,6 +64,31 @@ describe('usePanelBrightness record target', () => {
     vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: false, status: 404 });
     const second = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec2' }));
     await waitFor(() => expect(fetchPanelDeviceWithStatus).toHaveBeenCalledWith('rec2'));
+    await act(async () => {});
     expect(second.result.current.available).toBe(false);
+  });
+
+  it('previews during a drag without writing the record, then persists on release', async () => {
+    vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'rec1', lcdBrightness: 40 } } as never);
+    const { result } = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec1' }));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.preview(55));
+    await waitFor(() => expect(postService).toHaveBeenCalledWith('/panel/devices/rec1/backlight-preview', { lcdBrightness: 55 }));
+    expect(patchPanelDevice).not.toHaveBeenCalled();
+
+    act(() => result.current.commit(70));
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('rec1', { lcdBrightness: 70 }));
+  });
+
+  it('persists the last previewed level when unmounted mid-drag', async () => {
+    vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'rec1', lcdBrightness: 40 } } as never);
+    const { result, unmount } = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec1' }));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.preview(25));
+    unmount();
+
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('rec1', { lcdBrightness: 25 }));
   });
 });
