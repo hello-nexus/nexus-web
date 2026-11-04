@@ -250,6 +250,18 @@ export class FlowLayer {
     return { data, stations, rows: HISTORY_ROWS, drawn: this.drawnCount() };
   }
 
+  /** Test hook: what the layer is drawing with, for reading from a live page. */
+  debugInfo() {
+    const u = this.streakMat?.uniforms;
+    const hex = (c: Color) => `#${c.getHexString()}`;
+    return {
+      variant: this.variant.name, tier: this.tier, drawn: this.drawnCount(), history: this.variant.history, fade: this.fadeT, solving: this.solving,
+      alpha: u?.uAlpha.value, alphaVar: u?.uAlphaVar.value, widthMm: u?.uWidthMm.value, minWidthPx: u?.uMinWidthPx.value, heatSpan: u?.uHeatSpan.value,
+      colors: { cool: hex(this.colors.cool), purple: hex(this.colors.purple), hot: hex(this.colors.hot) },
+      fanCfm: this.input?.fanCfm, directions: this.input?.directions, ventCfm: this.input?.ventCfm, referenceCfm: this.input?.referenceCfm, temps: this.temps,
+    };
+  }
+
   /** Test hook for the preview page: the grid's cell size and origin, mm. */
   debugScene(): { cellMm: number; origin: [number, number, number]; dims: [number, number, number] } | null {
     return this.fscene ? { cellMm: this.fscene.cellMm, origin: this.fscene.origin as [number, number, number], dims: this.fscene.dims } : null;

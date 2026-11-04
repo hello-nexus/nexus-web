@@ -8,6 +8,7 @@ import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBo
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
+import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -60,6 +61,7 @@ export interface CaseSceneRenderer {
 export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
 
 const CLICK_SLOP_PX = 4;
+/** The Cooling view draws every outline solid: dashes mark what can be acted on in Build. */
 /** How far the case and its parts are drawn back while the airflow runs, so the fans and the air read first. */
 const AIRFLOW_DIM = 0.5;
 /** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
@@ -225,7 +227,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     clearCase();
     const palette: Palette = coolingPalette(canvas);
     const [D, W, H] = l.size;
-    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true, false, dimmed ? AIRFLOW_DIM : 1);
+    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true, true, dimmed ? AIRFLOW_DIM : 1);
     // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.
     const holder = new Group();
     holder.position.set(D / 2, H / 2, W / 2);
@@ -375,6 +377,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
             collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
+          if (DEV_TOOLS) (globalThis as { __nexusFlowLayer?: unknown }).__nexusFlowLayer = flowLayer;
           flowLayer.onSpan = spanListener;
           flowLayer.setTemps(temps);
         }

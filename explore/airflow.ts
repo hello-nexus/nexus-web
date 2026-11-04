@@ -1,5 +1,5 @@
 import fixture from '../src/lib/cooling/__fixtures__/t1-cooling-state.json';
-import { collapseMounts, normalizeBindings, parseCaseLayout, type CaseLayout, type FanBinding } from '../src/lib/cooling/caseLayout';
+import { collapseMounts, linkChannelToSlot, normalizeBindings, parseCaseLayout, type CaseLayout, type FanBinding } from '../src/lib/cooling/caseLayout';
 import { boundSlotKeys, slotDirections, slotSpeeds, withDefaultBindings } from '../src/lib/cooling/slotFlow';
 import { visualFlow } from '../src/lib/cooling/visualFlow';
 import { createCaseRenderer } from '../src/panel/widgets/cooling/case3d/coolingCaseRenderer';
@@ -43,7 +43,10 @@ if (fans === 't1') {
   const channels = fixture.channels as unknown as Parameters<typeof slotSpeeds>[2];
   const collapsed = collapseMounts(parsed, boundSlotKeys(stored, channels));
   layout = collapsed.layout;
-  const bindings = withDefaultBindings(normalizeBindings(stored, collapsed.canonOf), layout.fanSlots, channels);
+  let bindings = withDefaultBindings(normalizeBindings(stored, collapsed.canonOf), layout.fanSlots, channels);
+  // radrpm=<rpm> drives the top radiator's fans at that simulated speed.
+  const radRpm = Number(params.get('radrpm'));
+  if (radRpm > 0) for (const slot of layout.fanSlots) if (slot.key.startsWith('rad:')) bindings = linkChannelToSlot(bindings, `sim:${radRpm}`, slot.key, false);
   directions = slotDirections(layout.fanSlots, fixture.layout.directions as Record<string, FanDirection>);
   const flow = visualFlow(layout.fanSlots, [], slotSpeeds(layout.fanSlots, bindings, channels), directions);
   Object.assign(fanCfm, flow.fanCfm);
@@ -218,6 +221,44 @@ if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 })
     frame++;
     if (frame < frames) requestAnimationFrame(loop);
     else { flow.forceSteps = 0; resolve({ frames, flags, maxAlphaDropPerFrame: +maxDrop.toFixed(3), maxVisibleLenMm: Math.round(maxLen), visibleSamples, examples }); }
+  };
+  requestAnimationFrame(loop);
+});
+
+// Fate probe: follows particles that reach the radiator block and reports where they end.
+(window as unknown as { __fate: unknown }).__fate = (frames: number) => new Promise(resolve => {
+  const flow = renderer.debugFlow?.();
+  const sc = flow?.debugScene();
+  const radBoxes = layout.fanSlots.filter(sl => sl.taken === 'radiator' && sl.box).map(sl => sl.box!);
+  const rad = radBoxes.length ? { min: [0, 1, 2].map(k => Math.min(...radBoxes.map(b => b.min[k]))), size: [0, 1, 2].map(k => Math.max(...radBoxes.map(b => b.min[k] + b.size[k])) - Math.min(...radBoxes.map(b => b.min[k]))) } : undefined;
+  if (!flow || !sc || !rad) { resolve({ error: 'no flow, scene or radiator box' }); return; }
+  const n = Math.round(128 * 84 * variant.drawShare);
+  const lo = rad.min; const hi = [rad.min[0] + rad.size[0], rad.min[1] + rad.size[1], rad.min[2] + rad.size[2]];
+  const inBox = (m: number[]) => m[0] >= lo[0] && m[0] <= hi[0] && m[1] >= lo[1] && m[1] <= hi[1] && m[2] >= lo[2] && m[2] <= hi[2];
+  const entered = new Set<number>(); const passed = new Set<number>(); const diedInside = new Set<number>();
+  let prev: Float32Array | null = null; let prevAlpha: Float32Array | null = null;
+  let speedSum = 0; let speedN = 0; let stuckN = 0; let frame = 0; const samples: unknown[] = [];
+  const loop = () => {
+    const d = flow.debugFade();
+    if (d) {
+      for (let i = 0; i < n; i++) {
+        if (d.state[i * 4] < -1e5) continue;
+        const mm = [0, 1, 2].map(k => (d.state[i * 4 + k] + 0.5) * sc.cellMm - sc.origin[k]);
+        const a = d.alpha[i * 4];
+        if (inBox(mm)) {
+          if (!entered.has(i)) { entered.add(i); if (samples.length < 4) samples.push({ i, enterAt: mm.map(v => Math.round(v)) }); }
+          if (prev) {
+            const dAge = d.state[i * 4 + 3] - prev[i * 4 + 3];
+            if (dAge > 0 && dAge < 40) { const sp = Math.hypot(d.state[i * 4] - prev[i * 4], d.state[i * 4 + 1] - prev[i * 4 + 1], d.state[i * 4 + 2] - prev[i * 4 + 2]) * sc.cellMm / dAge; speedSum += sp; speedN++; if (sp < 0.4) stuckN++; }
+          }
+          if (prevAlpha && prevAlpha[i] > 0.05 && a < 0.02) diedInside.add(i);
+        } else if (entered.has(i) && mm[1] > hi[1] + 5) passed.add(i);
+      }
+      prev = d.state.slice(); prevAlpha = d.alpha.map((v, k) => (k % 4 === 0 ? v : 0));
+    }
+    frame++;
+    if (frame < frames) requestAnimationFrame(loop);
+    else resolve({ cellMm: sc.cellMm, radBox: { lo, hi }, entered: entered.size, passedAboveTop: passed.size, fadedWhileInside: diedInside.size, meanSpeedMmPerStepInside: speedN ? +(speedSum / speedN).toFixed(2) : 0, slowShareInside: speedN ? +(stuckN / speedN).toFixed(2) : 0, samples, info: flow.debugInfo() });
   };
   requestAnimationFrame(loop);
 });
