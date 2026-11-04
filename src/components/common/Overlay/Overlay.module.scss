@@ -15,7 +15,8 @@
   backdrop-filter: blur(var(--blur-backdrop));
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  --overlay-inset: 2rem;
+  padding: var(--overlay-inset);
 }
 
 .backdropSheet {
