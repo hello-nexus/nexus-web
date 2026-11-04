@@ -14,6 +14,8 @@ interface AppDispatchOptions {
 
 // The service rate-limits a bundle per app; the web host runs it itself, so it gates the same way.
 const BUNDLE_COOLDOWN_MS = 30_000;
+// A failed download cools down briefly, so a failing app cannot loop the route.
+const BUNDLE_RETRY_MS = 5_000;
 interface BundleGate { inflight: Promise<unknown> | null; until: number }
 const bundleGates = new Map<string, BundleGate>();
 
@@ -33,13 +35,14 @@ export function createAppDispatch({ appId, allowed, onSupportBundleFailed }: App
       if (!allowed.includes(action)) return { ok: false, error: `action '${action}' not in manifest allowlist` };
       const gate = bundleGates.get(appId) ?? { inflight: null, until: 0 };
       bundleGates.set(appId, gate);
-      // A call while one runs shares its result; after a saved bundle a cooldown refuses quietly.
+      // A call while one runs shares its result; after a download, saved or failed, a cooldown refuses quietly.
       if (gate.inflight) return gate.inflight;
       if (Date.now() < gate.until) return { ok: false, error: 'cooldown' };
       gate.inflight = (async () => {
         const saved = await downloadSupportBundle();
         if (!saved) {
           onSupportBundleFailed?.();
+          gate.until = Date.now() + BUNDLE_RETRY_MS;
           return { ok: false, error: 'support bundle download failed' };
         }
         gate.until = Date.now() + BUNDLE_COOLDOWN_MS;

@@ -221,15 +221,19 @@ export function Sparkline(p: HostProps) {
   );
 }
 
+// An app supplies the marks, so their count and text length are capped.
+const MAX_SLIDER_MARKS = 8;
+const MAX_MARK_TEXT = 48;
+
 function toSliderMarks(raw: unknown): SliderMark[] | undefined {
   if (!Array.isArray(raw)) return undefined;
   const marks: SliderMark[] = [];
-  for (const m of raw as Array<Record<string, unknown>>) {
+  for (const m of (raw as Array<Record<string, unknown>>).slice(0, MAX_SLIDER_MARKS)) {
     const value = num(m?.value);
     const label = str(m?.label);
     if (value === undefined || label === undefined) continue;
     marks.push({
-      value, label, detail: str(m.detail),
+      value, label: label.slice(0, MAX_MARK_TEXT), detail: str(m.detail)?.slice(0, MAX_MARK_TEXT),
       color: m.tone ? toneVar(str(m.tone), '') || undefined : undefined,
       side: m.side === 'above' ? 'above' : 'below',
       large: m.large === true,

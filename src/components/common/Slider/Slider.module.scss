@@ -221,7 +221,7 @@ $inline-gap: 0.5rem;
   margin-top: 0.15rem;
 }
 
-// The bare layout's column when it carries marks; without them the track fills the row alone.
+// The bare layout's column: the bare root is a row, so marks stack with the track here.
 .markedColumn {
   display: flex;
   flex-direction: column;
@@ -243,6 +243,8 @@ $inline-gap: 0.5rem;
   align-items: stretch;
   text-align: center;
   white-space: nowrap;
+  // A label wider than the track is cut at the track edge.
+  max-width: 100%;
   pointer-events: none;
 }
 
@@ -255,15 +257,21 @@ $inline-gap: 0.5rem;
 .markLabel {
   @include text-caption;
   color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .markDetail {
   @include text-button;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-// The headline figure (days remaining): the heading style with tabular digits.
+// The headline figure: the heading style with tabular digits.
 .markDetailLarge {
   @include text-heading;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

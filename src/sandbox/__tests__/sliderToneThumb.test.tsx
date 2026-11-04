@@ -63,6 +63,7 @@ describe('ui-slider tone and thumbIcon', () => {
     expect(ink('warn')).toContain('--bg');
     expect(ink('good')).toBe('#fff');
     expect(ink('bad')).toBe('#fff');
+    expect(ink('border')).toContain('--text');
   });
 
   it('ignores an unknown thumb icon without throwing', () => {
@@ -91,6 +92,17 @@ describe('ui-slider marks', () => {
     expect(end.querySelector('svg')).not.toBeNull();
     const today = Array.from(container.querySelectorAll('div')).find((d) => d.textContent === 'Today5') as HTMLElement;
     expect(today.querySelector('svg')).toBeNull();
+  });
+  it('caps the number of marks and their text', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ value: i, label: `m${i}`, detail: 'x'.repeat(100) }));
+    const { container } = render(<Slider value={0} min={0} max={20} orientation="bare" marks={many} />);
+    expect(container.textContent).toContain('m7');
+    expect(container.textContent).not.toContain('m8');
+    expect(container.textContent).not.toContain('x'.repeat(49));
+  });
+  it('keeps two marks at the same value apart', () => {
+    const { container } = render(<Slider value={0} min={0} max={10} orientation="bare" marks={[{ value: 5, label: 'A' }, { value: 5, label: 'A' }]} />);
+    expect(container.textContent).toBe('AA');
   });
   it('ignores marks that are not an array', () => {
     const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" marks={'nope' as unknown as never} />);

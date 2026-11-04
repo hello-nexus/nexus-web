@@ -3,6 +3,9 @@ import { ChevronUp } from 'lucide-react';
 import { layoutMarks, markAnchor } from './markGeometry';
 import styles from './Slider.module.scss';
 
+// Pointer glyph size; its center sits on the mark's anchor.
+const POINTER_PX = 16;
+
 export interface SliderMark {
   /** Position on the scale, in [min, max]. */
   value: number;
@@ -45,9 +48,12 @@ export function SliderMarks({ marks, min, max, knobPx, side }: Props) {
       setLayout({ left: layoutMarks(boxes, trackW), anchor: boxes.map(b => b.anchor), h });
     };
     measure();
+    // Webfonts settling resizes the boxes without resizing the row.
+    void document.fonts?.ready.then(measure);
     if (typeof ResizeObserver === 'undefined') return undefined;
     const ro = new ResizeObserver(measure);
     ro.observe(row);
+    for (const box of boxRefs.current) if (box) ro.observe(box);
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, min, max, knobPx]);
@@ -57,16 +63,16 @@ export function SliderMarks({ marks, min, max, knobPx, side }: Props) {
     <div ref={rowRef} className={styles.marks} style={{ height: layout?.h || undefined }}>
       {mine.map((m, i) => (
         <div
-          key={`${m.value}-${m.label}`}
+          key={i}
           ref={el => { boxRefs.current[i] = el; }}
           className={styles.mark}
           style={{ left: layout?.left[i] ?? 0, visibility: layout ? 'visible' : 'hidden', color: m.color }}
         >
           {side === 'below' && (
             <ChevronUp
-              size={16}
+              size={POINTER_PX}
               className={styles.markPointer}
-              style={{ left: layout ? layout.anchor[i] - layout.left[i] - 8 : 0 }}
+              style={{ left: layout && layout.anchor[i] !== undefined ? layout.anchor[i] - layout.left[i] - POINTER_PX / 2 : 0 }}
               aria-hidden
             />
           )}

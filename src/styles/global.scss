@@ -489,7 +489,7 @@ input[type="range"][data-fill] {
     box-shadow: var(--shadow-sm);
   }
   // A custom knob node is drawn over the track; the native knob stays for input only.
-  // The invisible native knob matches the drawn one (24px, Slider.tsx KNOB_PX) so its travel and hit target coincide.
+  // The invisible native knob is the drawn knob's size (Slider.tsx KNOB_PX) so its travel and hit target coincide.
   &[data-custom-thumb]::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -9px; background: transparent; box-shadow: none; }
   &[data-custom-thumb]::-moz-range-thumb { width: 24px; height: 24px; background: transparent; box-shadow: none; border: none; }
 }

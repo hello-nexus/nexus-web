@@ -71,10 +71,15 @@ describe('createAppDispatch', () => {
     expect(downloadSupportBundle).toHaveBeenCalledTimes(2);
   });
 
-  it('does not cool down after a failed download, so a retry runs', async () => {
+  it('cools down briefly after a failed download without a second toast, then a retry runs', async () => {
+    vi.useFakeTimers();
     downloadSupportBundle.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-    const dispatch = createAppDispatch({ appId: 'a.b', allowed: [ACTION] });
+    const onFail = vi.fn();
+    const dispatch = createAppDispatch({ appId: 'a.b', allowed: [ACTION], onSupportBundleFailed: onFail });
     expect(await dispatch(ACTION)).toMatchObject({ ok: false });
+    expect(await dispatch(ACTION)).toEqual({ ok: false, error: 'cooldown' });
+    expect(onFail).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(6_000);
     expect(await dispatch(ACTION)).toMatchObject({ ok: true });
   });
 

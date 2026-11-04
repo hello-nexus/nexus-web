@@ -33,6 +33,7 @@ export function thumbInkVar(tone: UiTone | string | undefined): string | undefin
     case 'accent': case 'accent-deep': case 'accent-glow': return 'var(--accent-text)';
     case 'text': case 'text-dim': case 'text-faded': case 'warn': return 'var(--bg)';
     case 'good': case 'bad': return '#fff';
+    case 'border': case 'bg-card': return 'var(--text)';
     default: return undefined;
   }
 }
