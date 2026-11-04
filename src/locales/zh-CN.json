@@ -5691,6 +5691,7 @@
   "settings.title": "设置",
   "settings.units.custom": "自定义",
   "settings.units.date.label": "日期格式",
+  "settings.units.monitoringWholeNumbers.label": "监控中显示整数",
   "settings.units.number.label": "数字格式",
   "settings.units.system": "系统",
   "settings.units.temperature.celsius": "摄氏（°C）",

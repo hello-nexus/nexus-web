@@ -132,6 +132,7 @@ describe('SettingsView', () => {
     expect(screen.getByText('settings.background')).toBeInTheDocument();
     expect(screen.getByText('settings.units.time.label')).toBeInTheDocument();
     expect(screen.getByText('settings.units.number.label')).toBeInTheDocument();
+    expect(screen.getByText('settings.units.temperature.label')).toBeInTheDocument();
     expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
 
     rerender(
@@ -153,7 +154,7 @@ describe('SettingsView', () => {
     // LightingCoolingSection moved out to its own tab.
     expect(screen.getByText('settings.features.monitoring.label')).toBeInTheDocument();
     expect(screen.getByText('settings.features.diagnostics.label')).toBeInTheDocument();
-    expect(screen.getByText('settings.units.temperature.label')).toBeInTheDocument();
+    expect(screen.queryByText('settings.units.temperature.label')).not.toBeInTheDocument();
     // 'settings.lightingCooling.title' always shows as the (inactive) tab
     // strip entry now, so absence of its section is asserted via section-only
     // content instead.

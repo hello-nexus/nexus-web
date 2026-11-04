@@ -55,7 +55,7 @@ describe('CoolingCase3D component temperatures', () => {
   it('labels each component that has a reading, and hides the one that has none', () => {
     h.temps = { cpu: null, gpu: 71.6 };
     render(ui());
-    expect(screen.getByTestId('temp-label-gpu').textContent).toContain('72');
+    expect(screen.getByTestId('temp-label-gpu').textContent).toContain('71.6');
     expect(screen.queryByTestId('temp-label-cpu')).toBeNull();
   });
 

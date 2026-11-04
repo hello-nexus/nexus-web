@@ -5738,6 +5738,7 @@
   "settings.title": "Nastavení",
   "settings.units.custom": "Vlastní",
   "settings.units.date.label": "Formát data",
+  "settings.units.monitoringWholeNumbers.label": "Celá čísla v monitorování",
   "settings.units.number.label": "Formát čísel",
   "settings.units.system": "Systémový",
   "settings.units.temperature.celsius": "Celsius (°C)",

@@ -3,7 +3,7 @@
 import type { UpdateChannel, UpdateMode } from '../api/update';
 import { DEFAULT_SMART_POLL_SECONDS } from '../api/smartPoll';
 import {
-  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT, DEFAULT_DATE_FORMAT,
+  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT, DEFAULT_MONITORING_WHOLE_NUMBERS, DEFAULT_DATE_FORMAT,
   type TempUnit, type TimeFormat, type NumberFormat, type DateFormat,
 } from './units';
 
@@ -205,6 +205,8 @@ export interface GeneralSettings {
   monitoringTempUnit: TempUnit;
   timeFormat: TimeFormat;
   numberFormat: NumberFormat;
+  // Round monitoring readouts (temperature, power, percent, flow, noise, frequency) to whole numbers.
+  monitoringWholeNumbers: boolean;
   dateFormat: DateFormat;
   updateMode?: UpdateMode;
   updateChannel?: UpdateChannel;
@@ -280,6 +282,7 @@ export function getDefaultSettings(): NexusSettings {
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
+      monitoringWholeNumbers: DEFAULT_MONITORING_WHOLE_NUMBERS,
       dateFormat: DEFAULT_DATE_FORMAT,
       startupDelaySeconds: 0,
       readRamTemperatures: true,

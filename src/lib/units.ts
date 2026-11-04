@@ -12,6 +12,7 @@ export type NumberFormat = 'system' | 'dot' | 'comma';
 export const DEFAULT_TEMP_UNIT: TempUnit = 'c';
 export const DEFAULT_TIME_FORMAT: TimeFormat = 'system';
 export const DEFAULT_NUMBER_FORMAT: NumberFormat = 'system';
+export const DEFAULT_MONITORING_WHOLE_NUMBERS = false;
 
 // Date patterns: ddd = short weekday name, d/dd = day, mmm = short month name,
 // m/mm = month number, yy/yyyy = year. 'system' is the locale's own weekday,

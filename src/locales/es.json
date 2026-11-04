@@ -5691,6 +5691,7 @@
   "settings.title": "Ajustes",
   "settings.units.custom": "Personalizado",
   "settings.units.date.label": "Formato de fecha",
+  "settings.units.monitoringWholeNumbers.label": "Números enteros en la monitorización",
   "settings.units.number.label": "Formato numérico",
   "settings.units.system": "Sistema",
   "settings.units.temperature.celsius": "Celsius (°C)",

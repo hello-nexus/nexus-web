@@ -5691,6 +5691,7 @@
   "settings.title": "設定",
   "settings.units.custom": "カスタム",
   "settings.units.date.label": "日付形式",
+  "settings.units.monitoringWholeNumbers.label": "モニタリングで整数表示",
   "settings.units.number.label": "数値形式",
   "settings.units.system": "システム",
   "settings.units.temperature.celsius": "摂氏 (°C)",
