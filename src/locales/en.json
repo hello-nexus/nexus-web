@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "Check whether its companion driver is installed",
   "store.consent.cap.cooling.state": "See your cooling and fan status",
   "store.consent.cap.devices.list": "See which devices are connected",
+  "store.consent.cap.diagnostics.supportBundle": "Save a support bundle from Nexus",
   "store.consent.cap.dispatchUnknown": "Run the \"{action}\" action",
   "store.consent.cap.displays.list": "See your connected displays",
   "store.consent.cap.displays.panelVariant": "See your panel model",

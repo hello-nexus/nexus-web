@@ -4,9 +4,11 @@
 // (a separate worker render via mount({ cell, page })) and fills the section
 // content area with its remote tree - e.g. the clock's day/night world map.
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
+import { createAppDispatch } from '../../../sandbox/appDispatch';
+import { useToastSafe } from '../../../components/common/Toast/Toast';
 import { DEV_TOOLS } from '../../../lib/devTools';
 import { getMarketplaceListing, marketplaceIdFromType } from '../../../widgets/marketplaceRegistry';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
@@ -43,10 +45,15 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
       postService<unknown>(`/apps-api/page-closed/${encodeURIComponent(id)}`, { durationMs: Math.round(performance.now() - openedAt) }).catch(() => {});
     };
   }, [id]);
-  const onDispatch = useCallback(
-    (action: string, args?: Record<string, unknown>) =>
-      postService<unknown>('/apps-api/dispatch', { appId: id, action, args: args ?? {} }),
-    [id],
+  const { push } = useToastSafe();
+  const dispatchAllow = listing?.capabilities.dispatch;
+  const onDispatch = useMemo(
+    () => createAppDispatch({
+      appId: id,
+      allowed: dispatchAllow ?? [],
+      onSupportBundleFailed: () => push({ title: t('settings.diagnostics.supportBundleFailed') }),
+    }),
+    [id, dispatchAllow, push, t],
   );
 
   if (!listing) return null;

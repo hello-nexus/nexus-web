@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "Eşlik eden sürücüsünün yüklü olup olmadığını denetle",
   "store.consent.cap.cooling.state": "Soğutma ve fan durumunu gör",
   "store.consent.cap.devices.list": "Hangi cihazların bağlı olduğunu gör",
+  "store.consent.cap.diagnostics.supportBundle": "Nexus'tan bir destek paketi kaydet",
   "store.consent.cap.dispatchUnknown": "\"{action}\" eylemini çalıştır",
   "store.consent.cap.displays.list": "Bağlı ekranlarını gör",
   "store.consent.cap.displays.panelVariant": "Panel modelini gör",

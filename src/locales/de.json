@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "Prüfen, ob der zugehörige Treiber installiert ist",
   "store.consent.cap.cooling.state": "Den Status deiner Kühlung und Lüfter einsehen",
   "store.consent.cap.devices.list": "Sehen, welche Geräte verbunden sind",
+  "store.consent.cap.diagnostics.supportBundle": "Ein Support-Paket aus Nexus speichern",
   "store.consent.cap.dispatchUnknown": "Die Aktion „{action}“ ausführen",
   "store.consent.cap.displays.list": "Deine angeschlossenen Displays einsehen",
   "store.consent.cap.displays.panelVariant": "Das Modell deines Panels einsehen",

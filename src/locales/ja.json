@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "付属ドライバーがインストール済みか確認する",
   "store.consent.cap.cooling.state": "冷却とファンの状態を確認する",
   "store.consent.cap.devices.list": "接続されているデバイスを確認する",
+  "store.consent.cap.diagnostics.supportBundle": "Nexusからサポートバンドルを保存する",
   "store.consent.cap.dispatchUnknown": "「{action}」アクションを実行する",
   "store.consent.cap.displays.list": "接続されているディスプレイを確認する",
   "store.consent.cap.displays.panelVariant": "パネルのモデルを確認する",

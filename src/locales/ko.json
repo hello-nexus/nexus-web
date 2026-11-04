@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "동반 드라이버가 설치되어 있는지 확인",
   "store.consent.cap.cooling.state": "냉각 및 팬 상태 보기",
   "store.consent.cap.devices.list": "연결된 장치 확인",
+  "store.consent.cap.diagnostics.supportBundle": "Nexus에서 지원 번들 저장하기",
   "store.consent.cap.dispatchUnknown": "\"{action}\" 동작 실행",
   "store.consent.cap.displays.list": "연결된 디스플레이 보기",
   "store.consent.cap.displays.panelVariant": "패널 모델 보기",

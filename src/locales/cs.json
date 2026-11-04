@@ -5973,6 +5973,7 @@
   "store.consent.cap.app.installStatus": "Zjistit, zda je nainstalován jeho doprovodný ovladač",
   "store.consent.cap.cooling.state": "Zobrazit stav chlazení a ventilátorů",
   "store.consent.cap.devices.list": "Zobrazit, která zařízení jsou připojena",
+  "store.consent.cap.diagnostics.supportBundle": "Uložit z Nexusu balíček pro podporu",
   "store.consent.cap.dispatchUnknown": "Spustit akci „{action}“",
   "store.consent.cap.displays.list": "Zobrazit připojené displeje",
   "store.consent.cap.displays.panelVariant": "Zobrazit model vašeho panelu",

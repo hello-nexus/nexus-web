@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "Comprobar si su controlador complementario está instalado",
   "store.consent.cap.cooling.state": "Ver el estado de tu refrigeración y ventiladores",
   "store.consent.cap.devices.list": "Ver qué dispositivos están conectados",
+  "store.consent.cap.diagnostics.supportBundle": "Guardar un paquete de soporte de Nexus",
   "store.consent.cap.dispatchUnknown": "Ejecutar la acción «{action}»",
   "store.consent.cap.displays.list": "Ver tus pantallas conectadas",
   "store.consent.cap.displays.panelVariant": "Ver el modelo de tu panel",

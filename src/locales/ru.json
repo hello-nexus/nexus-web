@@ -5973,6 +5973,7 @@
   "store.consent.cap.app.installStatus": "Проверять, установлен ли сопутствующий драйвер",
   "store.consent.cap.cooling.state": "Смотреть состояние охлаждения и вентиляторов",
   "store.consent.cap.devices.list": "Смотреть, какие устройства подключены",
+  "store.consent.cap.diagnostics.supportBundle": "Сохранять пакет поддержки из Nexus",
   "store.consent.cap.dispatchUnknown": "Выполнять действие «{action}»",
   "store.consent.cap.displays.list": "Смотреть подключённые дисплеи",
   "store.consent.cap.displays.panelVariant": "Смотреть модель панели",

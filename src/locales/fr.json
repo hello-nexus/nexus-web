@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "Vérifier si son pilote associé est installé",
   "store.consent.cap.cooling.state": "Consulter l'état de votre refroidissement et de vos ventilateurs",
   "store.consent.cap.devices.list": "Voir quels appareils sont connectés",
+  "store.consent.cap.diagnostics.supportBundle": "Enregistrer un lot de support depuis Nexus",
   "store.consent.cap.dispatchUnknown": "Exécuter l'action « {action} »",
   "store.consent.cap.displays.list": "Voir vos écrans connectés",
   "store.consent.cap.displays.panelVariant": "Voir le modèle de votre panneau",

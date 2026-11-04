@@ -8,9 +8,11 @@
 // (relay-aware). Everything else (worker, MessagePort UI channel, remote-dom)
 // runs locally in the panel's browser.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
+import { createAppDispatch } from '../../../sandbox/appDispatch';
+import { useToastSafe } from '../../../components/common/Toast/Toast';
 import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
@@ -94,10 +96,15 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
 
   // Gated host action: POST /apps-api/dispatch (relay-aware). Returns the
   // { ok, result } envelope so the worker's useDispatch / useHostAction work.
-  const onDispatch = useCallback(
-    (action: string, args?: Record<string, unknown>) =>
-      postService<unknown>('/apps-api/dispatch', { appId: listing.id, action, args: args ?? {} }),
-    [listing.id],
+  const { push } = useToastSafe();
+  const dispatchAllow = listing.capabilities.dispatch;
+  const onDispatch = useMemo(
+    () => createAppDispatch({
+      appId: listing.id,
+      allowed: dispatchAllow ?? [],
+      onSupportBundleFailed: () => push({ title: t('settings.diagnostics.supportBundleFailed') }),
+    }),
+    [listing.id, dispatchAllow, push, t],
   );
 
   if (failed) return <div className={styles.empty}>{t('marketplace.failedToLoad', { name: listing.name })}</div>;

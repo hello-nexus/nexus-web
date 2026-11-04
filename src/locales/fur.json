@@ -5923,6 +5923,7 @@
   "store.consent.cap.app.installStatus": "Controlâ se il so driver associât al è instalât",
   "store.consent.cap.cooling.state": "Viodi il stât dal to refredament e des ventulis",
   "store.consent.cap.devices.list": "Viodi cuâi dispositîfs a son coneturâts",
+  "store.consent.cap.diagnostics.supportBundle": "Salvâ un pachet di supuart di Nexus",
   "store.consent.cap.dispatchUnknown": "Eseguî l'azion «{action}»",
   "store.consent.cap.displays.list": "Viodi i tiei display coneturâts",
   "store.consent.cap.displays.panelVariant": "Viodi il model dal to panel",
