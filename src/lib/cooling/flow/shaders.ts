@@ -460,7 +460,7 @@ void main() {
 #ifdef PROBE
   // Probe draw: each station writes its layout-space position and alpha to its own texel, so geometry can be read back.
   vProbe = vec4((at + 0.5) * uCell - uOrigin, vAlpha);
-  gl_Position = vec4((vec2(float(station) + 0.5, float(r.y * 128 + r.x) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 256.0)) * 2.0 - 1.0, 0.0, 1.0);
+  gl_Position = vec4((vec2(float(station) + 0.5, float(r.y * 128 + r.x) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 512.0)) * 2.0 - 1.0, 0.0, 1.0);
   gl_PointSize = 1.0;
 #endif
 }`;
@@ -549,7 +549,7 @@ void main() {
   vSide = corner.y;
 #ifdef PROBE
   vProbe = vec4((at + 0.5) * uCell - uOrigin, vAlpha);
-  gl_Position = vec4((vec2(float(station) + 0.5, float(n) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 256.0)) * 2.0 - 1.0, 0.0, 1.0);
+  gl_Position = vec4((vec2(float(station) + 0.5, float(n) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 512.0)) * 2.0 - 1.0, 0.0, 1.0);
   gl_PointSize = 1.0;
 #endif
 }`;

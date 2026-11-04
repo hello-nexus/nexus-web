@@ -84,6 +84,8 @@ FLOW_VARIANTS['A3-2'] = { ...D, name: 'A3-2', drawShare: (PARTICLE_DRAW_SHARE / 
 FLOW_VARIANTS['A3-3-walk'] = { ...D, name: 'A3-3-walk', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 50, alphaVar: 0.4, smooth: true, streakSteps: 96, streakMaxMm: 670, segments: 36 };
 // A3-3 draws through recorded positions; A3-3-walk is the field-walk version it replaced, kept to compare geometry.
 FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 96, alphaVar: 0.4, smooth: true, history: true, trailSteps: 35, segments: 28, timeScaleMul: 1.6, exitShare: 0.35 };
+// A3-3 twice as wide and twice the particles at half the alpha.
+FLOW_VARIANTS['A3-3-thick'] = { ...D, name: 'A3-3-thick', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2, widthMm: 32, minWidthPx: 14, alpha: 0.5, headTaper: 0.22, growTail: true, fadeOut: 96, alphaVar: 0.4, smooth: true, history: true, trailSteps: 35, segments: 28, timeScaleMul: 1.6, exitShare: 0.35 };
 let active: FlowVariant = CURRENT_VARIANT;
 /** Chooses the look the next FlowLayer is built with. */
 export const setFlowVariant = (v: FlowVariant) => { active = v; };

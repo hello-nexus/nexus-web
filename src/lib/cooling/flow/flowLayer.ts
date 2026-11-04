@@ -31,7 +31,7 @@ const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
 const RING = 2;
 /** Samples in a particle's history ring, and how many particles keep one (the first ones, which are the drawn ones). */
 const HISTORY_SAMPLES = 64;
-const HISTORY_ROWS = 256;
+const HISTORY_ROWS = 512;
 /** Time of a layer-wide fade, ms. */
 const FADE_MS = 500;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
@@ -433,7 +433,9 @@ export class FlowLayer {
   }
 
   private drawnCount(): number {
-    return Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier] * this.variant.drawShare);
+    const n = Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier] * this.variant.drawShare);
+    // A history variant keeps a trail for the first HISTORY_ROWS particles only.
+    return this.variant.history ? Math.min(n, HISTORY_ROWS) : n;
   }
 
   private ensureParticles() {
