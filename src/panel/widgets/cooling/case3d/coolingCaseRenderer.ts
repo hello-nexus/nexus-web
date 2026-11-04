@@ -8,6 +8,7 @@ import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBo
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
+import { createAdaptivePacer, pageFrameCap, panelDisplayHz } from '../../../../lib/framePacer';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -167,8 +168,11 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   // Once the air has settled and the camera is still, only the particles move: draw at a reduced rate; the particle clock keeps their speed.
   let lastDraw = 0;
   let lastInteraction = 0;
+  // A streamed page is captured at the stream's rate, so frames past the page's cap are drawn for nothing.
+  const shouldDraw = createAdaptivePacer(() => pageFrameCap(window.location.search), panelDisplayHz(window.location.search));
   const render = (now: number) => {
     frame = 0;
+    if (!shouldDraw(now)) { requestRender(); return; }
     const calm = !!flowLayer?.settled && now - lastInteraction > IDLE_MS;
     if (calm && now - lastDraw < CALM_FRAME_MS - FRAME_SLACK_MS) { requestRender(); return; }
     lastDraw = now;

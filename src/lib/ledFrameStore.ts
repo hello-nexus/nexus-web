@@ -1,3 +1,5 @@
+import { createAdaptivePacer, pageFrameCap, panelDisplayHz } from './framePacer';
+
 /**
  * Latest LED frame, shared outside React.
  *
@@ -24,6 +26,7 @@ let frame: LedFrame = { pixels: null, w: 0, h: 0, seq: 0, devices: NO_DEVICES };
 const subscribers = new Set<(f: LedFrame) => void>();
 let rafId: number | null = null;
 let deliveredSeq = -1;
+let shouldTick: ((ts: number) => boolean) | null = null;
 
 export function publishLedFrame(
   pixels: Uint8Array | null,
@@ -44,7 +47,11 @@ export function subscribeLedFrame(fn: (f: LedFrame) => void): () => void {
   subscribers.add(fn);
   // Paint once immediately so a card mounting between frames is never blank.
   fn(frame);
-  if (rafId === null) loop();
+  if (rafId === null) {
+    // A streamed page is captured at the stream's rate; ticks past the page's cap only wake the loop.
+    shouldTick = createAdaptivePacer(() => pageFrameCap(window.location.search), panelDisplayHz(window.location.search));
+    loop();
+  }
   return () => {
     subscribers.delete(fn);
     if (subscribers.size === 0 && rafId !== null) {
@@ -54,8 +61,9 @@ export function subscribeLedFrame(fn: (f: LedFrame) => void): () => void {
   };
 }
 
-function loop(): void {
+function loop(ts: number = performance.now()): void {
   rafId = requestAnimationFrame(loop);
+  if (shouldTick && !shouldTick(ts)) return;
   if (frame.seq === deliveredSeq) return;
   deliveredSeq = frame.seq;
   for (const fn of subscribers) fn(frame);
