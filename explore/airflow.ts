@@ -1,5 +1,7 @@
 import fixture from '../src/lib/cooling/__fixtures__/t1-cooling-state.json';
-import { parseCaseLayout } from '../src/lib/cooling/caseLayout';
+import { collapseMounts, normalizeBindings, parseCaseLayout, type CaseLayout, type FanBinding } from '../src/lib/cooling/caseLayout';
+import { boundSlotKeys, slotDirections, slotSpeeds, withDefaultBindings } from '../src/lib/cooling/slotFlow';
+import { visualFlow } from '../src/lib/cooling/visualFlow';
 import { createCaseRenderer } from '../src/panel/widgets/cooling/case3d/coolingCaseRenderer';
 import { FLOW_VARIANTS, setFlowVariant } from '../src/lib/cooling/flow/flowVariant';
 import { VISUAL_TIME_SCALE } from '../src/lib/cooling/flow/flowParams';
@@ -22,27 +24,48 @@ for (const key of Object.keys(FLOW_VARIANTS)) {
 }
 if (params.get('chrome') === '0') bar.style.display = 'none';
 
-// T1's Y70 with its real fans: right side and bottom draw air in, rear and top push it out.
-// fans=slow|fast|mixed sets the flow of every one of those: slow about 20 CFM, fast about 80. Mixed has one slow and one fast intake on the right side, the rest medium.
-// fans=max also runs the top radiator's three fans (exhaust) and the card's two fans, every one at about 100 CFM per 120 mm fan (about 2200 RPM), scaled by area for other sizes. A3-3 opens in this mode.
-const fans = params.get('fans') ?? (name.startsWith('A3-3') ? 'max' : null);
+// fans=t1 (the default for A3-3 variants) runs each fan from the T1 fixture's own bindings and channel speeds through the same path the app uses: collapseMounts, withDefaultBindings, slotSpeeds, visualFlow.
+// fans=slow|fast|mixed drive T1's Y70 with its case fans only: right side and bottom draw air in, rear and top push it out, at about 20 CFM, 80 CFM, or mixed.
+// fans=max also runs the top radiator's three fans (exhaust) and the card's two fans, every one at about 100 CFM per 120 mm fan, scaled by area for other sizes.
+const fans = params.get('fans') ?? (name.startsWith('A3-3') ? 't1' : null);
 const caseIntake = ['right:120:1', 'right:120:2', 'bottom:120:1'];
 const caseExhaust = ['rear:140:0', 'top:140:0'];
-const intake = fans === 'max' ? [...caseIntake, 'gpu:fan:0', 'gpu:fan:1'] : caseIntake;
-const exhaust = fans === 'max' ? [...caseExhaust, 'rad:0', 'rad:1', 'rad:2'] : caseExhaust;
-const raw = JSON.parse(JSON.stringify(fixture.caseLayout)) as { fanSlots: { key: string; taken: string | null }[] };
-for (const s of raw.fanSlots) if ([...caseIntake, ...caseExhaust].includes(s.key)) s.taken = 'fan';
-const layout = parseCaseLayout(raw)!;
-(window as unknown as { __slots: unknown }).__slots = layout.fanSlots.map(s => ({ key: s.key, position: s.position, size: s.size, taken: s.taken, axis: s.axis }));
-const directions: Record<string, FanDirection> = {};
+let layout: CaseLayout;
+let intake: string[];
+let exhaust: string[];
+let directions: Record<string, FanDirection> = {};
 const fanCfm: Record<string, number> = {};
-const SLOW = 20; const FAST = 80; const MID = 50;
-const sizeOf = (k: string) => layout.fanSlots.find(s => s.key === k)?.size ?? 120;
-const maxOf = (k: string) => Math.round(100 * (sizeOf(k) / 120) ** 2);
-const flowOf = (k: string) => (fans === 'max' ? maxOf(k) : fans === 'slow' ? SLOW : fans === 'fast' ? FAST : fans === 'mixed' ? (k === 'right:120:1' ? SLOW : k === 'right:120:2' ? FAST : MID) : 55);
-for (const k of intake) { directions[k] = 'intake'; fanCfm[k] = flowOf(k); }
-for (const k of exhaust) { directions[k] = 'exhaust'; fanCfm[k] = flowOf(k); }
-const referenceCfm = fans === 'max' ? Math.max(...[...intake, ...exhaust].map(maxOf)) : fans ? FAST : undefined;
+let ventCfm = 0;
+let referenceCfm: number | undefined;
+if (fans === 't1') {
+  const parsed = parseCaseLayout(fixture.caseLayout)!;
+  const stored = fixture.layout.bindings as unknown as FanBinding[];
+  const channels = fixture.channels as unknown as Parameters<typeof slotSpeeds>[2];
+  const collapsed = collapseMounts(parsed, boundSlotKeys(stored, channels));
+  layout = collapsed.layout;
+  const bindings = withDefaultBindings(normalizeBindings(stored, collapsed.canonOf), layout.fanSlots, channels);
+  directions = slotDirections(layout.fanSlots, fixture.layout.directions as Record<string, FanDirection>);
+  const flow = visualFlow(layout.fanSlots, [], slotSpeeds(layout.fanSlots, bindings, channels), directions);
+  Object.assign(fanCfm, flow.fanCfm);
+  ventCfm = flow.ventCfm;
+  referenceCfm = flow.referenceCfm;
+  intake = Object.keys(fanCfm).filter(k => fanCfm[k] > 0 && directions[k.split('#')[0]] !== 'exhaust');
+  exhaust = Object.keys(fanCfm).filter(k => fanCfm[k] > 0 && directions[k.split('#')[0]] === 'exhaust');
+} else {
+  intake = fans === 'max' ? [...caseIntake, 'gpu:fan:0', 'gpu:fan:1'] : caseIntake;
+  exhaust = fans === 'max' ? [...caseExhaust, 'rad:0', 'rad:1', 'rad:2'] : caseExhaust;
+  const raw = JSON.parse(JSON.stringify(fixture.caseLayout)) as { fanSlots: { key: string; taken: string | null }[] };
+  for (const s of raw.fanSlots) if ([...caseIntake, ...caseExhaust].includes(s.key)) s.taken = 'fan';
+  layout = parseCaseLayout(raw)!;
+  const SLOW = 20; const FAST = 80; const MID = 50;
+  const sizeOf = (k: string) => layout.fanSlots.find(s => s.key === k)?.size ?? 120;
+  const maxOf = (k: string) => Math.round(100 * (sizeOf(k) / 120) ** 2);
+  const flowOf = (k: string) => (fans === 'max' ? maxOf(k) : fans === 'slow' ? SLOW : fans === 'fast' ? FAST : fans === 'mixed' ? (k === 'right:120:1' ? SLOW : k === 'right:120:2' ? FAST : MID) : 55);
+  for (const k of intake) { directions[k] = 'intake'; fanCfm[k] = flowOf(k); }
+  for (const k of exhaust) { directions[k] = 'exhaust'; fanCfm[k] = flowOf(k); }
+  referenceCfm = fans === 'max' ? Math.max(...[...intake, ...exhaust].map(maxOf)) : fans ? FAST : undefined;
+}
+(window as unknown as { __slots: unknown }).__slots = layout.fanSlots.map(s => ({ key: s.key, position: s.position, size: s.size, taken: s.taken, axis: s.axis }));
 (window as unknown as { __fans: unknown }).__fans = [...intake.map(k => ({ key: k, dir: 'intake', cfm: fanCfm[k] })), ...exhaust.map(k => ({ key: k, dir: 'exhaust', cfm: fanCfm[k] }))];
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
@@ -51,7 +74,7 @@ renderer.resize();
 addEventListener('resize', () => renderer.resize());
 renderer.setState({
   layout, directions, highlighted: new Set(), bound: new Set(), showCase: true, simulated: new Set(), active: null,
-  flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm },
+  flow: { layout, directions, fanCfm, ventCfm, referenceCfm },
   flowOptions: { particles: true, collisions: false, speed: 1.5, timeScale: VISUAL_TIME_SCALE },
 });
 if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 });

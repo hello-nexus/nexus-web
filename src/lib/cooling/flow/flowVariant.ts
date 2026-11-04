@@ -34,6 +34,8 @@ export interface FlowVariant {
   outDecay: number;
   /** Share of the ribbon, from the tip, over which alpha ramps up from nothing; 0 leaves the tip at full alpha. */
   headFade: number;
+  /** Shapes the ends of each streak per pixel, as a rounded nose and tail over a full-width ribbon, instead of narrowing the ribbon's width. */
+  capsule: boolean;
   /** Draws each streak through the particle's recorded positions instead of walking back through the field; trailSteps is how many particle steps of travel the trail spans. */
   history: boolean;
   trailSteps: number;
@@ -61,7 +63,7 @@ export interface FlowVariant {
 export const CURRENT_VARIANT: FlowVariant = {
   name: 'Current', drawShare: PARTICLE_DRAW_SHARE, streakSteps: STREAK_STEPS, streakMinMm: STREAK_MIN_MM, streakMaxMm: STREAK_MAX_MM, segments: STREAK_SEGMENTS,
   widthMm: STREAK_WIDTH_MM, minWidthPx: STREAK_MIN_WIDTH_PX, tailWidth: STREAK_TAIL_WIDTH, alpha: 0.95, maxAge: PARTICLE_MAX_AGE, lifeJitter: PARTICLE_LIFE_JITTER,
-  timeScaleMul: 1, fadePow: 0.8, headGlow: 0, soft: 0, alphaVar: 0.25, headTaper: 0, growTail: false, fadeOut: 0, smooth: false, history: false, trailSteps: 0, exitShare: 0, marginStart: 0, outDecay: 0, headFade: 0, stationHeat: false, heatGain: 1, heatCurve: 1, directRamp: false, temps: false,
+  timeScaleMul: 1, fadePow: 0.8, headGlow: 0, soft: 0, alphaVar: 0.25, headTaper: 0, growTail: false, fadeOut: 0, smooth: false, history: false, trailSteps: 0, exitShare: 0, marginStart: 0, outDecay: 0, headFade: 0, capsule: false, stationHeat: false, heatGain: 1, heatCurve: 1, directRamp: false, temps: false,
 };
 
 export const FLOW_VARIANTS: Record<string, FlowVariant> = {
@@ -91,7 +93,7 @@ FLOW_VARIANTS['A3-3-walk'] = { ...D, name: 'A3-3-walk', drawShare: (PARTICLE_DRA
 // A3-3 draws through recorded positions; A3-3-walk is the field-walk version it replaced, kept to compare geometry.
 FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 96, alphaVar: 0.4, smooth: true, history: true, trailSteps: 35, segments: 28, timeScaleMul: 1.6, exitShare: 0.35 };
 // A3-3 twice as wide and twice the particles at half the alpha.
-FLOW_VARIANTS['A3-3-thick'] = { ...D, name: 'A3-3-thick', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2 * 1.5, widthMm: 32, minWidthPx: 14, alpha: 0.5, headTaper: 0.22, growTail: true, fadeOut: 120, alphaVar: 0.4, smooth: true, history: true, trailSteps: 55, segments: 32, timeScaleMul: 1.6, exitShare: 0, marginStart: 0.05, outDecay: 0.6, headFade: 0.28 };
+FLOW_VARIANTS['A3-3-thick'] = { ...D, name: 'A3-3-thick', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2 * 1.5, widthMm: 32, minWidthPx: 14, alpha: 0.5, headTaper: 0.22, growTail: true, fadeOut: 120, alphaVar: 0.4, smooth: true, history: true, trailSteps: 55, segments: 32, timeScaleMul: 1.6, exitShare: 0, marginStart: 0.05, outDecay: 0.6, headFade: 0.28, capsule: true };
 let active: FlowVariant = CURRENT_VARIANT;
 /** Chooses the look the next FlowLayer is built with. */
 export const setFlowVariant = (v: FlowVariant) => { active = v; };

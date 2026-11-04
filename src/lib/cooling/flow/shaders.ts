@@ -394,7 +394,7 @@ uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
 uniform float uHeatSpan;
 uniform float uFade; uniform float uOwed; uniform float uRefSpeed; uniform float uFieldLen; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
-out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx;
 #ifdef PROBE
 out vec4 vProbe;
 #endif
@@ -455,6 +455,7 @@ void main() {
   // The leading end narrows to a point: width ramps from zero at the head to full over the first uHeadTaper share of the ribbon.
   if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
   float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
+  vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp);
   vec2 axis = pa - pb;
   float len = length(axis);
   axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
@@ -503,9 +504,9 @@ uniform sampler2D PA; uniform sampler2D HIST;
 uniform int uHead; uniform float uTrailSteps;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
-uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+uniform float uCapsule; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
-out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx;
 #ifdef PROBE
 out vec4 vProbe;
 #endif
@@ -546,7 +547,10 @@ void main() {
   vec2 pb = screenOf(histPos(n, b + 3.0), wb);
   float taper = mix(uTailWidth, 1.0, corner.x);
   if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
+  // A capsule streak keeps the ribbon at full width: its ends are shaped per pixel in the fragment shader.
+  if (uCapsule > 0.5) taper = 1.0;
   float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
+  vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp);
   vec2 axis = pp - pb;
   float len = length(axis);
   axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
@@ -568,11 +572,24 @@ in vec4 vProbe;
 void main() { gl_FragColor = vProbe; }`;
 
 export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
-in vec3 vColor; in float vAlpha; in float vAlong; in float vSide;
+in vec3 vColor; in float vAlpha; in float vAlong; in float vSide; in float vHalfPx;
 uniform float uFadePow; uniform float uHeadGlow; uniform float uSoft;
+uniform float uCapsule; uniform float uShapeHead; uniform float uShapeTail;
 void main() {
-  // Strong head fading to a transparent tail; a darker rim around a bright core keeps the streak apart from both light and dark backgrounds.
   float across = abs(vSide);
+  if (uCapsule > 0.5) {
+    // The outline is carved per pixel: a rounded nose and a rounded tail, with a feather of about a pixel and a half, so no segment count shows as corners.
+    float ph = sqrt(clamp((1.0 - vAlong) / uShapeHead, 0.0, 1.0));
+    float pt = sqrt(clamp(vAlong / uShapeTail, 0.0, 1.0));
+    float prof = min(ph, pt);
+    float feather = 1.5 / max(vHalfPx, 1.0);
+    float body = 1.0 - smoothstep(prof - feather, prof, across);
+    float ac = vAlpha * pow(vAlong, uFadePow) * body;
+    if (ac < 0.003) discard;
+    gl_FragColor = vec4(vColor * 1.1 * ac, ac);
+    return;
+  }
+  // Strong head fading to a transparent tail; a darker rim around a bright core keeps the streak apart from both light and dark backgrounds.
   float edge = mix(smoothstep(0.8, 1.0, across), smoothstep(0.0, 1.0, across), uSoft);
   float a = vAlpha * pow(vAlong, uFadePow) * (1.0 - edge);
   if (a < 0.003) discard;
