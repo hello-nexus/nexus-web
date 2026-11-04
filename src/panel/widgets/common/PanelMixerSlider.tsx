@@ -25,6 +25,8 @@ export interface PanelMixerSliderProps {
   disabled?: boolean;
   className?: string;
   onInteractionStart?: () => void;
+  // The drag ended without a commit because the slider was disabled meanwhile.
+  onDragEnd?: () => void;
   onChange: (value: number) => void;
   onCommit?: (value: number) => void;
   iconButton?: {
@@ -51,6 +53,7 @@ export function PanelMixerSlider({
   disabled = false,
   className,
   onInteractionStart,
+  onDragEnd,
   onChange,
   onCommit,
   iconButton,
@@ -114,7 +117,8 @@ export function PanelMixerSlider({
   const handleLostPointerCapture = () => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
-    onCommit?.(lastEmittedRef.current);
+    if (disabled) onDragEnd?.();
+    else onCommit?.(lastEmittedRef.current);
   };
 
   const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
@@ -128,8 +132,7 @@ export function PanelMixerSlider({
       // The browser may release capture first when a touch is cancelled.
     }
     if (disabled) {
-      // Disabled mid-drag: the consumer's drag still has to close.
-      onCommit?.(lastEmittedRef.current);
+      onDragEnd?.();
       return;
     }
     if (event.type === 'pointercancel') {

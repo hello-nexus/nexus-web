@@ -193,4 +193,25 @@ describe('usePanelBrightness record target', () => {
     act(() => result.current.commit(60));
     await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('b', { lcdBrightness: 60 }));
   });
+
+  it('never sends a value queued for one display to another', async () => {
+    vi.mocked(fetchDisplayBrightness).mockResolvedValue({ status: 'ok', brightness: 50 } as never);
+    let release: () => void = () => {};
+    vi.mocked(setDisplayBrightness).mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({} as never); }));
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string }) => usePanelBrightness(true, { kind: 'display', displayId: id }),
+      { initialProps: { id: 'd1' } },
+    );
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.preview(30));
+    await waitFor(() => expect(setDisplayBrightness).toHaveBeenCalledTimes(1));
+    act(() => result.current.preview(45));
+    rerender({ id: 'd2' });
+    release();
+    await act(async () => { await new Promise(r => setTimeout(r, 200)); });
+
+    expect(setDisplayBrightness).toHaveBeenCalledTimes(1);
+    expect(setDisplayBrightness).not.toHaveBeenCalledWith('d2', expect.anything());
+  });
 });

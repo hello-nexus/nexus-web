@@ -381,6 +381,7 @@ function ControlCenterBody({
               ariaLabel={t('panel.controlCenter.brightness')}
               onChange={brightness.preview}
               onCommit={brightness.commit}
+              onDragEnd={brightness.cancel}
             />
           )}
           {showMic && (

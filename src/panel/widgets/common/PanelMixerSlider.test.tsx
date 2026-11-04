@@ -35,9 +35,10 @@ describe('PanelMixerSlider pointer end', () => {
     expect(onCommit).toHaveBeenCalledWith(70);
   });
 
-  it('a release after the slider became disabled still closes the drag', () => {
+  it('a release after the slider became disabled ends the drag without committing', () => {
     const onCommit = vi.fn();
-    const props = { value: 40, ariaLabel: 'Level', onChange: vi.fn(), onCommit };
+    const onDragEnd = vi.fn();
+    const props = { value: 40, ariaLabel: 'Level', onChange: vi.fn(), onCommit, onDragEnd };
     const { rerender } = render(<PanelMixerSlider {...props} />);
     const track = screen.getByRole('slider');
     track.getBoundingClientRect = () => ({ x: 0, y: 100, top: 100, left: 0, right: 40, bottom: 200, width: 40, height: 100, toJSON: () => {} });
@@ -45,8 +46,22 @@ describe('PanelMixerSlider pointer end', () => {
     fireEvent.pointerDown(hitbox, { clientY: 150, pointerId: 1 });
     rerender(<PanelMixerSlider {...props} disabled />);
     fireEvent.pointerUp(hitbox, { clientY: 120, pointerId: 1 });
-    expect(onCommit).toHaveBeenCalledTimes(1);
-    expect(onCommit).toHaveBeenCalledWith(50);
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('a lost capture after the slider became disabled ends the drag without committing', () => {
+    const onCommit = vi.fn();
+    const onDragEnd = vi.fn();
+    const props = { value: 40, ariaLabel: 'Level', onChange: vi.fn(), onCommit, onDragEnd };
+    const { rerender } = render(<PanelMixerSlider {...props} />);
+    const track = screen.getByRole('slider');
+    const hitbox = track.parentElement as HTMLElement;
+    fireEvent.pointerDown(hitbox, { clientY: 150, pointerId: 1 });
+    rerender(<PanelMixerSlider {...props} disabled />);
+    fireEvent.lostPointerCapture(hitbox, { pointerId: 1 });
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
   });
 
   it('a cancel with no moves commits the pointerdown value, not max', () => {

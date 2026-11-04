@@ -111,9 +111,10 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
   const keepAlive = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const send = useCallback((v: number) => {
+    // A value queued for one target is never sent to another, or after unmount.
+    if (closing.current || writeKey.current !== targetKey) return Promise.resolve(null);
     if (kind === 'y70') return postService('/y70/brightness', { brightness: v });
     if (kind === 'record' && recordId) {
-      if (closing.current || writeKey.current !== targetKey) return Promise.resolve(null);
       const mine = sess.current;
       const request = persistNext.current
         ? patchPanelDevice(recordId, { lcdBrightness: v }).then(r => { mine.persisted = v; return r; })
@@ -181,5 +182,5 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     write(clamped, true);
   }, [write, stopKeepAlive, targetKey]);
 
-  return { available, linkDown, value, preview, commit };
+  return { available, linkDown, value, preview, commit, cancel: stopKeepAlive };
 }
