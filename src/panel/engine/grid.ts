@@ -220,9 +220,8 @@ export function panelGridCapacityForCanvas(
     return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, columnCount, spacing, contentSpacing);
   }
 
-  const safeColumns = columnCount;
   const solve = (s: PanelInset): PanelGridGeometry => {
-    const cellSize = Math.max(1, canvasW - s.padding * 2 - s.gap * (safeColumns - 1)) / safeColumns;
+    const cellSize = Math.max(1, canvasW - s.padding * 2 - s.gap * (columnCount - 1)) / columnCount;
     const contentH = Math.max(1, canvasH - s.padding * 2);
     const rows = fixedRows == null
       ? toEvenFloor((contentH + s.gap) / (cellSize + s.gap))
@@ -230,7 +229,7 @@ export function panelGridCapacityForCanvas(
     const rowSize = fixedRows == null
       ? cellSize
       : Math.max(1, (contentH - s.gap * (rows - 1)) / rows);
-    return { columns: safeColumns, rows, cellSize, rowSize, gap: s.gap, padding: s.padding };
+    return { columns: columnCount, rows, cellSize, rowSize, gap: s.gap, padding: s.padding };
   };
   return withContentGeometry(solve(spacing), solve(contentSpacing), surfaceScalesContentToShortSide(surface));
 }

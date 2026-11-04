@@ -4,7 +4,8 @@ import { SIMULATED_SCREEN_CATALOG } from '../../lib/simulatedScreenCatalog';
 import { panelGridCapacityForCanvas, panelWidgetPaddingRatio, PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from './grid';
 import { widgetSizeCapacity } from './widgetSizeFit';
 import { widgetSizeStops, stopForWidgetSize } from './widgetSizeStops';
-import { panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, widgetSizeShortSideSlots } from '../types';
+import { DEFAULT_SURFACE_DPI } from './panelGrid';
+import { panelLayoutDpi, panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, widgetSizeShortSideSlots } from '../types';
 import { ZMATRICES_LCD_FAMILY, ZMATRICES_MAX_E87_FAMILY } from '../types';
 
 const E87 = SIMULATED_SCREEN_CATALOG.find(s => s.id === 'zmatrices-max-e87')!;
@@ -69,9 +70,12 @@ describe('ZMatrices MAX E87 widget scale', () => {
   });
 
   it('gives the Glacier Matrix the density grid for its small size and no forced count', () => {
+    const glacierRecord = SIMULATED_SCREEN_CATALOG.find(s => s.id === 'zmatrices-lcd')!;
     const glacier = panelWidgetSizeOptions('lcd-wide', ZMATRICES_LCD_FAMILY)!;
     expect(widgetSizeShortSideSlots(glacier, 'small', undefined)).toBeUndefined();
-    const cap = widgetSizeCapacity('monitor', { width: E87.width, height: E87.height }, 1, 109, PADDING, undefined)!;
+    const dpi = panelLayoutDpi('lcd-wide', ZMATRICES_LCD_FAMILY, 'small', null, DEFAULT_SURFACE_DPI)!;
+    expect(dpi).toBeGreaterThan(0);
+    const cap = widgetSizeCapacity('monitor', { width: glacierRecord.width, height: glacierRecord.height }, 1, dpi, PADDING, undefined)!;
     expect(cap.gridCols % 2).toBe(0);
     expect(cap.pageRows % 2).toBe(0);
   });
