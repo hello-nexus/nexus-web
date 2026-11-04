@@ -330,16 +330,19 @@ vec3 rampColor(float h) {
 `;
 
 // A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
-export const streakVertex = (steps: number, minMm: number, maxMm: number, segments: number) => LIFE + GRID_COMMON + streakGlsl(steps, minMm, maxMm) + /* glsl */ `
+export const streakVertex = (steps: number, minMm: number, maxMm: number, segments: number) => LIFE + GRID_COMMON + TEMP_COMMON + streakGlsl(steps, minMm, maxMm) + /* glsl */ `
 #define STREAK_SEGMENTS ${segments}
 uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
 uniform float uHeatSpan;
+uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
 ${RAMP}
+// Cool to hot; uDirect 1 skips the purple stop.
+vec3 streakRamp(float h) { return uDirect > 0.5 ? mixLab(uCool, uHot, clamp(h, 0.0, 1.0)) : rampColor(h); }
 vec2 screenOf(vec3 cellPos, out float w) {
   vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
   vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);
@@ -356,9 +359,8 @@ void main() {
   vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
   float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
-  vColor = rampColor(h);
-  // A stable per-particle strength, so neighbors differ a little without flickering.
-  float strength = mix(0.75, 1.0, hash(vec2(r) * 1.31 + 0.5));
+  // A stable per-particle strength, so neighbors differ without flickering.
+  float strength = mix(1.0 - uAlphaVar, 1.0, hash(vec2(r) * 1.31 + 0.5));
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha * strength;
   // Length from the displacement per unit of simulation time, so Slow mo shows the same trail moving slower.
   vec4 sl = streakOf(stepDisplacement(p, s, uCell) / uRate);
@@ -377,6 +379,9 @@ void main() {
     if (!solidAt(ivec3(floor(nxt + 0.5)))) { lastBack = nxt - cur; cur = nxt; }
   }
   vec3 at = station == 0 ? s.xyz : cur;
+  // With station heat on, each station takes the temperature of the air where it lies, so the tail keeps the cooler color it passed through.
+  float hs = uStationHeat > 0.5 ? clamp(sampleT(at) / uHeatSpan, 0.0, 1.0) : h;
+  vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
   float wa; float wb; float wp;
   // A blocked last step keeps the direction of the last step that moved.
   vec2 pa = screenOf(cur - lastBack, wa);

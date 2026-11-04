@@ -379,7 +379,7 @@ export class FlowLayer {
       uniforms: {
         PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
         uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: v.widthMm }, uMinWidthPx: { value: v.minWidthPx }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
+        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uAlphaVar: { value: v.alphaVar }, uStationHeat: { value: v.stationHeat ? 1 : 0 }, uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uDirect: { value: v.directRamp ? 1 : 0 }, T: { value: null as unknown }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
         uCool: { value: this.colors.cool }, uPurple: { value: this.colors.purple }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
@@ -494,6 +494,7 @@ export class FlowLayer {
         this.runner.run(this.stateMat, this.stateTargets[next]);
         this.heatMat.uniforms.PA.value = this.stateTargets[next].texture;
         this.heatMat.uniforms.T.value = flow.temperature;
+        if (this.streakMat) this.streakMat.uniforms.T.value = flow.temperature;
         this.runner.run(this.heatMat, this.heatTargets[next]);
         this.stateCur = next;
       }
