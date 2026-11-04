@@ -5116,6 +5116,8 @@
   "panel.widget.web-view.settings.interactive": "ページをタッチで操作",
   "panel.widget.web-view.settings.interactiveHint": "タイル上でそのままページを操作できます。タイルを長押しして「イマーシブモード」を選ぶと全画面で表示します。",
   "panel.widget.web-view.settings.invalid": "有効なhttpまたはhttpsのアドレスを入力してください",
+  "panel.widget.web-view.settings.media": "マイクとカメラを許可",
+  "panel.widget.web-view.settings.mediaHint": "オンの間、サイトはマイクとカメラを使用できます。",
   "panel.widget.web-view.settings.refresh": "自動更新",
   "panel.widget.web-view.settings.refreshMany": "{n}分ごと",
   "panel.widget.web-view.settings.refreshOff": "オフ",

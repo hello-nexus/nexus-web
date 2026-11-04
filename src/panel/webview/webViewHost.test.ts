@@ -514,6 +514,42 @@ describe('zoom', () => {
   });
 });
 
+describe('media', () => {
+  it('is absent from the view unless the claim allows it', () => {
+    const host = makeHost();
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
+    host.register({ id: 'b', url: 'https://b.test/', element: makeEl().el, immersive: false, media: false });
+    bridge.push(caps());
+    for (const v of syncs().at(-1)!.views) expect('media' in v && v.media).toBeFalsy();
+  });
+
+  it('is sent as true on the tile and the immersive claim of one widget', () => {
+    const host = makeHost();
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false, media: true });
+    bridge.push(caps());
+    expect(syncs().at(-1)!.views[0].media).toBe(true);
+    host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: true, media: true });
+    frame();
+    const v = syncs().at(-1)!.views[0];
+    expect(v.immersive).toBe(true);
+    expect(v.media).toBe(true);
+  });
+
+  it('re-syncs on a change without sending a reload command', () => {
+    const host = makeHost();
+    const claim = host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
+    bridge.push(caps());
+    claim.setMedia(true);
+    frame();
+    expect(syncs().at(-1)!.views[0].media).toBe(true);
+    claim.setMedia(false);
+    frame();
+    expect(syncs().at(-1)!.views[0].media).toBeFalsy();
+    const cmds = bridge.postMessage.mock.calls.filter(c => c[0].type === 'nexus.webview.command');
+    expect(cmds).toHaveLength(0);
+  });
+});
+
 describe('auto-refresh timer', () => {
   const reloads = () => bridge.postMessage.mock.calls
     .map(c => c[0]).filter(m => m.type === 'nexus.webview.command' && m.command === 'reload');

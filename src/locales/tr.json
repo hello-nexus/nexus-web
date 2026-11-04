@@ -5116,6 +5116,8 @@
   "panel.widget.web-view.settings.interactive": "Sayfaya dokun",
   "panel.widget.web-view.settings.interactiveHint": "Sayfayı doğrudan karo üzerinde kullanın. Karoya basılı tutup Tam ekran modu'nu seçin.",
   "panel.widget.web-view.settings.invalid": "Geçerli bir http veya https adresi girin",
+  "panel.widget.web-view.settings.media": "Mikrofona ve kameraya izin ver",
+  "panel.widget.web-view.settings.mediaHint": "Bu açıkken site mikrofonu ve kamerayı kullanabilir.",
   "panel.widget.web-view.settings.refresh": "Otomatik yenileme",
   "panel.widget.web-view.settings.refreshMany": "Her {n} dakikada bir",
   "panel.widget.web-view.settings.refreshOff": "Kapalı",

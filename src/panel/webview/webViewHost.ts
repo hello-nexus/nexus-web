@@ -52,6 +52,8 @@ export interface WebViewClaimInput {
   refreshMinutes?: number;
   /** Tile claims only: the native view takes the touch, so the page can be used in place. */
   touchPage?: boolean;
+  /** Grant this view's microphone and camera requests. Sent on tile and immersive claims alike. */
+  media?: boolean;
 }
 
 export interface WebViewClaimHandle {
@@ -59,6 +61,7 @@ export interface WebViewClaimHandle {
   setZoom: (zoom: number) => void;
   setRefreshMinutes: (minutes: number) => void;
   setTouchPage: (touchPage: boolean) => void;
+  setMedia: (media: boolean) => void;
   release: () => void;
 }
 
@@ -159,6 +162,11 @@ export class WebViewHost {
       setTouchPage: (touchPage: boolean) => {
         if ((rec.touchPage ?? false) === touchPage) return;
         rec.touchPage = touchPage;
+        this.schedule();
+      },
+      setMedia: (media: boolean) => {
+        if ((rec.media ?? false) === media) return;
+        rec.media = media;
         this.schedule();
       },
       release: () => {
@@ -500,6 +508,7 @@ export class WebViewHost {
         zoom: clampZoom(c.zoom),
         interactive: this.viewInteractive(c),
         immersive: c.immersive || undefined,
+        media: c.media === true ? true : undefined,
         visible: computeVisible({
           supported,
           documentVisible,

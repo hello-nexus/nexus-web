@@ -5116,6 +5116,8 @@
   "panel.widget.web-view.settings.interactive": "Tocje la pagjine",
   "panel.widget.web-view.settings.interactiveHint": "Dopre la pagjine dret te tessare. Tegni brincade la tessare e sielç Modalitât imersive par lu viodê a schermi plen.",
   "panel.widget.web-view.settings.invalid": "Inserìs un indirizz http o https valit",
+  "panel.widget.web-view.settings.media": "Permet microfon e fotocjamare",
+  "panel.widget.web-view.settings.mediaHint": "Il sît al pues doprâ il microfon e la fotocjamare fin che cheste opzion e je ative.",
   "panel.widget.web-view.settings.refresh": "Inzornament automatic",
   "panel.widget.web-view.settings.refreshMany": "Ogni {n} minûts",
   "panel.widget.web-view.settings.refreshOff": "Studât",

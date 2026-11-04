@@ -5116,6 +5116,8 @@
   "panel.widget.web-view.settings.interactive": "Touch the page",
   "panel.widget.web-view.settings.interactiveHint": "Use the page in place. Hold the tile and choose Immersive mode for fullscreen.",
   "panel.widget.web-view.settings.invalid": "Enter a valid http or https address",
+  "panel.widget.web-view.settings.media": "Allow microphone and camera",
+  "panel.widget.web-view.settings.mediaHint": "The site can use the microphone and camera while this is on.",
   "panel.widget.web-view.settings.refresh": "Auto-refresh",
   "panel.widget.web-view.settings.refreshMany": "Every {n} minutes",
   "panel.widget.web-view.settings.refreshOff": "Off",

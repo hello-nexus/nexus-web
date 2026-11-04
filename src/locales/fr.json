@@ -5116,6 +5116,8 @@
   "panel.widget.web-view.settings.interactive": "Toucher la page",
   "panel.widget.web-view.settings.interactiveHint": "Utilisez la page directement dans la vignette. Maintenez la vignette appuyée et choisissez Mode immersif pour le plein écran.",
   "panel.widget.web-view.settings.invalid": "Saisissez une adresse http ou https valide",
+  "panel.widget.web-view.settings.media": "Autoriser le microphone et la caméra",
+  "panel.widget.web-view.settings.mediaHint": "Le site peut utiliser le microphone et la caméra lorsque cette option est activée.",
   "panel.widget.web-view.settings.refresh": "Actualisation automatique",
   "panel.widget.web-view.settings.refreshMany": "Toutes les {n} minutes",
   "panel.widget.web-view.settings.refreshOff": "Désactivée",

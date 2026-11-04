@@ -28,6 +28,8 @@ export interface WebViewSyncView {
   zoom?: number;
   /** Set only for the immersive claim; the overlay hides its in-page back disc then. */
   immersive?: boolean;
+  /** Present and true only when the user allowed this view microphone and camera access. */
+  media?: boolean;
 }
 
 export interface WebViewHello { type: 'nexus.webview.hello'; version: number }

@@ -5161,6 +5161,8 @@
   "panel.widget.web-view.settings.interactive": "Ovládat stránku dotykem",
   "panel.widget.web-view.settings.interactiveHint": "Používejte stránku přímo na dlaždici. Podržte dlaždici a zvolte Režim celé obrazovky.",
   "panel.widget.web-view.settings.invalid": "Zadejte platnou adresu http nebo https",
+  "panel.widget.web-view.settings.media": "Povolit mikrofon a kameru",
+  "panel.widget.web-view.settings.mediaHint": "Web může používat mikrofon a kameru, dokud je tato volba zapnutá.",
   "panel.widget.web-view.settings.refresh": "Automatické obnovení",
   "panel.widget.web-view.settings.refreshMany": "Každých {n} minut",
   "panel.widget.web-view.settings.refreshOff": "Vyp.",
