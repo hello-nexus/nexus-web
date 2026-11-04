@@ -203,7 +203,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -227,7 +227,10 @@ void main() {
   bool respawn = age > uMaxAge * 4.0;
   bool fresh = respawn;
   // A warm update can close the cell a particle sits in: only those start over.
-  if (!respawn && p.x > -1.0e5 && solidAt(cellAtPos(p))) respawn = true;
+  float life = lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
+  float dieAt = life - uFadeOut;
+  // With a fade-out window a particle that ends early (a closed cell, a wall or the edge) enters its fade instead of teleporting: it jumps to the window start, keeps moving and respawns once it has faded.
+  if (!respawn && p.x > -1.0e5 && age >= 0.0 && solidAt(cellAtPos(p))) { if (uFadeOut > 0.0) age = max(age, dieAt); else respawn = true; }
   // Not yet born: wait unseen at the spawn point.
   if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + rate); return; }
   if (!respawn) {
@@ -244,11 +247,16 @@ void main() {
       if (mask(cellAtPos(q)).b > 0.5) break;
     }
     // A particle that barely moves, in dead air or against a wall, ages fast and is soon recycled.
-    age += (length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0) * rate;
+    float inc = (length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0) * rate;
+    // A stuck particle's fast aging stops at the fade window, so its fade runs at the normal rate.
+    if (uFadeOut > 0.0) inc = age < dieAt ? min(inc, dieAt - age) : rate;
+    age += inc;
     p = q;
     ivec3 c = cellAtPos(p);
     // Nothing lives past the outside reach of the case box: a particle that leaves it is recycled.
-    respawn = any(lessThan(p, uBoundsMin)) || any(greaterThan(p, uBoundsMax)) || mask(c).b > 0.5 || age > lifeOf(gl_FragCoord.xy, uMaxAge, uLifeJitter);
+    bool leaves = any(lessThan(p, uBoundsMin)) || any(greaterThan(p, uBoundsMax)) || mask(c).b > 0.5;
+    if (uFadeOut > 0.0) { if (leaves) age = max(age, dieAt); respawn = age > life; }
+    else respawn = leaves || age > life;
   }
   if (respawn) {
     bool found = false;
@@ -337,7 +345,7 @@ uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform flo
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
 uniform float uHeatSpan;
-uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+uniform float uFadeOut; uniform float uGrowTail; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
 ${RAMP}
@@ -358,12 +366,15 @@ void main() {
   vec3 head = (s.xyz + 0.5) * uCell - uOrigin;
   vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
-  float fade = smoothstep(0.0, 12.0, s.w) * (1.0 - smoothstep(life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
+  float fade = smoothstep(0.0, uGrowTail > 0.5 ? 60.0 : 12.0, s.w) * (1.0 - smoothstep(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
   // A stable per-particle strength, so neighbors differ without flickering.
   float strength = mix(1.0 - uAlphaVar, 1.0, hash(vec2(r) * 1.31 + 0.5));
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha * strength;
   // Length from the displacement per unit of simulation time, so Slow mo shows the same trail moving slower.
-  vec4 sl = streakOf(stepDisplacement(p, s, uCell) / uRate);
+  vec3 stepMm = stepDisplacement(p, s, uCell) / uRate;
+  vec4 sl = streakOf(stepMm);
+  // A new particle has travelled only age times its step, so its trail grows out of the spawn point instead of reaching back into air it never crossed.
+  if (uGrowTail > 0.5) sl.w = min(sl.w, max(length(stepMm) * max(s.w, 0.0), 0.5));
   float stepCells = sl.w / float(STREAK_SEGMENTS) / uCell;
   int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
   // Walk back from the head: a station at rest keeps the direction it had, a blocked step stays put. The tangent is the last step taken to reach the station (the first step for the head).
@@ -388,6 +399,8 @@ void main() {
   vec2 pb = screenOf(cur, wb);
   vec2 pp = screenOf(at, wp);
   float taper = mix(uTailWidth, 1.0, corner.x);
+  // The leading end narrows to a point: width ramps from zero at the head to full over the first uHeadTaper share of the ribbon.
+  if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
   float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
   vec2 axis = pa - pb;
   float len = length(axis);

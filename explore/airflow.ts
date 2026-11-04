@@ -31,7 +31,10 @@ const fanCfm: Record<string, number> = {};
 // fans=slow|fast|mixed sets the flow of every fan: slow about 20 CFM, fast about 80. Mixed has one slow and one fast intake on the right side, the rest medium.
 const fans = params.get('fans');
 const SLOW = 20; const FAST = 80; const MID = 50;
-const flowOf = (k: string) => (fans === 'slow' ? SLOW : fans === 'fast' ? FAST : fans === 'mixed' ? (k === 'right:120:1' ? SLOW : k === 'right:120:2' ? FAST : MID) : 55);
+// fans=max runs every fan at about 100 CFM per 120 mm fan (about 2200 RPM), scaled by area for other sizes; the largest is the reference.
+const sizeOf = (k: string) => Number(k.split(':')[1]);
+const maxOf = (k: string) => Math.round(100 * (sizeOf(k) / 120) ** 2);
+const flowOf = (k: string) => (fans === 'max' ? maxOf(k) : fans === 'slow' ? SLOW : fans === 'fast' ? FAST : fans === 'mixed' ? (k === 'right:120:1' ? SLOW : k === 'right:120:2' ? FAST : MID) : 55);
 for (const k of intake) { directions[k] = 'intake'; fanCfm[k] = flowOf(k); }
 for (const k of exhaust) { directions[k] = 'exhaust'; fanCfm[k] = flowOf(k); }
 
@@ -41,7 +44,7 @@ renderer.resize();
 addEventListener('resize', () => renderer.resize());
 renderer.setState({
   layout, directions, highlighted: new Set(), bound: new Set(), showCase: true, simulated: new Set(), active: null,
-  flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm: fans ? FAST : undefined },
+  flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm: fans === 'max' ? Math.max(...[...intake, ...exhaust].map(maxOf)) : fans ? FAST : undefined },
   flowOptions: { particles: true, collisions: false, speed: 1.5, timeScale: VISUAL_TIME_SCALE },
 });
 if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 });

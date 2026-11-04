@@ -346,7 +346,7 @@ export class FlowLayer {
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: v.maxAge }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: v.lifeJitter }, uSpeed: { value: this.options.speed }, uRefSpeed: { value: PARTICLE_REFERENCE_SPEED }, uSubsteps: { value: substepsFor(this.options.speed) },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uFadeOut: { value: v.fadeOut }, uSeed: { value: 0 }, uMaxAge: { value: v.maxAge }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: v.lifeJitter }, uSpeed: { value: this.options.speed }, uRefSpeed: { value: PARTICLE_REFERENCE_SPEED }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
@@ -379,7 +379,7 @@ export class FlowLayer {
       uniforms: {
         PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
         uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: v.widthMm }, uMinWidthPx: { value: v.minWidthPx }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uAlphaVar: { value: v.alphaVar }, uStationHeat: { value: v.stationHeat ? 1 : 0 }, uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uDirect: { value: v.directRamp ? 1 : 0 }, T: { value: null as unknown }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
+        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uAlphaVar: { value: v.alphaVar }, uHeadTaper: { value: v.headTaper }, uFadeOut: { value: v.fadeOut }, uGrowTail: { value: v.growTail ? 1 : 0 }, uStationHeat: { value: v.stationHeat ? 1 : 0 }, uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uDirect: { value: v.directRamp ? 1 : 0 }, T: { value: null as unknown }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
         uCool: { value: this.colors.cool }, uPurple: { value: this.colors.purple }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
