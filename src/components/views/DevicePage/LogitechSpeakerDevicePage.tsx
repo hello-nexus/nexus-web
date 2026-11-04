@@ -184,6 +184,9 @@ function AcousticsTab({ state, change, report }: TabProps) {
           checked={eqOn}
           onChange={on => { void change(() => setSpeakerEq({ enabled: on })); }}
         />
+        <SettingRow label={t(`${P}preset`)}>
+          <SpeakerPresets state={state} change={change} report={report} />
+        </SettingRow>
         <EqBands state={state} change={change} report={report} />
       </SettingsSection>
     </>
@@ -200,7 +203,6 @@ function SpeakerPresets({ state, change, report }: TabProps) {
 
   return (
     <PresetToolbar
-      rail
       showHistory={false}
       translationPrefix="cooling.presets"
       cap={PRESET_LIMIT}
@@ -362,7 +364,6 @@ export function LogitechSpeakerDevicePage() {
         tabs={state?.present ? TABS.map(({ key, icon }) => ({ key, icon, label: t(`${P}${key}`) })) : undefined}
         activeTab={tab}
         onTabChange={key => setTab(key as Tab)}
-        tabActions={state?.present && tab === 'acoustics' ? <SpeakerPresets state={state} change={change} report={report} /> : undefined}
       />
       <div className={styles.body}>
         {failure && <Notice tone="critical" role="alert">{t(failure)}</Notice>}

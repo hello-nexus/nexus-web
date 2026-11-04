@@ -1471,6 +1471,7 @@
   "devices.logitechSpeaker.notFound": "Logitech G560 не найден",
   "devices.logitechSpeaker.notFoundHint": "Подключите колонку, и она появится здесь.",
   "devices.logitechSpeaker.output": "Выход",
+  "devices.logitechSpeaker.preset": "Пресет",
   "devices.logitechSpeaker.renameIncomplete": "Пресет сохранён под новым названием, но старый удалить не удалось.",
   "devices.logitechSpeaker.reset": "Сброс",
   "devices.logitechSpeaker.speakers": "Колонки",

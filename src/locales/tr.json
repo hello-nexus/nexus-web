@@ -1463,6 +1463,7 @@
   "devices.logitechSpeaker.notFound": "Logitech G560 bulunamadı",
   "devices.logitechSpeaker.notFoundHint": "Hoparlörü bağlayın, burada görünecek.",
   "devices.logitechSpeaker.output": "Çıkış",
+  "devices.logitechSpeaker.preset": "Önayar",
   "devices.logitechSpeaker.renameIncomplete": "Önayar yeni adla kaydedildi ancak eskisi kaldırılamadı.",
   "devices.logitechSpeaker.reset": "Sıfırla",
   "devices.logitechSpeaker.speakers": "Hoparlörler",

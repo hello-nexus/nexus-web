@@ -1463,6 +1463,7 @@
   "devices.logitechSpeaker.notFound": "Logitech G560 não encontrado",
   "devices.logitechSpeaker.notFoundHint": "Ligue a coluna e ela aparecerá aqui.",
   "devices.logitechSpeaker.output": "Saída",
+  "devices.logitechSpeaker.preset": "Predefinição",
   "devices.logitechSpeaker.renameIncomplete": "A predefinição foi guardada com o novo nome, mas não foi possível remover a anterior.",
   "devices.logitechSpeaker.reset": "Redefinir",
   "devices.logitechSpeaker.speakers": "Colunas",

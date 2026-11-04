@@ -1463,6 +1463,7 @@
   "devices.logitechSpeaker.notFound": "找不到 Logitech G560",
   "devices.logitechSpeaker.notFoundHint": "連接喇叭後，它會顯示在這裡。",
   "devices.logitechSpeaker.output": "輸出",
+  "devices.logitechSpeaker.preset": "預設",
   "devices.logitechSpeaker.renameIncomplete": "預設已用新名稱儲存，但無法刪除舊預設。",
   "devices.logitechSpeaker.reset": "重設",
   "devices.logitechSpeaker.speakers": "喇叭",

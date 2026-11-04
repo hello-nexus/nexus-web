@@ -1471,6 +1471,7 @@
   "devices.logitechSpeaker.notFound": "Logitech G560 nenalezen",
   "devices.logitechSpeaker.notFoundHint": "Připojte reproduktor a objeví se zde.",
   "devices.logitechSpeaker.output": "Výstup",
+  "devices.logitechSpeaker.preset": "Předvolba",
   "devices.logitechSpeaker.renameIncomplete": "Předvolba byla uložena pod novým názvem, ale původní se nepodařilo odebrat.",
   "devices.logitechSpeaker.reset": "Obnovit",
   "devices.logitechSpeaker.speakers": "Reproduktory",

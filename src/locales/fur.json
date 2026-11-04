@@ -1463,6 +1463,7 @@
   "devices.logitechSpeaker.notFound": "Logitech G560 no cjatât",
   "devices.logitechSpeaker.notFoundHint": "Tache la casse e e comparirà culì.",
   "devices.logitechSpeaker.output": "Jessude",
+  "devices.logitechSpeaker.preset": "Preset",
   "devices.logitechSpeaker.renameIncomplete": "Il preset al è stât salvât cul gnûf non, ma chel vecjo nol è stât gjavât.",
   "devices.logitechSpeaker.reset": "Ripristine",
   "devices.logitechSpeaker.speakers": "Cassis",

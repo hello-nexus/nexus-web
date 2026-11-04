@@ -1463,6 +1463,7 @@
   "devices.logitechSpeaker.notFound": "Logitech G560 non trovato",
   "devices.logitechSpeaker.notFoundHint": "Collega lo speaker e apparirà qui.",
   "devices.logitechSpeaker.output": "Uscita",
+  "devices.logitechSpeaker.preset": "Preset",
   "devices.logitechSpeaker.renameIncomplete": "Il preset è stato salvato con il nuovo nome, ma non è stato possibile rimuovere quello precedente.",
   "devices.logitechSpeaker.reset": "Reimposta",
   "devices.logitechSpeaker.speakers": "Speaker",
