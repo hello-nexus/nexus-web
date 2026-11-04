@@ -1,7 +1,7 @@
 import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Vec3 } from '../caseLayout';
 import { RADIATOR_LOSS_K, type FanDirection } from '../pressureModel';
 import {
-  AIR_DENSITY, AIR_SPECIFIC_HEAT, GRAVITY, ROOM_TEMP_K, CFL_TARGET, DARCY_K, RADIATOR_DARCY_MAX, VMAX_CELLS, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
+  AIR_DENSITY, AIR_SPECIFIC_HEAT, GRAVITY, ROOM_TEMP_K, CFL_TARGET, DARCY_K, RADIATOR_DARCY_MAX, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO, PLUME_EMITTERS_MAX,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
@@ -520,29 +520,6 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   });
 
   flushSpawns();
-
-  // The case's leaks and unfanned mounts carry the imbalance the pressure model found: air drawn in through them when the case is under negative pressure, pushed out when it is positive. The openings are otherwise passive, and a closed case would starve its exhausts instead of drawing from them.
-  if (input.ventCfm !== 0) {
-    const vents: { c: number; k: number; out: number }[] = [];
-    for (let c = 0; c < n; c++) {
-      if (opening[c] !== OPENING_VENT || solid[c]) continue;
-      const idx = [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
-      for (let k = 0; k < 3; k++) {
-        if (idx[k] === caseMax[k]) vents.push({ c, k, out: 1 });
-        else if (idx[k] === caseMin[k]) vents.push({ c, k, out: -1 });
-      }
-    }
-    if (vents.length > 0) {
-      const mps = (Math.abs(input.ventCfm) * M3S_PER_CFM) / (vents.length * cellAreaM2);
-      const speed = Math.min(VMAX_CELLS * 0.6, (CFL_TARGET * mps) / reference);
-      const sign = Math.sign(input.ventCfm);
-      for (const { c, k, out } of vents) {
-        if (fanCell[c]) continue;
-        target[c * 3 + k] = sign * out * speed;
-        fanCell[c] = 1;
-      }
-    }
-  }
 
   // Heat: fluid cells within reach of a heat-source solid warm the air that passes.
   for (const [c, source] of sources) {
