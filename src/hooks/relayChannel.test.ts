@@ -170,18 +170,38 @@ describe('pairOverRelay - post-claim close race (WebKit)', () => {
     expect(result).toEqual({ ok: true, sessionToken: 'sess-123', machineName: 'TEST-PC', spki: undefined });
   });
 
-  it('rejects when the channel closes BEFORE any reply frame is received', async () => {
+  it('reconnects on a fresh salt when the channel closes BEFORE any reply frame is received', async () => {
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+
+    const abort = new AbortController();
+    const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1', { pollMs: 5, signal: abort.signal });
+    const ws = await awaitSocket();
+
+    const firstSalt = driveToAwaitingReply(ws);
+    await flush();
+
+    // No reply frame - the relay peer-downs / closes after the claim went out.
+    // The PC may already hold a parked request, so the claim is retried on a
+    // new connection (new salt) until the deadline instead of failing.
+    ws.emitText(JSON.stringify({ e: 'peer-down' }));
+    ws.emitClose();
+
+    await waitFor(() => FakeWebSocket.last !== ws);
+    const next = FakeWebSocket.last as FakeWebSocket;
+    next.emitOpen();
+    expect(connSaltFromHello(next)).not.toBe(firstSalt);
+
+    abort.abort();
+    await expect(promise).resolves.toEqual({ ok: false, error: 'cancelled' });
+  });
+
+  it('rejects when the channel fails before the claim was ever sent', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
     const promise = pairOverRelay(RELAY_URL, PAIR_TOKEN, 'iPhone', 'device-uuid-1');
     const ws = await awaitSocket();
-
-    driveToAwaitingReply(ws);
-    await flush();
-
-    // No reply frame - the relay peer-downs / closes. This is a real failure
-    // (PC never answered) and MUST still reject.
-    ws.emitText(JSON.stringify({ e: 'peer-down' }));
+    ws.emitOpen();
+    // The PC never showed up: no peer-up, the relay closes.
     ws.emitClose();
 
     await expect(promise).rejects.toThrow();

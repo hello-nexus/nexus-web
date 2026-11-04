@@ -48,6 +48,9 @@ interface PanelControlCenterProps {
   surfaceRef: React.RefObject<HTMLElement | null>;
   // The panel record's display id, when this panel is a promoted monitor.
   displayId?: string;
+  // Set when the panel's own backlight is host-settable (record capabilities
+  // supportsBrightness); the slider then drives it instead of any display.
+  backlightRecordId?: string;
   isLandscape: boolean;
   resolvedThemeMode: 'dark' | 'light';
   onSetThemeMode: (mode: 'dark' | 'light') => void;
@@ -78,6 +81,7 @@ export function PanelControlCenter({
   kioskBehavior,
   surfaceRef,
   displayId,
+  backlightRecordId,
   isLandscape,
   resolvedThemeMode,
   onSetThemeMode,
@@ -218,6 +222,7 @@ export function PanelControlCenter({
             language={language}
             surface={surface}
             displayId={displayId}
+            backlightRecordId={backlightRecordId}
             resolvedThemeMode={resolvedThemeMode}
             onSetThemeMode={onSetThemeMode}
             onClose={onClose}
@@ -239,6 +244,7 @@ interface BodyProps {
   language: string;
   surface: PanelSurface;
   displayId?: string;
+  backlightRecordId?: string;
   resolvedThemeMode: 'dark' | 'light';
   onSetThemeMode: (mode: 'dark' | 'light') => void;
   onClose: () => void;
@@ -246,7 +252,7 @@ interface BodyProps {
 }
 
 function ControlCenterBody({
-  open, active, isLandscape, view, setView, language, surface, displayId, resolvedThemeMode, onSetThemeMode, onClose, onScreenSleep,
+  open, active, isLandscape, view, setView, language, surface, displayId, backlightRecordId, resolvedThemeMode, onSetThemeMode, onClose, onScreenSleep,
 }: BodyProps) {
   const { t } = useTranslation();
 
@@ -268,7 +274,7 @@ function ControlCenterBody({
     [now, language],
   );
 
-  const brightness = usePanelBrightness(active, brightnessTargetFor(surface, displayId));
+  const brightness = usePanelBrightness(active, brightnessTargetFor(surface, displayId, backlightRecordId));
   const volume = useSystemVolume(active, null, 2000);
   const mic = useSystemMic(active);
 
@@ -375,6 +381,7 @@ function ControlCenterBody({
               ariaLabel={t('panel.controlCenter.brightness')}
               onChange={brightness.preview}
               onCommit={brightness.commit}
+              onDragEnd={brightness.endDrag}
             />
           )}
           {showMic && (

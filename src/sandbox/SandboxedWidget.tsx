@@ -212,6 +212,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   enterImmersiveRef.current = onEnterImmersive;
   const opaqueChangeRef = useRef(onOpaqueChange);
   opaqueChangeRef.current = onOpaqueChange;
+  // The worker's api is created once, so dispatch reads the newest handler (the manifest allowlist can change).
+  const onDispatchRef = useRef(onDispatch);
+  onDispatchRef.current = onDispatch;
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const appDataEnabled = !!appData && !preview;
   const appDataEpoch = useSyncExternalStore(subscribeAppDataEpoch, getAppDataEpoch);
@@ -316,7 +319,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           // Preview: standard envelope, onDispatch never called.
           dispatch: preview
             ? () => Promise.resolve({ ok: false })
-            : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
+            : (action, args) => onDispatchRef.current?.(action, args) ?? Promise.resolve(null),
           exitImmersive: surface === 'immersive'
             ? () => { const e = liveWidgets.get(key); e?.mounts[e.mounts.length - 1]?.exitImmersive(); }
             : undefined,

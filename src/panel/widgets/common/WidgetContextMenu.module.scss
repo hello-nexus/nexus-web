@@ -41,16 +41,17 @@
   max-width: calc(100vw - 16px);
 }
 
+// No `filter` in these keyframes: the `both` fill would leave a filter on the
+// element beside its backdrop-filter for the menu's whole life, and Android
+// System WebView sized the frosted layer past the menu with that pairing.
 @keyframes menuFadeIn {
   from {
     opacity: 0;
-    filter: blur(0.5px);
     transform: translateY(5px) scale(calc(0.96 * var(--_menu-scale, 1)));
   }
 
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0) scale(var(--_menu-scale, 1));
   }
 }
@@ -58,13 +59,11 @@
 @keyframes menuFadeOut {
   from {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0) scale(var(--_menu-scale, 1));
   }
 
   to {
     opacity: 0;
-    filter: blur(0.5px);
     transform: translateY(3px) scale(calc(0.985 * var(--_menu-scale, 1)));
   }
 }

@@ -25,6 +25,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
+import { releaseAllPins } from './releasePins';
 import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
@@ -90,6 +91,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // The service's remembered static key, so entering the mode from animate
   // returns to the last static pick instead of the catalog default.
   const staticEffectRef = useRef(DEFAULT_STATIC_EFFECT);
+  // Bumped by every tile tap; a tap whose pin clear outlived a newer tap does not start.
+  const tapSeqRef = useRef(0);
   // Same, for animate. activeEffect holds the running mode's own pool, so it
   // is a static key while Static runs; without this ref, stepping back into
   // Animate would drop the user's animation for the catalog default.
@@ -339,6 +342,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   // A recents tile: the effect at the preset it shows. The preset becomes the effect's selected one, as picking it on the page does.
   const applyRecentAnimation = useCallback(async (effectKey: string, slot: number) => {
+    const seq = ++tapSeqRef.current;
+    setActiveEffect(effectKey);
+    setMode('animate');
+    await releaseAllPins();
+    // Only the latest tap starts: a slower pin clear must not let an older tap land last.
+    if (seq !== tapSeqRef.current) return;
     const bundle = allTemplates[effectKey];
     const picked = bundle?.slots[Math.min(Math.max(slot, 0), bundle.slots.length - 1)];
     // Before hydrate there is no preset to run, so the current one runs and no preset index is claimed.
@@ -371,10 +380,13 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   }, [publishLighting, templates]);
 
   const applyColor = useCallback(async (hex: string) => {
+    const seq = ++tapSeqRef.current;
     setActiveColor(hex.toLowerCase());
     setActiveEffect(DEFAULT_STATIC_EFFECT);
     staticEffectRef.current = DEFAULT_STATIC_EFFECT;
     setMode('static');
+    await releaseAllPins();
+    if (seq !== tapSeqRef.current) return;
     await startStatic(DEFAULT_STATIC_EFFECT, 1, 0, 0, 1, 1, {}, true, hex);
     publishLighting('static', 'static', { effect: DEFAULT_STATIC_EFFECT });
   }, [publishLighting]);
@@ -426,6 +438,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   // Mode-button dispatch (widget row + immersive grid) - covers every mode.
   const handleMode = useCallback((k: LightingMode) => {
+    // A mode action supersedes a tile tap still waiting on its pin clear.
+    tapSeqRef.current += 1;
     if (k === 'none') onOffButton();
     else if (k === 'animate') onAnimateButton();
     else if (k === 'static') onStaticButton();

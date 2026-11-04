@@ -909,23 +909,25 @@ export function TryxDevicePage() {
                 )}
                 <div className={styles.libraryBlock}>
                   <div className={styles.libraryHeaderRow}>
-                    <Button
-                      size="sm"
-                      tone="neutral"
-                      disabled={uploading}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {uploading ? t('devices.tryx.uploading') : t('devices.tryx.uploadVideo')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      tone="neutral"
-                      icon={<Sparkles size={16} aria-hidden />}
-                      disabled={uploading}
-                      onClick={() => setKlipyOpen(true)}
-                    >
-                      {t('lighting.controls.klipyBrowse')}
-                    </Button>
+                    <div className={styles.libraryActions}>
+                      <Button
+                        size="sm"
+                        tone="neutral"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading ? t('devices.tryx.uploading') : t('devices.tryx.uploadVideo')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        tone="neutral"
+                        icon={<Sparkles size={16} aria-hidden />}
+                        disabled={uploading}
+                        onClick={() => setKlipyOpen(true)}
+                      >
+                        {t('lighting.controls.klipyBrowse')}
+                      </Button>
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
