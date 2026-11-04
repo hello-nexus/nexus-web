@@ -25,6 +25,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
+import { releaseAllPins } from './releasePins';
 import { SIMPLE_SLOT, canonicalSimpleKey, isSimpleAnimation, isSimpleReversed, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
@@ -339,6 +340,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   // A recents tile: the effect at the preset it shows. The preset becomes the effect's selected one, as picking it on the page does.
   const applyRecentAnimation = useCallback(async (effectKey: string, slot: number) => {
+    await releaseAllPins();
     const bundle = allTemplates[effectKey];
     const picked = bundle?.slots[Math.min(Math.max(slot, 0), bundle.slots.length - 1)];
     // Before hydrate there is no preset to run, so the current one runs and no preset index is claimed.
@@ -371,6 +373,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   }, [publishLighting, templates]);
 
   const applyColor = useCallback(async (hex: string) => {
+    await releaseAllPins();
     setActiveColor(hex.toLowerCase());
     setActiveEffect(DEFAULT_STATIC_EFFECT);
     staticEffectRef.current = DEFAULT_STATIC_EFFECT;

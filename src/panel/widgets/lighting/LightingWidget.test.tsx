@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import {
-  fetchAnimateSettings, fetchCurrentSync, saveAnimateTemplates, setMusicReactive, setScreenEffect, startAnimate,
+  fetchAnimateSettings, fetchCurrentSync, fetchPins, saveAnimateTemplates, setAnimateSimple, setPins, setMusicReactive, setScreenEffect, startAnimate,
   startScreenMirror, startStatic, stopLighting,
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
@@ -29,6 +29,9 @@ vi.mock('../../../api/lighting', () => ({
   setMusicReactive: vi.fn(() => Promise.resolve()),
   setScreenEffect: vi.fn(() => Promise.resolve()),
   startAnimate: vi.fn(() => Promise.resolve()),
+  setAnimateSimple: vi.fn(() => Promise.resolve()),
+  fetchPins: vi.fn(() => Promise.resolve({})),
+  setPins: vi.fn(() => Promise.resolve(true)),
   startScreenMirror: vi.fn(() => Promise.resolve()),
   stopLighting: vi.fn(() => Promise.resolve()),
 }));
@@ -346,6 +349,52 @@ describe('LightingWidget', () => {
     expect(args[8]).toBe(hex);
     expect(mockUpdate).not.toHaveBeenCalled();
     await waitFor(() => expect(swatch).toHaveAttribute('aria-pressed', 'true'));
+  });
+
+  describe('pins', () => {
+    const pinned = { a: { kind: 'static', effect: 'flat' }, b: { kind: 'static', effect: 'flat' } };
+
+    beforeEach(() => {
+      vi.mocked(setPins).mockClear();
+      vi.mocked(startStatic).mockClear();
+      vi.mocked(startAnimate).mockClear();
+      vi.mocked(setAnimateSimple).mockClear();
+      vi.mocked(fetchPins).mockResolvedValue({});
+    });
+
+    it('clears every pin before a color tap starts the look', async () => {
+      vi.mocked(fetchPins).mockResolvedValue(pinned as never);
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      fireEvent.click(document.querySelector('[data-swatch-hex]') as HTMLElement);
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      expect(setPins).toHaveBeenCalledWith(['a', 'b'], null);
+      expect(vi.mocked(setPins).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(startStatic).mock.invocationCallOrder[0]);
+    });
+
+    it('clears every pin before an animation tap starts it, leaving the canvas mapping alone', async () => {
+      vi.mocked(fetchPins).mockResolvedValue(pinned as never);
+      renderLighting(lightingWidget('2x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-effect-key]')).toHaveLength(3));
+      fireEvent.click(document.querySelectorAll('[data-effect-key]')[0] as HTMLElement);
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+      expect(setPins).toHaveBeenCalledWith(['a', 'b'], null);
+      expect(vi.mocked(setPins).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(startAnimate).mock.invocationCallOrder[0]);
+      // The simple-mode mapping flag is the 11th start argument; the widget never sends it.
+      expect(vi.mocked(startAnimate).mock.calls[0][10]).toBeUndefined();
+      expect(setAnimateSimple).not.toHaveBeenCalled();
+      expect(vi.mocked(setPins).mock.calls.every(c => c[1] === null)).toBe(true);
+    });
+
+    it('makes no pin write when nothing is pinned', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      fireEvent.click(document.querySelector('[data-swatch-hex]') as HTMLElement);
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      expect(setPins).not.toHaveBeenCalled();
+    });
   });
 
   it('leads with Rainbow and applies it with its preset look', async () => {
