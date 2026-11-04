@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
@@ -542,32 +542,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     : t('update.modal.title');
   if (view === 'reconnecting' && !reconnectGaveUp) title = t('update.modal.reconnecting');
 
-  let footer: ReactNode;
-  if (switchMode) {
-    if (switchFailed && !reconnectGaveUp) {
-      footer = <Button tone="accent" size="md" onClick={handleSwitchRetry}>{t('update.switch.tryAgain')}</Button>;
-    }
-  } else if (view === 'notes') {
-    footer = (
-      <>
-        <Button tone="neutral" size="md" loading={checking} onClick={handleCheck}>
-          {t('update.modal.checkNow')}
-        </Button>
-        {status?.updateAvailable && (
-          canAutoInstall ? (
-            <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
-              {t('update.modal.downloadAndInstall')}
-            </Button>
-          ) : (
-            <Button tone="accent" size="md" onClick={handleDownload}>
-              {t('update.modal.download')}
-            </Button>
-          )
-        )}
-      </>
-    );
-  }
-
   return (
     <DeviceModal
       open={open}
@@ -575,8 +549,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       title={title}
       icon={<RefreshCw size={18} />}
       closable={switchMode ? switchFailed : !isInstallActive}
-      cancelLabel={t('update.modal.close')}
-      footer={footer}
       fit
     >
       <div className={styles.modal}>
@@ -613,6 +585,18 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
               {reconnectGaveUp ? t('update.modal.reconnectGaveUp') : startError}
             </p>
             {!reconnectGaveUp && refusal && <p className={styles.failedMessage}>{refusal}</p>}
+            <div className={styles.buttonRow}>
+              <div className={styles.buttonRowRight}>
+                <Button tone="neutral" size="md" onClick={onClose}>
+                  {t('update.modal.close')}
+                </Button>
+                {!reconnectGaveUp && (
+                  <Button tone="accent" size="md" onClick={handleSwitchRetry}>
+                    {t('update.switch.tryAgain')}
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -679,6 +663,31 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
                 <GithubGlyph size={13} />
                 {t('update.modal.releases')}
               </a>
+              <div className={styles.buttonRow}>
+                {view === 'notes' && (
+                  <Button tone="neutral" size="md" loading={checking} onClick={handleCheck}>
+                    {t('update.modal.checkNow')}
+                  </Button>
+                )}
+                <div className={styles.buttonRowRight}>
+                  {view === 'notes' && status?.updateAvailable && (
+                    canAutoInstall ? (
+                      <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
+                        {t('update.modal.downloadAndInstall')}
+                      </Button>
+                    ) : (
+                      <Button tone="accent" size="md" onClick={handleDownload}>
+                        {t('update.modal.download')}
+                      </Button>
+                    )
+                  )}
+                  {(view === 'whatsNew' || reconnectGaveUp) && (
+                    <Button tone="neutral" size="md" onClick={onClose}>
+                      {t('update.modal.close')}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
