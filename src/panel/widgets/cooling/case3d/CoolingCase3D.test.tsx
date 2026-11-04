@@ -306,6 +306,18 @@ describe('CoolingCase3D device dropdown', () => {
       expect(screen.getByRole('dialog')).toBeTruthy();
     });
 
+    it('saves a dragged simulated speed for every chosen fan in one update', async () => {
+      const sim = [{ channelId: 'sim:1000', slotKeys: ['front:120:0', 'rear:120:0'] }];
+      mountReady(null, sim);
+      pickTwo();
+      const slider = screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' });
+      fireEvent.change(slider, { target: { value: '2100' } });
+      fireEvent.keyUp(slider);
+      await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+      expect(h.layout.edit).toHaveBeenCalledTimes(1);
+      expect(mutate()(base(sim)).bindings).toEqual([{ channelId: 'sim:2100', slotKeys: ['front:120:0', 'rear:120:0'] }]);
+    });
+
     it('clears on a press on nothing', () => {
       mountReady(null);
       pickTwo();

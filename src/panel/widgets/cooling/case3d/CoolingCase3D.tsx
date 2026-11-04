@@ -533,7 +533,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
               <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={multiRpm.value ?? SIM_RPM_DEFAULT} min={SIM_RPM_MIN} max={SIM_RPM_CEILING} step={SIM_RPM_STEP} mixed={multiRpm.mixed} mixedLabel={t('common.mixed')} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => setSimPreview({ keys: multiKeys, rpm: Math.round(v) })} onCommit={v => {
                 // A press that changed nothing saves nothing.
-                if (multiRpm.mixed || multiRpm.value !== Math.round(v)) linkChannels(simChannelId(Math.round(v)), multiKeys);
+                // Compared with what is saved: the preview already shows the dragged speed.
+                const saved = sharedOf(simSpeeds(k => channelOfSlot(savedBindings, k), multiKeys) ?? []);
+                if (saved.mixed || saved.value !== Math.round(v)) linkChannels(simChannelId(Math.round(v)), multiKeys);
                 setSimPreview(null);
               }} />
             )}
