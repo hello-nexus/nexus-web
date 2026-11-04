@@ -8,12 +8,13 @@ import { HeatVolume } from './heatVolume';
 import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, drawnParticles, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, STREAK_MIN_WIDTH_PX, STREAK_SEGMENTS, STREAK_TAIL_WIDTH, STREAK_WIDTH_MM, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
-import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT, STREAK_VERTEX } from './shaders';
+import { FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT, streakVertex } from './shaders';
+import { getFlowVariant } from './flowVariant';
 
 /** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
 export const flowTiers = (): number[] => {
@@ -45,8 +46,6 @@ const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 24;
-/** Peak alpha of a streak's head. */
-const STREAK_ALPHA = 0.95;
 /** A speed change re-solves only when the fans' speed mix has drifted this far from the solved one, and at most this often. */
 const RESOLVE_DRIFT = 0.3;
 const RESOLVE_MIN_INTERVAL_MS = 60000;
@@ -94,6 +93,7 @@ export class FlowLayer {
   private stepsPerFrame = 4;
   private slowCount = 0;
   private lastFrameAt = 0;
+  private readonly variant = getFlowVariant();
   private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
   private temps: ComponentTemps = NO_TEMPS;
@@ -179,7 +179,7 @@ export class FlowLayer {
   private drawnSpeed(): number {
     const scale = this.options.timeScale;
     const base = scale !== undefined && this.fscene ? scale / (PARTICLE_STEPS_PER_SECOND * this.fscene.stepSeconds) : this.options.speed;
-    return base * this.speedFactor;
+    return base * this.speedFactor * this.variant.timeScaleMul;
   }
 
   // The speed at which one particle step is one unit of simulation time: normal speed, whatever the scene. Age, the stuck test and the streak length run against it, so only Slow mo and the fans' speed change scale them.
@@ -334,47 +334,52 @@ export class FlowLayer {
     if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uBoundsMin.value = scene.particleBounds.min; this.stateMat.uniforms.uBoundsMax.value = scene.particleBounds.max; }
   }
 
+  private drawnCount(): number {
+    return Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier] * this.variant.drawShare);
+  }
+
   private ensureParticles() {
     if (!this.kind || this.stateMat) return;
     const { w, h } = PARTICLE_TEXTURE;
+    const v = this.variant;
     this.stateTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: PARTICLE_MAX_AGE }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uSpeed: { value: this.options.speed }, uRefSpeed: { value: PARTICLE_REFERENCE_SPEED }, uSubsteps: { value: substepsFor(this.options.speed) },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uSeed: { value: 0 }, uMaxAge: { value: v.maxAge }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: v.lifeJitter }, uSpeed: { value: this.options.speed }, uRefSpeed: { value: PARTICLE_REFERENCE_SPEED }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
 
     const geometry = new BufferGeometry();
-    // A ribbon per particle: head to tail in STREAK_SEGMENTS segments, two vertices (one per side) at each of STREAK_SEGMENTS + 1 stations.
-    const V = (STREAK_SEGMENTS + 1) * 2;
+    // A ribbon per particle: head to tail in v.segments segments, two vertices (one per side) at each of v.segments + 1 stations.
+    const V = (v.segments + 1) * 2;
     const refs = new Float32Array(w * h * V * 2);
     const corners = new Float32Array(w * h * V * 2);
-    const index = new Uint32Array(w * h * STREAK_SEGMENTS * 6);
+    const index = new Uint32Array(w * h * v.segments * 6);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const n = y * w + x;
       for (let c = 0; c < V; c++) {
         refs[(n * V + c) * 2] = x; refs[(n * V + c) * 2 + 1] = y;
         // corner.x: 1 at the head, 0 at the tail; corner.y: the side.
-        corners[(n * V + c) * 2] = 1 - (c >> 1) / STREAK_SEGMENTS; corners[(n * V + c) * 2 + 1] = c & 1 ? 1 : -1;
+        corners[(n * V + c) * 2] = 1 - (c >> 1) / v.segments; corners[(n * V + c) * 2 + 1] = c & 1 ? 1 : -1;
       }
-      for (let k = 0; k < STREAK_SEGMENTS; k++) {
+      for (let k = 0; k < v.segments; k++) {
         const a = n * V + k * 2;
-        index.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], (n * STREAK_SEGMENTS + k) * 6);
+        index.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], (n * v.segments + k) * 6);
       }
     }
     geometry.setAttribute('ref', new BufferAttribute(refs, 2));
     geometry.setAttribute('corner', new BufferAttribute(corners, 2));
     geometry.setAttribute('position', new BufferAttribute(new Float32Array(w * h * V * 3), 3));
     geometry.setIndex(new BufferAttribute(index, 1));
-    geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * STREAK_SEGMENTS * 6);
+    geometry.setDrawRange(0, this.drawnCount() * v.segments * 6);
     this.streakMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: STREAK_VERTEX, fragmentShader: STREAK_FRAGMENT,
+      glslVersion: GLSL3, vertexShader: streakVertex(v.streakSteps, v.streakMinMm, v.streakMaxMm, v.segments), fragmentShader: STREAK_FRAGMENT,
       uniforms: {
         PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
-        uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: STREAK_WIDTH_MM }, uMinWidthPx: { value: STREAK_MIN_WIDTH_PX }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: PARTICLE_MAX_AGE }, uLifeJitter: { value: PARTICLE_LIFE_JITTER }, uAlpha: { value: STREAK_ALPHA }, uTailWidth: { value: STREAK_TAIL_WIDTH }, uRate: { value: 1 },
+        uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: v.widthMm }, uMinWidthPx: { value: v.minWidthPx }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
+        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
         uCool: { value: this.colors.cool }, uPurple: { value: this.colors.purple }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
@@ -391,7 +396,7 @@ export class FlowLayer {
     if (!this.kind || !this.runner || this.stateTargets.length === 0) return;
     const { w, h } = PARTICLE_TEXTURE;
     const fill = new Float32Array(w * h * 4);
-    for (let i = 0; i < w * h; i++) fill[i * 4 + 3] = PARTICLE_MAX_AGE * 5;
+    for (let i = 0; i < w * h; i++) fill[i * 4 + 3] = this.variant.maxAge * 5;
     const init = new DataTexture(fill, w, h, RGBAFormat, FloatType);
     init.needsUpdate = true;
     const blit = pass(FRAGMENT_OUT + 'uniform sampler2D T; void main(){ gl_FragColor = texelFetch(T, ivec2(gl_FragCoord.xy), 0); }', { T: { value: init } });
@@ -407,7 +412,7 @@ export class FlowLayer {
   dropTier() {
     if (this.tier >= this.tiers.length - 1) return;
     this.tier++;
-    this.streaks?.geometry.setDrawRange(0, drawnParticles(MAX_PARTICLES, TIER_PARTICLE_SHARE[this.tier]) * STREAK_SEGMENTS * 6);
+    this.streaks?.geometry.setDrawRange(0, this.drawnCount() * this.variant.segments * 6);
     this.slowCount = 0;
     this.build(false);
   }

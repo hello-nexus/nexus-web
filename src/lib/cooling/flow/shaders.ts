@@ -287,10 +287,10 @@ void main() {
 }`;
 
 /** Streak geometry shared by the vertex shader and the parity pass; mirrors `stepDisplacement` and `streakOf` in streak.ts. */
-export const STREAK_GLSL = /* glsl */ `
-#define STREAK_STEPS ${glFloat(STREAK_STEPS)}
-#define STREAK_MIN_MM ${glFloat(STREAK_MIN_MM)}
-#define STREAK_MAX_MM ${glFloat(STREAK_MAX_MM)}
+export const streakGlsl = (steps: number, minMm: number, maxMm: number) => /* glsl */ `
+#define STREAK_STEPS ${glFloat(steps)}
+#define STREAK_MIN_MM ${glFloat(minMm)}
+#define STREAK_MAX_MM ${glFloat(maxMm)}
 #define STREAK_STALL_MM ${glFloat(STREAK_STALL_MM)}
 // One step's displacement in mm; a respawned (age did not grow) or absent particle has not moved.
 vec3 stepDisplacement(vec4 prev, vec4 cur, float cellMm) {
@@ -304,6 +304,7 @@ vec4 streakOf(vec3 d) {
   return vec4(dir, clamp(m * STREAK_STEPS, STREAK_MIN_MM, STREAK_MAX_MM));
 }
 `;
+export const STREAK_GLSL = streakGlsl(STREAK_STEPS, STREAK_MIN_MM, STREAK_MAX_MM);
 
 /** The heat ramp, shared by the streaks and the heat volume: three stops blended in OKLab, `h` 0 at the cool end and 1 at the hot end. */
 export const RAMP = /* glsl */ `
@@ -329,8 +330,8 @@ vec3 rampColor(float h) {
 `;
 
 // A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
-export const STREAK_VERTEX = LIFE + GRID_COMMON + STREAK_GLSL + /* glsl */ `
-#define STREAK_SEGMENTS ${STREAK_SEGMENTS}
+export const streakVertex = (steps: number, minMm: number, maxMm: number, segments: number) => LIFE + GRID_COMMON + streakGlsl(steps, minMm, maxMm) + /* glsl */ `
+#define STREAK_SEGMENTS ${segments}
 uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
@@ -393,15 +394,19 @@ void main() {
   vAlong = corner.x;
   vSide = corner.y;
 }`;
+export const STREAK_VERTEX = streakVertex(STREAK_STEPS, STREAK_MIN_MM, STREAK_MAX_MM, STREAK_SEGMENTS);
 
 export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha; in float vAlong; in float vSide;
+uniform float uFadePow; uniform float uHeadGlow; uniform float uSoft;
 void main() {
   // Strong head fading to a transparent tail; a darker rim around a bright core keeps the streak apart from both light and dark backgrounds.
   float across = abs(vSide);
-  float a = vAlpha * pow(vAlong, 0.8) * (1.0 - smoothstep(0.8, 1.0, across));
+  float edge = mix(smoothstep(0.8, 1.0, across), smoothstep(0.0, 1.0, across), uSoft);
+  float a = vAlpha * pow(vAlong, uFadePow) * (1.0 - edge);
   if (a < 0.003) discard;
-  vec3 col = mix(vColor * 1.15, vColor * 0.3, smoothstep(0.55, 0.9, across));
+  vec3 col = mix(vColor * 1.15, vColor * 0.3, smoothstep(0.55, 0.9, across) * (1.0 - uSoft));
+  col *= 1.0 + uHeadGlow * pow(vAlong, 8.0);
   gl_FragColor = vec4(col * a, a);
 }`;
 
