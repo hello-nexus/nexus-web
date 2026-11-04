@@ -188,6 +188,7 @@ export const HYTE_Y60_FAMILY = 'hyte-y60';
 export const ASUS_GLACIAL_LCD_FAMILY = 'asus-glacial-lcd';
 export const ZMATRICES_LCD_FAMILY = 'zmatrices-lcd';
 export const ZMATRICES_MAX_E87_FAMILY = 'zmatrices-max-e87';
+const ZMATRICES_FAMILIES: readonly string[] = [ZMATRICES_LCD_FAMILY, ZMATRICES_MAX_E87_FAMILY];
 
 export interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
@@ -322,9 +323,9 @@ export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, den
 }
 
 // The grid whose cell sizes the panel's floating chrome (menus, sheets, tray), so chrome keeps the size
-// the default widget size gives it whatever size is chosen. Glass laid out as one tile has a single cell
-// the size of the glass, so its chrome reads the physical-density grid instead, as on any multi-widget
-// panel. Undefined where a multi-widget panel offers no size choice.
+// the default widget size gives it whatever size is chosen. ZMatrices glass is laid out as one tile, a single
+// cell the size of the glass, so its chrome reads the physical-density grid instead. Undefined where a
+// multi-widget panel offers no size choice.
 export interface ChromeGrid {
   surface: PanelSurface;
   shortSideSlots?: number;
@@ -340,7 +341,7 @@ export function largeChromeGrid(
 ): ChromeGrid | undefined {
   const options = panelWidgetSizeOptions(surface, family);
   const referenceSurface = options ? options.layoutSurface[options.default] ?? surface : surface;
-  if (isSingleWidgetSurface(referenceSurface)) {
+  if (family && ZMATRICES_FAMILIES.includes(family) && isSingleWidgetSurface(referenceSurface)) {
     return { surface: 'monitor', shortSideSlots: undefined, dpi: recordDpi || options?.dpi || surfaceDpi[surface] };
   }
   if (!options) return undefined;

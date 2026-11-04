@@ -496,19 +496,16 @@ describe('largeChromeGrid', () => {
     expect(largeChromeGrid('monitor', undefined, null, dpis, 8)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
     // iCUE defaults to its grid, so chrome sizes from that, not from the one-tile Large.
     expect(largeChromeGrid('monitor', 'icue-link-lcd5', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
+    expect(largeChromeGrid('q60', undefined, null, dpis, 4)).toEqual({ surface: 'q60', shortSideSlots: undefined, dpi: undefined });
     // Lian Li 8.8 and Y60 default to the density grid, not the coarse stored Large.
     expect(largeChromeGrid('monitor', 'lianli-screen88', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
   });
 
-  it('sizes chrome on one-tile glass from the density grid, never the tile', () => {
-    const tiles = { ...dpis, 'lcd-wide': 109, 'lcd-round': 109 } as Record<PanelSurface, number>;
-    expect(largeChromeGrid('q60', undefined, null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 220 });
-    // The record's own density wins (ZMatrices MAX E87), then the family's (HydroShift II Curved), then the surface estimate.
+  it('sizes ZMatrices chrome from the density grid, never the tile', () => {
+    const tiles = { ...dpis, 'lcd-wide': 109 } as Record<PanelSurface, number>;
+    // The record's own density wins (MAX E87), then the surface estimate.
     expect(largeChromeGrid('lcd-wide', 'zmatrices-max-e87', 218, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 218 });
-    expect(largeChromeGrid('lcd-wide', 'lianli-hydroshift2-curve', null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 379 });
     expect(largeChromeGrid('lcd-wide', 'zmatrices-lcd', null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 109 });
-    // Round glass with no size switch is one tile too.
-    expect(largeChromeGrid('lcd-round', 'nzxt-kraken', null, tiles)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 109 });
   });
 
   it('is absent where no size choice exists, so chrome follows the grid in use', () => {

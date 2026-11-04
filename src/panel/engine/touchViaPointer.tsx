@@ -37,9 +37,19 @@ let buttonsReported: boolean | undefined;
  * prompt or another app). Never true under the injected flag, whose moves carry no
  * button state.
  */
-export function primaryReleasedDuringMove(e: PointerEvent): boolean {
+export function primaryReleasedDuringMove(e: Pick<PointerEvent, 'buttons'>): boolean {
   buttonsReported ??= readPointerButtonsReported();
   return buttonsReported && (e.buttons & 1) === 0;
+}
+
+/** Buttons for a contact known to be live: the injected host reports none during a drag, so the primary button is held. */
+export function liveContactButtons(e: Pick<PointerEvent, 'buttons'>, live: boolean): number {
+  buttonsReported ??= readPointerButtonsReported();
+  return live && !buttonsReported ? e.buttons | 1 : e.buttons;
+}
+
+export function resetPointerButtonsReportedCache(): void {
+  buttonsReported = undefined;
 }
 
 // One contact of a swipe gesture, whatever produced it. The swipe hooks are
