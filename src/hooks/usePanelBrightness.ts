@@ -2,20 +2,32 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLatestWriter } from './useLatestWriter';
 import { fetchService, postService } from '../api/service';
 import { fetchDisplayBrightness, setDisplayBrightness } from '../api/displays';
+import { fetchPanelDeviceWithStatus, patchPanelDevice } from '../api/panel';
 import type { DeviceListItem } from './useDevices';
 
-export type PanelBrightnessKind = 'y70' | 'display';
+export type PanelBrightnessKind = 'y70' | 'record' | 'display';
 
 export interface PanelBrightnessTarget {
   kind: PanelBrightnessKind;
   // Required for 'display'.
   displayId?: string;
+  // Required for 'record'.
+  recordId?: string;
 }
 
+const DEFAULT_RECORD_BRIGHTNESS = 100;
+
 // Which hardware path a surface's brightness slider drives: the Y70's own
-// backlight, a promoted touch monitor over DDC, or nothing.
-export function brightnessTargetFor(surface: string, displayId: string | undefined): PanelBrightnessTarget | null {
+// backlight, the panel's own backlight through its record (a panel whose
+// capabilities carry supportsBrightness; the record id is passed only then),
+// a promoted touch monitor over DDC, or nothing.
+export function brightnessTargetFor(
+  surface: string,
+  displayId: string | undefined,
+  backlightRecordId?: string,
+): PanelBrightnessTarget | null {
   if (surface === 'y70') return { kind: 'y70' };
+  if (backlightRecordId) return { kind: 'record', recordId: backlightRecordId };
   if (displayId) return { kind: 'display', displayId };
   return null;
 }
@@ -43,6 +55,7 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
   const overrideUntil = useRef(0);
   const kind = target?.kind ?? null;
   const displayId = target?.displayId;
+  const recordId = target?.recordId;
 
   useEffect(() => {
     if (!enabled || !kind) return undefined;
@@ -60,6 +73,12 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
         // A failed read hides the slider, unless the link warning explains it.
         setAvailable(read || down);
         if (read && b && Date.now() >= overrideUntil.current) setValue(b.brightness);
+      } else if (kind === 'record' && recordId) {
+        const r = await fetchPanelDeviceWithStatus(recordId).catch(() => null);
+        if (cancelled) return;
+        const found = !!r && r.found;
+        setAvailable(found);
+        if (found && Date.now() >= overrideUntil.current) setValue(r.record.lcdBrightness ?? DEFAULT_RECORD_BRIGHTNESS);
       } else if (displayId) {
         const b = await fetchDisplayBrightness(displayId).catch(() => null);
         if (cancelled) return;
@@ -69,11 +88,13 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
       }
     })();
     return () => { cancelled = true; };
-  }, [enabled, kind, displayId]);
+  }, [enabled, kind, displayId, recordId]);
 
-  const send = useCallback((v: number) => (kind === 'y70'
-    ? postService('/y70/brightness', { brightness: v })
-    : displayId ? setDisplayBrightness(displayId, v) : Promise.resolve(null)), [kind, displayId]);
+  const send = useCallback((v: number) => {
+    if (kind === 'y70') return postService('/y70/brightness', { brightness: v });
+    if (kind === 'record' && recordId) return patchPanelDevice(recordId, { lcdBrightness: v });
+    return displayId ? setDisplayBrightness(displayId, v) : Promise.resolve(null);
+  }, [kind, displayId, recordId]);
   const write = useLatestWriter(send, WRITE_INTERVAL_MS);
 
   const preview = useCallback((v: number) => {
