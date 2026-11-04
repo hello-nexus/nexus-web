@@ -125,7 +125,7 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
 const ROTOR_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-// A flat seven-blade rotor drawn per pixel: swept blades over a hub, with the blades blending into a soft disc as the speed rises.
+// A flat five-blade rotor drawn per pixel: gently swept, evenly filled blades and a small plain hub, blending into a soft disc as the speed rises.
 const ROTOR_FRAGMENT = /* glsl */ `
 uniform vec3 uColor; uniform float uAngle; uniform float uBlur; uniform float uOpacity; uniform float uHub;
 varying vec2 vUv;
@@ -133,22 +133,18 @@ void main() {
   vec2 p = vUv * 2.0 - 1.0;
   float r = length(p);
   if (r > 1.0) discard;
-  float turn = atan(p.y, p.x) - uAngle;
-  float f = fract(turn * 7.0 / 6.2831853 - r * 1.6);
-  float w = mix(0.3, 0.46, r);
-  float blade = smoothstep(0.0, 0.06, f) * (1.0 - smoothstep(w, w + 0.06, f));
-  blade = mix(blade, 0.42, uBlur);
-  float ring = smoothstep(uHub * 0.9, uHub, r) * (1.0 - smoothstep(0.93, 1.0, r));
-  float hub = 1.0 - smoothstep(uHub * 0.85, uHub, r);
-  float a = max(blade * ring + uBlur * 0.15 * smoothstep(0.7, 0.95, r) * ring, hub * 0.95);
-  gl_FragColor = vec4(uColor, a * uOpacity);
+  float f = fract((atan(p.y, p.x) - uAngle) * 5.0 / 6.2831853 - r * 0.9);
+  float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.34, 0.39, f));
+  blade = mix(blade, 0.4, uBlur) * (1.0 - smoothstep(0.93, 1.0, r));
+  float hub = 1.0 - smoothstep(uHub * 0.9, uHub, r);
+  gl_FragColor = vec4(uColor, max(blade, hub) * uOpacity);
   gl_FragColor = linearToOutputTexel(gl_FragColor);
 }`;
 const ROTOR_OPACITY = 0.6;
 /** Visual turns a second for a fan at `rpm`: it rises with the speed but levels off, so a fast fan does not strobe at the display rate. */
-export const rotorTurnsPerSecond = (rpm: number): number => 3.2 * (1 - Math.exp(-Math.max(0, rpm) / 900));
-/** How much the blades melt into a disc, 0 slow to 0.55 fast. */
-export const rotorBlur = (rpm: number): number => 0.55 * Math.min(1, Math.max(0, (rpm - 1400) / 1400));
+export const rotorTurnsPerSecond = (rpm: number): number => 1.4 * (1 - Math.exp(-Math.max(0, rpm) / 1200));
+/** How much the blades melt into a disc, 0 slow to 0.4 for the fastest fans. */
+export const rotorBlur = (rpm: number): number => 0.4 * Math.min(1, Math.max(0, (rpm - 2200) / 1400));
 
 export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -332,7 +328,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (rpm !== undefined) {
         const material = new ShaderMaterial({
           vertexShader: ROTOR_VERTEX, fragmentShader: ROTOR_FRAGMENT, transparent: true, depthWrite: false, side: DoubleSide,
-          uniforms: { uColor: { value: color.clone() }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY }, uHub: { value: Math.max(0.1, radii.hub / radii.tip) } },
+          uniforms: { uColor: { value: color.clone() }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY }, uHub: { value: 0.16 } },
         });
         const geometry = new PlaneGeometry(2, 2);
         const blades = new Mesh(geometry, material);
