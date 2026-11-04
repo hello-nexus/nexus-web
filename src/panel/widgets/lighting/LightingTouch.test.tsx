@@ -219,6 +219,25 @@ describe('LightingTouch pins', () => {
     expect(lastPins()[1]).toMatchObject({ kind: 'static', effect: 'flat', color: '#abcdef' });
   });
 
+  it('records an Animate grid pick and a preset pick as recent animations', async () => {
+    vi.mocked(fetchCurrentSync).mockImplementation(() => Promise.resolve({ sync: 'aurora' }));
+    recorded.recordAnimation.mockClear();
+    render(<LightingTouch widget={widget} />);
+    fireEvent.click(await screen.findByText('pick-stripes'));
+    expect(recorded.recordAnimation).toHaveBeenCalledWith('stripes', 0);
+    await waitFor(() => expect(controlsProps.current).not.toBeNull());
+    recorded.recordAnimation.mockClear();
+    act(() => { (controlsProps.current!.onTemplateSelect as (idx: number) => void)(0); });
+    expect(recorded.recordAnimation).toHaveBeenCalledWith('stripes', 0);
+  });
+
+  it('does not record a Static pattern pick as a recent animation', async () => {
+    recorded.recordAnimation.mockClear();
+    render(<LightingTouch widget={widget} />);
+    fireEvent.click(await screen.findByText('pick-stripes'));
+    expect(recorded.recordAnimation).not.toHaveBeenCalled();
+  });
+
   it('pins a custom color on the selected devices', async () => {
     recorded.recordColor.mockClear();
     render(<LightingTouch widget={widget} />);
