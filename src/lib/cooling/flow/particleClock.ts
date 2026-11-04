@@ -7,6 +7,11 @@ export const PARTICLE_CLOCK_MAX_STEPS = 6;
 export class ParticleClock {
   private owed = 0;
 
+  /** The share of the next step already owed, 0 to 1. */
+  get fraction(): number {
+    return this.owed;
+  }
+
   /** Whole steps to run for `dtMs` more milliseconds. */
   advance(dtMs: number): number {
     this.owed = Math.min(PARTICLE_CLOCK_MAX_STEPS, this.owed + Math.max(0, dtMs) * (PARTICLE_STEPS_PER_SECOND / 1000));

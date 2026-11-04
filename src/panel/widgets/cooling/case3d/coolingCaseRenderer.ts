@@ -50,6 +50,8 @@ export interface CaseSceneRenderer {
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
   readonly flowSupported: boolean;
+  /** The airflow layer, for the preview page's probes. */
+  debugFlow?: () => FlowLayer | null;
   /** The orbit camera, so a caller can read the view the user left. */
   readonly camera: PerspectiveCamera;
 }
@@ -397,6 +399,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (flowLayer) flowLayer.onSpan = listener;
     },
     camera,
+    debugFlow: () => flowLayer,
     get flowSupported() {
       return flowLayer?.supported ?? true;
     },

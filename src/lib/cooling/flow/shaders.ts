@@ -337,15 +337,44 @@ vec3 rampColor(float h) {
 }
 `;
 
+// The share of full alpha a particle in state s (xyz cell, w age) draws at: zero until born and once dead, eased in and out of life, and out toward the margin around the case. Shared by the streak vertex shader and the fade probe pass, so the probe reads what is drawn.
+export const FADE_GLSL = LIFE + /* glsl */ `
+uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut; uniform float uGrowTail;
+float ease5(float t) { t = clamp(t, 0.0, 1.0); return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
+float easeEdge(float a, float b, float x) { return uGrowTail > 0.5 ? ease5((x - a) / (b - a)) : smoothstep(a, b, x); }
+// The margin fade is spatial, so a fast stream crosses it quickly: a wide band, half linear and half smoothstep, keeps the drop per step small.
+float marginFade(float outside) {
+  if (uGrowTail < 0.5) return 1.0 - smoothstep(uMargin * 0.6, uMargin, outside);
+  float x = clamp((outside - uMargin * 0.1) / (uMargin * 0.9), 0.0, 1.0);
+  return 1.0 - 0.5 * (x + x * x * (3.0 - 2.0 * x));
+}
+float fadeOf(vec4 s, vec2 pixel) {
+  if (s.x < -1.0e5) return 0.0;
+  float life = lifeOf(pixel, uMaxAge, uLifeJitter);
+  vec3 head = (s.xyz + 0.5) * uCell - uOrigin;
+  vec3 over = max(max(-head, head - uCaseExtent), 0.0);
+  float outside = length(over);
+  return easeEdge(0.0, uGrowTail > 0.5 ? 60.0 : 12.0, s.w) * (1.0 - easeEdge(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * marginFade(outside);
+}
+`;
+
+/** Probe pass: per particle texel, the alpha share the streak shader would draw at. */
+export const FADE_PROBE = FRAGMENT_OUT + FADE_GLSL + /* glsl */ `
+uniform sampler2D PA;
+void main() {
+  ivec2 f = ivec2(gl_FragCoord.xy);
+  gl_FragColor = vec4(fadeOf(texelFetch(PA, f, 0), vec2(f) + 0.5), 0.0, 0.0, 0.0);
+}`;
+
 // A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
-export const streakVertex = (steps: number, minMm: number, maxMm: number, segments: number) => LIFE + GRID_COMMON + TEMP_COMMON + streakGlsl(steps, minMm, maxMm) + /* glsl */ `
+export const streakVertex = (steps: number, minMm: number, maxMm: number, segments: number) => GRID_COMMON + TEMP_COMMON + FADE_GLSL + streakGlsl(steps, minMm, maxMm) + /* glsl */ `
 #define STREAK_SEGMENTS ${segments}
 uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
-uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
-uniform float uMaxAge; uniform float uLifeJitter; uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
+uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
 uniform float uHeatSpan;
-uniform float uFadeOut; uniform float uGrowTail; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+uniform float uFade; uniform float uOwed; uniform float uRefSpeed; uniform float uFieldLen; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
 ${RAMP}
@@ -362,16 +391,16 @@ void main() {
   vec4 s = texelFetch(PA, r, 0);
   vec4 p = texelFetch(PP, r, 0);
   float h = clamp(texelFetch(PB, r, 0).r / uHeatSpan, 0.0, 1.0);
-  float life = lifeOf(vec2(r) + 0.5, uMaxAge, uLifeJitter);
-  vec3 head = (s.xyz + 0.5) * uCell - uOrigin;
-  vec3 over = max(max(-head, head - uCaseExtent), 0.0);
-  float outside = length(over);
-  float fade = smoothstep(0.0, uGrowTail > 0.5 ? 60.0 : 12.0, s.w) * (1.0 - smoothstep(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * (1.0 - smoothstep(uMargin * 0.6, uMargin, outside));
+  float fade = fadeOf(s, vec2(r) + 0.5) * uFade;
+  // The head is drawn between the previous and the current particle step by the share of the next step already owed, so motion is smooth at any frame rate.
+  vec3 hp = s.xyz;
+  if (uOwed >= 0.0 && !(p.x < -1.0e5 || s.x < -1.0e5 || p.w >= s.w) && length(s.xyz - p.xyz) < 3.0) hp = mix(p.xyz, s.xyz, uOwed);
   // A stable per-particle strength, so neighbors differ without flickering.
   float strength = mix(1.0 - uAlphaVar, 1.0, hash(vec2(r) * 1.31 + 0.5));
   vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha * strength;
   // Length from the displacement per unit of simulation time, so Slow mo shows the same trail moving slower.
-  vec3 stepMm = stepDisplacement(p, s, uCell) / uRate;
+  // Field length reads the solved air speed at the head, which changes smoothly; the step length would collapse the instant a head stops against a wall.
+  vec3 stepMm = uFieldLen > 0.5 ? sampleU(hp) * uRefSpeed * uCell : stepDisplacement(p, s, uCell) / uRate;
   vec4 sl = streakOf(stepMm);
   // A new particle has travelled only age times its step, so its trail grows out of the spawn point instead of reaching back into air it never crossed.
   if (uGrowTail > 0.5) sl.w = min(sl.w, max(length(stepMm) * max(s.w, 0.0), 0.5));
@@ -379,7 +408,7 @@ void main() {
   int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
   // Walk back from the head: a station at rest keeps the direction it had, a blocked step stays put. The tangent is the last step taken to reach the station (the first step for the head).
   vec3 back = -sl.xyz;
-  vec3 cur = s.xyz;
+  vec3 cur = hp;
   vec3 lastBack = back * stepCells;
   for (int k = 1; k <= STREAK_SEGMENTS; k++) {
     if (k > max(station, 1)) break;
@@ -389,7 +418,7 @@ void main() {
     vec3 nxt = cur + back * stepCells;
     if (!solidAt(ivec3(floor(nxt + 0.5)))) { lastBack = nxt - cur; cur = nxt; }
   }
-  vec3 at = station == 0 ? s.xyz : cur;
+  vec3 at = station == 0 ? hp : cur;
   // With station heat on, each station takes the temperature of the air where it lies, so the tail keeps the cooler color it passed through.
   float hs = uStationHeat > 0.5 ? clamp(sampleT(at) / uHeatSpan, 0.0, 1.0) : h;
   vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
