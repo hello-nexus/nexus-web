@@ -200,6 +200,9 @@ import {
 } from './theme/panelTheme';
 import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
+import { IncomingPairCard } from '../app/IncomingPairModal';
+import { usePairApprovalRequest } from '../hooks/usePairApprovalRequest';
+import { usePairPromptSheet } from './pairPromptSheet';
 import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
   DragTargetHighlight,
@@ -1702,6 +1705,29 @@ export function PanelContent({
     setSheetMode(mode);
   }, [clearCloseTimer]);
 
+  // An incoming pairing approval opens the pairing slideout on the surfaces
+  // that have it, so a touch panel can answer without the dashboard.
+  const pairPromptEnabled = localPairAvailable && kioskBehavior
+    && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable) && !restricted;
+  const pairApproval = usePairApprovalRequest(pairPromptEnabled);
+  usePairPromptSheet({
+    pending: pairApproval.active !== null,
+    sheetMode,
+    openPairSheet: () => openSheet('pairRemote'),
+    closeSheet,
+  });
+  const pairPrompt = pairApproval.active ? (
+    <IncomingPairCard
+      sas={pairApproval.active.sas}
+      deviceLabel={pairApproval.active.deviceLabel || t('phonePair.deviceFallback')}
+      remoteAddress={pairApproval.active.remoteAddress}
+      busy={pairApproval.busy}
+      error={pairApproval.error}
+      touch
+      onDecide={approved => void pairApproval.decide(approved)}
+    />
+  ) : null;
+
   useEffect(() => {
     if (!embedded || openCatalogSignal === undefined) return;
     if (openCatalogSignal === lastCatalogSignalRef.current) return;
@@ -2797,6 +2823,7 @@ export function PanelContent({
           genericDisplay={genericDisplay}
           forcedGrid={forcedGrid}
           touchPanelChrome={touchPanelChrome}
+          pairPrompt={pairPrompt}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}
           immersiveOnLoad={editingImmersiveOnLoad}

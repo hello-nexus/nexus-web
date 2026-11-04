@@ -10,7 +10,9 @@ import {
   allocatePanelDeviceWithStatus,
   patchPanelDeviceWithStatus,
   claimPanelPhonePairing,
+  confirmPanelPhonePairing,
 } from '../api/panel';
+import { PAIR_UPDATE_REQUIRED, waitForPairApproval } from '../api/pairApproval';
 import { storePhoneToken } from '../api/auth';
 import { getDeviceId } from '../api/deviceId';
 import { upsertPairedPc, markActivePcNeedsRepair } from '../api/pairedPcs';
@@ -28,7 +30,7 @@ import {
 import styles from '../App.module.scss';
 import { framePacingQuery } from '../lib/framePacer';
 
-type PanelFailureKind = 'auth' | 'network' | 'pair-expired';
+type PanelFailureKind = 'auth' | 'network' | 'pair-expired' | 'pair-denied' | 'pair-update-required';
 type PanelEntrypointState = 'claiming' | 'allocating' | 'ready' | 'failed';
 
 export function PanelWrapper({ deviceId, wired = false }: { deviceId: string; wired?: boolean }) {
@@ -94,6 +96,8 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   const [deviceId, setDeviceId] = useState<string | null>(initialDeviceId);
   const [failureKind, setFailureKind] = useState<PanelFailureKind>('network');
   const [failureDetail, setFailureDetail] = useState('');
+  // The comparison number shown while the host decides on a QR claim.
+  const [pairSas, setPairSas] = useState<string | null>(null);
   const [allocAttempt, setAllocAttempt] = useState(0);
   const viewportSurface = useMemo(() => inferSurfaceFromViewport(isPhonePair), [isPhonePair]);
   const inferredSurface = surfaceHint ?? viewportSurface;
@@ -120,31 +124,57 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   // through to allocate-or-cache a deviceId for this phone.
   useEffect(() => {
     if (!needsPhoneClaim || !pairToken) return;
-    let cancelled = false;
-    claimPanelPhonePairing(pairToken, pairDeviceId || getDeviceId()).then(result => {
-      if (cancelled) return;
+    const abort = new AbortController();
+    const finishPair = (token: string, machineName?: string) => {
+      storePhoneToken(token);
+      localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
+      upsertPairedPc({
+        machineName,
+        token,
+        spki: pairSpki || undefined,
+        host: window.location.hostname,
+        httpPort: window.location.port || undefined,
+      });
+      // Strip the pair token from the URL but stay on /panel/phone for the
+      // alloc step below, which will then redirect to /panel/<id>.
+      const cleanUrl = `${window.location.origin}/panel/phone`;
+      window.history.replaceState(null, '', cleanUrl);
+      setPairSas(null);
+      setState('allocating');
+    };
+    const fail = (kind: PanelFailureKind, detail = '') => {
+      setPairSas(null);
+      setFailureKind(kind);
+      setFailureDetail(detail);
+      setState('failed');
+    };
+    void (async () => {
+      const result = await claimPanelPhonePairing(pairToken, pairDeviceId || getDeviceId());
+      if (abort.signal.aborted) return;
       if (result?.paired && result.token) {
-        storePhoneToken(result.token);
-        localStorage.setItem(PHONE_PANEL_PWA_KEY, '1');
-        upsertPairedPc({
-          machineName: result.machineName,
-          token: result.token,
-          spki: pairSpki || undefined,
-          host: window.location.hostname,
-          httpPort: window.location.port || undefined,
-        });
-        // Strip the pair token from the URL but stay on /panel/phone for the
-        // alloc step below, which will then redirect to /panel/<id>.
-        const cleanUrl = `${window.location.origin}/panel/phone`;
-        window.history.replaceState(null, '', cleanUrl);
-        setState('allocating');
-      } else {
-        setFailureKind('pair-expired');
-        setFailureDetail(result?.error || '');
-        setState('failed');
+        finishPair(result.token, result.machineName);
+        return;
       }
-    });
-    return () => { cancelled = true; };
+      if (result?.needsApproval && result.requestId) {
+        setPairSas(result.sas ?? '');
+        const outcome = await waitForPairApproval({
+          requestId: result.requestId,
+          expiresAt: result.expiresAt,
+          confirm: confirmPanelPhonePairing,
+          signal: abort.signal,
+        });
+        if (outcome.kind === 'aborted') return;
+        if (outcome.kind === 'approved') finishPair(outcome.token, outcome.machineName || result.machineName);
+        else fail(outcome.kind === 'denied' ? 'pair-denied' : 'pair-expired');
+        return;
+      }
+      if (result?.error === PAIR_UPDATE_REQUIRED) {
+        fail('pair-update-required');
+        return;
+      }
+      fail('pair-expired', result?.error || '');
+    })();
+    return () => { abort.abort(); };
   }, [needsPhoneClaim, pairToken, pairDeviceId, pairSpki]);
 
   // Allocate-or-recover flow: when no deviceId is in the URL, look for one in
@@ -238,7 +268,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   }, []);
 
   if (state === 'claiming' || state === 'allocating') {
-    return <PanelEntrypointGate onRetry={state === 'allocating' ? retry : undefined} />;
+    return <PanelEntrypointGate onRetry={state === 'allocating' ? retry : undefined} sas={state === 'claiming' ? pairSas : null} />;
   }
   if (state === 'failed') {
     return (
@@ -273,7 +303,7 @@ const GATE_SLOW_MS = 4000;
  * with nothing on it the user is stuck - which is exactly what an unreachable
  * host produced (a silent ~20s spin inside the native wrapper).
  */
-function PanelEntrypointGate({ onRetry }: { onRetry?: () => void }) {
+function PanelEntrypointGate({ onRetry, sas = null }: { onRetry?: () => void; sas?: string | null }) {
   const { t } = useTranslation();
   const [slow, setSlow] = useState(false);
   useEffect(() => {
@@ -286,8 +316,16 @@ function PanelEntrypointGate({ onRetry }: { onRetry?: () => void }) {
     <div className={styles.panelPairGate}>
       <div className={styles.panelPairGateCard}>
         <Spinner size={28} />
-        <h2 className={styles.panelPairGateTitle}>{t('panel.gate.connecting')}</h2>
-        {slow && <p className={styles.panelPairGateBody}>{t('panel.gate.slow')}</p>}
+        {sas !== null ? (
+          <>
+            <h2 className={styles.panelPairGateTitle}>{t('panel.gate.approval.headline')}</h2>
+            <p className={styles.panelPairGateSas} aria-live="polite">{sas}</p>
+            <p className={styles.panelPairGateBody}>{t('panel.gate.approval.body')}</p>
+          </>
+        ) : (
+          <h2 className={styles.panelPairGateTitle}>{t('panel.gate.connecting')}</h2>
+        )}
+        {slow && sas === null && <p className={styles.panelPairGateBody}>{t('panel.gate.slow')}</p>}
         {/* Retry ISSUES work, so it waits out the slow window: a tap while the
             first allocate is still in flight leaves that one to complete
             server-side and orphan its device record. The escape below issues
@@ -330,6 +368,12 @@ function PanelEntrypointFailure({ kind, detail, isPhone, showPairAgain, onRetry 
     body = isPhone
       ? t('panel.gate.fail.pairPhoneBody')
       : t('panel.gate.fail.authBody');
+  } else if (kind === 'pair-denied') {
+    headline = t('panel.gate.fail.deniedHeadline');
+    body = t('panel.gate.fail.deniedBody');
+  } else if (kind === 'pair-update-required') {
+    headline = t('panel.gate.fail.updateRequiredHeadline');
+    body = t('panel.gate.fail.updateRequiredBody');
   } else if (kind === 'pair-expired') {
     headline = t('panel.gate.fail.expiredHeadline');
     body = t('panel.gate.fail.expiredBody');

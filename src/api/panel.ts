@@ -540,6 +540,27 @@ export interface PanelPhoneClaimResponse {
   token: string;
   machineName?: string;
   error: string;
+  /** True when the host must approve this device; the claim carries the SAS instead of a token. */
+  needsApproval?: boolean;
+  requestId?: string | null;
+  sas?: string | null;
+  /** Unix-ms expiry of the pending approval request. */
+  expiresAt?: number;
+}
+
+export type PanelPhonePairCodeConfirmStatus =
+  | 'waiting-host'
+  | 'approved'
+  | 'denied'
+  | 'expired'
+  | 'unknown'
+  | 'https-required';
+
+export interface PanelPhonePairCodeConfirmResponse {
+  status: PanelPhonePairCodeConfirmStatus;
+  token?: string;
+  machineName?: string;
+  spkiFingerprint?: string;
 }
 
 export interface PanelPhoneSession {
@@ -732,7 +753,7 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel() }),
+      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
     if (!res.ok) {
@@ -740,6 +761,25 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
       catch { return null; }
     }
     return (await res.json()) as PanelPhoneClaimResponse;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One poll of the pending QR-claim approval. Same-origin like the claim, so the
+ * session cookie the service sets on approval lands on this origin. Null on a
+ * transport failure so the caller keeps polling until the request's deadline.
+ */
+export async function confirmPanelPhonePairing(requestId: string): Promise<PanelPhonePairCodeConfirmResponse | null> {
+  if (isRemoteOrigin) return null;
+  try {
+    const res = await fetch(resolveHttp('/panel/phone/pair-code/confirm'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, approved: true }),
+    });
+    return (await res.json()) as PanelPhonePairCodeConfirmResponse;
   } catch {
     return null;
   }

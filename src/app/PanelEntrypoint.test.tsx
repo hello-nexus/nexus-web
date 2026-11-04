@@ -5,6 +5,7 @@ import { PANEL_DEVICE_ID_KEY } from './panelRouting';
 const allocateMock = vi.fn();
 const patchMock = vi.fn();
 const claimMock = vi.fn();
+const confirmMock = vi.fn();
 const storePhoneTokenMock = vi.fn();
 let sessionToken: string | null = null;
 
@@ -12,6 +13,7 @@ vi.mock('../api/panel', () => ({
   allocatePanelDeviceWithStatus: (...args: unknown[]) => allocateMock(...args),
   patchPanelDeviceWithStatus: (...args: unknown[]) => patchMock(...args),
   claimPanelPhonePairing: (...args: unknown[]) => claimMock(...args),
+  confirmPanelPhonePairing: (...args: unknown[]) => confirmMock(...args),
 }));
 
 vi.mock('../api/auth', () => ({
@@ -56,6 +58,7 @@ beforeEach(() => {
   allocateMock.mockReset();
   patchMock.mockReset();
   claimMock.mockReset();
+  confirmMock.mockReset();
   storePhoneTokenMock.mockReset();
   // history.replaceState is called by finish(); spy so we can assert the
   // redirect to /panel/<id> happened without polluting jsdom navigation.
@@ -553,5 +556,75 @@ describe('PanelEntrypoint failure gate', () => {
 
     await screen.findByRole('button', { name: 'panel.gate.retry' });
     expect(screen.queryByText('connection.sessionRevoked.pairAgain')).toBeNull();
+  });
+});
+
+describe('PanelEntrypoint QR claim with host approval', () => {
+  const pendingClaim = {
+    paired: false,
+    token: '',
+    error: '',
+    needsApproval: true,
+    requestId: 'req-1',
+    sas: '123456',
+    machineName: 'DESK',
+    expiresAt: Date.now() + 60_000,
+  };
+
+  function renderClaim() {
+    return render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair
+        pairToken="qr-token"
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+  }
+
+  it('shows the number while the host decides, then finishes like a direct mint', async () => {
+    let answer: (v: unknown) => void = () => {};
+    claimMock.mockResolvedValueOnce(pendingClaim);
+    confirmMock.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
+    allocateMock.mockResolvedValueOnce({ ok: true, record: { id: FRESH_ID } });
+
+    renderClaim();
+
+    expect(await screen.findByText('123456')).toBeTruthy();
+    expect(screen.getByText('panel.gate.approval.body')).toBeTruthy();
+    expect(storePhoneTokenMock).not.toHaveBeenCalled();
+    expect(confirmMock).toHaveBeenCalledWith('req-1');
+
+    answer({ status: 'approved', token: 'sess-token', machineName: 'DESK' });
+
+    await waitFor(() => expect(storePhoneTokenMock).toHaveBeenCalledWith('sess-token'));
+    await waitFor(() =>
+      expect(screen.getByTestId('panel-app').getAttribute('data-device-id')).toBe(FRESH_ID),
+    );
+    expect(localStorage.getItem('nexus_phone_panel_pwa')).not.toBeNull();
+  });
+
+  it('shows denied when the host refuses', async () => {
+    claimMock.mockResolvedValueOnce(pendingClaim);
+    confirmMock.mockResolvedValueOnce({ status: 'denied' });
+    renderClaim();
+    expect(await screen.findByText('panel.gate.fail.deniedHeadline')).toBeTruthy();
+    expect(storePhoneTokenMock).not.toHaveBeenCalled();
+    expect(allocateMock).not.toHaveBeenCalled();
+  });
+
+  it('shows expired when the request lapses', async () => {
+    claimMock.mockResolvedValueOnce(pendingClaim);
+    confirmMock.mockResolvedValueOnce({ status: 'expired' });
+    renderClaim();
+    expect(await screen.findByText('panel.gate.fail.expiredHeadline')).toBeTruthy();
+  });
+
+  it('shows the update message for update_required', async () => {
+    claimMock.mockResolvedValueOnce({ paired: false, token: '', error: 'update_required' });
+    renderClaim();
+    expect(await screen.findByText('panel.gate.fail.updateRequiredHeadline')).toBeTruthy();
+    expect(confirmMock).not.toHaveBeenCalled();
   });
 });
