@@ -47,6 +47,11 @@
   transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+.digitColumnPaced {
+  display: flex;
+  flex-direction: column;
+}
+
 .digitCell {
   width: 0.62em;
   height: 1.2em;

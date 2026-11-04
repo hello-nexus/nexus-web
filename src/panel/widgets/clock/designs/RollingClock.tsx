@@ -1,16 +1,18 @@
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
 import { ClockDate, ClockLine, splitTimeLines, useClockFit } from './layout';
+import { useStreamTween } from '../../../../lib/useStreamTween';
 import styles from './RollingClock.module.scss';
 
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 function RollingDigit({ digit }: { digit: number }) {
+  const tweened = useStreamTween(digit, 500);
   return (
     <div className={styles.digitWrapper}>
       <div
-        className={styles.digitColumn}
-        style={{ transform: `translateY(${-digit * 10}%)` }}
+        className={tweened === null ? styles.digitColumn : styles.digitColumnPaced}
+        style={{ transform: `translateY(${-(tweened ?? digit) * 10}%)` }}
       >
         {DIGITS.map(d => (
           <div key={d} className={styles.digitCell}>{d}</div>
