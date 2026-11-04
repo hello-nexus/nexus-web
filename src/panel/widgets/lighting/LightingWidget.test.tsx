@@ -387,6 +387,35 @@ describe('LightingWidget', () => {
       expect(vi.mocked(setPins).mock.calls.every(c => c[1] === null)).toBe(true);
     });
 
+    it('starts only the latest tap when an earlier pin clear is slow', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      let release: (v: Record<string, never>) => void = () => {};
+      vi.mocked(fetchPins).mockImplementationOnce(() => new Promise(r => { release = r as never; }));
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      const swatches = document.querySelectorAll('[data-swatch-hex]');
+      const first = swatches[0] as HTMLElement;
+      const second = swatches[1] as HTMLElement;
+      fireEvent.click(first);
+      fireEvent.click(second);
+      release({});
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      await new Promise(r => setTimeout(r, 20));
+      expect(startStatic).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(startStatic).mock.calls[0][8]).toBe(second.getAttribute('data-swatch-hex'));
+    });
+
+    it('still starts the look when the pin clear is refused', async () => {
+      vi.mocked(fetchPins).mockResolvedValue(pinned as never);
+      vi.mocked(setPins).mockResolvedValueOnce(false);
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      fireEvent.click(document.querySelector('[data-swatch-hex]') as HTMLElement);
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      expect(setPins).toHaveBeenCalledTimes(1);
+    });
+
     it('makes no pin write when nothing is pinned', async () => {
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
       renderLighting(lightingWidget('4x2'));

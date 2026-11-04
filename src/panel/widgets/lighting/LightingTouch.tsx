@@ -538,7 +538,8 @@ function useImmersiveAnimateState(): {
   const onTemplateSelect = useCallback((idx: number) => {
     if (!bundle) return;
     const clamped = Math.min(Math.max(idx, 0), bundle.slots.length - 1);
-    if (mode === 'animate') recordAnimation(shown, clamped);
+    // Like the page: a static pin's preset is not an animation pick, and re-picking the selected preset is no new pick.
+    if (mode === 'animate' && pinnedSlot === null && clamped !== bundle.selected) recordAnimation(shown, clamped);
     // A static pin repoints only its devices; the effect's shared pointer stays.
     const nextBundle: EffectTemplateBundle = pinnedSlot === null ? { ...bundle, selected: clamped } : bundle;
     const nextTemplates = { ...templates, [shown]: nextBundle };
