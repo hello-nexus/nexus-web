@@ -11,10 +11,7 @@ export interface RotorSpin {
   rate: number;
 }
 
-/**
- * Advances a rotor by `dtSeconds`: the angle integrates the eased rate, so a change of rpm changes the speed but never the position, and it is wrapped by exactly one blade period in double precision, so the blades land where they were and the value handed to the shader stays small however long the view runs.
- * `sign` is the spin direction. With no previous state the rate starts at the target.
- */
+/** Advances a rotor: the angle integrates the eased rate and wraps by one blade period, so an rpm change never moves the blades. `sign` is the spin direction; with no previous state the rate starts at the target. */
 export function advanceRotor(prev: RotorSpin | undefined, dtSeconds: number, targetTurnsPerSecond: number, sign: number): RotorSpin {
   const dt = Math.max(0, dtSeconds);
   const rate = prev === undefined ? targetTurnsPerSecond : targetTurnsPerSecond + (prev.rate - targetTurnsPerSecond) * Math.exp(-dt / RATE_EASE_SECONDS);

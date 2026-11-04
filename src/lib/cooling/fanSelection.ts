@@ -1,4 +1,4 @@
-import { NONE_CHANNEL, simChannelId, type FanBinding } from './caseLayout';
+import type { FanBinding } from './caseLayout';
 import { simRpm } from './fanSpeed';
 
 /** Keys held while a fan is pressed: Ctrl or Cmd toggles it in or out of the selection, Shift adds it. */
@@ -46,8 +46,3 @@ export function simSpeeds(channelOf: (key: string) => string | null, keys: reado
   }
   return out;
 }
-
-/** The device a key's fan is linked to, or the none marker. */
-export const ownerOf = (channelOf: (key: string) => string | null, key: string): string => channelOf(key) ?? NONE_CHANNEL;
-
-export { simChannelId };

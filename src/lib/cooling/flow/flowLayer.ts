@@ -221,7 +221,7 @@ export class FlowLayer {
     }
   }
 
-  /** Test hook: what the layer is drawing with, for reading from a live page. */
+  /** What the layer is drawing with, read by the dev-tools readout. */
   debugInfo() {
     const u = this.streakMat?.uniforms;
     const hex = (c: Color) => `#${c.getHexString()}`;

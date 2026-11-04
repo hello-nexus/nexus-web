@@ -1,4 +1,4 @@
-import { PARTICLE_DRAW_SHARE } from './flowParams';
+import { PARTICLE_DRAW_SHARE, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE } from './flowParams';
 
 /** How the airflow streaks are drawn and how the particles behave while they live and when they end. */
 export interface FlowLook {
@@ -47,7 +47,7 @@ export interface FlowLook {
 export const FLOW_LOOK: FlowLook = {
   drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2 * 1.5,
   widthMm: 32, minWidthPx: 14, alpha: 1, alphaVar: 0.25,
-  maxAge: 900, lifeJitter: 0.5, timeScaleMul: 1.6, fadePow: 1,
+  maxAge: PARTICLE_MAX_AGE, lifeJitter: PARTICLE_LIFE_JITTER, timeScaleMul: 1.6, fadePow: 1,
   headTaper: 0.22, headFade: 0.28, fadeOut: 120, exitShare: 0, marginStart: 0.05, outDecay: 0.6, speedGamma: 0.4, speedGammaHi: 0.85, speedRef: 0.25,
   trailSteps: 55, segments: 32, speedWidth: [0.3, 5, 0.18], heatGain: 2.2, heatCurve: 0.7,
 };

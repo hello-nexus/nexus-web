@@ -7,7 +7,7 @@ export const JACOBI_ITERATIONS = 20;
 export const FAN_BLEND = 0.6;
 /** Darcy drag per step inside a porous (radiator or cooler) cell. */
 export const DARCY_K = 0.4;
-/** Most drag per step a radiator core may add. The core's drag follows the pressure model's loss (about 8 Pa at a fan's face speed), and this keeps it to roughly half of that: the air passes the core, which only straightens the flow. At this value about nine tenths of the radiator fans' flow crosses the core. */
+/** Most drag per step a radiator core may add; kept below the pressure model's loss so air passes the core and it only straightens the flow. */
 export const RADIATOR_DARCY_MAX = 0.04;
 /** Per-step velocity damping. */
 export const DAMPING = 0.999;
@@ -106,8 +106,6 @@ export const OUTSIDE_SPAWN_FROM = 0.45;
 export const OUTSIDE_SPAWN_TO = 0.9;
 /** Share of the particle pool that is drawn; the rest is simulated but hidden, so the picture stays readable. */
 export const PARTICLE_DRAW_SHARE = 0.1;
-/** How many of a pool's particles are drawn at a tier's share of it. */
-export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
 export const FAN_CLEARANCE_MM = 30;
 
