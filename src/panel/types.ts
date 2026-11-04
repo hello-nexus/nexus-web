@@ -226,9 +226,17 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
     return { default: 'large', layoutSurface: { large: 'lcd-square', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
   }
   // Aftershock Glacier Matrix: Large is its one wide tile, Small a landscape grid sized by the default cooler LCD density (no dpi here, so the lcd-wide estimate applies).
-  // ZMatrices MAX E87: the same pair; its record carries the glass's dpi.
-  if (surface === 'lcd-wide' && (family === ZMATRICES_LCD_FAMILY || family === ZMATRICES_MAX_E87_FAMILY)) {
+  if (surface === 'lcd-wide' && family === ZMATRICES_LCD_FAMILY) {
     return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
+  }
+  // ZMatrices MAX E87: the same pair (its record carries the glass's dpi) plus a 75% grid of exactly three rows.
+  if (surface === 'lcd-wide' && family === ZMATRICES_MAX_E87_FAMILY) {
+    return {
+      default: 'large',
+      layoutSurface: { large: 'lcd-wide', medium: 'monitor', small: 'monitor' },
+      shortSideSlots: { medium: E87_MEDIUM_ROWS },
+      percentLabels: { large: 100, medium: 75, small: 50 },
+    };
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
   if (surface === 'monitor' && family === LIANLI_SCREEN88_FAMILY) {
@@ -262,6 +270,9 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   return undefined;
 }
 
+// Three rows on the E87's short side: a forced count of three is kept as is, not rounded to an even one.
+const E87_MEDIUM_ROWS = 3;
+
 export const Y70_COLUMN_STOPS = { medium: 6, compact: 8 } as const;
 
 // A grid whose short axis a Widget size forces; landscape means the short axis is its rows.
@@ -285,7 +296,7 @@ export function widgetSizeShortSideSlots(
   const share = options.densitySlotShare?.[mode];
   if (share === undefined) {
     const forced = options.shortSideSlots?.[mode];
-    return forced === undefined ? undefined : evenCount(forced);
+    return forced === undefined ? undefined : Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, forced));
   }
   return densitySlots === undefined ? undefined : evenCount(densitySlots * share);
 }

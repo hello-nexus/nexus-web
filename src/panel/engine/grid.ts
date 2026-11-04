@@ -198,7 +198,7 @@ export function panelGridCapacityForCanvas(
   // the short-axis slot count, so the gap matches the portrait solve of the
   // same physical panel and survives a rotation unchanged.
   const solveSpacing = (ratio: number): PanelSpacing => isPhoneLandscape
-    ? resolvePanelSpacing(canvasH, toEvenRound(defaultColumns), ratio)
+    ? resolvePanelSpacing(canvasH, landscapeRows(defaultColumns, shortSideSlots), ratio)
     : y70Landscape
       ? resolvePanelSpacing(canvasH, toEvenRound(shortAxisSlots), ratio)
       : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), ratio);
@@ -213,7 +213,7 @@ export function panelGridCapacityForCanvas(
     : solveSpacing(panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT));
 
   if (isPhoneLandscape) {
-    return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, defaultColumns, spacing, contentSpacing);
+    return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, landscapeRows(defaultColumns, shortSideSlots), spacing, contentSpacing);
   }
 
   const safeColumns = toEvenRound(columns ?? defaultColumns);
@@ -234,11 +234,10 @@ export function panelGridCapacityForCanvas(
 function phoneLandscapeGridCapacityForCanvas(
   canvasW: number,
   canvasH: number,
-  shortAxisSlots: number,
+  safeRows: number,
   spacing: PanelInset,
   contentSpacing: PanelInset,
 ): PanelGridCapacity {
-  const safeRows = toEvenRound(shortAxisSlots);
   const solve = (s: PanelInset): PanelGridGeometry => {
     const rowSize = Math.max(1, (Math.max(1, canvasH - s.padding * 2) - s.gap * (safeRows - 1)) / safeRows);
     const columns = toEvenFloor((Math.max(1, canvasW - s.padding * 2) + s.gap) / (rowSize + s.gap));
@@ -297,6 +296,12 @@ export function columnsForPhysicalSize(
   const step = PANEL_GRID_COLS * PANEL_GRID_CELL_INCHES;
   // Never odd, so a 2x2 tile always fits.
   return toEvenRound(Math.max(PANEL_LARGE_GRID_COLS, PANEL_GRID_COLS * Math.round(physical.shortSideInches / step)));
+}
+
+// A landscape grid's row count: a Widget size that forces its short-axis count (shortSideSlots) is kept exactly, so a
+// 3-row size stays 3; the density-derived count is rounded to even.
+function landscapeRows(slots: number, forced: number | undefined): number {
+  return forced === undefined ? toEvenRound(slots) : Math.max(2, Math.round(forced));
 }
 
 function toEvenRound(value: number): number {

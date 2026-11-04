@@ -12,7 +12,7 @@ export function widgetSizeStops(options: PanelWidgetSizeOptions, densitySlots?: 
     const percent = options.percentLabels?.[mode];
     return options.layoutSurface[mode] && percent !== undefined ? [{ mode, percent }] : [];
   });
-  if (densitySlots === undefined || !options.densitySlotShare) return labelled;
+  if (densitySlots === undefined || !options.densitySlotShare) return labelled.sort((a, b) => b.percent - a.percent);
   const countOf = (mode: PanelWidgetSizeMode) => widgetSizeShortSideSlots(options, mode, densitySlots) ?? densitySlots;
   const baseline = labelled.find(stop => stop.percent === 100);
   if (!baseline) return labelled;
