@@ -1,6 +1,6 @@
 import {
-  NormalBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
-  Mesh, NearestFilter, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type PerspectiveCamera, type WebGLRenderer,
+  NormalBlending, NoBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
+  Mesh, NearestFilter, PerspectiveCamera, Points, RGBAFormat, Scene, ShaderMaterial, Vector2, Vector3, type Group, type WebGLRenderer, type WebGLRenderTarget,
 } from 'three';
 import { DEV_TOOLS } from '../../devTools';
 import { isInternalSlotKey } from '../slotFlow';
@@ -13,7 +13,7 @@ import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps }
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
-import { FADE_PROBE, FRAGMENT_OUT, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT, streakVertex } from './shaders';
+import { FADE_PROBE, FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, PROBE_FRAGMENT, STREAK_FRAGMENT, streakVertex } from './shaders';
 import { getFlowVariant } from './flowVariant';
 
 /** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
@@ -29,6 +29,9 @@ export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
 /** Particle states kept: the current one and the one before it, whose difference is the streak. */
 const RING = 2;
+/** Samples in a particle's history ring, and how many particles keep one (the first ones, which are the drawn ones). */
+const HISTORY_SAMPLES = 64;
+const HISTORY_ROWS = 256;
 /** Time of a layer-wide fade, ms. */
 const FADE_MS = 500;
 const MAX_PARTICLES = PARTICLE_TEXTURE.w * PARTICLE_TEXTURE.h;
@@ -100,6 +103,12 @@ export class FlowLayer {
   private fadeT = 1;
   private fadeGoal = 1;
   private deferred: { warm: boolean } | null = null;
+  private histTargets: WebGLRenderTarget[] = [];
+  private histMat: ShaderMaterial | null = null;
+  private histCur = 0;
+  private histHead = 0;
+  /** Test hook: runs exactly this many particle steps a frame, the motion of a steady 60 Hz display. */
+  forceSteps = 0;
   private pendingTeardown = false;
   private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
@@ -211,6 +220,34 @@ export class FlowLayer {
       this.pendingTeardown = false;
       this.teardown();
     }
+  }
+
+  /** Test hook for the preview page: the geometry the streak shader draws, one texel per ribbon station of each drawn particle, as layout-space mm position and alpha. */
+  debugGeometry(): { data: Float32Array; stations: number; rows: number; drawn: number } | null {
+    if (!this.kind || !this.streaks || !this.streakMat || this.stateTargets.length === 0) return null;
+    const v = this.variant;
+    const probe = new ShaderMaterial({
+      glslVersion: GLSL3, defines: { PROBE: '' }, uniforms: this.streakMat.uniforms,
+      vertexShader: v.history ? histVertex(v.segments, HISTORY_SAMPLES) : streakVertex(v.streakSteps, v.streakMinMm, v.streakMaxMm, v.segments), fragmentShader: PROBE_FRAGMENT,
+      blending: NoBlending, depthTest: false, depthWrite: false, transparent: false,
+    });
+    const points = new Points(this.streaks.geometry, probe);
+    points.frustumCulled = false;
+    const tmp = new Scene();
+    tmp.add(points);
+    const stations = v.segments + 1;
+    const rt = target(stations, HISTORY_ROWS, this.kind);
+    const prevTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(rt);
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.clear();
+    this.renderer.render(tmp, new PerspectiveCamera());
+    this.renderer.setRenderTarget(prevTarget);
+    const data = new Float32Array(stations * HISTORY_ROWS * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, stations, HISTORY_ROWS, data);
+    probe.dispose();
+    rt.dispose();
+    return { data, stations, rows: HISTORY_ROWS, drawn: this.drawnCount() };
   }
 
   /** Test hook for the preview page: the grid's cell size and origin, mm. */
@@ -411,6 +448,10 @@ export class FlowLayer {
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
+    if (v.history) {
+      this.histTargets = Array.from({ length: 2 }, () => target(HISTORY_SAMPLES, HISTORY_ROWS, this.kind!));
+      this.histMat = pass(HIST_PASS, { PA: { value: null as unknown }, HP: { value: null as unknown }, uWrite: { value: 0 }, uLast: { value: 0 }, uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uFadeOut: { value: v.fadeOut } });
+    }
 
     const geometry = new BufferGeometry();
     // A ribbon per particle: head to tail in v.segments segments, two vertices (one per side) at each of v.segments + 1 stations.
@@ -436,11 +477,11 @@ export class FlowLayer {
     geometry.setIndex(new BufferAttribute(index, 1));
     geometry.setDrawRange(0, this.drawnCount() * v.segments * 6);
     this.streakMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: streakVertex(v.streakSteps, v.streakMinMm, v.streakMaxMm, v.segments), fragmentShader: STREAK_FRAGMENT,
+      glslVersion: GLSL3, vertexShader: v.history ? histVertex(v.segments, HISTORY_SAMPLES) : streakVertex(v.streakSteps, v.streakMinMm, v.streakMaxMm, v.segments), fragmentShader: STREAK_FRAGMENT,
       uniforms: {
         PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
         uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: v.widthMm }, uMinWidthPx: { value: v.minWidthPx }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uAlphaVar: { value: v.alphaVar }, uHeadTaper: { value: v.headTaper }, uFade: { value: 1 }, uOwed: { value: -1 }, uRefSpeed: { value: 1 }, uFieldLen: { value: v.smooth ? 1 : 0 }, uFadeOut: { value: v.fadeOut }, uGrowTail: { value: v.growTail ? 1 : 0 }, uStationHeat: { value: v.stationHeat ? 1 : 0 }, uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uDirect: { value: v.directRamp ? 1 : 0 }, T: { value: null as unknown }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
+        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uAlphaVar: { value: v.alphaVar }, uHeadTaper: { value: v.headTaper }, uFade: { value: 1 }, HIST: { value: null as unknown }, uHead: { value: 0 }, uTrailSteps: { value: v.trailSteps }, uOwed: { value: -1 }, uRefSpeed: { value: 1 }, uFieldLen: { value: v.smooth ? 1 : 0 }, uFadeOut: { value: v.fadeOut }, uGrowTail: { value: v.growTail ? 1 : 0 }, uStationHeat: { value: v.stationHeat ? 1 : 0 }, uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uDirect: { value: v.directRamp ? 1 : 0 }, T: { value: null as unknown }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
         uCool: { value: this.colors.cool }, uPurple: { value: this.colors.purple }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
       },
@@ -463,6 +504,9 @@ export class FlowLayer {
     const blit = pass(FRAGMENT_OUT + 'uniform sampler2D T; void main(){ gl_FragColor = texelFetch(T, ivec2(gl_FragCoord.xy), 0); }', { T: { value: init } });
     const zero = pass(FRAGMENT_OUT + 'void main(){ gl_FragColor = vec4(0.0); }', {});
     for (let i = 0; i < RING; i++) { this.runner.run(blit, this.stateTargets[i]); this.runner.run(zero, this.heatTargets[i]); }
+    for (const t of this.histTargets) this.runner.run(zero, t);
+    this.histCur = 0;
+    this.histHead = 0;
     blit.dispose();
     zero.dispose();
     init.dispose();
@@ -547,7 +591,7 @@ export class FlowLayer {
     // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
       // Particle steps follow real elapsed time, not frames: the drawn speed is the same at any frame rate and while the camera moves.
-      const particleSteps = this.clock.advance(dt);
+      const particleSteps = this.forceSteps > 0 ? this.forceSteps : this.clock.advance(dt);
       if (DEV_TOOLS) { const g = globalThis as { __nexusParticleSteps?: number; __nexusFrames?: number }; g.__nexusParticleSteps = (g.__nexusParticleSteps ?? 0) + particleSteps; g.__nexusFrames = (g.__nexusFrames ?? 0) + 1; }
       for (let st = 0; st < particleSteps; st++) {
         const next = (this.stateCur + 1) % RING;
@@ -559,6 +603,17 @@ export class FlowLayer {
         this.heatMat.uniforms.T.value = flow.temperature;
         if (this.streakMat) this.streakMat.uniforms.T.value = flow.temperature;
         this.runner.run(this.heatMat, this.heatTargets[next]);
+        if (this.histMat) {
+          const hm = this.histMat;
+          const write = (this.histHead + 1) % HISTORY_SAMPLES;
+          hm.uniforms.PA.value = this.stateTargets[next].texture;
+          hm.uniforms.HP.value = this.histTargets[this.histCur].texture;
+          hm.uniforms.uLast.value = this.histHead;
+          hm.uniforms.uWrite.value = write;
+          this.runner.run(hm, this.histTargets[1 - this.histCur]);
+          this.histCur = 1 - this.histCur;
+          this.histHead = write;
+        }
         this.stateCur = next;
       }
       const scale = viewportHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
@@ -569,8 +624,9 @@ export class FlowLayer {
       u.U.value = flow.velocity;
       u.uRate.value = this.drawnSpeed() / this.referenceSpeed();
       u.uRefSpeed.value = this.referenceSpeed();
+      if (this.histTargets.length > 0) { u.HIST.value = this.histTargets[this.histCur].texture; u.uHead.value = this.histHead; }
       this.streaks!.visible = true;
-      u.uOwed.value = this.variant.smooth ? this.clock.fraction : -1;
+      u.uOwed.value = this.variant.smooth ? (this.forceSteps > 0 ? 0 : this.clock.fraction) : -1;
       u.uScale.value = scale;
       (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }
@@ -680,7 +736,8 @@ export class FlowLayer {
 
   dispose() {
     this.teardown();
-    for (const t of [...this.stateTargets, ...this.heatTargets]) t.dispose();
+    for (const t of [...this.stateTargets, ...this.heatTargets, ...this.histTargets]) t.dispose();
+    this.histMat?.dispose();
     for (const m of [this.stateMat, this.heatMat, this.streakMat]) m?.dispose();
     this.spawnTex?.dispose();
     this.streaks?.geometry.dispose();

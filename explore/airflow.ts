@@ -25,7 +25,7 @@ if (params.get('chrome') === '0') bar.style.display = 'none';
 // T1's Y70 with its real fans: right side and bottom draw air in, rear and top push it out.
 // fans=slow|fast|mixed sets the flow of every one of those: slow about 20 CFM, fast about 80. Mixed has one slow and one fast intake on the right side, the rest medium.
 // fans=max also runs the top radiator's three fans (exhaust) and the card's two fans, every one at about 100 CFM per 120 mm fan (about 2200 RPM), scaled by area for other sizes. A3-3 opens in this mode.
-const fans = params.get('fans') ?? (name === 'A3-3' ? 'max' : null);
+const fans = params.get('fans') ?? (name.startsWith('A3-3') ? 'max' : null);
 const caseIntake = ['right:120:1', 'right:120:2', 'bottom:120:1'];
 const caseExhaust = ['rear:140:0', 'top:140:0'];
 const intake = fans === 'max' ? [...caseIntake, 'gpu:fan:0', 'gpu:fan:1'] : caseIntake;
@@ -147,6 +147,54 @@ if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 })
     }
     frame++;
     if (frame < frames) requestAnimationFrame(loop); else resolve({ cellMm: sc.cellMm, maxDwellSteps: Math.round(maxDwell), rows, samples });
+  };
+  requestAnimationFrame(loop);
+});
+
+// Geometry probe: reads back every ribbon station the shader draws, per frame, with the particle clock fixed at two steps a frame (a steady 60 Hz display), and flags visible glitches.
+(window as unknown as { __geo: unknown }).__geo = (frames: number, stepsPerFrame: number) => new Promise(resolve => {
+  const flow = renderer.debugFlow?.();
+  if (!flow) { resolve(null); return; }
+  flow.forceSteps = stepsPerFrame;
+  let prev: { head: number[]; tail: number[]; tailTan: number[]; len: number; alpha: number }[] | null = null;
+  const flags = { pop: 0, collapse: 0, collapseWhileFading: 0, shake: 0, teleport: 0 };
+  const examples: Record<string, unknown[]> = { pop: [], collapse: [], shake: [], teleport: [] };
+  let frame = 0; let visibleSamples = 0; let maxLen = 0; let maxDrop = 0;
+  const loop = () => {
+    const g = flow.debugGeometry();
+    if (g && frame > 30) {
+      const { data, stations, drawn } = g;
+      const cur: NonNullable<typeof prev> = [];
+      for (let i = 0; i < drawn; i++) {
+        const at = (k: number) => [data[(i * stations + k) * 4], data[(i * stations + k) * 4 + 1], data[(i * stations + k) * 4 + 2]];
+        const alpha = data[i * stations * 4 + 3];
+        let len = 0; let segMax = 0;
+        for (let k = 1; k < stations; k++) { const a = at(k - 1); const b = at(k); const d = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); len += d; if (d > segMax) segMax = d; }
+        const head = at(0); const tail = at(stations - 1); const t2 = at(stations - 2);
+        const tan = [tail[0] - t2[0], tail[1] - t2[1], tail[2] - t2[2]];
+        cur.push({ head, tail, tailTan: tan, len, alpha });
+        if (alpha > 0.05) { visibleSamples++; if (len > maxLen) maxLen = len; }
+        if (alpha > 0.05 && segMax > 60) { flags.teleport++; if (examples.teleport.length < 4) examples.teleport.push({ frame, i, segMax: Math.round(segMax) }); }
+        const p = prev?.[i];
+        if (p) {
+          const drop = p.alpha - alpha;
+          if (drop > maxDrop) maxDrop = drop;
+          if (drop > 0.15) { flags.pop++; if (examples.pop.length < 4) examples.pop.push({ frame, i, from: +p.alpha.toFixed(2), to: +alpha.toFixed(2) }); }
+          if (p.len > 20 && alpha > 0.1 && p.alpha > 0.1 && len < 0.7 * p.len && alpha < p.alpha - 0.002) flags.collapseWhileFading++;
+          if (p.len > 20 && alpha > 0.1 && p.alpha > 0.1 && len < 0.7 * p.len && alpha >= p.alpha - 0.002) { flags.collapse++; if (examples.collapse.length < 4) examples.collapse.push({ frame, i, from: Math.round(p.len), to: Math.round(len), alpha: +alpha.toFixed(2) }); }
+          const headMove = Math.hypot(head[0] - p.head[0], head[1] - p.head[1], head[2] - p.head[2]);
+          const dx = [tail[0] - p.tail[0], tail[1] - p.tail[1], tail[2] - p.tail[2]];
+          const tl = Math.hypot(tan[0], tan[1], tan[2]) || 1;
+          const along = (dx[0] * tan[0] + dx[1] * tan[1] + dx[2] * tan[2]) / tl;
+          const perp = Math.sqrt(Math.max(0, dx[0] ** 2 + dx[1] ** 2 + dx[2] ** 2 - along ** 2));
+          if (alpha > 0.1 && p.alpha > 0.1 && alpha >= p.alpha - 0.002 && headMove < 2 && perp > 2.5) { flags.shake++; if (examples.shake.length < 4) examples.shake.push({ frame, i, headMove: +headMove.toFixed(2), tailPerp: +perp.toFixed(2), alpha: +alpha.toFixed(2) }); }
+        }
+      }
+      prev = cur;
+    }
+    frame++;
+    if (frame < frames) requestAnimationFrame(loop);
+    else { flow.forceSteps = 0; resolve({ frames, flags, maxAlphaDropPerFrame: +maxDrop.toFixed(3), maxVisibleLenMm: Math.round(maxLen), visibleSamples, examples }); }
   };
   requestAnimationFrame(loop);
 });

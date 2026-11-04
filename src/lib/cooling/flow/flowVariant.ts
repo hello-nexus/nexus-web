@@ -26,6 +26,9 @@ export interface FlowVariant {
   headGlow: number;
   /** 0 is a hard-edged ribbon with a dark rim, 1 a soft glowing one. */
   soft: number;
+  /** Draws each streak through the particle's recorded positions instead of walking back through the field; trailSteps is how many particle steps of travel the trail spans. */
+  history: boolean;
+  trailSteps: number;
   /** Draws the head between the last two particle steps by the clock's remainder, and sizes the trail from the solved air speed at the head instead of the last step. */
   smooth: boolean;
   /** Steps over which a particle fades out whenever it ends, early or at the end of its life; 0 keeps the shipped behavior, where an early end respawns at once. */
@@ -50,7 +53,7 @@ export interface FlowVariant {
 export const CURRENT_VARIANT: FlowVariant = {
   name: 'Current', drawShare: PARTICLE_DRAW_SHARE, streakSteps: STREAK_STEPS, streakMinMm: STREAK_MIN_MM, streakMaxMm: STREAK_MAX_MM, segments: STREAK_SEGMENTS,
   widthMm: STREAK_WIDTH_MM, minWidthPx: STREAK_MIN_WIDTH_PX, tailWidth: STREAK_TAIL_WIDTH, alpha: 0.95, maxAge: PARTICLE_MAX_AGE, lifeJitter: PARTICLE_LIFE_JITTER,
-  timeScaleMul: 1, fadePow: 0.8, headGlow: 0, soft: 0, alphaVar: 0.25, headTaper: 0, growTail: false, fadeOut: 0, smooth: false, stationHeat: false, heatGain: 1, heatCurve: 1, directRamp: false, temps: false,
+  timeScaleMul: 1, fadePow: 0.8, headGlow: 0, soft: 0, alphaVar: 0.25, headTaper: 0, growTail: false, fadeOut: 0, smooth: false, history: false, trailSteps: 0, stationHeat: false, heatGain: 1, heatCurve: 1, directRamp: false, temps: false,
 };
 
 export const FLOW_VARIANTS: Record<string, FlowVariant> = {
@@ -76,7 +79,9 @@ FLOW_VARIANTS['A2-heat-direct'] = { ...FLOW_VARIANTS.A2, name: 'A2-heat-direct',
 const D = FLOW_VARIANTS['A2-heat-direct'];
 FLOW_VARIANTS['A3-1'] = { ...D, name: 'A3-1', drawShare: (PARTICLE_DRAW_SHARE / 6) * 1.5, widthMm: 20, minWidthPx: 8.5, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 24, alphaVar: 0.4 };
 FLOW_VARIANTS['A3-2'] = { ...D, name: 'A3-2', drawShare: (PARTICLE_DRAW_SHARE / 8) * 1.5, widthMm: 20, minWidthPx: 8.5, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 24, alphaVar: 0.4 };
-FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 50, alphaVar: 0.4, smooth: true, streakSteps: 96, streakMaxMm: 670, segments: 36 };
+FLOW_VARIANTS['A3-3-walk'] = { ...D, name: 'A3-3-walk', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 50, alphaVar: 0.4, smooth: true, streakSteps: 96, streakMaxMm: 670, segments: 36 };
+// A3-3 draws through recorded positions; A3-3-walk is the field-walk version it replaced, kept to compare geometry.
+FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 60, alphaVar: 0.4, smooth: true, history: true, trailSteps: 56, segments: 28 };
 let active: FlowVariant = CURRENT_VARIANT;
 /** Chooses the look the next FlowLayer is built with. */
 export const setFlowVariant = (v: FlowVariant) => { active = v; };

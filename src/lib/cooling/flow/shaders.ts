@@ -378,6 +378,9 @@ uniform float uHeatSpan;
 uniform float uFade; uniform float uOwed; uniform float uRefSpeed; uniform float uFieldLen; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+#ifdef PROBE
+out vec4 vProbe;
+#endif
 ${RAMP}
 // Cool to hot; uDirect 1 skips the purple stop.
 vec3 streakRamp(float h) { return uDirect > 0.5 ? mixLab(uCool, uHot, clamp(h, 0.0, 1.0)) : rampColor(h); }
@@ -444,8 +447,106 @@ void main() {
   gl_Position = vec4(px / (0.5 * uViewport) * wp, c.z, c.w);
   vAlong = corner.x;
   vSide = corner.y;
+#ifdef PROBE
+  // Probe draw: each station writes its layout-space position and alpha to its own texel, so geometry can be read back.
+  vProbe = vec4((at + 0.5) * uCell - uOrigin, vAlpha);
+  gl_Position = vec4((vec2(float(station) + 0.5, float(r.y * 128 + r.x) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 256.0)) * 2.0 - 1.0, 0.0, 1.0);
+  gl_PointSize = 1.0;
+#endif
 }`;
 export const STREAK_VERTEX = streakVertex(STREAK_STEPS, STREAK_MIN_MM, STREAK_MAX_MM, STREAK_SEGMENTS);
+
+
+/** History ring write: per (sample, particle) texel the particle's position at that step, and its age. A respawned particle fills the whole ring with its spawn point, so no streak stretches from its old place; a particle in its fade window keeps writing its last position, so its trail catches up into a frozen head. */
+export const HIST_PASS = FRAGMENT_OUT + LIFE + /* glsl */ `
+uniform sampler2D PA; uniform sampler2D HP;
+uniform int uWrite; uniform int uLast;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut;
+void main() {
+  ivec2 f = ivec2(gl_FragCoord.xy);
+  int p = f.y;
+  ivec2 sc = ivec2(p % 128, p / 128);
+  vec4 st = texelFetch(PA, sc, 0);
+  vec4 last = texelFetch(HP, ivec2(uLast, p), 0);
+  vec4 old = texelFetch(HP, f, 0);
+  float life = lifeOf(vec2(sc) + 0.5, uMaxAge, uLifeJitter);
+  bool dying = st.w >= 0.0 && st.w > life - uFadeOut;
+  bool bad = st.x < -1.0e5;
+  bool reset = bad || st.w < last.w - 0.5 || (!dying && length(st.xyz - last.xyz) > 4.0);
+  vec4 val = st;
+  if (dying && !reset) val = vec4(last.xyz, st.w);
+  gl_FragColor = (reset || f.x == uWrite) ? val : old;
+}`;
+
+// A particle drawn through its recorded positions: station k sits uTrailSteps * k / segments particle steps behind the head, read from the history ring. There is no walk through the field, so a trail never reaches into air the particle did not cross, and it cannot move except by the particle moving.
+export const histVertex = (segments: number, hn: number) => GRID_COMMON + TEMP_COMMON + FADE_GLSL + /* glsl */ `
+#define STREAK_SEGMENTS ${segments}
+#define HN ${hn}
+uniform sampler2D PA; uniform sampler2D HIST;
+uniform int uHead; uniform float uTrailSteps;
+uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
+uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
+uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+in vec2 ref; in vec2 corner;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
+#ifdef PROBE
+out vec4 vProbe;
+#endif
+${RAMP}
+vec3 streakRamp(float h) { return uDirect > 0.5 ? mixLab(uCool, uHot, clamp(h, 0.0, 1.0)) : rampColor(h); }
+vec2 screenOf(vec3 cellPos, out float w) {
+  vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
+  vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);
+  w = max(c.w, 1.0e-4);
+  return c.xy / w * 0.5 * uViewport;
+}
+// The recorded position b particle steps behind the newest sample, interpolated between samples.
+vec3 histPos(int n, float b) {
+  float bb = clamp(b, 0.0, float(HN - 2));
+  float j = floor(bb);
+  float f = bb - j;
+  int i0 = ((uHead - int(j)) % HN + HN) % HN;
+  int i1 = ((uHead - int(j) - 1) % HN + HN) % HN;
+  return mix(texelFetch(HIST, ivec2(i0, n), 0).xyz, texelFetch(HIST, ivec2(i1, n), 0).xyz, f);
+}
+void main() {
+  ivec2 r = ivec2(ref);
+  int n = r.y * 128 + r.x;
+  vec4 s = texelFetch(PA, r, 0);
+  float owed = max(uOwed, 0.0);
+  vec4 sh = s.x < -1.0e5 ? s : vec4(histPos(n, 1.0 - owed), s.w);
+  float strength = mix(1.0 - uAlphaVar, 1.0, hash(vec2(r) * 1.31 + 0.5));
+  vAlpha = fadeOf(sh, vec2(r) + 0.5) * uFade * uAlpha * strength;
+  int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
+  float b = (1.0 - owed) + float(station) / float(STREAK_SEGMENTS) * uTrailSteps;
+  vec3 at = histPos(n, b);
+  float hs = clamp(sampleT(at) / uHeatSpan, 0.0, 1.0);
+  vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
+  float wp; float wb;
+  vec2 pp = screenOf(at, wp);
+  vec2 pb = screenOf(histPos(n, b + 3.0), wb);
+  float taper = mix(uTailWidth, 1.0, corner.x);
+  if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
+  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
+  vec2 axis = pp - pb;
+  float len = length(axis);
+  axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
+  vec2 side = vec2(-axis.y, axis.x);
+  vec2 px = pp + side * half_ * corner.y;
+  vec4 c = projectionMatrix * modelViewMatrix * vec4((at + 0.5) * uCell - uOrigin, 1.0);
+  gl_Position = vec4(px / (0.5 * uViewport) * wp, c.z, c.w);
+  vAlong = corner.x;
+  vSide = corner.y;
+#ifdef PROBE
+  vProbe = vec4((at + 0.5) * uCell - uOrigin, vAlpha);
+  gl_Position = vec4((vec2(float(station) + 0.5, float(n) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 256.0)) * 2.0 - 1.0, 0.0, 1.0);
+  gl_PointSize = 1.0;
+#endif
+}`;
+
+export const PROBE_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
+in vec4 vProbe;
+void main() { gl_FragColor = vProbe; }`;
 
 export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha; in float vAlong; in float vSide;
