@@ -5691,6 +5691,8 @@
   "settings.title": "Ayarlar",
   "settings.units.custom": "Özel",
   "settings.units.date.label": "Tarih biçimi",
+  "settings.units.monitoring.title": "İzleme birimleri",
+  "settings.units.monitoringWholeNumbers.description": "Sıcaklıkları, gücü ve yüzdeleri yuvarlar. Gerilim, akım ve kare süreleri ondalıklarını korur.",
   "settings.units.monitoringWholeNumbers.label": "İzlemede tam sayılar",
   "settings.units.number.label": "Sayı biçimi",
   "settings.units.system": "Sistem",

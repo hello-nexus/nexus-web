@@ -5738,6 +5738,8 @@
   "settings.title": "Nastavení",
   "settings.units.custom": "Vlastní",
   "settings.units.date.label": "Formát data",
+  "settings.units.monitoring.title": "Jednotky monitorování",
+  "settings.units.monitoringWholeNumbers.description": "Zaokrouhluje teploty, výkon a procenta. Napětí, proud a časy snímků si ponechávají desetinná místa.",
   "settings.units.monitoringWholeNumbers.label": "Celá čísla v monitorování",
   "settings.units.number.label": "Formát čísel",
   "settings.units.system": "Systémový",

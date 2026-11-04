@@ -5691,6 +5691,8 @@
   "settings.title": "Ajustes",
   "settings.units.custom": "Personalizado",
   "settings.units.date.label": "Formato de fecha",
+  "settings.units.monitoring.title": "Unidades de monitorización",
+  "settings.units.monitoringWholeNumbers.description": "Redondea las temperaturas, la potencia y los porcentajes. El voltaje, la corriente y los tiempos de fotograma conservan sus decimales.",
   "settings.units.monitoringWholeNumbers.label": "Números enteros en la monitorización",
   "settings.units.number.label": "Formato numérico",
   "settings.units.system": "Sistema",

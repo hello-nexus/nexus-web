@@ -5691,6 +5691,8 @@
   "settings.title": "设置",
   "settings.units.custom": "自定义",
   "settings.units.date.label": "日期格式",
+  "settings.units.monitoring.title": "监控单位",
+  "settings.units.monitoringWholeNumbers.description": "对温度、功率和百分比进行取整。电压、电流和帧时间保留小数。",
   "settings.units.monitoringWholeNumbers.label": "监控中显示整数",
   "settings.units.number.label": "数字格式",
   "settings.units.system": "系统",

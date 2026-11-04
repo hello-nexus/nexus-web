@@ -5738,6 +5738,8 @@
   "settings.title": "Настройки",
   "settings.units.custom": "Пользовательский",
   "settings.units.date.label": "Формат даты",
+  "settings.units.monitoring.title": "Единицы мониторинга",
+  "settings.units.monitoringWholeNumbers.description": "Округляет температуры, мощность и проценты. Напряжение, ток и время кадра сохраняют десятичные знаки.",
   "settings.units.monitoringWholeNumbers.label": "Целые числа в мониторинге",
   "settings.units.number.label": "Формат чисел",
   "settings.units.system": "Системная",

@@ -5691,6 +5691,8 @@
   "settings.title": "설정",
   "settings.units.custom": "사용자 지정",
   "settings.units.date.label": "날짜 형식",
+  "settings.units.monitoring.title": "모니터링 단위",
+  "settings.units.monitoringWholeNumbers.description": "온도, 전력, 백분율을 반올림합니다. 전압, 전류, 프레임 시간은 소수점을 유지합니다.",
   "settings.units.monitoringWholeNumbers.label": "모니터링에서 정수로 표시",
   "settings.units.number.label": "숫자 형식",
   "settings.units.system": "시스템",

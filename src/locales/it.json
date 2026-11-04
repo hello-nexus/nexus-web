@@ -5691,6 +5691,8 @@
   "settings.title": "Impostazioni",
   "settings.units.custom": "Personalizzato",
   "settings.units.date.label": "Formato data",
+  "settings.units.monitoring.title": "Unità di monitoraggio",
+  "settings.units.monitoringWholeNumbers.description": "Arrotonda temperature, potenza e percentuali. Tensione, corrente e tempi di frame mantengono i decimali.",
   "settings.units.monitoringWholeNumbers.label": "Numeri interi nel monitoraggio",
   "settings.units.number.label": "Formato numerico",
   "settings.units.system": "Sistema",

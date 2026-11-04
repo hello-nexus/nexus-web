@@ -5691,6 +5691,8 @@
   "settings.title": "Definições",
   "settings.units.custom": "Personalizado",
   "settings.units.date.label": "Formato da data",
+  "settings.units.monitoring.title": "Unidades de monitorização",
+  "settings.units.monitoringWholeNumbers.description": "Arredonda temperaturas, potência e percentagens. Tensão, corrente e tempos de fotograma mantêm as casas decimais.",
   "settings.units.monitoringWholeNumbers.label": "Números inteiros na monitorização",
   "settings.units.number.label": "Formato numérico",
   "settings.units.system": "Sistema",

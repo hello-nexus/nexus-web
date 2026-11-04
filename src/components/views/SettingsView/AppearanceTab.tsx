@@ -66,33 +66,6 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
             ]}
           />
         </SettingRow>
-        <SettingRow
-          label={t('settings.units.temperature.label')}
-          icon={<Thermometer />}
-          iconLeading="subtle"
-          anchorId="set-temp-unit"
-          description={t('settings.units.temperature.description')}
-        >
-          <ChipGroup
-            ariaLabel={t('settings.units.temperature.label')}
-            activeKey={settings.general.monitoringTempUnit}
-            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'c', label: t('settings.units.temperature.celsius') },
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
-            ]}
-          />
-        </SettingRow>
-        <SettingToggle
-          label={t('settings.units.monitoringWholeNumbers.label')}
-          anchorId="set-monitoring-whole-numbers"
-          icon={<Hash />}
-          iconLeading="subtle"
-          checked={settings.general.monitoringWholeNumbers}
-          onChange={checked => updateGeneral({ monitoringWholeNumbers: checked })}
-        />
         {/* One box child: the pattern list belongs to this row, so it must not
             pick up the box's row divider. */}
         <div className={styles.dateFormatGroup}>
@@ -121,6 +94,37 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
             </div>
           )}
         </div>
+      </SettingsSection>
+
+      <SettingsSection title={t('settings.units.monitoring.title')}>
+        <SettingRow
+          label={t('settings.units.temperature.label')}
+          icon={<Thermometer />}
+          iconLeading="subtle"
+          anchorId="set-temp-unit"
+          description={t('settings.units.temperature.description')}
+        >
+          <ChipGroup
+            ariaLabel={t('settings.units.temperature.label')}
+            activeKey={settings.general.monitoringTempUnit}
+            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
+              { key: 'c', label: t('settings.units.temperature.celsius') },
+              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
+              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
+            ]}
+          />
+        </SettingRow>
+        <SettingToggle
+          label={t('settings.units.monitoringWholeNumbers.label')}
+          anchorId="set-monitoring-whole-numbers"
+          description={t('settings.units.monitoringWholeNumbers.description')}
+          icon={<Hash />}
+          iconLeading="subtle"
+          checked={settings.general.monitoringWholeNumbers}
+          onChange={checked => updateGeneral({ monitoringWholeNumbers: checked })}
+        />
       </SettingsSection>
     </div>
   );

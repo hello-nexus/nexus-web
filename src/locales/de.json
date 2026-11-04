@@ -5691,6 +5691,8 @@
   "settings.title": "Einstellungen",
   "settings.units.custom": "Benutzerdefiniert",
   "settings.units.date.label": "Datumsformat",
+  "settings.units.monitoring.title": "Einheiten der Überwachung",
+  "settings.units.monitoringWholeNumbers.description": "Rundet Temperaturen, Leistung und Prozentwerte. Spannung, Strom und Frametimes behalten ihre Nachkommastellen.",
   "settings.units.monitoringWholeNumbers.label": "Ganzzahlen in der Überwachung",
   "settings.units.number.label": "Zahlenformat",
   "settings.units.system": "System",

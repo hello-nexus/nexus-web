@@ -5691,6 +5691,8 @@
   "settings.title": "Impostazions",
   "settings.units.custom": "Personalizât",
   "settings.units.date.label": "Formât de date",
+  "settings.units.monitoring.title": "Unitâts di monitoraç",
+  "settings.units.monitoringWholeNumbers.description": "Al arrotonde lis temperaduris, la potence e lis percentuâls. Tension, corint e timps dai fotograms a mantegnin i decimâi.",
   "settings.units.monitoringWholeNumbers.label": "Numars interis tal monitoraç",
   "settings.units.number.label": "Formât numeric",
   "settings.units.system": "Sisteme",

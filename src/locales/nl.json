@@ -5691,6 +5691,8 @@
   "settings.title": "Instellingen",
   "settings.units.custom": "Aangepast",
   "settings.units.date.label": "Datumnotatie",
+  "settings.units.monitoring.title": "Eenheden voor monitoring",
+  "settings.units.monitoringWholeNumbers.description": "Rondt temperaturen, vermogen en percentages af. Spanning, stroom en frametijden behouden hun decimalen.",
   "settings.units.monitoringWholeNumbers.label": "Hele getallen in monitoring",
   "settings.units.number.label": "Getalnotatie",
   "settings.units.system": "Systeem",

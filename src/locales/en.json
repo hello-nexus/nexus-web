@@ -5691,6 +5691,8 @@
   "settings.title": "Settings",
   "settings.units.custom": "Custom",
   "settings.units.date.label": "Date format",
+  "settings.units.monitoring.title": "Monitoring units",
+  "settings.units.monitoringWholeNumbers.description": "Rounds temperatures, power and percentages. Voltage, current and frame times keep their decimals.",
   "settings.units.monitoringWholeNumbers.label": "Whole numbers in monitoring",
   "settings.units.number.label": "Number format",
   "settings.units.system": "System",

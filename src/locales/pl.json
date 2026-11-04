@@ -5738,6 +5738,8 @@
   "settings.title": "Ustawienia",
   "settings.units.custom": "Niestandardowy",
   "settings.units.date.label": "Format daty",
+  "settings.units.monitoring.title": "Jednostki monitorowania",
+  "settings.units.monitoringWholeNumbers.description": "Zaokrągla temperatury, moc i wartości procentowe. Napięcie, prąd i czasy klatek zachowują miejsca dziesiętne.",
   "settings.units.monitoringWholeNumbers.label": "Liczby całkowite w monitorowaniu",
   "settings.units.number.label": "Format liczb",
   "settings.units.system": "Systemowy",
