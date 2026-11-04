@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentPreset, hzLabel, isFlat, signedDb, testOrder, volMax, volOf } from './speakerUtils';
+import { currentPreset, dbLabel, hzLabel, isFlat, signedDb, testOrder, volMax, volOf } from './speakerUtils';
 
 const PRESETS = [
   { name: 'Flat', bands: [0, 0], builtIn: true },
@@ -7,8 +7,14 @@ const PRESETS = [
 ];
 
 describe('hzLabel', () => {
-  it('writes kilohertz with a K', () => {
-    expect([48, 500, 1000, 2000, 16000].map(hzLabel)).toEqual(['48', '500', '1K', '2K', '16K']);
+  it('writes the unit, kilohertz as KHz', () => {
+    expect([48, 500, 1000, 2000, 16000].map(hzLabel)).toEqual(['48Hz', '500Hz', '1KHz', '2KHz', '16KHz']);
+  });
+});
+
+describe('dbLabel', () => {
+  it('signs the gain and adds the unit', () => {
+    expect([6, -20, 0].map(dbLabel)).toEqual(['+6dB', '-20dB', '0dB']);
   });
 });
 

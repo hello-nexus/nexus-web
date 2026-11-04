@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Music, Radio, Speaker, User, Volume2 } from 'lucide-react';
 import {
   deleteSpeakerPreset, resetSpeakerChannels, saveSpeakerPreset, setSpeakerChannel, setSpeakerEq,
@@ -14,13 +14,14 @@ import { Notice } from '../../common/Notice/Notice';
 import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
 import { SettingRow, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { Slider } from '../../common/Slider/Slider';
+import { CurveGraph } from '../../../panel/widgets/cooling/page/CurveEditor';
+import type { CurvePoint } from '../../../api/cooling';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { Stepper } from '../../common/Stepper/Stepper';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useLogitechSpeaker } from './useLogitechSpeaker';
 import {
-  SPEAKER_FACING, SPEAKER_POS, currentPreset, hzLabel, isFlat, signedDb, testOrder, volMax, volOf,
+  SPEAKER_FACING, SPEAKER_POS, currentPreset, dbLabel, hzLabel, isFlat, testOrder, volMax, volOf,
 } from './speakerUtils';
 import styles from './LogitechSpeakerDevicePage.module.scss';
 
@@ -33,9 +34,6 @@ const TABS: readonly { key: Tab; icon: ReactNode }[] = [
   { key: 'surround', icon: <Radio size={14} /> },
 ];
 const ROOMS: readonly SpeakerRoom[] = ['gaming', 'movie'];
-const EQ_LENGTH_PX = 190;
-const HZ = 'Hz';
-const DB = 'dB';
 // The service keeps any number of user presets; the toolbar needs a cap.
 const PRESET_LIMIT = 999;
 const MANUAL_ID = '__manual__';
@@ -46,13 +44,11 @@ const ICON_PX = 20;
 
 interface TabProps { state: SpeakerState; change: Change; report: (key: string) => void }
 
-// One scale for the bands: the labels above and below the track, and the gap between them, are
-// shared with the scale column and the zero line so all three line up.
-const EQ_VARS = {
-  '--slider-vertical-label-height': '1.25rem',
-  '--slider-vertical-value-height': '1.5rem',
-  '--slider-vertical-gap': '0.35rem',
-} as CSSProperties;
+// Bands sit on a fixed grid, one column each; the axis runs half a column past the first and last.
+const GRAPH_H = 230;
+const KEY_STEP_DB = 0.5;
+const DB_STEP = 0.5;
+const EASING = 'smooth';
 
 function EqBands({ state, change }: TabProps) {
   const { t } = useTranslation();
@@ -80,7 +76,7 @@ function EqBands({ state, change }: TabProps) {
   };
   // The key changes with the values, not with a poll's new array.
   useEffect(settle, [key]);
-  // A disabled slider drops its gesture without committing, so its local values go too.
+  // A disabled graph drops its gesture without committing, so its local values go too.
   useEffect(() => {
     if (eqOn) return;
     open.current.clear();
@@ -97,45 +93,53 @@ function EqBands({ state, change }: TabProps) {
       settle();
     });
   };
-  // Where a gain sits down the track, 0 at the top (max) to 1 at the bottom (min).
-  const down = (db: number) => (max - db) / (max - min);
-  const along = (frac: number) => `calc(var(--slider-thumb-size) / 2 + (var(--eq-length) - var(--slider-thumb-size)) * ${frac})`;
+
+  const shown = state.bands.map((b, i) => live[i] ?? b);
+  const points = shown.map((speed, temp) => ({ temp, speed }));
+  const axis = {
+    xTicks: state.bands.map((_, i) => i),
+    formatX: (v: number) => hzLabel(state.bandHz[v] ?? 0),
+    xName: t('lighting.studio.param.frequency'),
+    yName: t('lighting.studio.param.gain'),
+  };
+  const yAxis = {
+    min, max, step: DB_STEP, lines: [0],
+    labels: [{ value: max, label: dbLabel(max) }, { value: min, label: dbLabel(min) }],
+    formatValue: dbLabel,
+  };
+  const drag = useMemo(() => ({
+    isLocked: () => !eqOn,
+    apply: (pts: CurvePoint[], index: number, value: number) => pts.map((pt, i) => (i === index ? { ...pt, speed: value } : pt)),
+  }), [eqOn]);
+
+  // The first band whose value differs from the given values.
+  const changed = (next: CurvePoint[], from: readonly number[]) => next.findIndex((pt, i) => pt.speed !== from[i]);
 
   return (
-    <div className={styles.eq} style={{ ...EQ_VARS, '--eq-length': `${EQ_LENGTH_PX}px` } as CSSProperties}>
-      <span className={styles.zeroLine} style={{ top: `calc(var(--eq-top) + ${along(down(0))})` }} aria-hidden />
-      <div className={styles.scale} aria-hidden>
-        <span className={styles.unit}>{HZ}</span>
-        <div className={styles.marks}>
-          {[max, 0, min].map(db => <span key={db} className={styles.mark} style={{ top: along(down(db)) }}>{signedDb(db)}</span>)}
-        </div>
-        <span className={styles.unit}>{DB}</span>
-      </div>
-      <div className={styles.bands} role="group" aria-label={t(`${P}bands`)}>
-        {state.bands.map((band, i) => {
-          const hz = state.bandHz[i] ?? 0;
-          return (
-            <Slider
-              key={hz || i}
-              orientation="vertical"
-              length={EQ_LENGTH_PX}
-              editable
-              trackFill
-              label={hzLabel(hz)}
-              ariaLabel={t(`${P}band`, { hz })}
-              min={min}
-              max={max}
-              step={0.5}
-              value={live[i] ?? band}
-              formatValue={signedDb}
-              disabled={!eqOn}
-              onChange={v => { open.current.add(i); setLive(prev => ({ ...prev, [i]: v })); }}
-              onCommit={v => commit(i, v)}
-            />
-          );
-        })}
-      </div>
-    </div>
+    <CurveGraph
+      points={points}
+      height={GRAPH_H}
+      tempMin={-0.5}
+      tempMax={shown.length - 0.5}
+      editable={eqOn}
+      easing={EASING}
+      axis={axis}
+      yAxis={yAxis}
+      verticalDrag={drag}
+      keyboardStep={KEY_STEP_DB}
+      onPreview={next => {
+        const i = changed(next, shown);
+        if (i < 0) return;
+        open.current.add(i);
+        setLive(prev => ({ ...prev, [i]: next[i].speed }));
+      }}
+      onChange={next => {
+        // A drag named its band while it moved; a key press changed the one that differs from what is shown.
+        const dragged = [...open.current][0];
+        const i = dragged ?? changed(next, shown);
+        if (i >= 0) commit(i, next[i].speed);
+      }}
+    />
   );
 }
 

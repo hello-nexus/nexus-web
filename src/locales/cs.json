@@ -1449,8 +1449,6 @@
   "devices.loading": "Načítání...",
   "devices.logitechSpeaker.acoustics": "Akustika",
   "devices.logitechSpeaker.advancedEq": "Pokročilý ekvalizér",
-  "devices.logitechSpeaker.band": "Pásmo {hz} Hz",
-  "devices.logitechSpeaker.bands": "Pásma ekvalizéru",
   "devices.logitechSpeaker.channel.center": "Střed",
   "devices.logitechSpeaker.channel.frontLeft": "Přední levý",
   "devices.logitechSpeaker.channel.frontRight": "Přední pravý",

@@ -1,8 +1,13 @@
 import type { SpeakerEqPreset } from '../../../api/logitechSpeaker';
 
-/** A band's frequency as G HUB labels it: "48", "500", "1K", "16K". */
+/** A band's frequency written out: "48Hz", "500Hz", "1KHz", "16KHz". */
 export function hzLabel(hz: number): string {
-  return hz >= 1000 ? `${hz / 1000}K` : `${hz}`;
+  return hz >= 1000 ? `${hz / 1000}KHz` : `${hz}Hz`;
+}
+
+/** A gain written out with its sign: "+6dB", "-20dB", "0dB". */
+export function dbLabel(v: number): string {
+  return `${signedDb(v)}dB`;
 }
 
 /** A band's gain with its sign: "+3", "-4.5", "0". */

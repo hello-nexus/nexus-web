@@ -1449,8 +1449,6 @@
   "devices.loading": "Загрузка...",
   "devices.logitechSpeaker.acoustics": "Акустика",
   "devices.logitechSpeaker.advancedEq": "Расширенный эквалайзер",
-  "devices.logitechSpeaker.band": "Полоса {hz} Гц",
-  "devices.logitechSpeaker.bands": "Полосы эквалайзера",
   "devices.logitechSpeaker.channel.center": "Центр",
   "devices.logitechSpeaker.channel.frontLeft": "Передний левый",
   "devices.logitechSpeaker.channel.frontRight": "Передний правый",

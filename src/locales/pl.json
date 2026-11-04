@@ -1449,8 +1449,6 @@
   "devices.loading": "Ladowanie...",
   "devices.logitechSpeaker.acoustics": "Akustyka",
   "devices.logitechSpeaker.advancedEq": "Zaawansowany korektor",
-  "devices.logitechSpeaker.band": "Pasmo {hz} Hz",
-  "devices.logitechSpeaker.bands": "Pasma korektora",
   "devices.logitechSpeaker.channel.center": "Środkowy",
   "devices.logitechSpeaker.channel.frontLeft": "Przedni lewy",
   "devices.logitechSpeaker.channel.frontRight": "Przedni prawy",

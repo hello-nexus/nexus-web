@@ -1441,8 +1441,6 @@
   "devices.loading": "Wird geladen...",
   "devices.logitechSpeaker.acoustics": "Akustik",
   "devices.logitechSpeaker.advancedEq": "Erweiterter EQ",
-  "devices.logitechSpeaker.band": "Band {hz} Hz",
-  "devices.logitechSpeaker.bands": "Equalizer-Bänder",
   "devices.logitechSpeaker.channel.center": "Center",
   "devices.logitechSpeaker.channel.frontLeft": "Vorne links",
   "devices.logitechSpeaker.channel.frontRight": "Vorne rechts",

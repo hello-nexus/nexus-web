@@ -150,64 +150,6 @@ $inline-gap: 0.5rem;
   pointer-events: none;
 }
 
-.scaleVertical {
-  position: absolute;
-  top: calc(var(--slider-thumb-size) / 2);
-  bottom: calc(var(--slider-thumb-size) / 2);
-  left: 0;
-  right: 0;
-  pointer-events: none;
-}
-
-/* Vertical: the range is laid out at the track length and turned a quarter, so min is at the
-   bottom. A rotated range works on the Chromium 83 panel, where writing-mode on ranges does not. */
-.vertical {
-  flex-direction: column;
-  align-items: center;
-  gap: var(--slider-vertical-gap, 0.35rem);
-  width: auto;
-}
-
-.verticalLabel {
-  @include text-caption;
-  display: flex;
-  align-items: flex-end;
-  min-height: var(--slider-vertical-label-height, 0);
-  color: var(--text-dim);
-}
-
-.verticalValue {
-  display: flex;
-  align-items: flex-start;
-  min-height: var(--slider-vertical-value-height, 0);
-}
-
-.verticalTrack {
-  position: relative;
-  width: 40px;
-  height: var(--slider-vertical-length);
-
-  .range {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: var(--slider-vertical-length);
-    transform: translate(-50%, -50%) rotate(-90deg);
-  }
-}
-
-.zeroTickVertical {
-  position: absolute;
-  left: 50%;
-  width: 12px;
-  height: 2px;
-  background: var(--text-dim);
-  transform: translate(-50%, 50%);
-  pointer-events: none;
-  border-radius: var(--radius-sm);
-  opacity: 0.8;
-}
-
 .zeroTick {
   position: absolute;
   top: 50%;

@@ -365,23 +365,3 @@ describe('Slider positions on the thumb path', () => {
     expect(tick?.parentElement?.parentElement).toBe(range.parentElement);
   });
 });
-
-describe('Slider vertical', () => {
-  it('renders the label, a range with the track length, and the value', () => {
-    const { container } = render(
-      <Slider orientation="vertical" length={120} label="48" value={3} min={-20} max={6} zeroMarker formatValue={v => `${v} dB`} onChange={() => {}} />,
-    );
-    const range = screen.getByRole('slider', { name: '48' });
-    expect(range).toHaveValue('3');
-    expect(screen.getByText('3 dB')).toBeInTheDocument();
-    expect((container.firstChild as HTMLElement).style.getPropertyValue('--slider-vertical-length')).toBe('120px');
-  });
-
-  it('places the zero tick from the bottom and reports changes', () => {
-    const onChange = vi.fn();
-    const { container } = render(<Slider orientation="vertical" label="64" value={0} min={-20} max={6} zeroMarker onChange={onChange} />);
-    expect(container.querySelector<HTMLElement>('span[style*="bottom"]')).not.toBeNull();
-    fireEvent.change(screen.getByRole('slider', { name: '64' }), { target: { value: '2' } });
-    expect(onChange).toHaveBeenCalledWith(2, false);
-  });
-});

@@ -1441,8 +1441,6 @@
   "devices.loading": "読み込み中...",
   "devices.logitechSpeaker.acoustics": "音響",
   "devices.logitechSpeaker.advancedEq": "アドバンスト EQ",
-  "devices.logitechSpeaker.band": "{hz} Hz バンド",
-  "devices.logitechSpeaker.bands": "イコライザーのバンド",
   "devices.logitechSpeaker.channel.center": "センター",
   "devices.logitechSpeaker.channel.frontLeft": "フロント左",
   "devices.logitechSpeaker.channel.frontRight": "フロント右",

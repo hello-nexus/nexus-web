@@ -34,6 +34,15 @@ vi.mock('../../common/PresetToolbar/PresetToolbar', () => ({
 }));
 const bar = () => toolbar.props as ToolbarProps;
 
+// jsdom has no PointerEvent, so coordinates would be dropped from every fired event.
+class TestPointerEvent extends MouseEvent {
+  pointerId: number;
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init);
+    this.pointerId = init.pointerId ?? 1;
+  }
+}
+
 const FLAT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 const state = (over: Partial<SpeakerState> = {}): SpeakerState => ({
   present: true,
@@ -64,10 +73,18 @@ async function mount(s: SpeakerState) {
 }
 
 const P = 'devices.logitechSpeaker.';
+const GRAPH_H = 230;
+// The graph's own plot: 8px inside a 230px box, -20 dB at the bottom and +6 dB at the top.
+const yOf = (db: number) => 8 + (GRAPH_H - 16) * (1 - (db + 20) / 26);
+const point = (name: string) => screen.getByRole('slider', { name });
+const bandPoints = () => document.querySelectorAll('svg[preserveAspectRatio] circle');
 const surround = () => fireEvent.click(screen.getByText(`${P}surround`, { selector: 'button *, button' }));
 
 describe('LogitechSpeakerDevicePage', () => {
   beforeEach(() => {
+    vi.stubGlobal('PointerEvent', TestPointerEvent);
+    Element.prototype.setPointerCapture = vi.fn();
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 400, height: GRAPH_H, right: 400, bottom: GRAPH_H, x: 0, y: 0, toJSON: () => ({}) } as DOMRect);
     vi.useFakeTimers();
     vi.clearAllMocks();
     api.setSpeakerEq.mockImplementation(async () => state());
@@ -103,19 +120,22 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(api.setSpeakerEq).toHaveBeenCalledWith({ enabled: true });
   });
 
-  it('disables the ten bands while the EQ is off', async () => {
-    await mount(state({ eqEnabled: false }));
-    const bands = screen.getAllByRole('slider').filter(s => /devices.logitechSpeaker.band:/.test(s.getAttribute('aria-label') ?? ''));
-    expect(bands).toHaveLength(10);
-    expect(bands.every(b => (b as HTMLInputElement).disabled)).toBe(true);
+  it('offers ten editable points while the EQ is on', async () => {
+    await mount(state());
+    expect(bandPoints()).toHaveLength(10);
+    expect(screen.getAllByRole('slider', { name: /Hz$/ })).toHaveLength(10);
   });
 
-  it('writes the whole band array when one band is committed', async () => {
+  it('offers no editable points while the EQ is off', async () => {
+    await mount(state({ eqEnabled: false }));
+    expect(bandPoints()).toHaveLength(10);
+    expect(screen.queryAllByRole('slider', { name: /Hz$/ })).toHaveLength(0);
+  });
+
+  it('writes the whole band array when a band is moved with the arrow keys', async () => {
     await mount(state());
-    const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
-    fireEvent.change(band, { target: { value: '-3' } });
-    await act(async () => { fireEvent.keyUp(band); await vi.advanceTimersByTimeAsync(0); });
-    expect(api.setSpeakerEq).toHaveBeenCalledWith({ bands: [0, 0, -3, 0, 0, 0, 0, 0, 0, 0] });
+    await act(async () => { fireEvent.keyDown(point('125Hz'), { key: 'ArrowDown' }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenCalledWith({ bands: [0, 0, -0.5, 0, 0, 0, 0, 0, 0, 0] });
   });
 
   it('resets to flat only when the curve is not already flat', async () => {
@@ -245,37 +265,38 @@ describe('LogitechSpeakerDevicePage', () => {
   it('keeps an earlier band change when a second one is made before the first is answered', async () => {
     await mount(state());
     let release!: () => void;
-    api.setSpeakerEq.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve(state({ bands: [0, 0, -3, 0, 0, 0, 0, 0, 0, 0] })); }));
-    const first = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
-    fireEvent.change(first, { target: { value: '-3' } });
-    await act(async () => { fireEvent.keyUp(first); await vi.advanceTimersByTimeAsync(0); });
-    const second = screen.getByRole('slider', { name: `${P}band:{"hz":250}` });
-    fireEvent.change(second, { target: { value: '-5' } });
-    await act(async () => { fireEvent.keyUp(second); await vi.advanceTimersByTimeAsync(0); });
-    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -3, -5, 0, 0, 0, 0, 0, 0] });
+    api.setSpeakerEq.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve(state({ bands: [0, 0, -0.5, 0, 0, 0, 0, 0, 0, 0] })); }));
+    await act(async () => { fireEvent.keyDown(point('125Hz'), { key: 'ArrowDown' }); await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { fireEvent.keyDown(point('250Hz'), { key: 'ArrowDown' }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -0.5, -0.5, 0, 0, 0, 0, 0, 0] });
     await act(async () => { release(); });
   });
 
-  it('keeps a band being dragged when a poll lands with fresh state', async () => {
+  it('commits a band dragged across a poll at its dragged value', async () => {
     await mount(state());
     api.fetchSpeaker.mockImplementation(async () => state());
-    const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
-    fireEvent.change(band, { target: { value: '-7' } });
+    const band = point('125Hz');
+    fireEvent.pointerDown(band, { pointerId: 1, clientX: 0, clientY: yOf(0) });
+    fireEvent.pointerMove(band, { pointerId: 1, clientX: 0, clientY: yOf(-7) });
     const before = api.fetchSpeaker.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
     expect(api.fetchSpeaker.mock.calls.length).toBeGreaterThan(before);
-    expect(band).toHaveValue('-7');
+    expect(point('125Hz')).toHaveAttribute('aria-valuenow', '-7');
+    await act(async () => { fireEvent.pointerUp(band, { pointerId: 1 }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -7, 0, 0, 0, 0, 0, 0, 0] });
   });
 
-  it('drops a half-made band change when the EQ is turned off', async () => {
+  it('drops a half-made band drag when the EQ is turned off', async () => {
     await mount(state());
     api.fetchSpeaker.mockImplementation(async () => state({ eqEnabled: false }));
-    const band = screen.getByRole('slider', { name: `${P}band:{"hz":125}` });
-    fireEvent.change(band, { target: { value: '-7' } });
-    expect(band).toHaveValue('-7');
+    const band = point('125Hz');
+    fireEvent.pointerDown(band, { pointerId: 1, clientX: 0, clientY: yOf(0) });
+    fireEvent.pointerMove(band, { pointerId: 1, clientX: 0, clientY: yOf(-7) });
     await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
-    expect(band).toBeDisabled();
-    expect(band).toHaveValue('0');
+    expect(bandPoints()).toHaveLength(10);
+    expect(screen.queryByRole('slider', { name: '125Hz' })).toBeNull();
+    const dot = document.querySelectorAll('svg[preserveAspectRatio] circle')[2] as SVGCircleElement;
+    expect(Number(dot.getAttribute('cy'))).toBeCloseTo(yOf(0), 0);
   });
 
   it('reports a test sound that did not play', async () => {

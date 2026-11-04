@@ -1441,8 +1441,6 @@
   "devices.loading": "Yukleniyor...",
   "devices.logitechSpeaker.acoustics": "Akustik",
   "devices.logitechSpeaker.advancedEq": "Gelişmiş EQ",
-  "devices.logitechSpeaker.band": "{hz} Hz bandı",
-  "devices.logitechSpeaker.bands": "Ekolayzır bantları",
   "devices.logitechSpeaker.channel.center": "Orta",
   "devices.logitechSpeaker.channel.frontLeft": "Sol ön",
   "devices.logitechSpeaker.channel.frontRight": "Sağ ön",

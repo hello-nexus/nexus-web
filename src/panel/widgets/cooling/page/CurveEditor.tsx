@@ -184,6 +184,22 @@ export interface CurveGraphAxis {
   /** The axis is circular (hours of a day): past the outermost points the line
    *  continues from the last point back to the first across the edge. */
   wrap?: boolean;
+  /** Grid lines and labels at exactly these x values, for categories on a fixed grid. */
+  xTicks?: number[];
+}
+
+/** Re-scales CurveGraph's y axis away from the cooling 0-100 duty. Every field but the range is optional. */
+export interface CurveGraphYAxis {
+  min: number;
+  max: number;
+  /** Values snapped to while dragging (default 1). */
+  step?: number;
+  /** Horizontal grid lines; default is the quarter lines of the range. */
+  lines?: number[];
+  /** Labels in the gutter, only where given (e.g. the two ends). */
+  labels?: { value: number; label: string }[];
+  /** Value text in the handle tooltip. */
+  formatValue?: (v: number) => string;
 }
 
 /** A labelled vertical line at an x value, e.g. sunrise on the brightness schedule. */
@@ -240,7 +256,7 @@ function sampleCurveShape(
 // piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false, verticalDrag,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false, verticalDrag, yAxis, keyboardStep,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -262,6 +278,10 @@ export function CurveGraph({
   readOnly?: boolean;
   /** Fixed-x editing: see CurveGraphVerticalDrag. Ignored unless `editable`. */
   verticalDrag?: CurveGraphVerticalDrag;
+  /** A y range other than 0-100; see CurveGraphYAxis. */
+  yAxis?: CurveGraphYAxis;
+  /** Makes each editable point focusable; the up and down arrows move it by this much (Shift: five times) and commit. */
+  keyboardStep?: number;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -280,6 +300,12 @@ export function CurveGraph({
   const [dragPoints, setDragPoints] = useState<CurvePoint[] | null>(null);
   const dragIdxRef = useRef<number | null>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // Turning editing off mid-drag drops the drag, which no pointer-up will end.
+  useEffect(() => {
+    if (editable) return;
+    dragIdxRef.current = null;
+    setDragPoints(null);
+  }, [editable]);
   // Our own drag commit keeps indices (points are clamped between neighbours)
   // and the cursor still rests on the dot, so the hover holds across it: the
   // ref carries the committed key and the effect suppresses the clear only on
@@ -316,9 +342,14 @@ export function CurveGraph({
     return () => { ro.disconnect(); cancelAnimationFrame(rafWidthRef.current); };
   }, []);
 
+  const yMin = yAxis?.min ?? 0, yMax = yAxis?.max ?? 100, yStep = yAxis?.step ?? 1;
+  const hLines = yAxis?.lines ?? H_LINES;
+  const clampY = (v: number) => Math.max(yMin, Math.min(yMax, v));
+  const snapY = (v: number) => clampY(Math.round(v / yStep) * yStep);
+  const formatY = yAxis?.formatValue ?? ((v: number) => localizeNumbers(`${v.toFixed(0)}%`, numberFormat));
   const chartW = width - PAD.left - PAD.right, chartH = height - PAD.top - PAD.bottom;
   const tempToX = (tp: number) => PAD.left + ((tp - tempMin) / (tempMax - tempMin)) * chartW;
-  const speedToY = (s: number) => PAD.top + chartH - (s / 100) * chartH;
+  const speedToY = (s: number) => PAD.top + chartH - ((s - yMin) / (yMax - yMin)) * chartH;
   // While a handle is dragged, the optimistic copy drives the render.
   const activePoints = dragPoints ?? points;
   const sorted = useMemo(() => [...activePoints].sort((a, b) => a.temp - b.temp), [activePoints]);
@@ -338,12 +369,14 @@ export function CurveGraph({
   // X-axis grid + labels at ~10° steps (5° for a narrow span). For the default
   // 20-100 range this reproduces the original 20,30,…,100 ticks.
   const xStep = axis?.xStep;
+  const xTicks = axis?.xTicks;
   const vLines = useMemo(() => {
+    if (xTicks) return xTicks;
     const step = xStep ?? ((tempMax - tempMin) > 40 ? 10 : 5);
     const out: number[] = [];
     for (let v = Math.ceil(tempMin / step) * step; v <= tempMax; v += step) out.push(v);
     return out;
-  }, [tempMin, tempMax, xStep]);
+  }, [tempMin, tempMax, xStep, xTicks]);
   // The drawn line. Linear is the points themselves, extended to the chart
   // edges: flat, the way the engine clamps outside the point range, or on a
   // wrapping axis along the segment that joins the last point back to the
@@ -366,7 +399,7 @@ export function CurveGraph({
     return out;
   }, [sorted, tempMin, tempMax, wrap, easing]);
   const linePath = shape.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp)} ${speedToY(p.speed)}`).join(' ');
-  const areaPath = shape.length > 0 ? linePath + ` L ${tempToX(shape[shape.length - 1].temp)} ${speedToY(0)} L ${tempToX(shape[0].temp)} ${speedToY(0)} Z` : '';
+  const areaPath = shape.length > 0 ? linePath + ` L ${tempToX(shape[shape.length - 1].temp)} ${speedToY(yMin)} L ${tempToX(shape[0].temp)} ${speedToY(yMin)} Z` : '';
 
   // The rendered line's value at an arbitrary temp, for the current-temperature dot.
   const speedAtTemp = (tt: number): number => interpolateCurve(sorted, tt, easing, wrap);
@@ -379,7 +412,7 @@ export function CurveGraph({
     const vbY = ((e.clientY - rect.top) / rect.height) * height;
     return {
       temp: tempMin + ((vbX - PAD.left) / chartW) * (tempMax - tempMin),
-      speed: ((PAD.top + chartH - vbY) / chartH) * 100,
+      speed: yMin + ((PAD.top + chartH - vbY) / chartH) * (yMax - yMin),
     };
   };
   const onHandleDown = (idx: number, e: React.PointerEvent) => {
@@ -394,7 +427,7 @@ export function CurveGraph({
     if (i === null) return;
     const base = (dragPoints ?? sorted).slice().sort((a, b) => a.temp - b.temp);
     if (verticalDrag) {
-      const next = verticalDrag.apply(base, i, Math.round(Math.max(0, Math.min(100, pointerToData(e).speed))));
+      const next = verticalDrag.apply(base, i, snapY(pointerToData(e).speed));
       setDragPoints(next);
       onPreview?.(next);
       return;
@@ -405,10 +438,19 @@ export function CurveGraph({
     const next = base.slice();
     next[i] = {
       temp: Math.round(Math.max(lo, Math.min(hi, temp))),
-      speed: Math.round(Math.max(0, Math.min(100, speed))),
+      speed: snapY(speed),
     };
     setDragPoints(next);
     onPreview?.(next);
+  };
+  const onHandleKey = (idx: number, e: React.KeyboardEvent) => {
+    if (!editable || !keyboardStep || !onChange || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    if (verticalDrag && verticalDrag.isLocked(sorted[idx], idx)) return;
+    e.preventDefault();
+    const size = keyboardStep * (e.shiftKey ? 5 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+    const value = snapY(sorted[idx].speed + size);
+    if (value === sorted[idx].speed) return;
+    onChange(verticalDrag ? verticalDrag.apply(sorted, idx, value) : sorted.map((pt, i) => (i === idx ? { ...pt, speed: value } : pt)));
   };
   const onHandleUp = () => {
     if (dragIdxRef.current === null) return;
@@ -433,7 +475,7 @@ export function CurveGraph({
     dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange([...sorted, {
       temp: Math.round(Math.max(tempMin, Math.min(tempMax, temp))),
-      speed: Math.round(Math.max(0, Math.min(100, speed))),
+      speed: snapY(speed),
     }].sort((a, b) => a.temp - b.temp));
   };
   const onRemovePoint = (idx: number, e: React.MouseEvent) => {
@@ -472,7 +514,7 @@ export function CurveGraph({
           <div ref={chartAreaRef} className={styles.curveSvgWrap}>
           <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
             onDoubleClick={editable && !verticalDrag ? onAddPoint : undefined}>
-            {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
+            {hLines.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
             {vLines.map(v => (<g key={`v${v}`}><line x1={tempToX(v)} y1={PAD.top} x2={tempToX(v)} y2={height - PAD.bottom} className={styles.gridLine} /></g>))}
             <defs><linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" /></linearGradient></defs>
             {areaPath && <path d={areaPath} fill="url(#curveGrad)" />}
@@ -505,7 +547,13 @@ export function CurveGraph({
                 onPointerUp={editable ? onHandleUp : undefined}
                 onPointerEnter={editable ? () => setHoverIdx(i) : undefined}
                 onPointerLeave={editable ? () => setHoverIdx(null) : undefined}
-                onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
+                onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined}
+                {...(editable && keyboardStep && !locked ? {
+                  tabIndex: 0, role: 'slider', 'aria-label': formatX(p.temp), 'aria-orientation': 'vertical' as const,
+                  'aria-valuemin': yMin, 'aria-valuemax': yMax, 'aria-valuenow': p.speed, 'aria-valuetext': formatY(p.speed),
+                  onKeyDown: (e: React.KeyboardEvent) => onHandleKey(i, e),
+                  onFocus: () => setHoverIdx(i), onBlur: () => setHoverIdx(null),
+                } : {})} />
               );
             })}
           </svg>
@@ -528,7 +576,7 @@ export function CurveGraph({
                 <ChartTooltipVal>{axis?.formatX ? formatX(readoutPt.temp) : t('cooling.curve.tempBadge', { temp: localizeNumbers(readoutPt.temp.toFixed(0), numberFormat) })}</ChartTooltipVal>
               </ChartTooltipRow>
               <ChartTooltipRow color="var(--accent-glow)" name={yName}>
-                <ChartTooltipVal>{localizeNumbers(`${readoutPt.speed.toFixed(0)}%`, numberFormat)}</ChartTooltipVal>
+                <ChartTooltipVal>{formatY(readoutPt.speed)}</ChartTooltipVal>
               </ChartTooltipRow>
             </ChartHoverTooltip>
           )}
@@ -557,10 +605,10 @@ export function CurveGraph({
         {/* Duty legend + live readout sit to the RIGHT of the chart so the
             right-edge guide line points straight at the live value. */}
         <div className={styles.curveYAxis} aria-hidden="true" style={{ height }}>
-          {[...H_LINES].reverse().map(s => (
-            <span key={s} className={styles.curveAxisLabel}
-              style={hasDot && Math.abs(speedToY(s) - dotY) < liveYClear ? { visibility: 'hidden' } : undefined}>
-              {s}%
+          {(yAxis?.labels ?? H_LINES.map(v => ({ value: v, label: `${v}%` }))).slice().sort((a, b) => b.value - a.value).map(l => (
+            <span key={l.value} className={styles.curveAxisLabel}
+              style={hasDot && Math.abs(speedToY(l.value) - dotY) < liveYClear ? { visibility: 'hidden' } : undefined}>
+              {l.label}
             </span>
           ))}
           {hasDot && (

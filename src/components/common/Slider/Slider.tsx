@@ -42,9 +42,7 @@ export interface SliderProps {
   min: number;
   max: number;
   step?: number;
-  orientation?: 'inline' | 'stacked' | 'bare' | 'vertical';
-  /** Track height in px for `orientation="vertical"`. */
-  length?: number;
+  orientation?: 'inline' | 'stacked' | 'bare';
   editable?: boolean;
   zeroMarker?: boolean;
   showRange?: boolean;
@@ -88,7 +86,7 @@ const onThumbPath = (pct: number) => `calc(var(--slider-thumb-size) / 2 + (100% 
 
 export function Slider({
   label = '', info, value, min, max, step = 1,
-  orientation = 'inline', length = 160, editable = false, zeroMarker = false, showRange = false,
+  orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
   disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
@@ -127,7 +125,6 @@ export function Slider({
     '--slider-fill-end': mixed ? '0%' : onThumbPath(fillEndPct),
     ...(capPct != null ? { '--slider-fill-cap': onThumbPath(capPct) } : {}),
   } as CSSProperties;
-  const vertical = orientation === 'vertical';
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
   const bandNode = bandPct ? (
@@ -141,14 +138,11 @@ export function Slider({
   ) : null;
 
   // The zero tick, band and marker share the thumb's path, so each lines up with the thumb at its value.
-  const zeroNode = showZero
-    ? <span className={vertical ? styles.zeroTickVertical : styles.zeroTick} style={vertical ? { bottom: `${zeroPct}%` } : { left: `${zeroPct}%` }} />
-    : null;
-  const scaleNode = zeroNode || (!vertical && (bandNode || markerNode)) ? (
-    <span className={vertical ? styles.scaleVertical : styles.scale}>
-      {zeroNode}
-      {!vertical && bandNode}
-      {!vertical && markerNode}
+  const scaleNode = showZero || bandNode || markerNode ? (
+    <span className={styles.scale}>
+      {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+      {bandNode}
+      {markerNode}
     </span>
   ) : null;
 
@@ -294,19 +288,6 @@ export function Slider({
           {range}
           {scaleNode}
         </div>
-      </div>
-    );
-  }
-
-  if (vertical) {
-    return (
-      <div className={`${styles.root} ${styles.vertical} ${className ?? ''}`} style={{ '--slider-vertical-length': `${length}px` } as CSSProperties}>
-        {label && <span className={styles.verticalLabel}><label htmlFor={rangeId}>{label}</label></span>}
-        <div className={styles.verticalTrack}>
-          {range}
-          {scaleNode}
-        </div>
-        <span className={styles.verticalValue}>{valueNode}</span>
       </div>
     );
   }

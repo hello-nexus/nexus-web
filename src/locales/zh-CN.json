@@ -1441,8 +1441,6 @@
   "devices.loading": "加载中...",
   "devices.logitechSpeaker.acoustics": "音效",
   "devices.logitechSpeaker.advancedEq": "高级均衡器",
-  "devices.logitechSpeaker.band": "{hz} Hz 频段",
-  "devices.logitechSpeaker.bands": "均衡器频段",
   "devices.logitechSpeaker.channel.center": "中置",
   "devices.logitechSpeaker.channel.frontLeft": "左前",
   "devices.logitechSpeaker.channel.frontRight": "右前",

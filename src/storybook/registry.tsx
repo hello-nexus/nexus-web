@@ -149,6 +149,7 @@ import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
+import { CurveGraph } from '../panel/widgets/cooling/page/CurveEditor';
 import { ChannelLayout, type ChannelNode } from '../components/common/ChannelLayout/ChannelLayout';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
@@ -226,16 +227,19 @@ function PreviewSliderRange() {
     formatValue={x => `${x} DPI`} onChange={setV} />;
 }
 
-function PreviewSliderVertical() {
-  const [bands, setBands] = useState([4, 3, 2, 0, -4, -3, -3, 1]);
+function PreviewCurveGraphEq() {
+  const [bands, setBands] = useState([4, 3, 2, 0, -4, -3, -3, 1, 2, 4]);
+  const hz = ['48Hz', '64Hz', '125Hz', '250Hz', '500Hz', '1KHz', '2KHz', '4KHz', '8KHz', '16KHz'];
+  const db = (v: number) => `${v > 0 ? '+' : ''}${v}dB`;
   return (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-      {bands.map((v, i) => (
-        <Slider key={i} orientation="vertical" length={150} editable zeroMarker trackFill label={String(48 * 2 ** i)}
-          value={v} min={-20} max={6} step={0.5} formatValue={x => (x > 0 ? `+${x}` : String(x))}
-          onChange={x => setBands(prev => prev.map((b, j) => (j === i ? x : b)))} />
-      ))}
-    </div>
+    <CurveGraph
+      points={bands.map((speed, temp) => ({ temp, speed }))}
+      height={230} tempMin={-0.5} tempMax={9.5} editable easing={'smooth'} keyboardStep={0.5}
+      axis={{ xTicks: bands.map((_, i) => i), formatX: v => hz[v] }}
+      yAxis={{ min: -20, max: 6, step: 0.5, lines: [0], labels: [{ value: 6, label: db(6) }, { value: -20, label: db(-20) }], formatValue: db }}
+      verticalDrag={{ isLocked: () => false, apply: (p, i, v) => p.map((pt, k) => (k === i ? { ...pt, speed: v } : pt)) }}
+      onChange={p => setBands(p.map(pt => pt.speed))}
+    />
   );
 }
 
@@ -2754,10 +2758,9 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Stacked slider with min and max printed under the track. Used by any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
   },
   {
-    name: 'Slider (vertical)', category: 'inputs',
-    filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Label over a bottom-to-top track over the value, for a bank of bands such as an equalizer. length sets the track height; the zero tick and centre-out fill work as in the other layouts.', Preview: PreviewSliderVertical,
-    notes: 'The range is a rotated native input, so keyboard and pointer behave as in every other Slider. marker and band are horizontal-only.',
+    name: 'CurveGraph (fixed grid, eased)', category: 'inputs',
+    filePath: 'src/panel/widgets/cooling/page/CurveEditor.tsx',
+    description: 'The cooling fan-curve graph on a fixed grid, as the G560 equalizer uses it. Opt-in props: easing="smooth" draws a monotone cubic through the points (purely visual, values stay linear); axis.xTicks puts grid lines and labels on exact x values; yAxis sets another range, step, horizontal lines, edge labels and the value text; verticalDrag makes points move vertically only; keyboardStep makes each point focusable with up and down arrows (Shift for five steps). Without them the graph is the 0-100 duty curve.', Preview: PreviewCurveGraphEq,
   },
   {
     name: 'ChannelLayout', category: 'inputs',

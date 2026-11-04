@@ -1441,8 +1441,6 @@
   "devices.loading": "로드 중...",
   "devices.logitechSpeaker.acoustics": "음향",
   "devices.logitechSpeaker.advancedEq": "고급 EQ",
-  "devices.logitechSpeaker.band": "{hz} Hz 밴드",
-  "devices.logitechSpeaker.bands": "이퀄라이저 밴드",
   "devices.logitechSpeaker.channel.center": "센터",
   "devices.logitechSpeaker.channel.frontLeft": "전면 왼쪽",
   "devices.logitechSpeaker.channel.frontRight": "전면 오른쪽",

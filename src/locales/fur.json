@@ -1441,8 +1441,6 @@
   "devices.loading": "Daûr a cjariâ...",
   "devices.logitechSpeaker.acoustics": "Acustiche",
   "devices.logitechSpeaker.advancedEq": "EQ avanzât",
-  "devices.logitechSpeaker.band": "Bande di {hz} Hz",
-  "devices.logitechSpeaker.bands": "Bandis dal equalizadôr",
   "devices.logitechSpeaker.channel.center": "Centri",
   "devices.logitechSpeaker.channel.frontLeft": "Denant çampe",
   "devices.logitechSpeaker.channel.frontRight": "Denant gjestre",
