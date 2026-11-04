@@ -76,7 +76,7 @@ describe('buildFlowScene', () => {
   });
 
 
-  it('treats empty slots as vents that never spawn particles or carry fan flow', () => {
+  it('treats empty slots as vents that never spawn particles and carry the case\'s leak flow', () => {
     const empty = [slotSpec('top:120:0', 'top', null, [120, 415, 120], [120, 25, 120], [0, -1, 0])];
     const base = inputFor(empty, [], () => 'intake');
     const closed = buildFlowScene({ ...base, ventCfm: 10 }, LOW);
@@ -86,8 +86,14 @@ describe('buildFlowScene', () => {
     expect(drawn.spawns.length).toBe(0);
     expect(drawn.emitters.length).toBe(0);
     expect(drawn.emitterCounts['top:120:0'] ?? 0).toBe(0);
-    expect(drawn.fanCell.some(v => v === 1)).toBe(false);
-    expect(drawn.target.every(v => v === 0)).toBe(true);
+    // Under negative pressure the vent is pulled inward, under positive pressure pushed outward, along the face's normal (the top face here, axis y).
+    const vy = (scene: typeof drawn) => { let sum = 0; for (let c = 0; c < scene.fanCell.length; c++) if (scene.fanCell[c] === 1) sum += scene.target[c * 3 + 1]; return sum; };
+    expect(vy(drawn)).toBeLessThan(0);
+    expect(vy(closed)).toBeGreaterThan(0);
+    // With no leak flow the vent is passive again.
+    const still = buildFlowScene({ ...base, ventCfm: 0 }, LOW);
+    expect(still.fanCell.some(v => v === 1)).toBe(false);
+    expect(still.target.every(v => v === 0)).toBe(true);
   });
 
   it('adds the fans of a radiator slot, with porous cells and heat', () => {

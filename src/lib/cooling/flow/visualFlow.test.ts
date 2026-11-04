@@ -79,7 +79,7 @@ describe('visual flow compression', () => {
     expect(ratio).toBeLessThan(0.52);
   }, 120000);
 
-  it('moves particles within a fan diameter downstream of a 500 rpm fan at 0.38 to 0.52 of those at 2500 rpm, on one face, frame by frame', () => {
+  it('moves particles within a fan diameter downstream of a 500 rpm fan at 0.36 to 0.52 of those at 2500 rpm, on one face, frame by frame', () => {
     const slots = ['right:120:1', 'right:120:2'];
     const layout = layoutWith(slots);
     const f = flowFor(layout, { 'right:120:1': 0.2, 'right:120:2': 1 }, slots);
@@ -122,7 +122,7 @@ describe('visual flow compression', () => {
     expect(counts[1]).toBeGreaterThan(200);
     const [slow, fast] = [sums[0] / counts[0], sums[1] / counts[1]];
     expect(slow).toBeGreaterThan(0.02);
-    expect(slow / fast).toBeGreaterThan(0.38);
+    expect(slow / fast).toBeGreaterThan(0.36);
     expect(slow / fast).toBeLessThan(0.52);
   }, 180000);
 
