@@ -321,6 +321,11 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     );
   }
 
+  // The device list's menu (its options, search field and padding) is portaled to the page, and the canvas takes its own presses as picks, so a press on either must not close the popover: a Ctrl or Shift press on another fan has to add it to the selection, not clear it first.
+  const closePopover = (e?: Event) => {
+    if (e?.target instanceof Element && (e.target.closest('[data-select-menu]') || e.target === canvas)) return;
+    setActive(null);
+  };
   const activeSlot = active ? fanGeometries(caseLayout).find(g => g.slot.key === active)?.slot : undefined;
   const radiatorPicked = active === RADIATOR_PICK_KEY && !!caseLayout.radiatorOptions;
   const multiSlots = selection.length > 1 ? caseLayout.fanSlots.filter(sl => selection.includes(sl.key)) : [];
@@ -453,7 +458,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (
-          <Popover open onClose={() => setActive(null)} anchorRef={anchorRef} portal boundsRef={viewportRef} className={styles.popover} ariaLabel={t('cooling.case3d.radiator.label')}>
+          <Popover open onClose={closePopover} anchorRef={anchorRef} portal boundsRef={viewportRef} className={styles.popover} ariaLabel={t('cooling.case3d.radiator.label')}>
             <div className={styles.popoverTitle}>{t('cooling.case3d.radiator.label')}</div>
             {radiatorChips}
           </Popover>
@@ -462,7 +467,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
           <Popover
             open
             // The device list's menu (its options, search field and padding) is portaled to the page, so a press or Escape inside it must not close this popover.
-            onClose={e => { if (!(e?.target instanceof Element && e.target.closest('[data-select-menu]'))) setActive(null); }}
+            onClose={closePopover}
             anchorRef={anchorRef}
             portal
             boundsRef={viewportRef}
@@ -498,7 +503,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         {multi && (
           <Popover
             open
-            onClose={e => { if (!(e?.target instanceof Element && e.target.closest('[data-select-menu]'))) setActive(null); }}
+            onClose={closePopover}
             anchorRef={anchorRef}
             portal
             boundsRef={viewportRef}

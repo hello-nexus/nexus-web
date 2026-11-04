@@ -291,6 +291,15 @@ describe('CoolingCase3D device dropdown', () => {
       expect(mutate()(base([])).bindings).toEqual([{ channelId: 'fan-a', slotKeys: ['front:120:0', 'rear:120:0'] }]);
     });
 
+    it('keeps the controls open for a press on the canvas, which the renderer turns into a pick', () => {
+      mountReady(null);
+      act(() => h.pick.current?.('front:120:0', 10, 10));
+      const canvas = screen.getByRole('img', { name: 'cooling.case3d.canvas' });
+      fireEvent.pointerDown(canvas);
+      fireEvent.mouseDown(canvas);
+      expect(screen.getByRole('dialog')).toBeTruthy();
+    });
+
     it('clears on a press on nothing', () => {
       mountReady(null);
       pickTwo();

@@ -320,7 +320,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
       // Tip ring and hub ring: the air moves through the open ring between them.
       // The tip and hub rings are the fan's own lines, as ever; a chosen fan adds the centre dot and the arrow.
-      for (const r of [radii.tip, radii.hub]) {
+      for (const r of [radii.tip, radii.hub * 0.85]) {
         const geo = ringGeometry(r, axis);
         fanDisposables.push(geo);
         const mat = ringMaterial(color, emphasised ? 1 : opacity * (picking ? DIMMED : 1), r, state.simulated.has(slot.key));
