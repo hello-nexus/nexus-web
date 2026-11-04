@@ -108,4 +108,63 @@ describe('usePanelBrightness record target', () => {
     release();
     await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('rec1', { lcdBrightness: 30 }));
   });
+
+  it('persists a value queued behind an in-flight preview exactly once, last', async () => {
+    vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'rec1', lcdBrightness: 40 } } as never);
+    let release: () => void = () => {};
+    vi.mocked(postService).mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({}); }));
+    const { result, unmount } = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec1' }));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.preview(30));
+    await waitFor(() => expect(postService).toHaveBeenCalledTimes(1));
+    act(() => result.current.preview(45));
+    unmount();
+    await act(async () => {});
+    expect(patchPanelDevice).not.toHaveBeenCalled();
+
+    release();
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledTimes(1));
+    expect(patchPanelDevice).toHaveBeenCalledWith('rec1', { lcdBrightness: 45 });
+    expect(postService).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not persist again on unmount after a committed value landed', async () => {
+    vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'rec1', lcdBrightness: 40 } } as never);
+    const { result, unmount } = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec1' }));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.commit(70));
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    unmount();
+    await act(async () => {});
+
+    expect(patchPanelDevice).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes a held preview until release', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'rec1', lcdBrightness: 40 } } as never);
+      const { result } = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec1' }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+      act(() => result.current.preview(50));
+      await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+      const afterDrag = vi.mocked(postService).mock.calls.length;
+      expect(afterDrag).toBe(1);
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+      expect(vi.mocked(postService).mock.calls.length).toBeGreaterThan(afterDrag);
+
+      act(() => result.current.commit(50));
+      await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+      const afterRelease = vi.mocked(postService).mock.calls.length;
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+      expect(vi.mocked(postService).mock.calls.length).toBe(afterRelease);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
