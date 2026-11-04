@@ -159,7 +159,7 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     persistNext.current = false;
     writeKey.current = targetKey;
     write(clamped);
-    // The service drops a preview that goes quiet, so a held slider keeps refreshing it.
+    // The service persists a preview that goes quiet, so a held slider keeps refreshing it.
     if (kind === 'record' && !keepAlive.current) {
       keepAlive.current = setInterval(() => {
         const level = sess.current.latest;
