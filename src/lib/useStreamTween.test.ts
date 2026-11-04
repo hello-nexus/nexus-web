@@ -25,4 +25,29 @@ describe('useStreamTween', () => {
     act(() => { vi.advanceTimersByTime(400); });
     expect(result.current).toBe(4);
   });
+
+  it('restarts from the drawn value when the target changes mid-roll', () => {
+    window.history.replaceState(null, '', '/?streamFps=30');
+    const { result, rerender } = renderHook(({ t }) => useStreamTween(t, 500), { initialProps: { t: 0 } });
+    rerender({ t: 4 });
+    act(() => { vi.advanceTimersByTime(250); });
+    const mid = result.current!;
+    rerender({ t: 8 });
+    expect(result.current).toBe(mid);
+    act(() => { vi.advanceTimersByTime(100); });
+    expect(result.current).toBeGreaterThanOrEqual(mid);
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(result.current).toBe(8);
+  });
+
+  it('cancels the pending frame on unmount', () => {
+    window.history.replaceState(null, '', '/?streamFps=30');
+    const cancel = vi.spyOn(window, 'cancelAnimationFrame');
+    const { rerender, unmount } = renderHook(({ t }) => useStreamTween(t, 500), { initialProps: { t: 0 } });
+    rerender({ t: 4 });
+    act(() => { vi.advanceTimersByTime(100); });
+    unmount();
+    expect(cancel).toHaveBeenCalled();
+    cancel.mockRestore();
+  });
 });

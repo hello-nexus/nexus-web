@@ -19,7 +19,7 @@ export function useStreamTween(target: number, durationMs: number): number | nul
     const start = performance.now();
     let raf = 0;
     const tick = (ts: number) => {
-      const t = Math.min(1, (ts - start) / durationMs);
+      const t = Math.min(1, Math.max(0, (ts - start) / durationMs));
       if (t >= 1 || pace(ts)) {
         current.current = t >= 1 ? target : from + (target - from) * easeOut(t);
         setValue(current.current);

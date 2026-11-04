@@ -11,7 +11,7 @@ function RollingDigit({ digit }: { digit: number }) {
   return (
     <div className={styles.digitWrapper}>
       <div
-        className={tweened === null ? styles.digitColumn : styles.digitColumnPaced}
+        className={styles.digitColumn}
         style={{ transform: `translateY(${-(tweened ?? digit) * 10}%)` }}
       >
         {DIGITS.map(d => (
