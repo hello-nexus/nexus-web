@@ -130,7 +130,7 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
 const ROTOR_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-// A flat five-blade rotor drawn per pixel: gently swept, evenly filled blades that start outside a clear middle. A chosen fan also shows the hub ring and a small dot there. The blades blend into a soft disc as the speed rises.
+// A flat five-blade rotor drawn per pixel: gently swept, evenly filled blades that start just outside the hub circle (the rotor is the tip circle, the hub circle a bit over a third of it). A chosen fan also shows a small dot there. The blades blend into a soft disc as the speed rises.
 const ROTOR_FRAGMENT = /* glsl */ `
 uniform vec3 uColor; uniform float uSelected; uniform float uAngle; uniform float uBlur; uniform float uOpacity;
 varying vec2 vUv;
@@ -140,10 +140,9 @@ void main() {
   if (r > 1.0) discard;
   float f = fract((atan(p.y, p.x) - uAngle) * 5.0 / 6.2831853 - r * 0.9);
   float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.59, 0.64, f));
-  blade = mix(blade, 0.4, uBlur) * smoothstep(0.38, 0.41, r) * (1.0 - smoothstep(0.93, 1.0, r));
-  float hubRing = smoothstep(0.3, 0.32, r) * (1.0 - smoothstep(0.34, 0.36, r));
+  blade = mix(blade, 0.4, uBlur) * smoothstep(0.41, 0.44, r) * (1.0 - smoothstep(0.93, 1.0, r));
   float dot = 1.0 - smoothstep(0.09, 0.11, r);
-  gl_FragColor = vec4(uColor, max(blade, uSelected * max(hubRing, dot)) * uOpacity);
+  gl_FragColor = vec4(uColor, max(blade, uSelected * dot) * uOpacity);
   gl_FragColor = linearToOutputTexel(gl_FragColor);
 }`;
 const ROTOR_OPACITY = 0.4;
@@ -320,9 +319,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const radii = fanRadii(frameMm);
       const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
       // Tip ring and hub ring: the air moves through the open ring between them.
-      // An idle fan is its rotor inside two thin outer rings. A chosen one adds its inner circle and centre dot (the rotor's own, or a ring when it has no rotor) and the arrow.
-      const spinning = state.rotors?.has(slot.key) ?? false;
-      for (const r of [radii.tip, radii.tip * 1.07, ...(chosen && !spinning ? [radii.hub] : [])]) {
+      // The tip and hub rings are the fan's own lines, as ever; a chosen fan adds the centre dot and the arrow.
+      for (const r of [radii.tip, radii.hub]) {
         const geo = ringGeometry(r, axis);
         fanDisposables.push(geo);
         const mat = ringMaterial(color, emphasised ? 1 : opacity * (picking ? DIMMED : 1), r, state.simulated.has(slot.key));
@@ -374,13 +372,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         fanGroup.add(arrow);
       }
 
-      if (state.bound.has(slot.key) && !emphasised) {
-        const mark = new Mesh(new BoxGeometry(...box.size), new MeshBasicMaterial({ color, transparent: true, opacity: 0.12, depthWrite: false }));
-        mark.position.copy(center);
-        mark.rotation.y = box.rotationY ?? 0;
-        fanDisposables.push(mark.geometry, mark.material);
-        fanGroup.add(mark);
-      }
+      // The fan's body is not drawn: the rotor and rings are the fan. Its pick box below stays, invisible but hit by the raycaster.
 
       const hit = new Mesh(
         new BoxGeometry(...box.size),
