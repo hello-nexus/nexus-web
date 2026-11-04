@@ -5937,6 +5937,7 @@
   "store.consent.cap.app.installStatus": "Verificare se il suo driver associato è installato",
   "store.consent.cap.cooling.state": "Vedere lo stato del raffreddamento e delle ventole",
   "store.consent.cap.devices.list": "Vedere quali dispositivi sono collegati",
+  "store.consent.cap.diagnostics.supportBundle": "Salvare un pacchetto di supporto da Nexus",
   "store.consent.cap.dispatchUnknown": "Eseguire l'azione «{action}»",
   "store.consent.cap.displays.list": "Vedere i tuoi display collegati",
   "store.consent.cap.displays.panelVariant": "Vedere il modello del tuo pannello",

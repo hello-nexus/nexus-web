@@ -219,6 +219,47 @@ describe('LightingTouch pins', () => {
     expect(lastPins()[1]).toMatchObject({ kind: 'static', effect: 'flat', color: '#abcdef' });
   });
 
+  const stripesBundle = (selected: number) => ({
+    effect: 'rainbow',
+    states: {},
+    templates: { stripes: { selected, slots: [0, 1, 2, 3].map(() => defaultStateFor('stripes')) } },
+  });
+
+  it('records an Animate grid pick and a changed preset pick as recent animations', async () => {
+    vi.mocked(fetchCurrentSync).mockImplementation(() => Promise.resolve({ sync: 'aurora' }));
+    vi.mocked(fetchAnimateSettings).mockResolvedValueOnce(stripesBundle(0));
+    recorded.recordAnimation.mockClear();
+    render(<LightingTouch widget={widget} />);
+    fireEvent.click(await screen.findByText('pick-stripes'));
+    expect(recorded.recordAnimation).toHaveBeenCalledWith('stripes', 0);
+    await waitFor(() => expect(controlsProps.current).not.toBeNull());
+    recorded.recordAnimation.mockClear();
+    act(() => { (controlsProps.current!.onTemplateSelect as (idx: number) => void)(0); });
+    expect(recorded.recordAnimation).not.toHaveBeenCalled();
+    act(() => { (controlsProps.current!.onTemplateSelect as (idx: number) => void)(1); });
+    expect(recorded.recordAnimation).toHaveBeenCalledWith('stripes', 1);
+  });
+
+  it('records no preset pick while the selection wears a static pin', async () => {
+    vi.mocked(fetchCurrentSync).mockImplementation(() => Promise.resolve({ sync: 'aurora' }));
+    vi.mocked(fetchAnimateSettings).mockResolvedValueOnce(stripesBundle(0));
+    vi.mocked(fetchPins).mockImplementation(() => Promise.resolve({ 'dev-a': { kind: 'static', effect: 'stripes', slot: 1 } }));
+    recorded.recordAnimation.mockClear();
+    render(<LightingTouch widget={widget} />);
+    await select(['dev-a']);
+    await waitFor(() => expect(gridProps.current?.effect).toBe('stripes'));
+    await waitFor(() => expect(controlsProps.current).not.toBeNull());
+    act(() => { (controlsProps.current!.onTemplateSelect as (idx: number) => void)(2); });
+    expect(recorded.recordAnimation).not.toHaveBeenCalled();
+  });
+
+  it('does not record a Static pattern pick as a recent animation', async () => {
+    recorded.recordAnimation.mockClear();
+    render(<LightingTouch widget={widget} />);
+    fireEvent.click(await screen.findByText('pick-stripes'));
+    expect(recorded.recordAnimation).not.toHaveBeenCalled();
+  });
+
   it('pins a custom color on the selected devices', async () => {
     recorded.recordColor.mockClear();
     render(<LightingTouch widget={widget} />);

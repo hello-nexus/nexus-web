@@ -5937,6 +5937,7 @@
   "store.consent.cap.app.installStatus": "Controleren of het bijbehorende stuurprogramma is geïnstalleerd",
   "store.consent.cap.cooling.state": "De status van je koeling en ventilatoren bekijken",
   "store.consent.cap.devices.list": "Zien welke apparaten zijn verbonden",
+  "store.consent.cap.diagnostics.supportBundle": "Een supportbundel uit Nexus opslaan",
   "store.consent.cap.dispatchUnknown": "De actie \"{action}\" uitvoeren",
   "store.consent.cap.displays.list": "Je aangesloten beeldschermen bekijken",
   "store.consent.cap.displays.panelVariant": "Het model van je paneel bekijken",

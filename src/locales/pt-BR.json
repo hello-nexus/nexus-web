@@ -5937,6 +5937,7 @@
   "store.consent.cap.app.installStatus": "Verificar se o driver complementar está instalado",
   "store.consent.cap.cooling.state": "Ver o status do seu resfriamento e dos ventiladores",
   "store.consent.cap.devices.list": "Ver quais dispositivos estão conectados",
+  "store.consent.cap.diagnostics.supportBundle": "Salvar um pacote de suporte do Nexus",
   "store.consent.cap.dispatchUnknown": "Executar a ação \"{action}\"",
   "store.consent.cap.displays.list": "Ver os seus monitores conectados",
   "store.consent.cap.displays.panelVariant": "Ver o modelo do seu painel",

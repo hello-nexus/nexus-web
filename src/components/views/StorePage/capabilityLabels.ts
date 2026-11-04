@@ -8,6 +8,7 @@ export const KNOWN_DISPATCH_ACTIONS: readonly string[] = [
   'app.installStatus',
   'cooling.state',
   'devices.list',
+  'diagnostics.supportBundle',
   'displays.list',
   'displays.panelVariant',
   'displays.setBrightness',

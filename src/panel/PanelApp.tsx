@@ -11,6 +11,7 @@ import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { backdropHintFromUrl } from './background/panelBackground';
 import { PanelDigitizerProvider, PanelDisplayBoundProvider, PanelGenericDisplayProvider } from './widgets/common/PanelDisplayBoundContext';
 import { usePanelFpsCap } from './engine/usePanelFpsCap';
+import { streamFrameCap } from '../lib/framePacer';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -1459,6 +1460,11 @@ export function PanelContent({
     closeCtxMenuNow();
     if (restrictedBlockedImmersive) handleImmersiveExit();
   }, [restricted, restrictedBlockedImmersive, closeCtxMenuNow, handleImmersiveExit]);
+  // The overlay unmounts with its widget, so nothing else can clear the id that hides and blocks the panel.
+  const immersiveTargetGone = loaded && immersiveWidgetId !== null && !widgetById(immersiveWidgetId);
+  useEffect(() => {
+    if (immersiveTargetGone) handleImmersiveExit();
+  }, [immersiveTargetGone, handleImmersiveExit]);
   // On the document, not the root: the editor sheet and immersive overlay
   // mount outside the root, and the pointer is the finger there too.
   useEffect(() => {
@@ -2366,6 +2372,7 @@ export function PanelContent({
         data-surface={surface}
         data-screen-sleep={screenHidden ? 'true' : undefined}
         data-simulator={simulator ? 'true' : undefined}
+        data-stream={streamFrameCap(window.location.search) !== null ? 'true' : undefined}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
         data-immersive-see-through={immersiveSeeThrough ? 'true' : undefined}
         // Omitted on single-widget surfaces: they force widgetPadding 0

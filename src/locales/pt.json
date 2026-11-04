@@ -5937,6 +5937,7 @@
   "store.consent.cap.app.installStatus": "Verificar se o controlador complementar está instalado",
   "store.consent.cap.cooling.state": "Ver o estado do teu arrefecimento e das ventoinhas",
   "store.consent.cap.devices.list": "Ver que dispositivos estão ligados",
+  "store.consent.cap.diagnostics.supportBundle": "Guardar um pacote de suporte do Nexus",
   "store.consent.cap.dispatchUnknown": "Executar a ação \"{action}\"",
   "store.consent.cap.displays.list": "Ver os teus ecrãs ligados",
   "store.consent.cap.displays.panelVariant": "Ver o modelo do teu painel",

@@ -5937,6 +5937,7 @@
   "store.consent.cap.app.installStatus": "检查其配套驱动程序是否已安装",
   "store.consent.cap.cooling.state": "查看你的散热和风扇状态",
   "store.consent.cap.devices.list": "查看已连接的设备",
+  "store.consent.cap.diagnostics.supportBundle": "从 Nexus 保存支持包",
   "store.consent.cap.dispatchUnknown": "运行“{action}”操作",
   "store.consent.cap.displays.list": "查看你已连接的显示器",
   "store.consent.cap.displays.panelVariant": "查看你的面板型号",
