@@ -140,7 +140,7 @@ void main() {
   gl_FragColor = vec4(uColor, max(blade, hub) * uOpacity);
   gl_FragColor = linearToOutputTexel(gl_FragColor);
 }`;
-const ROTOR_OPACITY = 0.6;
+const ROTOR_OPACITY = 0.4;
 /** Visual turns a second for a fan at `rpm`: it rises with the speed but levels off, so a fast fan does not strobe at the display rate. */
 export const rotorTurnsPerSecond = (rpm: number): number => 1.4 * (1 - Math.exp(-Math.max(0, rpm) / 1200));
 /** How much the blades melt into a disc, 0 slow to 0.4 for the fastest fans. */
