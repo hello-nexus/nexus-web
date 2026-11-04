@@ -2,6 +2,7 @@ import fixture from '../src/lib/cooling/__fixtures__/t1-cooling-state.json';
 import { collapseMounts, linkChannelToSlot, normalizeBindings, parseCaseLayout, type CaseLayout, type FanBinding } from '../src/lib/cooling/caseLayout';
 import { boundSlotKeys, slotDirections, slotSpeeds, withDefaultBindings } from '../src/lib/cooling/slotFlow';
 import { visualFlow } from '../src/lib/cooling/visualFlow';
+import { fanRotorSpeeds } from '../src/lib/cooling/fanRotors';
 import { createCaseRenderer } from '../src/panel/widgets/cooling/case3d/coolingCaseRenderer';
 import { FLOW_VARIANTS, setFlowVariant } from '../src/lib/cooling/flow/flowVariant';
 import { VISUAL_TIME_SCALE } from '../src/lib/cooling/flow/flowParams';
@@ -37,6 +38,7 @@ let directions: Record<string, FanDirection> = {};
 const fanCfm: Record<string, number> = {};
 let ventCfm = 0;
 let referenceCfm: number | undefined;
+let rotors: Map<string, number> | undefined;
 if (fans === 't1') {
   const parsed = parseCaseLayout(fixture.caseLayout)!;
   const stored = fixture.layout.bindings as unknown as FanBinding[];
@@ -49,6 +51,9 @@ if (fans === 't1') {
   if (radRpm > 0) for (const slot of layout.fanSlots) if (slot.key.startsWith('rad:')) bindings = linkChannelToSlot(bindings, `sim:${radRpm}`, slot.key, false);
   directions = slotDirections(layout.fanSlots, fixture.layout.directions as Record<string, FanDirection>);
   const flow = visualFlow(layout.fanSlots, [], slotSpeeds(layout.fanSlots, bindings, channels), directions);
+  // Rotors turn for the fans someone assigned: a real channel or a chosen simulated speed, not the derived default.
+  rotors = fanRotorSpeeds(layout.fanSlots, bindings, normalizeBindings(stored, collapsed.canonOf), channels);
+  (window as unknown as { __rotors: unknown }).__rotors = [...rotors];
   Object.assign(fanCfm, flow.fanCfm);
   ventCfm = flow.ventCfm;
   referenceCfm = flow.referenceCfm;
@@ -79,6 +84,7 @@ renderer.setState({
   layout, directions, highlighted: new Set(), bound: new Set(), showCase: true, simulated: new Set(), active: null,
   flow: { layout, directions, fanCfm, ventCfm, referenceCfm },
   flowOptions: { particles: true, collisions: false, speed: 1.5, timeScale: VISUAL_TIME_SCALE },
+  rotors,
 });
 if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 });
 (window as unknown as { __renderer: unknown }).__renderer = renderer;

@@ -1,5 +1,5 @@
 import {
-  ArrowHelper, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
+  ArrowHelper, BoxGeometry, BufferGeometry, Color, DoubleSide, PlaneGeometry, ShaderMaterial, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
   Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
@@ -30,6 +30,8 @@ export interface CaseSceneState {
   /** Airflow simulation input; null leaves the flow layer empty. */
   flow: FlowInput | null;
   flowOptions: FlowOptions;
+  /** Fans that get a spinning rotor, by slot key, with the rpm to spin at. */
+  rotors?: ReadonlyMap<string, number>;
 }
 
 /** Where an anchor lands on the canvas, CSS pixels; `visible` is false behind the camera or off the canvas. */
@@ -120,6 +122,34 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
   return x <= y && x <= z ? 'x' : y <= z ? 'y' : 'z';
 }
 
+const ROTOR_VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+// A flat seven-blade rotor drawn per pixel: swept blades over a hub, with the blades blending into a soft disc as the speed rises.
+const ROTOR_FRAGMENT = /* glsl */ `
+uniform vec3 uColor; uniform float uAngle; uniform float uBlur; uniform float uOpacity; uniform float uHub;
+varying vec2 vUv;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  float r = length(p);
+  if (r > 1.0) discard;
+  float turn = atan(p.y, p.x) - uAngle;
+  float f = fract(turn * 7.0 / 6.2831853 - r * 1.6);
+  float w = mix(0.3, 0.46, r);
+  float blade = smoothstep(0.0, 0.06, f) * (1.0 - smoothstep(w, w + 0.06, f));
+  blade = mix(blade, 0.42, uBlur);
+  float ring = smoothstep(uHub * 0.9, uHub, r) * (1.0 - smoothstep(0.93, 1.0, r));
+  float hub = 1.0 - smoothstep(uHub * 0.85, uHub, r);
+  float a = max(blade * ring + uBlur * 0.15 * smoothstep(0.7, 0.95, r) * ring, hub * 0.95);
+  gl_FragColor = vec4(uColor, a * uOpacity);
+  gl_FragColor = linearToOutputTexel(gl_FragColor);
+}`;
+const ROTOR_OPACITY = 0.6;
+/** Visual turns a second for a fan at `rpm`: it rises with the speed but levels off, so a fast fan does not strobe at the display rate. */
+export const rotorTurnsPerSecond = (rpm: number): number => 3.2 * (1 - Math.exp(-Math.max(0, rpm) / 900));
+/** How much the blades melt into a disc, 0 slow to 0.55 fast. */
+export const rotorBlur = (rpm: number): number => 0.55 * Math.min(1, Math.max(0, (rpm - 1400) / 1400));
+
 export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -150,6 +180,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
   let hitMeshes: Mesh[] = [];
+  // Spinning rotors: the material, its rpm and the sign of the spin, advanced each frame.
+  const rotors: { material: ShaderMaterial; rpm: number; sign: number; angle: number }[] = [];
+  let lastSpin = 0;
   let layout: CaseLayout | null = null;
   let frame = 0;
 
@@ -180,11 +213,17 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const calm = !!flowLayer?.settled && now - lastInteraction > IDLE_MS;
     if (calm && now - lastDraw < CALM_FRAME_MS - FRAME_SLACK_MS) { requestRender(); return; }
     lastDraw = now;
+    const spinDt = lastSpin ? Math.min(100, now - lastSpin) : 0;
+    lastSpin = now;
+    for (const r of rotors) {
+      r.angle += r.sign * rotorTurnsPerSecond(r.rpm) * 2 * Math.PI * (spinDt / 1000);
+      r.material.uniforms.uAngle.value = r.angle;
+    }
     flowLayer?.frame(now, camera, canvas.clientHeight);
     renderer.render(scene, camera);
     projectAnchors();
     // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
-    if (flowLayer?.active && !document.hidden && onScreen) requestRender();
+    if ((flowLayer?.active || rotors.some(r => r.rpm > 0)) && !document.hidden && onScreen) requestRender();
   };
   const requestRender = () => {
     if (!frame) frame = requestAnimationFrame(render);
@@ -250,6 +289,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const buildFans = (state: CaseSceneState) => {
     clear(fanGroup, fanDisposables);
     hitMeshes = [];
+    rotors.length = 0;
     const l = state.layout;
     const [ex, ey, ez] = caseExtents(l);
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
@@ -287,6 +327,25 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         ring.position[axis] = faceShift;
         if (mat instanceof LineDashedMaterial) ring.computeLineDistances();
         group.add(ring);
+      }
+      const rpm = state.rotors?.get(slot.key);
+      if (rpm !== undefined) {
+        const material = new ShaderMaterial({
+          vertexShader: ROTOR_VERTEX, fragmentShader: ROTOR_FRAGMENT, transparent: true, depthWrite: false, side: DoubleSide,
+          uniforms: { uColor: { value: color.clone() }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY }, uHub: { value: Math.max(0.1, radii.hub / radii.tip) } },
+        });
+        const geometry = new PlaneGeometry(2, 2);
+        const blades = new Mesh(geometry, material);
+        blades.scale.set(radii.tip * 0.96, radii.tip * 0.96, 1);
+        // The plane lies across the fan's axis, with its normal along it.
+        if (axis === 'x') blades.rotation.y = Math.PI / 2; else if (axis === 'y') blades.rotation.x = -Math.PI / 2;
+        blades.position[axis] = faceShift;
+        blades.renderOrder = 3;
+        fanDisposables.push(geometry, material);
+        group.add(blades);
+        // The rotor turns the way that drives the air along the flow.
+        const flowLocal = (given ?? AXES[axis]).clone().multiplyScalar(dir === 'intake' ? 1 : -1).applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
+        rotors.push({ material, rpm, sign: Math.sign(flowLocal[axis]) || 1, angle: 0 });
       }
       fanGroup.add(group);
 
