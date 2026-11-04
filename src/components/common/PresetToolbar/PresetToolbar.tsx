@@ -101,6 +101,10 @@ interface PresetToolbarProps {
   onSelectBuiltin?: (id: string) => void;
   /** Names a preset may not take besides its siblings', e.g. built-ins the caller lists itself; matched without case. */
   reservedNames?: readonly string[];
+  /** Group header over the presets in the menu, below the built-ins. Omit for the plain divider. */
+  presetsHeader?: string;
+  /** A Save button beside the select that opens the new-preset prompt. */
+  inlineSave?: { label: string; disabled?: boolean };
 }
 
 export function PresetToolbar({
@@ -112,7 +116,7 @@ export function PresetToolbar({
   resetLabelKey, resetConfirmKey,
   allowCreateRename = true,
   allowDelete = true,
-  builtins = [], activeBuiltinId = null, onSelectBuiltin, reservedNames = [],
+  builtins = [], activeBuiltinId = null, onSelectBuiltin, reservedNames = [], presetsHeader, inlineSave,
   rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
@@ -143,9 +147,10 @@ export function PresetToolbar({
     label: p.name,
     ...(p.hasApps ? { icon: <AppWindow size={14} aria-hidden /> } : {}),
   }));
+  const headed = presetsHeader && presetOptions.length > 0 ? [{ value: '__header__', label: presetsHeader, header: true }, ...presetOptions] : presetOptions;
   const groups = [
     builtins.map(entryOption(BUILTIN_PREFIX)),
-    presetOptions,
+    headed,
   ].filter(g => g.length > 0);
   const actionOptions = [
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
@@ -155,7 +160,7 @@ export function PresetToolbar({
   ];
 
   const selectOptions = [
-    ...groups.flatMap((g, i) => (i === 0 ? g : [divider(`g${i}`), ...g])),
+    ...groups.flatMap((g, i) => (i === 0 || presetsHeader ? g : [divider(`g${i}`), ...g])),
     ...(presetActionsOn ? [
       divider('actions'),
       ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
@@ -227,6 +232,15 @@ export function PresetToolbar({
         placeholder={t(key('placeholder'))}
         className={styles.presetSelect}
       />
+      {inlineSave && (
+        <Button
+          size="sm"
+          disabled={inlineSave.disabled || atCap}
+          onClick={() => { setPromptMode('create'); setCreateError(null); setPromptOpen(true); }}
+        >
+          {inlineSave.label}
+        </Button>
+      )}
       {showHistory && !activeBuiltinId && (
         <>
           {onReset && (

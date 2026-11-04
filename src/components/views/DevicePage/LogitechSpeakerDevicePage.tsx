@@ -38,6 +38,7 @@ const HZ = 'Hz';
 const DB = 'dB';
 // The service keeps any number of user presets; the toolbar needs a cap.
 const PRESET_LIMIT = 999;
+const MANUAL_ID = '__manual__';
 // How long a speaker stays lit after its test sound starts, and the gap between speakers in Test all.
 const TEST_LIT_MS = 1300;
 const TEST_GAP_MS = 1600;
@@ -195,7 +196,10 @@ function AcousticsTab({ state, change, report }: TabProps) {
 
 /** The EQ presets as the shared preset dropdown: G HUB's own first, then the user's, with new, rename and delete. */
 function SpeakerPresets({ state, change, report }: TabProps) {
-  const current = currentPreset(state.presets, state.preset);
+  // With Advanced EQ off nothing is selected and saving is off; on, an unmatched curve is Manual.
+  const eqOn = state.eqEnabled;
+  const current = eqOn ? currentPreset(state.presets, state.preset) : undefined;
+  const manual = eqOn && !current;
   const own = state.presets.filter(p => !p.builtIn);
   const builtIns = state.presets.filter(p => p.builtIn);
   const { t } = useTranslation();
@@ -209,9 +213,11 @@ function SpeakerPresets({ state, change, report }: TabProps) {
       presetCount={own.length}
       presets={own.map(p => ({ id: p.name, name: p.name }))}
       activeId={current && !current.builtIn ? current.name : null}
-      builtins={builtIns.map(p => ({ id: p.name, label: p.name }))}
-      activeBuiltinId={current?.builtIn ? current.name : null}
-      onSelectBuiltin={select}
+      builtins={[...(manual ? [{ id: MANUAL_ID, label: t(`${P}manual`) }] : []), ...builtIns.map(p => ({ id: p.name, label: p.name }))]}
+      activeBuiltinId={manual ? MANUAL_ID : current?.builtIn ? current.name : null}
+      onSelectBuiltin={id => { if (id !== MANUAL_ID) select(id); }}
+      presetsHeader={t(`${P}presetsCustom`)}
+      inlineSave={{ label: t(`${P}savePreset`), disabled: !manual }}
       onLoad={select}
       reservedNames={builtIns.map(p => p.name)}
       onCreate={async name => {

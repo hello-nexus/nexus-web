@@ -141,3 +141,19 @@ describe('PresetToolbar reserved names', () => {
   });
 });
 
+describe('PresetToolbar inline save and header', () => {
+  it('opens the new-preset prompt from the inline save button, unless disabled', () => {
+    const { rerender } = render(<PresetToolbar {...defaultProps({ inlineSave: { label: 'Save now' } })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save now' }));
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    rerender(<PresetToolbar {...defaultProps({ inlineSave: { label: 'Save now', disabled: true } })} />);
+    expect(screen.getByRole('button', { name: 'Save now' })).toBeDisabled();
+  });
+
+  it('puts a group header over the presets', () => {
+    render(<PresetToolbar {...defaultProps({ presetsHeader: 'Custom presets', builtins: [{ id: 'x', label: 'Stock' }] })} />);
+    const labels = [...screen.getByTestId('preset-select').querySelectorAll('option')].map(o => o.textContent);
+    expect(labels.slice(0, 4)).toEqual(['Stock', 'Custom presets', 'My Preset', 'Other Preset']);
+  });
+});
+

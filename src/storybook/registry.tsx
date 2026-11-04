@@ -3848,7 +3848,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
     description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Undo / Redo icon buttons via showHistory, plus a Reset button when onReset is supplied. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
-    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckInstance and requires a running service.',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckInstance and requires a running service. presetsHeader puts a group header over the presets, inlineSave adds a Save button beside the select that opens the new-preset prompt, and reservedNames blocks names the caller lists itself (the G560 EQ uses all three with a built-in Manual entry).',
   },
   {
     name: 'CorsairDevicePage', category: 'panel-kit',

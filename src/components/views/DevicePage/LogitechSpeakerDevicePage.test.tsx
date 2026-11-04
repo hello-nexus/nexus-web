@@ -143,6 +143,32 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(bar().activeId).toBeNull();
   });
 
+  it('shows Manual first when EQ is on and no preset matches, and enables Save', async () => {
+    await mount(state());
+    expect(bar().activeBuiltinId).toBe('__manual__');
+    expect(bar().builtins?.[0].id).toBe('__manual__');
+    expect(bar().inlineSave?.disabled).toBe(false);
+  });
+
+  it('has no Manual entry and no save while a preset matches', async () => {
+    await mount(state({ preset: 'Flat' }));
+    expect(bar().builtins?.some(b => b.id === '__manual__')).toBe(false);
+    expect(bar().inlineSave?.disabled).toBe(true);
+  });
+
+  it('selects nothing and disables save while Advanced EQ is off', async () => {
+    await mount(state({ eqEnabled: false, preset: 'Flat' }));
+    expect(bar().activeBuiltinId).toBeNull();
+    expect(bar().activeId).toBeNull();
+    expect(bar().inlineSave?.disabled).toBe(true);
+  });
+
+  it('ignores a click on the Manual entry', async () => {
+    await mount(state());
+    await act(async () => { bar().onSelectBuiltin?.('__manual__'); });
+    expect(api.setSpeakerEq).not.toHaveBeenCalled();
+  });
+
   it('shows the preset toolbar on Acoustics only', async () => {
     await mount(state());
     expect(screen.getByTestId('presets')).toBeInTheDocument();
