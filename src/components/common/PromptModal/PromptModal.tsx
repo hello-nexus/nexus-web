@@ -137,7 +137,7 @@ export function PromptModal({
 
   return (
     <Overlay open={open} onClose={onCancel} variant="alert" onEnter={() => submit()}
-      className={styles.modal} ariaLabel={title}>
+      backdropClassName={styles.backdrop} className={styles.modal} ariaLabel={title}>
       <h2 id={inputId + '-title'} className={styles.title}>{title}</h2>
       <div className={styles.fieldWrap}>
         {message && <label htmlFor={inputId} className={styles.message}>{message}</label>}

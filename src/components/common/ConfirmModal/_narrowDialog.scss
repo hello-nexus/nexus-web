@@ -1,0 +1,39 @@
+// Phone-width fit for the alert dialogs. The Overlay backdrop pads 2rem a side,
+// which leaves a 390px screen a 326px card; these take the app's 16px gutter
+// instead, and let a long footer label wrap inside its button so the actions
+// stay on one row below Cancel rather than stacking one per row.
+$narrow: 600px;
+
+@mixin narrow-gutter {
+  @media (max-width: #{$narrow}) {
+    // div.x outranks the Overlay's single-class padding whichever sheet loads last.
+    @at-root div#{&} { padding: 1rem; }
+  }
+}
+
+@mixin narrow-card {
+  @media (max-width: #{$narrow}) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@mixin narrow-footer($actions-end) {
+  @media (max-width: #{$narrow}) {
+    button {
+      padding: 0 var(--space-md);
+    }
+
+    #{$actions-end} {
+      flex-wrap: nowrap;
+      min-width: 0;
+
+      button {
+        min-width: 0;
+        white-space: normal;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+      }
+    }
+  }
+}

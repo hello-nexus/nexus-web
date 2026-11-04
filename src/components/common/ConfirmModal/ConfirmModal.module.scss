@@ -1,4 +1,9 @@
 @use '../../../panel/styles/flexGap' as *;
+@use 'narrowDialog' as *;
+
+.backdrop {
+  @include narrow-gutter;
+}
 
 .modal {
   background: var(--backdrop-base);
@@ -11,6 +16,8 @@
   gap: 0.75rem;
   box-shadow: var(--shadow-xl);
   position: relative;
+
+  @include narrow-card;
 }
 
 .wide {
@@ -90,6 +97,8 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.35rem;
+
+  @include narrow-footer('.actionsEnd');
 }
 
 .actionsEnd {

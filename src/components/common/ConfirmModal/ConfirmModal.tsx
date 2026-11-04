@@ -96,6 +96,7 @@ export function ConfirmModal({
 
   return (
     <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={enterHandler}
+      backdropClassName={styles.backdrop}
       className={size === 'wider' ? `${styles.modal} ${styles.wider}` : size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
       {icon ? (
         <div className={styles.titleRow}>
