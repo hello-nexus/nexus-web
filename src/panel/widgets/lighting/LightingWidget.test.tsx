@@ -398,11 +398,24 @@ describe('LightingWidget', () => {
       const second = swatches[1] as HTMLElement;
       fireEvent.click(first);
       fireEvent.click(second);
-      release({});
-      await waitFor(() => expect(startStatic).toHaveBeenCalled());
-      await new Promise(r => setTimeout(r, 20));
+      await act(async () => { release({}); });
       expect(startStatic).toHaveBeenCalledTimes(1);
       expect(vi.mocked(startStatic).mock.calls[0][8]).toBe(second.getAttribute('data-swatch-hex'));
+    });
+
+    it.each(['Off', 'Animation'])('does not start a stale tile tap after the %s button is pressed', async name => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      let release: (v: Record<string, never>) => void = () => {};
+      vi.mocked(fetchPins).mockImplementationOnce(() => new Promise(r => { release = r as never; }));
+      renderLighting(lightingWidget('4x2'));
+      await waitFor(() => expect(document.querySelectorAll('[data-swatch-hex]')).toHaveLength(5));
+      fireEvent.click(document.querySelector('[data-swatch-hex]') as HTMLElement);
+      vi.mocked(startStatic).mockClear();
+      vi.mocked(startAnimate).mockClear();
+      fireEvent.click(screen.getByRole('button', { name }));
+      await act(async () => { release({}); });
+      expect(startStatic).not.toHaveBeenCalled();
+      if (name === 'Off') expect(startAnimate).not.toHaveBeenCalled();
     });
 
     it('still starts the look when the pin clear is refused', async () => {

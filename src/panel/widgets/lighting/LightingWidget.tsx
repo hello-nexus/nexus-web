@@ -438,6 +438,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   // Mode-button dispatch (widget row + immersive grid) - covers every mode.
   const handleMode = useCallback((k: LightingMode) => {
+    // A mode action supersedes a tile tap still waiting on its pin clear.
+    tapSeqRef.current += 1;
     if (k === 'none') onOffButton();
     else if (k === 'animate') onAnimateButton();
     else if (k === 'static') onStaticButton();
