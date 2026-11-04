@@ -60,6 +60,8 @@ export interface CaseSceneRenderer {
 export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
 
 const CLICK_SLOP_PX = 4;
+/** How far the case and its parts are drawn back while the airflow runs, so the fans and the air read first. */
+const AIRFLOW_DIM = 0.5;
 /** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
 const IDLE_MS = 400;
 const CALM_FRAME_MS = 1000 / 30;
@@ -135,6 +137,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let collisionsOn = false;
   let spanListener: ((spanK: number) => void) | null = null;
   let showCase = true;
+  // The case and parts are drawn back only while the particles run.
+  let dimmed = false;
   // The collision view stands in for the case; Airflow hides the case and the fans.
   const applyVisibility = () => {
     staticGroup.visible = showCase && !collisionsOn;
@@ -221,7 +225,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     clearCase();
     const palette: Palette = coolingPalette(canvas);
     const [D, W, H] = l.size;
-    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true);
+    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true, false, dimmed ? AIRFLOW_DIM : 1);
     // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.
     const holder = new Group();
     holder.position.set(D / 2, H / 2, W / 2);
@@ -350,6 +354,10 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
 
   return {
     setState(state) {
+      const dimNow = state.flowOptions.particles;
+      const dimChanged = dimNow !== dimmed;
+      dimmed = dimNow;
+      if (state.layout === layout && dimChanged && layout) buildStatic(layout, false);
       if (state.layout !== layout) {
         const previous = layout;
         layout = state.layout;

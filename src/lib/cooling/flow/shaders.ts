@@ -504,7 +504,7 @@ uniform sampler2D PA; uniform sampler2D HIST;
 uniform int uHead; uniform float uTrailSteps;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
-uniform float uCapsule; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+uniform float uSpeedLo; uniform float uSpeedHi; uniform float uSpeedMin; uniform float uCapsule; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx;
 #ifdef PROBE
@@ -544,13 +544,16 @@ void main() {
   vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
   float wp; float wb;
   vec2 pp = screenOf(at, wp);
-  vec2 pb = screenOf(histPos(n, b + 3.0), wb);
+  vec3 back3 = histPos(n, b + 3.0);
+  vec2 pb = screenOf(back3, wb);
+  // Width follows the speed recorded at this station (mm per particle step over a three-step baseline): slow air draws thinner, fast air full width, smoothly along the ribbon.
+  float speedW = uSpeedHi > 0.0 ? mix(uSpeedMin, 1.0, smoothstep(uSpeedLo, uSpeedHi, length(at - back3) * uCell / 3.0)) : 1.0;
   float taper = mix(uTailWidth, 1.0, corner.x);
   if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
   // A capsule streak keeps the ribbon at full width: its ends are shaped per pixel in the fragment shader.
   if (uCapsule > 0.5) taper = 1.0;
-  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
-  vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp);
+  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper * speedW;
+  vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * speedW;
   vec2 axis = pp - pb;
   float len = length(axis);
   axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
