@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "正在連線到 {name}",
   "panel.gate.fail.authBody": "使用 service token（?token=...）開啟此 URL，或在執行 nexus-service 的系統上載入它。",
   "panel.gate.fail.authHeadline": "此面板需要授權",
+  "panel.gate.fail.busyBody": "目前正在配對另一台裝置。請稍候，然後重新掃描 QR 碼。",
+  "panel.gate.fail.busyHeadline": "你的電腦忙碌中",
   "panel.gate.fail.deniedBody": "你的電腦未核准此裝置。請掃描新的 QR 碼重試。",
   "panel.gate.fail.deniedHeadline": "配對遭拒",
   "panel.gate.fail.expiredBody": "從 Nexus 儀表板（「Pair Phone」）產生新的 QR 並再次掃描。",

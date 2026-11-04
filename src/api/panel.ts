@@ -802,7 +802,7 @@ export async function claimPanelPhonePairingLan(
     const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel() }),
+      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal,
     });
     if (!res.ok) {
@@ -812,6 +812,30 @@ export async function claimPanelPhonePairingLan(
     return (await res.json()) as PanelPhoneClaimResponse;
   } catch {
     // Aborted (timeout) or unreachable host both land here ⇒ LAN unavailable.
+    return null;
+  }
+}
+
+/**
+ * One poll of a pending LAN claim approval, against the same QR-derived
+ * `host`:`httpPort` as {@link claimPanelPhonePairingLan}. Null on a transport
+ * failure so the caller keeps polling until the request's deadline.
+ */
+export async function confirmPanelPhonePairingLan(
+  host: string,
+  httpPort: string,
+  requestId: string,
+  signal?: AbortSignal,
+): Promise<PanelPhonePairCodeConfirmResponse | null> {
+  try {
+    const res = await fetch(`http://${host}:${httpPort}/panel/phone/pair-code/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, approved: true }),
+      signal,
+    });
+    return (await res.json()) as PanelPhonePairCodeConfirmResponse;
+  } catch {
     return null;
   }
 }

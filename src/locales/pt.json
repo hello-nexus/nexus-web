@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "A ligar a {name}",
   "panel.gate.fail.authBody": "Abra este URL com um token de serviço (?token=...), ou carregue-o no sistema onde o nexus-service está em execução.",
   "panel.gate.fail.authHeadline": "Este painel precisa de ser autorizado",
+  "panel.gate.fail.busyBody": "Outro dispositivo está a ser emparelhado neste momento. Aguarde um momento e digitalize o código QR novamente.",
+  "panel.gate.fail.busyHeadline": "O seu PC está ocupado",
   "panel.gate.fail.deniedBody": "O seu PC não aprovou este dispositivo. Digitalize um novo código QR para tentar novamente.",
   "panel.gate.fail.deniedHeadline": "Emparelhamento negado",
   "panel.gate.fail.expiredBody": "Gere um novo QR a partir do painel Nexus (\"Emparelhar telemóvel\") e digitalize-o novamente.",

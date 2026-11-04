@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "正在连接到 {name}",
   "panel.gate.fail.authBody": "使用服务令牌（?token=...）打开此 URL，或在运行 nexus-service 的系统上加载它。",
   "panel.gate.fail.authHeadline": "此面板需要授权",
+  "panel.gate.fail.busyBody": "当前正在配对另一台设备。请稍候，然后重新扫描 QR 码。",
+  "panel.gate.fail.busyHeadline": "您的电脑正忙",
   "panel.gate.fail.deniedBody": "您的电脑未批准此设备。请扫描新的 QR 码重试。",
   "panel.gate.fail.deniedHeadline": "配对被拒绝",
   "panel.gate.fail.expiredBody": "从 Nexus 仪表盘（“Pair Phone”）生成新的 QR 并再次扫描。",

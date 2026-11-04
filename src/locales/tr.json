@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "{name} bağlantısı kuruluyor",
   "panel.gate.fail.authBody": "Bu URL'yi bir servis belirteciyle (?token=...) açın veya nexus-service'in çalıştığı sistemde yükleyin.",
   "panel.gate.fail.authHeadline": "Bu panelin yetkilendirilmesi gerekiyor",
+  "panel.gate.fail.busyBody": "Şu anda başka bir cihaz eşleştiriliyor. Biraz bekleyin, ardından QR kodunu yeniden tarayın.",
+  "panel.gate.fail.busyHeadline": "Bilgisayarınız meşgul",
   "panel.gate.fail.deniedBody": "Bilgisayarınız bu cihazı onaylamadı. Tekrar denemek için yeni bir QR kodu tarayın.",
   "panel.gate.fail.deniedHeadline": "Eşleştirme reddedildi",
   "panel.gate.fail.expiredBody": "Nexus panosundan yeni bir QR oluşturun (\"Telefon Eşleştir\") ve tekrar tarayın.",

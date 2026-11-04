@@ -4344,6 +4344,8 @@
   "panel.gate.connectingTo": "Подключение к {name}",
   "panel.gate.fail.authBody": "Откройте этот URL с сервисным токеном (?token=...), либо загрузите его на системе, где запущен nexus-service.",
   "panel.gate.fail.authHeadline": "Эту панель нужно авторизовать",
+  "panel.gate.fail.busyBody": "Сейчас выполняется сопряжение другого устройства. Подождите немного и снова отсканируйте QR-код.",
+  "panel.gate.fail.busyHeadline": "Ваш ПК занят",
   "panel.gate.fail.deniedBody": "Ваш ПК не одобрил это устройство. Отсканируйте новый QR-код, чтобы повторить попытку.",
   "panel.gate.fail.deniedHeadline": "Сопряжение отклонено",
   "panel.gate.fail.expiredBody": "Сгенерируйте новый QR с панели управления Nexus («Pair Phone») и отсканируйте его снова.",

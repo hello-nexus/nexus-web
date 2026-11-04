@@ -4344,6 +4344,8 @@
   "panel.gate.connectingTo": "Připojování k: {name}",
   "panel.gate.fail.authBody": "Otevřete tuto adresu URL s tokenem služby (?token=...), nebo ji načtěte na PC, kde běží nexus-service.",
   "panel.gate.fail.authHeadline": "Tento panel je třeba autorizovat",
+  "panel.gate.fail.busyBody": "Právě se páruje jiné zařízení. Chvíli počkejte a pak QR kód naskenujte znovu.",
+  "panel.gate.fail.busyHeadline": "Váš PC je zaneprázdněn",
   "panel.gate.fail.deniedBody": "Váš PC toto zařízení neschválil. Naskenujte nový QR kód a zkuste to znovu.",
   "panel.gate.fail.deniedHeadline": "Spárování zamítnuto",
   "panel.gate.fail.expiredBody": "Vygenerujte nový QR kód v dashboardu Nexusu („Spárovat ovládání“) a naskenujte jej znovu.",

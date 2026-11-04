@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Verbinden met {name}",
   "panel.gate.fail.authBody": "Open deze URL met een servicetoken (?token=...), of laad hem op het systeem waarop nexus-service draait.",
   "panel.gate.fail.authHeadline": "Dit paneel moet geautoriseerd worden",
+  "panel.gate.fail.busyBody": "Er wordt op dit moment een ander apparaat gekoppeld. Wacht even en scan de QR-code daarna opnieuw.",
+  "panel.gate.fail.busyHeadline": "Je pc is bezig",
   "panel.gate.fail.deniedBody": "Je pc heeft dit apparaat niet goedgekeurd. Scan een nieuwe QR-code om het opnieuw te proberen.",
   "panel.gate.fail.deniedHeadline": "Koppelen geweigerd",
   "panel.gate.fail.expiredBody": "Genereer een nieuwe QR vanuit het Nexus-dashboard (\"Telefoon koppelen\") en scan hem opnieuw.",

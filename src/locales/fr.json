@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Connexion à {name}",
   "panel.gate.fail.authBody": "Ouvrez cette URL avec un jeton de service (?token=...), ou chargez-la depuis le système où nexus-service est en cours d'exécution.",
   "panel.gate.fail.authHeadline": "Ce panneau doit être autorisé",
+  "panel.gate.fail.busyBody": "Un autre appareil est en cours d'association. Patientez un instant, puis scannez à nouveau le code QR.",
+  "panel.gate.fail.busyHeadline": "Votre PC est occupé",
   "panel.gate.fail.deniedBody": "Votre PC n'a pas approuvé cet appareil. Scannez un nouveau code QR pour réessayer.",
   "panel.gate.fail.deniedHeadline": "Appairage refusé",
   "panel.gate.fail.expiredBody": "Générez un nouveau QR depuis le tableau de bord Nexus (« Associer la télécommande ») et scannez-le à nouveau.",

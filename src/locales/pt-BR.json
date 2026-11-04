@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Conectando a {name}",
   "panel.gate.fail.authBody": "Abra esta URL com um token de serviço (?token=...), ou carregue-a no sistema onde o nexus-service está em execução.",
   "panel.gate.fail.authHeadline": "Este painel precisa ser autorizado",
+  "panel.gate.fail.busyBody": "Outro dispositivo está sendo pareado agora. Aguarde um momento e escaneie o código QR novamente.",
+  "panel.gate.fail.busyHeadline": "Seu PC está ocupado",
   "panel.gate.fail.deniedBody": "Seu PC não aprovou este dispositivo. Escaneie um novo código QR para tentar novamente.",
   "panel.gate.fail.deniedHeadline": "Pareamento negado",
   "panel.gate.fail.expiredBody": "Gere um novo QR no painel do Nexus (\"Parear telefone\") e escaneie-o novamente.",

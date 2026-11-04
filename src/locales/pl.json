@@ -4344,6 +4344,8 @@
   "panel.gate.connectingTo": "Łączenie z {name}",
   "panel.gate.fail.authBody": "Otwórz ten adres URL z tokenem usługi (?token=...) albo wczytaj go na systemie, na którym działa nexus-service.",
   "panel.gate.fail.authHeadline": "Ten panel wymaga autoryzacji",
+  "panel.gate.fail.busyBody": "W tej chwili parowane jest inne urządzenie. Poczekaj chwilę, a następnie zeskanuj kod QR ponownie.",
+  "panel.gate.fail.busyHeadline": "Twój PC jest zajęty",
   "panel.gate.fail.deniedBody": "Twój PC nie zatwierdził tego urządzenia. Zeskanuj nowy kod QR, aby spróbować ponownie.",
   "panel.gate.fail.deniedHeadline": "Sparowanie odrzucone",
   "panel.gate.fail.expiredBody": "Wygeneruj nowy kod QR z pulpitu Nexus („Sparuj telefon”) i zeskanuj go ponownie.",

@@ -30,9 +30,10 @@
 // persistence.
 
 import { resolveRelayWs } from './service';
-import { claimPanelPhonePairingLan } from './panel';
+import { claimPanelPhonePairingLan, confirmPanelPhonePairingLan } from './panel';
+import { waitForPairApproval } from './pairApproval';
 import { pairOverRelay } from '../hooks/relayChannel';
-import { storePhoneToken } from './auth';
+import { getTokenSync, storePhoneToken } from './auth';
 import { getDeviceId } from './deviceId';
 
 // How long to wait for the LAN claim before declaring the PC LAN-unreachable
@@ -58,11 +59,21 @@ export type InternetPairResult =
   // "pairing expired".
   | { kind: 'unreachable' };
 
+/** Host approval in progress: the SAS the phone shows while the PC's user chooses Allow. */
+export interface PairApprovalPrompt {
+  sas: string;
+  machineName?: string;
+}
+
 export interface InternetPairParams {
   host: string;
   httpPort: string;
   pairToken: string;
   deviceName: string;
+  /** Called when the PC asks its user to approve this device. */
+  onApproval?: (prompt: PairApprovalPrompt) => void;
+  /** Aborting cancels a pending approval. */
+  signal?: AbortSignal;
 }
 
 // Once-per-pair-token guard. The PairRedirect effect can fire more than once
@@ -108,7 +119,7 @@ export function pairOverInternet(params: InternetPairParams): Promise<InternetPa
 }
 
 async function runPairAttempt(params: InternetPairParams): Promise<InternetPairResult> {
-  const { host, httpPort, pairToken, deviceName } = params;
+  const { host, httpPort, pairToken, deviceName, onApproval, signal } = params;
 
   // 1. LAN-first fast path (local origin: http→http, same network, no mixed
   //    content). The LAN claim is a plain-HTTP fetch to
@@ -123,7 +134,24 @@ async function runPairAttempt(params: InternetPairParams): Promise<InternetPairR
     clearTimeout(timer);
   }
   if (lan?.paired && lan.token) {
+    // An older service mints directly; a current one only after host approval.
     return { kind: 'lan', token: lan.token, machineName: lan.machineName };
+  }
+  if (lan?.needsApproval && lan.requestId) {
+    // The claim parked the token on the PC's Allow prompt: show the SAS and
+    // poll the same LAN host until the PC decides.
+    onApproval?.({ sas: lan.sas ?? '', machineName: lan.machineName });
+    const requestId = lan.requestId;
+    const outcome = await waitForPairApproval({
+      requestId,
+      expiresAt: lan.expiresAt,
+      confirm: (id) => confirmPanelPhonePairingLan(host, httpPort, id, signal),
+      signal,
+    });
+    if (outcome.kind === 'approved') {
+      return { kind: 'lan', token: outcome.token, machineName: outcome.machineName || lan.machineName };
+    }
+    return { kind: 'rejected', error: outcome.kind === 'aborted' ? 'cancelled' : outcome.kind };
   }
   if (lan && lan.paired === false && lan.error) {
     // The PC answered on the LAN and refused (expired/used token). The relay
@@ -133,7 +161,7 @@ async function runPairAttempt(params: InternetPairParams): Promise<InternetPairR
 
   // 2. Relay claim - fallback for an unreachable / timed-out / unanswered LAN
   //    claim.
-  return pairOverRelayClaim(pairToken, deviceName);
+  return pairOverRelayClaim(pairToken, deviceName, { onApproval, signal });
 }
 
 /**
@@ -142,8 +170,10 @@ async function runPairAttempt(params: InternetPairParams): Promise<InternetPairR
  * and get back a session token, which is stored under this origin so the panel
  * (and a later reopen of hellonexus.com) reconnects over the relay.
  *
+ *   claim-pending → the PC's user must Allow: onApproval gets the SAS, polling
+ *                   claim-confirm follows (an older PC answers claim-ok directly)
  *   claim-ok  → store the session token, { kind: 'relay' }
- *   claim-err → { kind: 'rejected' }
+ *   claim-err → { kind: 'rejected' } (denied / expired / code-in-use / ...)
  *   transport → { kind: 'unreachable' }
  *
  * Exported so the REMOTE-origin tiered flow (PairRedirect) can invoke the relay
@@ -153,12 +183,19 @@ async function runPairAttempt(params: InternetPairParams): Promise<InternetPairR
 export async function pairOverRelayClaim(
   pairToken: string,
   deviceName: string,
+  opts: { onApproval?: (prompt: PairApprovalPrompt) => void; signal?: AbortSignal } = {},
 ): Promise<InternetPairResult> {
   try {
     // Send the stable per-device id alongside the name so the PC dedups a
     // re-pair of this same browser (replaces its session) rather than creating
     // a duplicate authorized device.
-    const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName, getDeviceId());
+    // A live session this browser already holds is the only evidence that
+    // skips the PC's approval; the PC validates it, so a stale one is harmless.
+    const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName, getDeviceId(), {
+      sessionToken: getTokenSync() ?? undefined,
+      signal: opts.signal,
+      onPending: (p) => opts.onApproval?.({ sas: p.sas, machineName: p.machineName }),
+    });
     if (result.ok) {
       // Persist under the hellonexus.com origin so the panel - and a later
       // reopen of hellonexus.com - reconnects over the relay using this token.

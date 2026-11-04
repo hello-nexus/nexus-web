@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Verbindung zu {name} wird hergestellt",
   "panel.gate.fail.authBody": "Öffnen Sie diese URL mit einem Service-Token (?token=...), oder laden Sie sie auf dem System, auf dem nexus-service läuft.",
   "panel.gate.fail.authHeadline": "Dieses Panel muss autorisiert werden",
+  "panel.gate.fail.busyBody": "Gerade wird ein anderes Gerät gekoppelt. Warten Sie einen Moment und scannen Sie den QR-Code dann erneut.",
+  "panel.gate.fail.busyHeadline": "Ihr PC ist beschäftigt",
   "panel.gate.fail.deniedBody": "Ihr PC hat dieses Gerät nicht genehmigt. Scannen Sie einen neuen QR-Code, um es erneut zu versuchen.",
   "panel.gate.fail.deniedHeadline": "Kopplung abgelehnt",
   "panel.gate.fail.expiredBody": "Erzeugen Sie einen neuen QR-Code im Nexus-Dashboard (\"Telefon koppeln\") und scannen Sie ihn erneut.",

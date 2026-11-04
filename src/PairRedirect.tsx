@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { NexusMark } from './components/icons/NexusBrand';
 import { Spinner } from './components/common/Spinner/Spinner';
 import { pairOverInternet, pairOverRelayClaim, type InternetPairResult } from './api/internetPairing';
+import { useTranslation } from './lib/i18n';
+import { PAIR_UPDATE_REQUIRED } from './api/pairApproval';
+import styles from './App.module.scss';
 import { isRemoteOrigin, setRelayRegion } from './api/service';
 import { getDeviceId } from './api/deviceId';
 import { upsertPairedPc } from './api/pairedPcs';
@@ -58,10 +61,12 @@ type PairPhase =
   | { state: 'pairing' }
   | { state: 'lan'; lanURL: string; host: string; httpPort: string }
   | { state: 'relay'; machineName?: string }
+  | { state: 'approval'; sas: string }
   | { state: 'rejected'; error: string }
   | { state: 'unreachable' };
 
 export function PairRedirect() {
+  const { t } = useTranslation();
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const host = params.get('host') ?? '';
   const pair = params.get('pair') ?? '';
@@ -99,6 +104,8 @@ export function PairRedirect() {
   // result after the redirect is in flight). Together they guarantee a single
   // rid_pair relay channel per pair attempt.
   const started = useRef(false);
+  // Aborting cancels a pending host approval (the PC drops the request).
+  const approvalAbort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!valid) return;
@@ -161,7 +168,12 @@ export function PairRedirect() {
         // already committed and this page unloaded, so this code never runs.
         try { window.stop(); } catch { /* not supported / nothing to stop */ }
         setPhase({ state: 'relay' });
-        void pairOverRelayClaim(pair, deriveDeviceLabel()).then((result) => {
+        const abort = new AbortController();
+        approvalAbort.current = abort;
+        void pairOverRelayClaim(pair, deriveDeviceLabel(), {
+          signal: abort.signal,
+          onApproval: (prompt) => { if (!cancelled) setPhase({ state: 'approval', sas: prompt.sas }); },
+        }).then((result) => {
           if (cancelled) return;
           applyResult(result);
         });
@@ -175,16 +187,21 @@ export function PairRedirect() {
       return () => {
         cancelled = true;
         window.clearTimeout(fallback);
+        approvalAbort.current?.abort();
       };
     }
 
     // LOCAL ORIGIN (PC's own panel) - unchanged: LAN HTTP claim, relay fallback.
     let cancelled = false;
+    const abort = new AbortController();
+    approvalAbort.current = abort;
     void pairOverInternet({
       host,
       httpPort,
       pairToken: pair,
       deviceName: deriveDeviceLabel(),
+      signal: abort.signal,
+      onApproval: (prompt) => { if (!cancelled) setPhase({ state: 'approval', sas: prompt.sas }); },
     }).then((result: InternetPairResult) => {
       if (cancelled) return;
       if (result.kind === 'lan') {
@@ -203,18 +220,16 @@ export function PairRedirect() {
         applyResult(result);
       }
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abort.abort(); };
   }, [valid, host, httpPort, pair, region, fp]);
 
-  // NOTE: this component is mounted by App.tsx at /r/pair WITHOUT an
-  // I18nProvider ancestor, so useTranslation()'s t() would return raw keys
-  // instead of copy. The phone-landing strings below therefore stay literal
-  // English until this route is given an i18n context; the lint disables mark
-  // that intentional gap.
+  // NOTE: App.tsx now wraps this route in an I18nProvider, and the approval
+  // and refusal screens use t(). The older landing strings below were never
+  // converted and stay literal English; the lint disables mark that gap.
   if (!valid) {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
+        {/* eslint-disable i18next/no-literal-string -- legacy literal, see file note */}
         <Title>Invalid pairing link</Title>
         <Sub>This link is missing pairing information. Re-scan the QR from your dashboard.</Sub>
         {/* eslint-enable i18next/no-literal-string */}
@@ -222,14 +237,31 @@ export function PairRedirect() {
     );
   }
 
-  if (phase.state === 'rejected') {
+  if (phase.state === 'approval') {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
-        <Title>Pairing expired</Title>
-        <Sub>Generate a new QR from the Nexus dashboard ("Pair Phone") and scan it again.</Sub>
-        {/* eslint-enable i18next/no-literal-string */}
-        {phase.error && <Sub mono>{phase.error}</Sub>}
+        <div style={spinnerFrame}><Spinner size={28} /></div>
+        <Title>{t('panel.gate.approval.headline')}</Title>
+        <div className={styles.panelPairGateSas} aria-live="polite">{phase.sas}</div>
+        <Sub>{t('panel.gate.approval.body')}</Sub>
+        <button
+          type="button"
+          className={styles.panelPairGateRetry}
+          onClick={() => approvalAbort.current?.abort()}
+        >
+          {t('panel.gate.cancel')}
+        </button>
+      </Frame>
+    );
+  }
+
+  if (phase.state === 'rejected') {
+    const keys = rejectedCopy(phase.error);
+    return (
+      <Frame>
+        <Title>{t(keys.headline)}</Title>
+        <Sub>{t(keys.body)}</Sub>
+        {keys.showCode && phase.error && <Sub mono>{phase.error}</Sub>}
       </Frame>
     );
   }
@@ -237,7 +269,7 @@ export function PairRedirect() {
   if (phase.state === 'unreachable') {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- renders outside I18nProvider, see file note */}
+        {/* eslint-disable i18next/no-literal-string -- legacy literal, see file note */}
         <Title>Couldn't reach your PC</Title>
         <Sub>
           Make sure Nexus is running on your PC and that "Pair Remote" (and the cloud relay) are
@@ -265,6 +297,21 @@ export function PairRedirect() {
       <div style={spinnerFrame}><Spinner size={32} /></div>
     </Frame>
   );
+}
+
+// Copy for a refused pairing. Denied, a too-old app and a busy PC each get
+// their own message; everything else is the expired-QR copy plus the code.
+function rejectedCopy(error: string): { headline: string; body: string; showCode: boolean } {
+  if (error === 'denied') {
+    return { headline: 'panel.gate.fail.deniedHeadline', body: 'panel.gate.fail.deniedBody', showCode: false };
+  }
+  if (error === PAIR_UPDATE_REQUIRED) {
+    return { headline: 'panel.gate.fail.updateRequiredHeadline', body: 'panel.gate.fail.updateRequiredBody', showCode: false };
+  }
+  if (error === 'code-in-use') {
+    return { headline: 'panel.gate.fail.busyHeadline', body: 'panel.gate.fail.busyBody', showCode: false };
+  }
+  return { headline: 'panel.gate.fail.expiredHeadline', body: 'panel.gate.fail.expiredBody', showCode: error !== 'expired' && error !== 'cancelled' };
 }
 
 // True only for a private (RFC1918 / link-local) IPv4 LAN address - the only

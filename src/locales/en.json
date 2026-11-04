@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Connecting to {name}",
   "panel.gate.fail.authBody": "Open this URL with a service token (?token=...), or load it on the system where nexus-service is running.",
   "panel.gate.fail.authHeadline": "This panel needs to be authorized",
+  "panel.gate.fail.busyBody": "Another device is pairing right now. Wait a moment, then scan the QR code again.",
+  "panel.gate.fail.busyHeadline": "Your PC is busy",
   "panel.gate.fail.deniedBody": "Your PC did not approve this device. Scan a new QR code to try again.",
   "panel.gate.fail.deniedHeadline": "Pairing denied",
   "panel.gate.fail.expiredBody": "Generate a new QR from the Nexus dashboard (\"Pair Phone\") and scan it again.",

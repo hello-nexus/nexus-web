@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Conectando con {name}",
   "panel.gate.fail.authBody": "Abre esta URL con un token de servicio (?token=...), o cárgala en el sistema donde se ejecuta nexus-service.",
   "panel.gate.fail.authHeadline": "Este panel necesita autorización",
+  "panel.gate.fail.busyBody": "Otro dispositivo se está emparejando ahora mismo. Espera un momento y vuelve a escanear el código QR.",
+  "panel.gate.fail.busyHeadline": "Tu PC está ocupado",
   "panel.gate.fail.deniedBody": "Tu PC no aprobó este dispositivo. Escanea un nuevo código QR para intentarlo de nuevo.",
   "panel.gate.fail.deniedHeadline": "Emparejamiento denegado",
   "panel.gate.fail.expiredBody": "Genera un nuevo QR desde el panel de Nexus (\"Emparejar teléfono\") y escanéalo de nuevo.",

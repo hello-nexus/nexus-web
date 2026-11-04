@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Connessione a {name}",
   "panel.gate.fail.authBody": "Apri questo URL con un token di servizio (?token=...), oppure caricalo sul sistema dove è in esecuzione nexus-service.",
   "panel.gate.fail.authHeadline": "Questo pannello deve essere autorizzato",
+  "panel.gate.fail.busyBody": "Un altro dispositivo si sta associando in questo momento. Attendi un attimo, poi scansiona di nuovo il codice QR.",
+  "panel.gate.fail.busyHeadline": "Il tuo PC è occupato",
   "panel.gate.fail.deniedBody": "Il tuo PC non ha approvato questo dispositivo. Scansiona un nuovo codice QR per riprovare.",
   "panel.gate.fail.deniedHeadline": "Associazione negata",
   "panel.gate.fail.expiredBody": "Genera un nuovo QR dalla dashboard di Nexus (\"Associa telefono\") e scansionalo di nuovo.",

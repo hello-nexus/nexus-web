@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "Daûr a coneti a {name}",
   "panel.gate.fail.authBody": "Vierç chest URL cuntun token di servizi (?token=...), o cjarilu sul sisteme dulà che al è in vore nexus-service.",
   "panel.gate.fail.authHeadline": "Chest panel al à di jessi autorizât",
+  "panel.gate.fail.busyBody": "Un altri dispositîf si sta associant in chest moment. Spiete un moment, dopo scansione di gnûf il codiç QR.",
+  "panel.gate.fail.busyHeadline": "Il to PC al è ocupât",
   "panel.gate.fail.deniedBody": "Il to PC nol à aprovât chest dispositîf. Scansione un gnûf codiç QR par tornâ a provâ.",
   "panel.gate.fail.deniedHeadline": "Associazion refudade",
   "panel.gate.fail.expiredBody": "Gjenere un gnûf QR dal cruscot Nexus (\"Associe telefon\") e torne a scansionâlu.",

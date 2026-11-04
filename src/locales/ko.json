@@ -4299,6 +4299,8 @@
   "panel.gate.connectingTo": "{name}에 연결하는 중",
   "panel.gate.fail.authBody": "서비스 토큰(?token=...)으로 이 URL을 열거나, nexus-service가 실행 중인 시스템에서 로드하세요.",
   "panel.gate.fail.authHeadline": "이 패널은 승인이 필요합니다",
+  "panel.gate.fail.busyBody": "지금 다른 기기를 페어링하고 있습니다. 잠시 기다린 후 QR 코드를 다시 스캔하세요.",
+  "panel.gate.fail.busyHeadline": "PC가 사용 중입니다",
   "panel.gate.fail.deniedBody": "PC에서 이 기기를 승인하지 않았습니다. 새 QR 코드를 스캔하여 다시 시도하세요.",
   "panel.gate.fail.deniedHeadline": "페어링이 거부되었습니다",
   "panel.gate.fail.expiredBody": "Nexus 대시보드에서 새 QR(\"Pair Phone\")을 생성한 다음 다시 스캔하세요.",

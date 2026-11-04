@@ -114,11 +114,14 @@ class MockRelaySocket {
 const lanClaimMock = vi.fn();
 const storePhoneTokenMock = vi.fn();
 
+const lanConfirmMock = vi.fn();
 vi.mock('./panel', () => ({
   claimPanelPhonePairingLan: (...args: unknown[]) => lanClaimMock(...args),
+  confirmPanelPhonePairingLan: (...args: unknown[]) => lanConfirmMock(...args),
 }));
 
 vi.mock('./auth', () => ({
+  getTokenSync: () => null,
   storePhoneToken: (...args: unknown[]) => storePhoneTokenMock(...args),
 }));
 
@@ -144,6 +147,7 @@ beforeEach(() => {
   relaySockets = [];
   remoteOrigin = false;
   lanClaimMock.mockReset();
+  lanConfirmMock.mockReset();
   storePhoneTokenMock.mockReset();
   localStorage.clear();
   localStorage.setItem('nexus.deviceId', SEEDED_DEVICE_ID);
@@ -185,6 +189,57 @@ describe('pairOverInternet - LAN-first decision', () => {
 
     expect(result).toEqual({ kind: 'rejected', error: 'pair token expired' });
     expect(relaySockets).toHaveLength(0);
+  });
+});
+
+describe('pairOverInternet - LAN probe host approval', () => {
+  const pendingClaim = {
+    paired: false, token: '', error: '', needsApproval: true, requestId: 'lan-req', sas: '987 654',
+    machineName: 'PC', expiresAt: Date.now() + 60_000,
+  };
+  const params = { host: '192.168.1.50', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone' };
+
+  it('shows the SAS and polls the LAN confirm route before minting', async () => {
+    lanClaimMock.mockResolvedValueOnce(pendingClaim);
+    lanConfirmMock
+      .mockResolvedValueOnce({ status: 'waiting-host' })
+      .mockResolvedValueOnce({ status: 'approved', token: 'LAN-APPROVED', machineName: 'PC' });
+    const onApproval = vi.fn();
+    vi.useFakeTimers();
+    const p = pairOverInternet({ ...params, onApproval });
+    await vi.advanceTimersByTimeAsync(2500);
+    const result = await p;
+    vi.useRealTimers();
+
+    expect(onApproval).toHaveBeenCalledWith({ sas: '987 654', machineName: 'PC' });
+    expect(lanConfirmMock).toHaveBeenCalledWith('192.168.1.50', '9400', 'lan-req', undefined);
+    expect(result).toEqual({ kind: 'lan', token: 'LAN-APPROVED', machineName: 'PC' });
+    expect(relaySockets).toHaveLength(0);
+  });
+
+  it('a host denial is a rejection and never reaches the relay', async () => {
+    lanClaimMock.mockResolvedValueOnce(pendingClaim);
+    lanConfirmMock.mockResolvedValueOnce({ status: 'denied' });
+    const result = await pairOverInternet({ ...params, pairToken: 'other-token' });
+    expect(result).toEqual({ kind: 'rejected', error: 'denied' });
+    expect(relaySockets).toHaveLength(0);
+  });
+
+  it('does not report a token until the host approves', async () => {
+    lanClaimMock.mockResolvedValueOnce(pendingClaim);
+    lanConfirmMock.mockResolvedValueOnce({ status: 'expired' });
+    const result = await pairOverInternet({ ...params, pairToken: 'third-token' });
+    expect(result.kind).toBe('rejected');
+    expect(storePhoneTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('an older service that mints directly still takes the fast path with no SAS', async () => {
+    lanClaimMock.mockResolvedValueOnce({ paired: true, token: 'OLD-LAN', machineName: 'PC', error: '' });
+    const onApproval = vi.fn();
+    const result = await pairOverInternet({ ...params, pairToken: 'old-token', onApproval });
+    expect(result).toEqual({ kind: 'lan', token: 'OLD-LAN', machineName: 'PC' });
+    expect(onApproval).not.toHaveBeenCalled();
+    expect(lanConfirmMock).not.toHaveBeenCalled();
   });
 });
 
