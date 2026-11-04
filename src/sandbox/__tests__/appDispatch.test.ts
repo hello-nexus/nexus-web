@@ -5,7 +5,7 @@ const postService = vi.fn();
 vi.mock('../../api/diagnostics', () => ({ downloadSupportBundle: () => downloadSupportBundle() }));
 vi.mock('../../api/service', () => ({ postService: (...a: unknown[]) => postService(...a) }));
 
-import { createAppDispatch } from '../appDispatch';
+import { createAppDispatch, _resetSupportBundleGatesForTests } from '../appDispatch';
 
 const ACTION = 'diagnostics.supportBundle';
 
@@ -13,6 +13,8 @@ describe('createAppDispatch', () => {
   beforeEach(() => {
     downloadSupportBundle.mockReset();
     postService.mockReset();
+    _resetSupportBundleGatesForTests();
+    vi.useRealTimers();
   });
 
   it('downloads the bundle for a granted support bundle action without calling the service', async () => {
@@ -41,5 +43,44 @@ describe('createAppDispatch', () => {
     const dispatch = createAppDispatch({ appId: 'a.b', allowed: ['system.specs'] });
     await dispatch('system.specs', { x: 1 });
     expect(postService).toHaveBeenCalledWith('/apps-api/dispatch', { appId: 'a.b', action: 'system.specs', args: { x: 1 } });
+  });
+
+  it('shares one in-flight bundle between concurrent calls', async () => {
+    let finish: (v: boolean) => void = () => {};
+    downloadSupportBundle.mockReturnValue(new Promise<boolean>((r) => { finish = r; }));
+    const dispatch = createAppDispatch({ appId: 'a.b', allowed: [ACTION] });
+    const first = dispatch(ACTION);
+    const second = dispatch(ACTION);
+    finish(true);
+    expect(await first).toEqual({ ok: true, result: { saved: true } });
+    expect(await second).toEqual({ ok: true, result: { saved: true } });
+    expect(downloadSupportBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses quietly during the cooldown after a saved bundle, then allows another', async () => {
+    vi.useFakeTimers();
+    downloadSupportBundle.mockResolvedValue(true);
+    const onFail = vi.fn();
+    const dispatch = createAppDispatch({ appId: 'a.b', allowed: [ACTION], onSupportBundleFailed: onFail });
+    await dispatch(ACTION);
+    expect(await dispatch(ACTION)).toEqual({ ok: false, error: 'cooldown' });
+    expect(downloadSupportBundle).toHaveBeenCalledTimes(1);
+    expect(onFail).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(31_000);
+    expect(await dispatch(ACTION)).toMatchObject({ ok: true });
+    expect(downloadSupportBundle).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cool down after a failed download, so a retry runs', async () => {
+    downloadSupportBundle.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    const dispatch = createAppDispatch({ appId: 'a.b', allowed: [ACTION] });
+    expect(await dispatch(ACTION)).toMatchObject({ ok: false });
+    expect(await dispatch(ACTION)).toMatchObject({ ok: true });
+  });
+
+  it('gates each app on its own', async () => {
+    downloadSupportBundle.mockResolvedValue(true);
+    await createAppDispatch({ appId: 'a.b', allowed: [ACTION] })(ACTION);
+    expect(await createAppDispatch({ appId: 'c.d', allowed: [ACTION] })(ACTION)).toMatchObject({ ok: true });
   });
 });

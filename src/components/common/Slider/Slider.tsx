@@ -72,6 +72,8 @@ export interface SliderProps {
   fillColor?: string;
   /** Drawn on the track at the value in place of the round knob, which stays in the DOM for input but is hidden. */
   thumbNode?: ReactNode;
+  /** CSS color of the glyph inside `thumbNode`; defaults to the accent's paired text. */
+  thumbInk?: string;
   ariaLabel?: string;
   className?: string;
   /** The controlled targets hold different values. No value is shown or filled; the value
@@ -92,7 +94,7 @@ export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, fillColor, thumbNode, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
+  disabled, trackFill, marker, markerLabel, band, fillCap, fillColor, thumbNode, thumbInk, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
@@ -132,7 +134,7 @@ export function Slider({
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
   // The node's travel is the track minus its own width, so it stays inside the track at both ends.
   const thumbNodeEl = thumbNode != null ? (
-    <span className={styles.thumbNode} style={{ left: `calc(${KNOB_PX / 2}px + (100% - ${KNOB_PX}px) * ${clamp(valuePct) / 100})`, ...(fillColor ? { '--slider-fill-color': fillColor } as CSSProperties : {}) }} aria-hidden>
+    <span className={styles.thumbNode} style={{ left: `calc(${KNOB_PX / 2}px + (100% - ${KNOB_PX}px) * ${clamp(valuePct) / 100})`, ...(fillColor ? { '--slider-fill-color': fillColor } as CSSProperties : {}), ...(thumbInk ? { '--slider-thumb-ink': thumbInk } as CSSProperties : {}) }} aria-hidden>
       {thumbNode}
     </span>
   ) : null;

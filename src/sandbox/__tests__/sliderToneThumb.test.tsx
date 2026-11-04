@@ -47,6 +47,24 @@ describe('ui-slider tone and thumbIcon', () => {
     expect(node.style.getPropertyValue('--slider-fill-color')).toContain('--bad');
   });
 
+  it('leaves the slider untouched for an unknown tone', () => {
+    const el = range({ tone: 'typo', trackFill: true });
+    expect(el.style.getPropertyValue('--slider-fill-color')).toBe('');
+    expect(el.hasAttribute('data-toned')).toBe(false);
+  });
+
+  it('pairs the knob glyph with an ink per tone', () => {
+    const ink = (tone: string) => {
+      const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" tone={tone} thumbIcon="check" />);
+      return (container.querySelector('svg')!.parentElement as HTMLElement).style.getPropertyValue('--slider-thumb-ink');
+    };
+    expect(ink('accent')).toContain('--accent-text');
+    expect(ink('text')).toContain('--bg');
+    expect(ink('warn')).toContain('--bg');
+    expect(ink('good')).toBe('#fff');
+    expect(ink('bad')).toBe('#fff');
+  });
+
   it('ignores an unknown thumb icon without throwing', () => {
     const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" thumbIcon="no-such-icon" />);
     expect(container.querySelector('input[type="range"]')?.hasAttribute('data-custom-thumb')).toBe(false);

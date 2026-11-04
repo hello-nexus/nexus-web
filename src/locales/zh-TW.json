@@ -5923,7 +5923,7 @@
   "store.consent.cap.app.installStatus": "檢查其配套驅動程式是否已安裝",
   "store.consent.cap.cooling.state": "查看你的散熱與風扇狀態",
   "store.consent.cap.devices.list": "查看已連接的裝置",
-  "store.consent.cap.diagnostics.supportBundle": "從 Nexus 儲存支援包",
+  "store.consent.cap.diagnostics.supportBundle": "從 Nexus 儲存支援套件",
   "store.consent.cap.dispatchUnknown": "執行「{action}」動作",
   "store.consent.cap.displays.list": "查看你已連接的顯示器",
   "store.consent.cap.displays.panelVariant": "查看你的面板型號",

@@ -19,7 +19,7 @@ import type { ButtonTone } from '../../components/common/Button/Button';
 import { UsageBar } from '../../components/common/UsageBar/UsageBar';
 import { Sparkline as NativeSparkline } from '../../components/common/Sparkline/Sparkline';
 import { ICON_TABLE } from './icons';
-import { alignValue, justifyValue, weightValue, textToneVar, toneVar, cssSize } from './tokens';
+import { alignValue, justifyValue, weightValue, textToneVar, toneVar, thumbInkVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
 import { useTranslation } from '../../lib/i18n';
 import { isExternalHttpsUrl, openExternalUrl } from './openExternal';
@@ -234,6 +234,8 @@ export function Slider(p: HostProps) {
   const trackFill: boolean | number | undefined =
     typeof rawFill === 'number' ? rawFill : (rawFill != null ? !!rawFill : undefined);
   const sliderTone = str(p.tone);
+  // An unknown tone resolves to '' so a typo leaves the slider as it was.
+  const sliderFill = sliderTone ? toneVar(sliderTone, '') : '';
   const thumbIconName = str(p.thumbIcon);
   const ThumbIcon = thumbIconName ? ICON_TABLE[thumbIconName.toLowerCase()] : undefined;
   const rawOrientation = str(p.orientation);
@@ -250,7 +252,8 @@ export function Slider(p: HostProps) {
       disabled={!!p.disabled}
       trackFill={trackFill}
       orientation={orientation}
-      fillColor={sliderTone ? toneVar(sliderTone) : undefined}
+      fillColor={sliderFill || undefined}
+      thumbInk={thumbInkVar(sliderTone)}
       thumbNode={ThumbIcon ? <ThumbIcon size={14} color="currentColor" aria-hidden="true" /> : undefined}
       onChange={(v, commit) => {
         setLive(v);
