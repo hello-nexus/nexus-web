@@ -9,7 +9,7 @@
   background: var(--backdrop-base);
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  width: min(420px, 100%);
+  @include dialog-width(420px);
   padding: 1.25rem 1.35rem 1rem;
   display: flex;
   flex-direction: column;
@@ -21,11 +21,11 @@
 }
 
 .wide {
-  width: min(600px, 100%);
+  min-width: min(600px, 100%);
 }
 
 .wider {
-  width: min(760px, 100%);
+  min-width: min(760px, 100%);
 }
 
 .title {
@@ -94,11 +94,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.35rem;
 
-  @include narrow-footer('.actionsEnd');
+  @include footer-row('.actionsEnd');
+}
+
+.stacked {
+  @include footer-stacked('.actionsEnd');
 }
 
 .actionsEnd {

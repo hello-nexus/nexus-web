@@ -4,6 +4,7 @@ import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { Notice } from '../Notice/Notice';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { useStackOnOverflow } from './useStackOnOverflow';
 import styles from './ConfirmModal.module.scss';
 
 interface ConfirmModalProps {
@@ -81,6 +82,8 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  useStackOnOverflow(actionsRef, styles.stacked, open);
 
   useEffect(() => {
     if (open) cancelRef.current?.focus();
@@ -114,7 +117,7 @@ export function ConfirmModal({
         {note && <div className={styles.note}><Notice tone={noteTone} role="status">{note}</Notice></div>}
         {children}
       </div>
-      <div className={styles.actions}>
+      <div ref={actionsRef} className={styles.actions}>
         <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
         </Button>
