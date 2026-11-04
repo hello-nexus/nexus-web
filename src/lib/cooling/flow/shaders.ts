@@ -203,7 +203,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -252,10 +252,17 @@ void main() {
     // A stuck particle's fast aging stops at the fade window, where it fades twice as fast as a moving one, so a streak resting against a wall does not loiter.
     if (uFadeOut > 0.0) inc = age < dieAt ? min(inc, dieAt - age) : (stuck ? 2.0 : 1.0) * rate;
     age += inc;
+    vec3 pPrev = p;
     p = q;
     ivec3 c = cellAtPos(p);
     // Nothing lives past the outside reach of the case box: a particle that leaves it is recycled.
     bool leaves = any(lessThan(p, uBoundsMin)) || any(greaterThan(p, uBoundsMax)) || mask(c).b > 0.5;
+    // A stream on its way out starts its time-based fade a little past the case face, so it does not have to fade by distance at full speed.
+    if (uExitCells > 0.0) {
+      float outNow = length(max(max(uCaseMin - p, p - uCaseMax), vec3(0.0)));
+      float outBefore = length(max(max(uCaseMin - pPrev, pPrev - uCaseMax), vec3(0.0)));
+      leaves = leaves || (outNow > uExitCells && outNow > outBefore);
+    }
     if (uFadeOut > 0.0) { if (leaves) age = max(age, dieAt); respawn = age > life; }
     else respawn = leaves || age > life;
   }
@@ -341,13 +348,16 @@ vec3 rampColor(float h) {
 // The share of full alpha a particle in state s (xyz cell, w age) draws at: zero until born and once dead, eased in and out of life, and out toward the margin around the case. Shared by the streak vertex shader and the fade probe pass, so the probe reads what is drawn.
 export const FADE_GLSL = LIFE + /* glsl */ `
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
-uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut; uniform float uGrowTail;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut; uniform float uGrowTail; uniform float uMarginStart;
 float ease5(float t) { t = clamp(t, 0.0, 1.0); return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 float easeEdge(float a, float b, float x) { return uGrowTail > 0.5 ? ease5((x - a) / (b - a)) : smoothstep(a, b, x); }
 // The margin fade is spatial, so a fast stream crosses it quickly: a wide band, half linear and half smoothstep, keeps the drop per step small.
 float marginFade(float outside) {
   if (uGrowTail < 0.5) return 1.0 - smoothstep(uMargin * 0.6, uMargin, outside);
-  float x = clamp((outside - uMargin * 0.1) / (uMargin * 0.9), 0.0, 1.0);
+  // With a time-based exit fade the margin only dims the spawn area, so it starts further out.
+  float start = uMarginStart > 0.0 ? uMarginStart : 0.1;
+  float x = clamp((outside - uMargin * start) / (uMargin * (1.0 - start)), 0.0, 1.0);
+  if (uMarginStart > 0.0) return 1.0 - x * x * (3.0 - 2.0 * x);
   return 1.0 - 0.5 * (x + x * x * (3.0 - 2.0 * x));
 }
 float fadeOf(vec4 s, vec2 pixel) {
@@ -356,7 +366,7 @@ float fadeOf(vec4 s, vec2 pixel) {
   vec3 head = (s.xyz + 0.5) * uCell - uOrigin;
   vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
-  return easeEdge(0.0, uGrowTail > 0.5 ? 60.0 : 12.0, s.w) * (1.0 - easeEdge(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * marginFade(outside);
+  return easeEdge(0.0, uGrowTail > 0.5 ? max(60.0, uFadeOut) : 12.0, s.w) * (1.0 - easeEdge(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * marginFade(outside);
 }
 `;
 
