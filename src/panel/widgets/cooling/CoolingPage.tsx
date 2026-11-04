@@ -1265,12 +1265,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const showCalibrateHint = !simpleDashboard && calibrateHint.dismissed === false
     && controllableFans.length > 0 && !anyFanCalibrated && !calibrating
     && !calConfirmOpen && !importDialogOpen && !modeMenuOpen;
-  // Points at the eye when any fan reports no speed, on load or right after a
-  // calibration run; pressing the eye closes it for good.
-  const unresponsiveHint = useOnboardingHint(UNRESPONSIVE_HINT_ID);
-  const showUnresponsiveHint = !simpleDashboard && unresponsiveHint.dismissed === false
-    && channels.some(isFanUnresponsive) && !showCalibrateHint && !calibrating
-    && !calConfirmOpen && !importDialogOpen && !modeMenuOpen;
   // Cooling offers only the apps that carry a cooling setup; Nexus 2's import
   // is panel personalization, so it belongs to the Settings entry, not here.
   const importSources = useMemo(() => availableImportSources(platform, ['fancontrol']), [platform]);
@@ -1360,6 +1354,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // the eye hides it here rather than showing a card that drives nothing. The
   // unfiltered list stays available for the group headers' indicator.
   const hideUncontrolled = !uiSettings.showUncontrolledCoolingDevices;
+  // Points at the eye when any fan reports no speed, on load or right after a
+  // calibration run; pressing the eye closes it for good. Not shown while the eye is already hiding them.
+  const unresponsiveHint = useOnboardingHint(UNRESPONSIVE_HINT_ID);
+  const showUnresponsiveHint = !simpleDashboard && unresponsiveHint.dismissed === false
+    && !hideUncontrolled
+    && channels.some(isFanUnresponsive) && !showCalibrateHint && !calibrating
+    && !calConfirmOpen && !importDialogOpen && !modeMenuOpen;
   // What the rail search matches a fan on: its names, its hub or board block,
   // and every user group above it.
   const railSearchFields = useCallback((c: FanChannel) => {
@@ -1789,7 +1790,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
             >
             {(() => {
-              const live = visibleChannels;
               // Group headers report members from the unfiltered list, so a
               // group still accounts for the fans the eye is holding back.
               const allByBlock = new Map<string, FanChannel[]>();
@@ -1803,7 +1803,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // Every fan lands in a block: its device, or the synthetic block
               // the board's own headers share.
               const groups = new Map<string, FanChannel[]>();
-              for (const ch of live) {
+              for (const ch of visibleChannels) {
                 const key = blockIdOf(ch);
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);

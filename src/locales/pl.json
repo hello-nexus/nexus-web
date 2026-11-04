@@ -580,7 +580,7 @@
   "cooling.fan.selectGroupCount.other": "Zaznacz {count} wentylatorów",
   "cooling.fan.selectOnly": "Zaznacz tylko {name}",
   "cooling.fan.unresponsive": "Brak odpowiedzi",
-  "cooling.fan.unresponsiveHint": "Nie wykryto sygnału prędkości. Sterowanie prędkością nadal działa.",
+  "cooling.fan.unresponsiveHint": "Ten wentylator nie raportuje swojej prędkości.",
   "cooling.fanRole.generic": "Zwykły wentylator",
   "cooling.fanRole.picker": "Ustaw urządzenie wentylatora",
   "cooling.guard.banner.escalated": "Procesor nadal się nagrzewa: {temp} °C (limit {limit} °C) mimo pełnej prędkości wszystkich wentylatorów. Sprawdź chłodzenie, wentylatory i pompę.",

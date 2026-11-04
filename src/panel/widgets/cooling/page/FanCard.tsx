@@ -425,8 +425,7 @@ export const FanCard = memo(function FanCard({
     }
     return items;
   };
-  // A hardware-dead channel has no state worth changing, and a read-only one
-  // exposes no controls at all.
+  // A read-only channel exposes no controls at all.
   const menuEnabled = !isReadOnly && menuItems().length > 0;
 
   return (

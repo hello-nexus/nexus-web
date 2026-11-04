@@ -105,6 +105,15 @@ describe('CoolingPage unresponsive hint', () => {
     expect(bubble()).toBeNull();
   });
 
+  it('stays hidden when the eye is already hiding them', async () => {
+    localStorage.setItem('nexus_settings', JSON.stringify({
+      general: { coolingDashboardMode: 'advanced', showUncontrolledCoolingDevices: false },
+    }));
+    renderPage();
+    await settle();
+    expect(bubble()).toBeNull();
+  });
+
   it('stays hidden in simple mode', async () => {
     localStorage.setItem('nexus_settings', JSON.stringify({ general: { coolingDashboardMode: 'simple' } }));
     renderPage();

@@ -28,35 +28,32 @@ const noopCurveEdit = () => {};
 export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveController }) {
   const { t } = useTranslation();
 
-  const liveChannels = cooling.channels;
-
   return (
     <EffectEditor
       ariaLabel={t('cooling.title')}
-      devices={<FansSection cooling={cooling} liveChannels={liveChannels} />}
+      devices={<FansSection cooling={cooling} />}
       optionsLabel={t('cooling.label.curves')}
-      options={<CurvesSection cooling={cooling} liveChannels={liveChannels} />}
+      options={<CurvesSection cooling={cooling} />}
     />
   );
 }
 
 /** Curves tab: the selector chips on top, then the graph and its options. */
-function CurvesSection({ cooling, liveChannels }: {
+function CurvesSection({ cooling }: {
   cooling: CoolingImmersiveController;
-  liveChannels: FanChannel[];
 }) {
   const { t } = useTranslation();
   const { curves, sources, fanStates, selectedCurveId } = cooling;
 
   // Number of connected fans bound to each curve, shown under its selector chip.
   const curveFanCounts = useMemo(() => {
-    const live = new Set(liveChannels.map(c => c.id));
+    const live = new Set(cooling.channels.map(c => c.id));
     const m = new Map<string, number>();
     for (const [fanId, fs] of Object.entries(fanStates)) {
       if (fs.curveId && live.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
     }
     return m;
-  }, [fanStates, liveChannels]);
+  }, [fanStates, cooling.channels]);
 
   const selectedCurve = useMemo(
     () => curves.find(c => c.id === selectedCurveId) ?? curves[0] ?? null,
@@ -67,8 +64,8 @@ function CurvesSection({ cooling, liveChannels }: {
 
   // Fans the selected curve drives; a Sync curve may not follow its own output.
   const syncExcludedIds = useMemo(
-    () => liveChannels.filter(c => fanStates[c.id]?.curveId === selectedCurve?.id).map(c => c.id),
-    [liveChannels, fanStates, selectedCurve],
+    () => cooling.channels.filter(c => fanStates[c.id]?.curveId === selectedCurve?.id).map(c => c.id),
+    [cooling.channels, fanStates, selectedCurve],
   );
 
   return (
@@ -90,7 +87,7 @@ function CurvesSection({ cooling, liveChannels }: {
             curve={selectedCurve}
             allCurves={curves}
             sources={sources}
-            channels={liveChannels}
+            channels={cooling.channels}
             syncExcludedIds={syncExcludedIds}
             onChange={managed ? noopCurveEdit : cooling.saveCurve}
             onDelete={managed ? noopCurveEdit : () => cooling.deleteCurve(selectedCurve.id)}
@@ -104,9 +101,8 @@ function CurvesSection({ cooling, liveChannels }: {
   );
 }
 
-function FansSection({ cooling, liveChannels }: {
+function FansSection({ cooling }: {
   cooling: CoolingImmersiveController;
-  liveChannels: FanChannel[];
 }) {
   const { t } = useTranslation();
   const { curves, fanStates, hubModes, calibrating, selectedCurveId, selectedFanIds } = cooling;
@@ -114,9 +110,9 @@ function FansSection({ cooling, liveChannels }: {
   // Only the fans this tab actually lists, so select-all cannot reach a card
   // the panel hides.
   const selectableIds = useMemo(() => {
-    const listed = new Set(liveChannels.map(c => c.id));
+    const listed = new Set(cooling.channels.map(c => c.id));
     return cooling.selectableFanIds.filter(id => listed.has(id));
-  }, [cooling.selectableFanIds, liveChannels]);
+  }, [cooling.selectableFanIds, cooling.channels]);
   const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedFanIds.has(id));
 
   // Per-hub-group collapse state, same persistence key as the desktop page so
@@ -164,7 +160,7 @@ function FansSection({ cooling, liveChannels }: {
   );
 
   const groups = new Map<string | null, FanChannel[]>();
-  for (const ch of liveChannels) {
+  for (const ch of cooling.channels) {
     const key = ch.deviceId || null;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(ch);

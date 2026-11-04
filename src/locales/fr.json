@@ -575,7 +575,7 @@
   "cooling.fan.selectGroupCount.other": "Sélectionner {count} ventilateurs",
   "cooling.fan.selectOnly": "Sélectionner uniquement {name}",
   "cooling.fan.unresponsive": "Sans réponse",
-  "cooling.fan.unresponsiveHint": "Aucun signal de vitesse détecté. Le réglage de la vitesse reste possible.",
+  "cooling.fan.unresponsiveHint": "Ce ventilateur n'indique pas sa vitesse.",
   "cooling.fanRole.generic": "Ventilateur générique",
   "cooling.fanRole.picker": "Définir l'appareil du ventilateur",
   "cooling.guard.banner.escalated": "Le CPU continue de chauffer : {temp} °C (limite {limit} °C) alors que tous les ventilateurs tournent à pleine vitesse. Vérifiez le refroidisseur, les ventilateurs et la pompe.",

@@ -580,7 +580,7 @@
   "cooling.fan.selectGroupCount.other": "Выбрать {count} вентиляторов",
   "cooling.fan.selectOnly": "Выбрать только {name}",
   "cooling.fan.unresponsive": "Не отвечает",
-  "cooling.fan.unresponsiveHint": "Сигнал скорости не обнаружен. Управление скоростью по-прежнему работает.",
+  "cooling.fan.unresponsiveHint": "Этот вентилятор не сообщает свою скорость.",
   "cooling.fanRole.generic": "Обычный вентилятор",
   "cooling.fanRole.picker": "Указать устройство вентилятора",
   "cooling.guard.banner.escalated": "Процессор продолжает нагреваться: {temp} °C (предел {limit} °C), хотя все вентиляторы работают на полной скорости. Проверьте кулер, вентиляторы и помпу.",
