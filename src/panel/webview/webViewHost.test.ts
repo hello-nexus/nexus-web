@@ -520,7 +520,9 @@ describe('media', () => {
     host.register({ id: 'a', url: 'https://a.test/', element: makeEl().el, immersive: false });
     host.register({ id: 'b', url: 'https://b.test/', element: makeEl().el, immersive: false, media: false });
     bridge.push(caps());
-    for (const v of syncs().at(-1)!.views) expect('media' in v && v.media).toBeFalsy();
+    const views = syncs().at(-1)!.views;
+    expect(views).toHaveLength(2);
+    for (const v of views) expect(v.media).toBeUndefined();
   });
 
   it('is sent as true on the tile and the immersive claim of one widget', () => {
