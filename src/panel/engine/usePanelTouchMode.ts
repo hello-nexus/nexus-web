@@ -4,6 +4,8 @@ import { triggerHaptic } from '../device/panelNativeBridge';
 import type { PanelWidget } from '../types';
 
 const PRESS_MOVE_THRESHOLD = 12;
+// A release click follows its pointerup within the same gesture; past this window a click is a fresh one.
+const CLICK_SWALLOW_MS = 300;
 // Press feedback: PRESS_FEEDBACK_MS of dead time, then the cell shrinks over
 // PRESS_SHRINK_MS and lands exactly as the context menu opens. Keep
 // PRESS_SHRINK_MS in sync with .cellPressHint's --panel-press-duration.
@@ -173,6 +175,9 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisab
   }, []);
 
   const pressMovedRef = useRef(false);
+  // The release of a hold that opened the menu still dispatches a click on the control under the finger; swallow that one click so the control's action does not also fire.
+  const swallowClickRef = useRef(false);
+  const swallowClickTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   // Set when pointer-down lands on a widget-interior interactive
   // element (button, slider, etc.). Suppresses tap-to-immersive so
   // the widget's own click handler runs. Long-press still works for
@@ -180,8 +185,15 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisab
   const pressOnInteractiveRef = useRef(false);
 
   const bindCellPointers = useCallback((widget: PanelWidget) => ({
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!swallowClickRef.current) return;
+      swallowClickRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
     onPointerDown: (e: React.PointerEvent) => {
       if (e.isPrimary === false) return;
+      swallowClickRef.current = false;
       if (isNonPrimaryMouseButton(e)) {
         clearPressFeedback();
         longPress.onPointerDown(e);
@@ -252,6 +264,14 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisab
         && !menuWasOpen;
       longPress.onPointerUp();
       clearPressFeedback();
+      if (longPressJustFired) {
+        swallowClickRef.current = true;
+        if (swallowClickTimerRef.current) window.clearTimeout(swallowClickTimerRef.current);
+        swallowClickTimerRef.current = window.setTimeout(() => {
+          swallowClickTimerRef.current = null;
+          swallowClickRef.current = false;
+        }, CLICK_SWALLOW_MS);
+      }
       if (menuWasOpen && !longPressJustFired) {
         // Subsequent tap while the menu is open: dismiss only, don't
         // promote to onCellTap. The release after the long-press that
