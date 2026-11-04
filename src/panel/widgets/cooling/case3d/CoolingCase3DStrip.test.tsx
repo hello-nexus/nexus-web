@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import t1 from '../../../../lib/cooling/__fixtures__/t1-cooling-state.json';
@@ -43,5 +43,22 @@ describe('the top strip on T1 data', () => {
     expect(idle.group).toContain('cooling.case3d.stat.intake');
     expect(idle.group).toMatch(/cooling\.case3d\.cfm\[\d+\]/);
     for (const driven of [strip(null, 2500), strip('sim:3000'), strip('sim:500'), strip('none')]) expect(driven.group).toBe(idle.group);
+  });
+});
+
+describe('the pressure chip', () => {
+  it('is one badge with an explanatory tooltip, colored like the intake or exhaust fans, and no separate estimate chip', () => {
+    strip(null, 0);
+    h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: t1.caseLayout } } }, loaded: true };
+    h.layout = { ...h.layout, layout: { directions: t1.layout.directions, bindings: t1.layout.bindings, tests: [] } };
+    render(<CoolingCase3D channels={channels()} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const group = screen.getByRole('group', { name: 'cooling.case3d.stats.label' });
+    const chip = within(group).getByRole('img');
+    const mode = /cooling\.case3d\.pressure\.(positive|negative|balanced)/.exec(chip.textContent ?? '')?.[1];
+    expect(mode).toBeDefined();
+    expect(chip.getAttribute('aria-label')).toBe(`cooling.case3d.pressure.${mode}.body cooling.case3d.pressure.estimate`);
+    const color = { positive: 'var(--airflow-cool)', negative: 'var(--bad)', balanced: 'var(--text)' }[mode as string];
+    expect(chip.firstElementChild?.getAttribute('style')).toContain(`--badge-color: ${color}`);
+    expect(within(group).queryByText('cooling.case3d.estimate')).toBeNull();
   });
 });

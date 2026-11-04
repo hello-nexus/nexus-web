@@ -46,13 +46,6 @@
   color: var(--text-dim);
 }
 
-.mode {
-  @include text-button;
-  &.positive { color: var(--accent); }
-  &.negative { color: var(--warn); }
-  &.balanced { color: var(--text); }
-}
-
 .viewport {
   position: relative;
   flex: 1;

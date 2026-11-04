@@ -43,6 +43,9 @@ import { CaseTempLabels } from './CaseTempLabels';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import styles from './CoolingCase3D.module.scss';
 
+// The intake and exhaust colors the fan rotors and arrows draw with (see coolingCaseRenderer).
+const PRESSURE_COLOR = { positive: 'var(--airflow-cool)', negative: 'var(--bad)', balanced: 'var(--text)' } as const;
+
 export interface CoolingCase3DProps {
   channels: FanChannel[];
   /** The fan selected in the left rail; null unless exactly one is. */
@@ -400,11 +403,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                   <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
                 ) : (
                   <>
-                    <span className={`${styles.mode} ${styles[result.mode]}`}>{t(modeKey)}</span>
+                    <span className={styles.control}><Badge compact label={t(modeKey)} color={PRESSURE_COLOR[result.mode]} tooltip={{ body: `${t(`${modeKey}.body`)} ${t('cooling.case3d.pressure.estimate')}` }} /></span>
                     <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.net')}</span>{result.netCfm >= 0 ? '+' : '-'}{cfm(result.netCfm)}</span>
                     <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.intake')}</span>{cfm(result.intakeCfm)}</span>
                     <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.exhaust')}</span>{cfm(result.exhaustCfm)}</span>
-                    {model.estimated && <span className={styles.control}><Badge compact label={t('cooling.case3d.estimate')} tooltip={{ body: t('cooling.case3d.estimate.body') }} /></span>}
                   </>
                 )}
               </div>
