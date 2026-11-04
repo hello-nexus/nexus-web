@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import { DRAG_CONSUMER_SELECTOR, PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
+import { primaryReleasedDuringMove } from '../engine/touchViaPointer';
 import { DRAG_DISTANCE_PX, DRAG_HOLD_TOLERANCE_PX, type DragActivation } from '../engine/pointerDragSensor';
 
 // The tile never travels further than this from its cell.
@@ -101,7 +102,7 @@ export function useLockNotice(locked: boolean, activationFor: (pointerType: stri
     const origin = press.current;
     if (!locked || !origin || e.pointerId !== origin.pointerId) return;
     // A release the page never saw (a prompt, another app) shows as a move with no button held.
-    if (e.buttons === 0 && e.pointerType === 'mouse') {
+    if (e.pointerType === 'mouse' && primaryReleasedDuringMove(e)) {
       end();
       return;
     }

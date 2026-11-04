@@ -36,22 +36,21 @@ export const KRAKEN_PANEL_DPI = 240;
 // integrated touch digitizer targets it (capabilities.touch on its record);
 // plain monitors are glanceable displays like the Q-series.
 export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolean): boolean {
-  if (surface === 'monitor') return deviceTouch === true;
-  // Cooler glass is a framebuffer on a USB pipe with no input path at all.
-  return surface !== 'q60'
-    && surface !== 'lcd-round' && surface !== 'lcd-square' && surface !== 'lcd-wide';
+  if (surface === 'q60') return false;
+  // A monitor or a USB glass has touch only when its device reports a digitizer.
+  if (surface === 'monitor' || surface === 'lcd-round' || surface === 'lcd-square' || surface === 'lcd-wide') return deviceTouch === true;
+  return true;
 }
 
 export type SurfaceInputMode = 'touch' | 'pointer' | 'none';
 
 // The operator's input method at this surface, for SDK widgets branching on
 // touch vs mouse vs no input at all. Desktop is mouse ('pointer'), Y70/phone
-// are direct touch, cooler glass and the Q-series are display-only ('none').
-// 'monitor' follows the same per-device digitizer rule as surfaceSupportsTouch.
+// are direct touch, the Q-series is display-only ('none'), and a monitor or USB
+// glass follows its device's digitizer as in surfaceSupportsTouch.
 export function surfaceInputMode(surface: PanelSurface, deviceTouch?: boolean): SurfaceInputMode {
   if (surface === 'desktop') return 'pointer';
-  if (surface === 'monitor') return deviceTouch === true ? 'touch' : 'none';
-  return surfaceSupportsTouch(surface) ? 'touch' : 'none';
+  return surfaceSupportsTouch(surface, deviceTouch) ? 'touch' : 'none';
 }
 
 // The tile shape an SDK widget is actually rendered into. Only '2x2round'
@@ -118,7 +117,7 @@ export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, P
   'lcd-round': '2x2round',
   'lcd-square': '2x2',
   // Wide cooler glass (a 1600x720 Thermalright Wonder Vision): a landscape tile.
-  // Like the rest of the family it stays one widget with no pager and no placing.
+  // Like the rest of the family it holds one widget per page, with no placing.
   'lcd-wide': '4x2',
 };
 
@@ -188,6 +187,8 @@ export const LIANLI_SCREEN88_FAMILY = 'lianli-screen88';
 export const HYTE_Y60_FAMILY = 'hyte-y60';
 export const ASUS_GLACIAL_LCD_FAMILY = 'asus-glacial-lcd';
 export const ZMATRICES_LCD_FAMILY = 'zmatrices-lcd';
+export const ZMATRICES_MAX_E87_FAMILY = 'zmatrices-max-e87';
+const ZMATRICES_FAMILIES: readonly string[] = [ZMATRICES_LCD_FAMILY, ZMATRICES_MAX_E87_FAMILY];
 
 export interface PanelWidgetSizeOptions {
   default: PanelWidgetSizeMode;
@@ -225,7 +226,8 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
     return { default: 'large', layoutSurface: { large: 'lcd-square', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
   }
   // Aftershock Glacier Matrix: Large is its one wide tile, Small a landscape grid sized by the default cooler LCD density (no dpi here, so the lcd-wide estimate applies).
-  if (surface === 'lcd-wide' && family === ZMATRICES_LCD_FAMILY) {
+  // ZMatrices MAX E87: the same pair; its record carries the glass's dpi.
+  if (surface === 'lcd-wide' && (family === ZMATRICES_LCD_FAMILY || family === ZMATRICES_MAX_E87_FAMILY)) {
     return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
   }
   // Lian Li Universal Screen 8.8: Large forces a coarse short axis, so cells are fewer and bigger.
@@ -321,7 +323,9 @@ export function sizeForLegacyGridSlots(gridSlots: number | null | undefined, den
 }
 
 // The grid whose cell sizes the panel's floating chrome (menus, sheets, tray), so chrome keeps the size
-// the default widget size gives it whatever size is chosen. Undefined where the panel offers no size choice.
+// the default widget size gives it whatever size is chosen. ZMatrices glass is laid out as one tile, a single
+// cell the size of the glass, so its chrome reads the physical-density grid instead. Undefined where a
+// multi-widget panel offers no size choice.
 export interface ChromeGrid {
   surface: PanelSurface;
   shortSideSlots?: number;
@@ -336,6 +340,10 @@ export function largeChromeGrid(
   densitySlots?: number,
 ): ChromeGrid | undefined {
   const options = panelWidgetSizeOptions(surface, family);
+  const referenceSurface = options ? options.layoutSurface[options.default] ?? surface : surface;
+  if (family && ZMATRICES_FAMILIES.includes(family) && isSingleWidgetSurface(referenceSurface)) {
+    return { surface: 'monitor', shortSideSlots: undefined, dpi: recordDpi || options?.dpi || surfaceDpi[surface] };
+  }
   if (!options) return undefined;
   // The size the panel defaults to (its 100%), so chrome is the size it always was at the default.
   const reference = options.default;

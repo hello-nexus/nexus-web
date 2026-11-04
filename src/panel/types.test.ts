@@ -17,6 +17,11 @@ describe('surfaceInputMode', () => {
       ['lcd-round', undefined, 'none'],
       ['lcd-square', undefined, 'none'],
       ['lcd-wide', undefined, 'none'],
+      ['lcd-wide', false, 'none'],
+      ['lcd-wide', true, 'touch'],
+      ['lcd-square', true, 'touch'],
+      ['lcd-round', true, 'touch'],
+      ['q60', true, 'none'],
       ['monitor', undefined, 'none'],
       ['monitor', false, 'none'],
       ['monitor', true, 'touch'],
@@ -496,6 +501,13 @@ describe('largeChromeGrid', () => {
     expect(largeChromeGrid('monitor', 'lianli-screen88', null, dpis, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: undefined });
   });
 
+  it('sizes ZMatrices chrome from the density grid, never the tile', () => {
+    const tiles = { ...dpis, 'lcd-wide': 109 } as Record<PanelSurface, number>;
+    // The record's own density wins (MAX E87), then the surface estimate.
+    expect(largeChromeGrid('lcd-wide', 'zmatrices-max-e87', 218, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 218 });
+    expect(largeChromeGrid('lcd-wide', 'zmatrices-lcd', null, tiles, 4)).toEqual({ surface: 'monitor', shortSideSlots: undefined, dpi: 109 });
+  });
+
   it('is absent where no size choice exists, so chrome follows the grid in use', () => {
     expect(largeChromeGrid('phone', undefined, null, dpis)).toBeUndefined();
     expect(largeChromeGrid('monitor', 'xeneon-edge', null, dpis)).toBeUndefined();
@@ -518,7 +530,7 @@ describe('stored widget size per device', () => {
       'large/y70/-', 'large/y70/-', 'large/y70/-', 'large/y70/-', 'medium/y70/6', 'compact/y70/8',
     ]);
     // Tile devices: large is the tile (100%), small the grid (50%); xsmall is not offered.
-    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve'], ['lcd-wide', 'zmatrices-lcd']] as const) {
+    for (const [surface, family] of [['q60', undefined], ['lcd-square', 'asus-glacial-lcd'], ['lcd-wide', 'lianli-hydroshift2-curve'], ['lcd-wide', 'zmatrices-lcd'], ['lcd-wide', 'zmatrices-max-e87']] as const) {
       expect([undefined, 'large', 'small', 'xsmall'].map(v => resolvePanelWidgetSize(surface, family, v))).toEqual(['large', 'large', 'small', 'large']);
     }
     // Grid devices: unset and small are 100%, a stored large keeps its own 200% stop, xsmall was never offered so it stays the default, compact is the 50%.

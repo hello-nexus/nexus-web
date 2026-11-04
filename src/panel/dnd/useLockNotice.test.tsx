@@ -3,6 +3,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS } from '../engine/usePanelTouchMode';
 import type { DragActivation } from '../engine/pointerDragSensor';
+import { resetPointerButtonsReportedCache } from '../engine/touchViaPointer';
 import { LOCK_DRAG_MAX_PX, exceedsDragThreshold, isOwnControl, rubberBandOffset, useLockNotice } from './useLockNotice';
 
 function Probe({ locked, activation = 'distance' }: { locked: boolean; activation?: DragActivation }) {
@@ -130,6 +131,21 @@ describe('useLockNotice', () => {
     expect(visible(body)).toBe(true);
     fireEvent.pointerMove(body, { clientX: 70, clientY: 10, pointerType: 'mouse', buttons: 0 });
     expect(visible(body)).toBe(false);
+  });
+
+  it('keeps the pull going on a no-button mouse move under the injected flag', () => {
+    window.history.replaceState(null, '', '/?touchViaPointer=injected');
+    resetPointerButtonsReportedCache();
+    try {
+      const { getByTestId } = render(<Probe locked />);
+      const body = getByTestId('body');
+      fireEvent.pointerDown(body, { isPrimary: true, clientX: 10, clientY: 10, pointerType: 'mouse', buttons: 0 });
+      fireEvent.pointerMove(body, { clientX: 60, clientY: 10, pointerType: 'mouse', buttons: 0 });
+      expect(visible(body)).toBe(true);
+    } finally {
+      window.history.replaceState(null, '', '/');
+      resetPointerButtonsReportedCache();
+    }
   });
 
   it('ends the pull when the window loses focus', () => {
