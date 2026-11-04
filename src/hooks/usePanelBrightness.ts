@@ -43,6 +43,12 @@ const OVERRIDE_MS = 1500;
 // Must stay well under the service's idle limit for an unrefreshed backlight preview.
 const PREVIEW_KEEPALIVE_MS = 2000;
 
+interface DragSession {
+  latest: number | null;
+  persisted: number | null;
+  tail: Promise<unknown> | null;
+}
+
 /**
  * Brightness for the surface this panel runs on, 0-100. `available` is false
  * until a read proves the control exists (hidden then); `linkDown` is the
@@ -96,24 +102,27 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
   // broadcast); the released value, and a drag cut short by unmount, persist.
   // The writer is latest-wins, so the newest call's flag describes the value it dispatches.
   const persistNext = useRef(false);
-  const latest = useRef<number | null>(null);
-  const persisted = useRef<number | null>(null);
-  const tail = useRef<Promise<unknown> | null>(null);
+  // Per-target drag state, replaced whole when a target is left so a late reply cannot touch the next.
+  const sess = useRef<DragSession>({ latest: null, persisted: null, tail: null });
   const closing = useRef(false);
+  // The target a queued value was written for; the writer outlives a target change.
+  const targetKey = `${kind ?? ''}:${recordId ?? displayId ?? ''}`;
+  const writeKey = useRef(targetKey);
   const keepAlive = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const send = useCallback((v: number) => {
     if (kind === 'y70') return postService('/y70/brightness', { brightness: v });
     if (kind === 'record' && recordId) {
-      if (closing.current) return Promise.resolve(null);
+      if (closing.current || writeKey.current !== targetKey) return Promise.resolve(null);
+      const mine = sess.current;
       const request = persistNext.current
-        ? patchPanelDevice(recordId, { lcdBrightness: v }).then(r => { persisted.current = v; return r; })
+        ? patchPanelDevice(recordId, { lcdBrightness: v }).then(r => { mine.persisted = v; return r; })
         : postService(`/panel/devices/${encodeURIComponent(recordId)}/backlight-preview`, { lcdBrightness: v });
-      tail.current = request;
+      mine.tail = request;
       return request;
     }
     return displayId ? setDisplayBrightness(displayId, v) : Promise.resolve(null);
-  }, [kind, displayId, recordId]);
+  }, [kind, displayId, recordId, targetKey]);
   const write = useLatestWriter(send, WRITE_INTERVAL_MS);
 
   const stopKeepAlive = useCallback(() => {
@@ -128,14 +137,14 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     closing.current = false;
     return () => {
       stopKeepAlive();
-      if (kind !== 'record' || !recordId || latest.current === null) return;
+      if (kind !== 'record' || !recordId || sess.current.latest === null) return;
       closing.current = true;
+      const left = sess.current;
+      sess.current = { latest: null, persisted: null, tail: null };
       void (async () => {
-        await tail.current?.catch(() => null);
-        const value = latest.current;
-        latest.current = null;
-        if (value !== null && value !== persisted.current) {
-          await patchPanelDevice(recordId, { lcdBrightness: value }).catch(() => null);
+        await left.tail?.catch(() => null);
+        if (left.latest !== null && left.latest !== left.persisted) {
+          await patchPanelDevice(recordId, { lcdBrightness: left.latest }).catch(() => null);
         }
       })();
     };
@@ -145,26 +154,32 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     overrideUntil.current = Date.now() + OVERRIDE_MS;
     const clamped = Math.max(0, Math.min(100, Math.round(v)));
     setValue(clamped);
-    latest.current = clamped;
+    sess.current.latest = clamped;
     persistNext.current = false;
+    writeKey.current = targetKey;
     write(clamped);
     // The service drops a preview that goes quiet, so a held slider keeps refreshing it.
     if (kind === 'record' && !keepAlive.current) {
       keepAlive.current = setInterval(() => {
-        if (latest.current !== null && !persistNext.current) write(latest.current);
+        const level = sess.current.latest;
+        if (level !== null && !persistNext.current) {
+          writeKey.current = targetKey;
+          write(level);
+        }
       }, PREVIEW_KEEPALIVE_MS);
     }
-  }, [write, kind]);
+  }, [write, kind, targetKey]);
 
   const commit = useCallback((v: number) => {
     overrideUntil.current = Date.now() + OVERRIDE_MS;
     const clamped = Math.max(0, Math.min(100, Math.round(v)));
     setValue(clamped);
     stopKeepAlive();
-    latest.current = clamped;
+    sess.current.latest = clamped;
     persistNext.current = true;
+    writeKey.current = targetKey;
     write(clamped, true);
-  }, [write, stopKeepAlive]);
+  }, [write, stopKeepAlive, targetKey]);
 
   return { available, linkDown, value, preview, commit };
 }

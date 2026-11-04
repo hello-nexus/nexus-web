@@ -111,8 +111,14 @@ export function PanelMixerSlider({
     updateValue(next);
   };
 
+  const handleLostPointerCapture = () => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    onCommit?.(lastEmittedRef.current);
+  };
+
   const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current || disabled) return;
+    if (!draggingRef.current) return;
     event.preventDefault();
     event.stopPropagation();
     draggingRef.current = false;
@@ -120,6 +126,11 @@ export function PanelMixerSlider({
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
       // The browser may release capture first when a touch is cancelled.
+    }
+    if (disabled) {
+      // Disabled mid-drag: the consumer's drag still has to close.
+      onCommit?.(lastEmittedRef.current);
+      return;
     }
     if (event.type === 'pointercancel') {
       commitValue(lastEmittedRef.current);
@@ -222,6 +233,7 @@ export function PanelMixerSlider({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
+        onLostPointerCapture={handleLostPointerCapture}
       >
         <div
           ref={trackRef}

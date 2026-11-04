@@ -167,4 +167,30 @@ describe('usePanelBrightness record target', () => {
       vi.useRealTimers();
     }
   });
+
+  it('persists a mid-drag level against the old target and starts the new one clean', async () => {
+    vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'x', lcdBrightness: 40 } } as never);
+    let release: () => void = () => {};
+    vi.mocked(postService).mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({}); }));
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string }) => usePanelBrightness(true, { kind: 'record', recordId: id }),
+      { initialProps: { id: 'a' } },
+    );
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.preview(30));
+    await waitFor(() => expect(postService).toHaveBeenCalledTimes(1));
+    act(() => result.current.preview(45));
+    rerender({ id: 'b' });
+    await act(async () => {});
+    expect(patchPanelDevice).not.toHaveBeenCalled();
+
+    release();
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('a', { lcdBrightness: 45 }));
+    expect(patchPanelDevice).not.toHaveBeenCalledWith('b', expect.anything());
+    expect(postService).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.commit(60));
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('b', { lcdBrightness: 60 }));
+  });
 });
