@@ -1,14 +1,12 @@
-import { Activity, Stethoscope, Thermometer } from 'lucide-react';
+import { Activity, Stethoscope } from 'lucide-react';
 import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
 import { SmartPollSection } from './SmartPollSection';
 import { RamTemperatureSection } from './RamTemperatureSection';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
-import type { TempUnit } from '../../../lib/units';
 import styles from './SettingsView.module.scss';
 
 export interface MonitoringTabProps {
@@ -43,28 +41,6 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
           checked={settings.general.featureDiagnosticsEnabled}
           onChange={checked => updateGeneral({ featureDiagnosticsEnabled: checked })}
         />
-      </SettingsSection>
-
-      <SettingsSection>
-        <SettingRow
-          label={t('settings.units.temperature.label')}
-          icon={<Thermometer />}
-          iconLeading="subtle"
-          anchorId="set-temp-unit"
-          description={t('settings.units.temperature.description')}
-        >
-          <ChipGroup
-            ariaLabel={t('settings.units.temperature.label')}
-            activeKey={settings.general.monitoringTempUnit}
-            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'c', label: t('settings.units.temperature.celsius') },
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
-            ]}
-          />
-        </SettingRow>
       </SettingsSection>
 
       <MonitoringEventsSettings />
