@@ -79,7 +79,7 @@ describe('PairRedirect', () => {
     render(<PairRedirect />);
 
     expect(screen.queryByRole('img', { name: 'common.loading' })).toBeNull();
-    expect(screen.getByText('Invalid pairing link')).toBeInTheDocument();
+    expect(screen.getByText('pairRedirect.invalidHeadline')).toBeInTheDocument();
   });
 
   it('forwards the QR fp param into the LAN redirect URL for the same-origin claim to pick up', () => {

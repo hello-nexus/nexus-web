@@ -11,6 +11,7 @@ import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { backdropHintFromUrl } from './background/panelBackground';
 import { PanelDigitizerProvider, PanelDisplayBoundProvider, PanelGenericDisplayProvider } from './widgets/common/PanelDisplayBoundContext';
 import { usePanelFpsCap } from './engine/usePanelFpsCap';
+import { streamFrameCap } from '../lib/framePacer';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -200,6 +201,10 @@ import {
 } from './theme/panelTheme';
 import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
+import { OverlayScaleContext } from '../components/common/Overlay/overlayScale';
+import { Overlay } from '../components/common/Overlay/Overlay';
+import { IncomingPairCard } from '../app/IncomingPairModal';
+import { usePairApprovalRequest } from '../hooks/usePairApprovalRequest';
 import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
   DragTargetHighlight,
@@ -809,6 +814,9 @@ export function PanelContent({
       : { ...panelThemeVars, '--panel-editor-blur-scale': webkitSafePanelScale ?? 1 } as CSSProperties),
     [touchPanelChrome, webkitSafePanelScale, webkitSafeChromeScale, panelThemeVars],
   );
+  // Dialogs opened from the sheet (a confirm) portal to <body>, outside the
+  // sheet's zoom; hand them the same scale so they match the panel chrome.
+  const sheetOverlayScale = touchPanelChrome ? (webkitSafeChromeScale ?? webkitSafePanelScale ?? 1) : 1;
   const backdrop = wallpaperBackgroundAvailable && showPanelBackground
     ? effectiveTheme.backdrop
     : 'theme';
@@ -1452,6 +1460,11 @@ export function PanelContent({
     closeCtxMenuNow();
     if (restrictedBlockedImmersive) handleImmersiveExit();
   }, [restricted, restrictedBlockedImmersive, closeCtxMenuNow, handleImmersiveExit]);
+  // The overlay unmounts with its widget, so nothing else can clear the id that hides and blocks the panel.
+  const immersiveTargetGone = loaded && immersiveWidgetId !== null && !widgetById(immersiveWidgetId);
+  useEffect(() => {
+    if (immersiveTargetGone) handleImmersiveExit();
+  }, [immersiveTargetGone, handleImmersiveExit]);
   // On the document, not the root: the editor sheet and immersive overlay
   // mount outside the root, and the pointer is the finger there too.
   useEffect(() => {
@@ -1701,6 +1714,24 @@ export function PanelContent({
     setPanelSettingsSection(section);
     setSheetMode(mode);
   }, [clearCloseTimer]);
+
+  // An incoming pairing approval shows as the same modal the dashboard uses,
+  // scaled with the panel chrome, so a touch panel can answer it in place
+  // without disturbing an open sheet.
+  const pairPromptEnabled = localPairAvailable && kioskBehavior
+    && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable) && !restricted;
+  const pairApproval = usePairApprovalRequest(pairPromptEnabled);
+  const pairPromptCard = pairApproval.active ? (
+    <IncomingPairCard
+      sas={pairApproval.active.sas}
+      deviceLabel={pairApproval.active.deviceLabel || t('phonePair.deviceFallback')}
+      remoteAddress={pairApproval.active.remoteAddress}
+      busy={pairApproval.busy}
+      error={pairApproval.error}
+      touch
+      onDecide={approved => void pairApproval.decide(approved)}
+    />
+  ) : null;
 
   useEffect(() => {
     if (!embedded || openCatalogSignal === undefined) return;
@@ -2341,6 +2372,7 @@ export function PanelContent({
         data-surface={surface}
         data-screen-sleep={screenHidden ? 'true' : undefined}
         data-simulator={simulator ? 'true' : undefined}
+        data-stream={streamFrameCap(window.location.search) !== null ? 'true' : undefined}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
         data-immersive-see-through={immersiveSeeThrough ? 'true' : undefined}
         // Omitted on single-widget surfaces: they force widgetPadding 0
@@ -2788,6 +2820,7 @@ export function PanelContent({
       <PanelScreenSleep asleep={screenAsleep} onSleepFaded={() => setScreenHidden(true)} onWakeStart={() => setScreenHidden(false)} onWake={() => setScreenAsleep(false)} />
 
       {sheetMode && (
+        <OverlayScaleContext.Provider value={sheetOverlayScale}>
         <PanelEditorSheet
           mode={sheetMode}
           surface={surface}
@@ -2863,6 +2896,22 @@ export function PanelContent({
           editView={deckEditView}
           onEditViewChange={setDeckEditView}
         />
+        </OverlayScaleContext.Provider>
+      )}
+
+      {pairPromptCard && (
+        <OverlayScaleContext.Provider value={sheetOverlayScale}>
+          <Overlay
+            open
+            onClose={() => { /* must explicitly Allow or Deny */ }}
+            variant="alert"
+            noEscDismiss
+            noBackdropDismiss
+            ariaLabel={t('phonePair.code.requestTitle', { device: pairApproval.active?.deviceLabel || t('phonePair.deviceFallback') })}
+          >
+            {pairPromptCard}
+          </Overlay>
+        </OverlayScaleContext.Provider>
       )}
 
       {kioskBehavior && (

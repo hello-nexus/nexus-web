@@ -540,6 +540,27 @@ export interface PanelPhoneClaimResponse {
   token: string;
   machineName?: string;
   error: string;
+  /** True when the host must approve this device; the claim carries the SAS instead of a token. */
+  needsApproval?: boolean;
+  requestId?: string | null;
+  sas?: string | null;
+  /** Unix-ms expiry of the pending approval request. */
+  expiresAt?: number;
+}
+
+export type PanelPhonePairCodeConfirmStatus =
+  | 'waiting-host'
+  | 'approved'
+  | 'denied'
+  | 'expired'
+  | 'unknown'
+  | 'https-required';
+
+export interface PanelPhonePairCodeConfirmResponse {
+  status: PanelPhonePairCodeConfirmStatus;
+  token?: string;
+  machineName?: string;
+  spkiFingerprint?: string;
 }
 
 export interface PanelPhoneSession {
@@ -732,7 +753,7 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel() }),
+      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
     if (!res.ok) {
@@ -740,6 +761,25 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
       catch { return null; }
     }
     return (await res.json()) as PanelPhoneClaimResponse;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One poll of the pending QR-claim approval. Same-origin like the claim, so the
+ * session cookie the service sets on approval lands on this origin. Null on a
+ * transport failure so the caller keeps polling until the request's deadline.
+ */
+export async function confirmPanelPhonePairing(requestId: string, approved = true): Promise<PanelPhonePairCodeConfirmResponse | null> {
+  if (isRemoteOrigin) return null;
+  try {
+    const res = await fetch(resolveHttp('/panel/phone/pair-code/confirm'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, approved }),
+    });
+    return (await res.json()) as PanelPhonePairCodeConfirmResponse;
   } catch {
     return null;
   }
@@ -761,8 +801,9 @@ export async function claimPanelPhonePairingLan(
   try {
     const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
       method: 'POST',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel() }),
+      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal,
     });
     if (!res.ok) {
@@ -772,6 +813,34 @@ export async function claimPanelPhonePairingLan(
     return (await res.json()) as PanelPhoneClaimResponse;
   } catch {
     // Aborted (timeout) or unreachable host both land here ⇒ LAN unavailable.
+    return null;
+  }
+}
+
+/**
+ * One poll of a pending LAN claim approval, against the same QR-derived
+ * `host`:`httpPort` as {@link claimPanelPhonePairingLan}. Null on a transport
+ * failure so the caller keeps polling until the request's deadline.
+ */
+export async function confirmPanelPhonePairingLan(
+  host: string,
+  httpPort: string,
+  requestId: string,
+  approved = true,
+  signal?: AbortSignal,
+): Promise<PanelPhonePairCodeConfirmResponse | null> {
+  try {
+    // A cross-origin request to the QR's host: no credentials, so nothing this
+    // browser holds for another PC can ride along.
+    const res = await fetch(`http://${host}:${httpPort}/panel/phone/pair-code/confirm`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, approved }),
+      signal,
+    });
+    return (await res.json()) as PanelPhonePairCodeConfirmResponse;
+  } catch {
     return null;
   }
 }

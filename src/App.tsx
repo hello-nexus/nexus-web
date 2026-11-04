@@ -94,7 +94,7 @@ export default function App() {
   // Nexus app directly when installed; otherwise this landing page
   // offers App Store + LAN-redirect fallbacks.
   if (path === '/r/pair') {
-    return <PairRedirect />;
+    return <I18nProvider><PairRedirect /></I18nProvider>;
   }
 
   // Product-telemetry event catalog (what we send), opened from the
