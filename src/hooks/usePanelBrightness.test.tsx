@@ -91,4 +91,21 @@ describe('usePanelBrightness record target', () => {
 
     await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('rec1', { lcdBrightness: 25 }));
   });
+
+  it('queues the unmount persist behind a preview still in flight', async () => {
+    vi.mocked(fetchPanelDeviceWithStatus).mockResolvedValue({ found: true, record: { id: 'rec1', lcdBrightness: 40 } } as never);
+    let release: () => void = () => {};
+    vi.mocked(postService).mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({}); }));
+    const { result, unmount } = renderHook(() => usePanelBrightness(true, { kind: 'record', recordId: 'rec1' }));
+    await waitFor(() => expect(result.current.available).toBe(true));
+
+    act(() => result.current.preview(30));
+    await waitFor(() => expect(postService).toHaveBeenCalledTimes(1));
+    unmount();
+    await act(async () => {});
+    expect(patchPanelDevice).not.toHaveBeenCalled();
+
+    release();
+    await waitFor(() => expect(patchPanelDevice).toHaveBeenCalledWith('rec1', { lcdBrightness: 30 }));
+  });
 });

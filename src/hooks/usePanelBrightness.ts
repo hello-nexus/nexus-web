@@ -92,28 +92,38 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
 
   // Record target: a drag step only previews the backlight (no record write or
   // broadcast); the released value, and a drag cut short by unmount, persist.
-  const persistValue = useRef<number | null>(null);
+  // The writer is latest-wins, so the newest call's flag describes the value it dispatches.
+  const persistNext = useRef(false);
   const unpersisted = useRef<number | null>(null);
+  const tail = useRef<Promise<unknown> | null>(null);
 
   const send = useCallback((v: number) => {
     if (kind === 'y70') return postService('/y70/brightness', { brightness: v });
     if (kind === 'record' && recordId) {
-      if (persistValue.current === v) {
-        persistValue.current = null;
-        return patchPanelDevice(recordId, { lcdBrightness: v });
-      }
-      return postService(`/panel/devices/${encodeURIComponent(recordId)}/backlight-preview`, { lcdBrightness: v });
+      const request = persistNext.current
+        ? patchPanelDevice(recordId, { lcdBrightness: v })
+        : postService(`/panel/devices/${encodeURIComponent(recordId)}/backlight-preview`, { lcdBrightness: v });
+      tail.current = request;
+      return request;
     }
     return displayId ? setDisplayBrightness(displayId, v) : Promise.resolve(null);
   }, [kind, displayId, recordId]);
   const write = useLatestWriter(send, WRITE_INTERVAL_MS);
 
+  // Declared after the writer, so its own unmount flush has already queued; the
+  // persist waits for every request in flight or queued behind it.
   useEffect(() => () => {
     const pending = unpersisted.current;
     unpersisted.current = null;
-    if (kind === 'record' && recordId && pending !== null) {
-      void patchPanelDevice(recordId, { lcdBrightness: pending }).catch(() => null);
-    }
+    if (kind !== 'record' || !recordId || pending === null) return;
+    void (async () => {
+      let last: Promise<unknown> | null;
+      do {
+        last = tail.current;
+        await last?.catch(() => null);
+      } while (last !== tail.current);
+      await patchPanelDevice(recordId, { lcdBrightness: pending }).catch(() => null);
+    })();
   }, [kind, recordId]);
 
   const preview = useCallback((v: number) => {
@@ -121,6 +131,7 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     const clamped = Math.max(0, Math.min(100, Math.round(v)));
     setValue(clamped);
     unpersisted.current = clamped;
+    persistNext.current = false;
     write(clamped);
   }, [write]);
 
@@ -129,7 +140,7 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     const clamped = Math.max(0, Math.min(100, Math.round(v)));
     setValue(clamped);
     unpersisted.current = null;
-    persistValue.current = clamped;
+    persistNext.current = true;
     write(clamped, true);
   }, [write]);
 
