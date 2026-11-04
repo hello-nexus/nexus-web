@@ -181,7 +181,7 @@ export interface PanelDeviceRecord {
   // so the panel renders tall. Absent/null = landscape.
   portrait?: boolean | null;
   // Panels whose capabilities carry supportsRenderScale: render at native resolution
-  // instead of a lower one. Absent/null = lower (high performance).
+  // instead of a lower one. Absent/null = native (high resolution).
   highResolution?: boolean | null;
   // Frame rate cap in fps for this device (streamed session rate, secondary-monitor pacing, or
   // how often a display-bound panel page draws). Absent/null = the device's own rate.

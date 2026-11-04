@@ -588,7 +588,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const [recordSecondaryMonitor, setRecordSecondaryMonitor] = useState(false);
   const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
   const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
-  const [recordHighResolution, setRecordHighResolution] = useState(false);
+  const [recordHighResolution, setRecordHighResolution] = useState(true);
   // Streamed displays and display-bound kiosk panels take a frame rate cap; the list says which are streamed.
   const [recordStreamed, setRecordStreamed] = useState(false);
   const [recordDisplayBound, setRecordDisplayBound] = useState(false);
@@ -761,7 +761,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSecondaryMonitorHolder(match?.secondaryMonitorHolder ?? null);
       setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
-      setRecordHighResolution(match?.highResolution ?? false);
+      setRecordHighResolution(match?.highResolution ?? true);
       setRecordStreamed(match?.streamed === true);
       setRecordDisplayBound(!!match?.displayId);
       setRecordFpsCap(match?.fpsCap ?? null);
@@ -926,7 +926,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordSecondaryMonitorHolder(record.secondaryMonitorHolder ?? null);
       setRecordPortrait(record.portrait ?? false);
-      setRecordHighResolution(record.highResolution ?? false);
+      setRecordHighResolution(record.highResolution ?? true);
       // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
       setRecordFpsCap(record.fpsCap ?? null);
       setRecordRestricted(record.restrictedMode ?? false);
