@@ -142,10 +142,14 @@ $inline-gap: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
   border-radius: 50%;
-  border: 1px solid var(--border-strong);
-  background: var(--surface, var(--bg));
+  // Solid in the fill color so the track never shows through; the glyph takes the contrast-paired ink.
+  background: var(--slider-fill-color, var(--accent));
+  color: var(--accent-text);
+  box-shadow: var(--shadow-sm);
   pointer-events: none;
 }
 

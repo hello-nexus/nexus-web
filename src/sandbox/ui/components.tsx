@@ -251,7 +251,7 @@ export function Slider(p: HostProps) {
       trackFill={trackFill}
       orientation={orientation}
       fillColor={sliderTone ? toneVar(sliderTone) : undefined}
-      thumbNode={ThumbIcon ? <ThumbIcon size={16} color={toneVar(sliderTone, 'currentColor')} aria-hidden="true" /> : undefined}
+      thumbNode={ThumbIcon ? <ThumbIcon size={14} color="currentColor" aria-hidden="true" /> : undefined}
       onChange={(v, commit) => {
         setLive(v);
         emit(commit ? 'change' : 'input', v);

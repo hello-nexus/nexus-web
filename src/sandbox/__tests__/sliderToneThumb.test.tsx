@@ -41,6 +41,12 @@ describe('ui-slider tone and thumbIcon', () => {
     expect(node.style.left).toContain('0.25');
   });
 
+  it('gives the knob the fill color so it paints solid in the tone', () => {
+    const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" tone="bad" thumbIcon="x" />);
+    const node = container.querySelector('svg')!.parentElement as HTMLElement;
+    expect(node.style.getPropertyValue('--slider-fill-color')).toContain('--bad');
+  });
+
   it('ignores an unknown thumb icon without throwing', () => {
     const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" thumbIcon="no-such-icon" />);
     expect(container.querySelector('input[type="range"]')?.hasAttribute('data-custom-thumb')).toBe(false);

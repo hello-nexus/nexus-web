@@ -85,8 +85,8 @@ export interface SliderProps {
   valueText?: string;
 }
 
-// Width of the native knob; mirrors the thumb rule in global.scss.
-const KNOB_PX = 14;
+// Diameter of the custom knob (thumbNode); mirrors .thumbNode in Slider.module.scss.
+const KNOB_PX = 24;
 
 export function Slider({
   label = '', info, value, min, max, step = 1,
@@ -130,9 +130,9 @@ export function Slider({
   } as CSSProperties;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
-  // The knob's travel is the track minus its own width, so the node rides the same span.
+  // The node's travel is the track minus its own width, so it stays inside the track at both ends.
   const thumbNodeEl = thumbNode != null ? (
-    <span className={styles.thumbNode} style={{ left: `calc(${KNOB_PX / 2}px + (100% - ${KNOB_PX}px) * ${clamp(valuePct) / 100})` }} aria-hidden>
+    <span className={styles.thumbNode} style={{ left: `calc(${KNOB_PX / 2}px + (100% - ${KNOB_PX}px) * ${clamp(valuePct) / 100})`, ...(fillColor ? { '--slider-fill-color': fillColor } as CSSProperties : {}) }} aria-hidden>
       {thumbNode}
     </span>
   ) : null;
