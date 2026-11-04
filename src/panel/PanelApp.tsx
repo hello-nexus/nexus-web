@@ -1452,6 +1452,11 @@ export function PanelContent({
     closeCtxMenuNow();
     if (restrictedBlockedImmersive) handleImmersiveExit();
   }, [restricted, restrictedBlockedImmersive, closeCtxMenuNow, handleImmersiveExit]);
+  // The overlay unmounts with its widget, so nothing else can clear the id that hides and blocks the panel.
+  const immersiveTargetGone = loaded && immersiveWidgetId !== null && !widgetById(immersiveWidgetId);
+  useEffect(() => {
+    if (immersiveTargetGone) handleImmersiveExit();
+  }, [immersiveTargetGone, handleImmersiveExit]);
   // On the document, not the root: the editor sheet and immersive overlay
   // mount outside the root, and the pointer is the finger there too.
   useEffect(() => {
