@@ -1,4 +1,4 @@
-import { SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
+import { PARTICLE_TEXTURE, SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
 
 const glFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 
@@ -370,7 +370,7 @@ uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform flo
 uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut; uniform float uMarginStart;
 float ease5(float t) { t = clamp(t, 0.0, 1.0); return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 float easeEdge(float a, float b, float x) { return ease5((x - a) / (b - a)); }
-// The margin fade is spatial, so a fast stream crosses it quickly. With a time-based exit the margin only dims the spawn area, so it starts further out.
+// The margin fade is spatial, so with a time-based exit it only dims the spawn area and starts further out.
 float marginFade(float outside) {
   float start = uMarginStart > 0.0 ? uMarginStart : 0.1;
   float x = clamp((outside - uMargin * start) / (uMargin * (1.0 - start)), 0.0, 1.0);
@@ -389,7 +389,7 @@ float fadeOf(vec4 s, vec2 pixel) {
 
 
 
-/** History ring write: per (sample, particle) texel the particle's position at that step, and its age. A respawned particle fills the whole ring with its spawn point, so no streak stretches from its old place; a particle in its fade window keeps writing its last position, so its trail catches up into a frozen head. */
+/** History ring write: each particle's position per step, filled with the spawn point on a respawn and held while it fades out. */
 export const HIST_PASS = FRAGMENT_OUT + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D HP;
 uniform int uWrite; uniform int uLast;
@@ -397,7 +397,7 @@ uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut;
 void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   int p = f.y;
-  ivec2 sc = ivec2(p % 128, p / 128);
+  ivec2 sc = ivec2(p % ${PARTICLE_TEXTURE.w}, p / ${PARTICLE_TEXTURE.w});
   vec4 st = texelFetch(PA, sc, 0);
   vec4 last = texelFetch(HP, ivec2(uLast, p), 0);
   vec4 old = texelFetch(HP, f, 0);
@@ -410,15 +410,15 @@ void main() {
   gl_FragColor = (reset || f.x == uWrite) ? val : old;
 }`;
 
-// A particle drawn through its recorded positions: station k sits uTrailSteps * k / segments particle steps behind the head, read from the history ring. There is no walk through the field, so a trail never reaches into air the particle did not cross, and it cannot move except by the particle moving.
+// A particle drawn through its recorded positions, read from the history ring, so a trail never reaches into air the particle did not cross.
 export const histVertex = (segments: number, hn: number) => GRID_COMMON + TEMP_COMMON + FADE_GLSL + /* glsl */ `
 #define STREAK_SEGMENTS ${segments}
 #define HN ${hn}
 uniform sampler2D PA; uniform sampler2D HIST;
 uniform int uHead; uniform float uTrailSteps;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
-uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
-uniform float uSpeedLo; uniform float uSpeedHi; uniform float uSpeedMin; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve;
+uniform float uAlpha; uniform float uHeatSpan;
+uniform float uSpeedLo; uniform float uSpeedHi; uniform float uSpeedMin; uniform float uFade; uniform float uOwed; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx; out float vThin;
 ${RAMP}
@@ -441,7 +441,7 @@ vec3 histPos(int n, float b) {
 }
 void main() {
   ivec2 r = ivec2(ref);
-  int n = r.y * 128 + r.x;
+  int n = r.y * ${PARTICLE_TEXTURE.w} + r.x;
   vec4 s = texelFetch(PA, r, 0);
   float owed = max(uOwed, 0.0);
   vec4 sh = s.x < -1.0e5 ? s : vec4(histPos(n, 1.0 - owed), s.w);
@@ -457,7 +457,7 @@ void main() {
   vec2 pp = screenOf(at, wp);
   vec3 back3 = histPos(n, b + 3.0);
   vec2 pb = screenOf(back3, wb);
-  // Width follows the speed recorded at this station (mm per particle step over a three-step baseline): slow air draws thinner, fast air full width, smoothly along the ribbon.
+  // Width follows the speed recorded at the station, so slow air draws thinner and fast air full width.
   float speedW = uSpeedHi > 0.0 ? mix(uSpeedMin, 1.0, smoothstep(uSpeedLo, uSpeedHi, length(at - back3) * uCell / 3.0)) : 1.0;
   // A streak that is fading in or out also thins, so a stalled or dying one narrows to a wisp as it goes.
   speedW *= mix(0.35, 1.0, smoothstep(0.0, 0.7, share));
@@ -483,7 +483,7 @@ export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha; in float vAlong; in float vSide; in float vHalfPx; in float vThin;
 uniform float uFadePow; uniform float uShapeHead; uniform float uShapeTail;
 void main() {
-  // The outline is carved per pixel: a rounded nose and a rounded tail, with a feather of about a pixel and a half, so no segment count shows as corners.
+  // The outline is carved per pixel, so no segment count shows as corners.
   float ph = sqrt(clamp((1.0 - vAlong) / uShapeHead, 0.0, 1.0));
   // A narrow streak keeps a solid body: its tail shaping and fade shorten as the on-screen width shrinks.
   float pt = sqrt(clamp(vAlong / mix(uShapeTail, 0.25, vThin), 0.0, 1.0));

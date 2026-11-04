@@ -8,7 +8,7 @@ import { HeatVolume } from './heatVolume';
 import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { PARTICLE_TEXTURE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
@@ -25,8 +25,6 @@ export const flowTiers = (): number[] => {
   }
   return [cells, Math.round(cells / 2), GRID_LOW_CELLS];
 };
-/** Fixed particle pool; a coarser grid tier draws a share of it. */
-export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
 /** Particle states kept: the current one and the one before it, whose difference is the streak. */
 const RING = 2;
