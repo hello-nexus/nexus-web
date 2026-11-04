@@ -19,22 +19,35 @@ export function useStackOnOverflow(ref: RefObject<HTMLElement | null>, stackedCl
     if (active && el) measureStack(el, stackedClass);
   });
 
-  // Surface resizes and late font loads. Measuring in a frame, and ending in the
-  // state it started from when nothing changed, keeps our own class toggle from
-  // re-triggering the observer.
+  // Re-measure without a commit. The observer covers box changes (surface,
+  // footer, buttons whose label width moved); the window resize listener covers
+  // a stacked card that no longer changes size when the viewport widens; font
+  // loads cover glyph widths changing inside an already-capped card. All three
+  // share one frame-deferred measure, which ends in the state it started from
+  // when nothing changed, so our own class toggle does not retrigger it.
   useEffect(() => {
     const el = ref.current;
-    if (!active || !el || typeof ResizeObserver === 'undefined') return;
+    if (!active || !el) return;
     let frame = 0;
-    const observer = new ResizeObserver(() => {
+    const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => measureStack(el, stackedClass));
-    });
-    observer.observe(el);
-    if (el.parentElement) observer.observe(el.parentElement);
+    };
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(schedule);
+      observer.observe(el);
+      if (el.parentElement) observer.observe(el.parentElement);
+      el.querySelectorAll('button').forEach(b => observer?.observe(b));
+    }
+    window.addEventListener('resize', schedule);
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined;
+    fonts?.addEventListener?.('loadingdone', schedule);
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      observer?.disconnect();
+      window.removeEventListener('resize', schedule);
+      fonts?.removeEventListener?.('loadingdone', schedule);
     };
   }, [ref, stackedClass, active]);
 }
