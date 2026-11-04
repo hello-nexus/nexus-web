@@ -226,8 +226,10 @@ describe('pairOverRelay host approval', () => {
   it('cancel sends approved:false and resolves cancelled', async () => {
     const abort = new AbortController();
     script = (req) => {
-      if (req.type === 'claim') { setTimeout(() => abort.abort(), 1); return pending(); }
-      return req.approved === false ? null : { type: 'claim-waiting' };
+      if (req.type === 'claim') return pending();
+      // Cancel only once the request is parked and the first poll is in flight.
+      if (req.approved === true) { abort.abort(); return null; }
+      return null;
     };
     const result = await run({ signal: abort.signal });
     expect(result).toEqual({ ok: false, error: 'cancelled' });
