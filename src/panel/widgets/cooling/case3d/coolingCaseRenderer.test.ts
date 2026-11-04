@@ -202,6 +202,28 @@ describe('the case is Build\'s scene', () => {
   });
 });
 
+describe('presses on the canvas', () => {
+  it('reports a drag past a click\'s slop and not a plain click', () => {
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
+    const canvas = document.createElement('canvas');
+    // jsdom has no pointer capture, which the orbit controls ask for.
+    canvas.setPointerCapture = vi.fn();
+    canvas.releasePointerCapture = vi.fn();
+    const onPick = vi.fn();
+    const onDrag = vi.fn();
+    const r = createCaseRenderer(canvas, onPick, onDrag);
+    const press = (type: string, x: number, y: number) => canvas.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }));
+    press('pointerdown', 10, 10);
+    press('pointerup', 30, 30);
+    expect(onDrag).toHaveBeenCalledTimes(1);
+    press('pointerdown', 10, 10);
+    press('pointerup', 11, 11);
+    expect(onDrag).toHaveBeenCalledTimes(1);
+    r.dispose();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('case palette', () => {
   // jsdom has no 2D context, so the token reader returns each fallback: text f5f5f5, accent 3b82f6.
   it('Cooling draws parts in the theme text color while Build keeps the accent', () => {

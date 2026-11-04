@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
   devTools: true,
   patch: vi.fn(),
   pick: { current: null as null | ((key: string | null, x: number, y: number, mods?: { toggle: boolean; add: boolean }) => void) },
+  drag: { current: null as null | (() => void) },
   renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; setSpanListener: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
@@ -22,8 +23,9 @@ vi.mock('../../../../api/pcSetup', async importOriginal => ({ ...(await importOr
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
-  createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler) => {
+  createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler, onDrag?: () => void) => {
     h.pick.current = onPick;
+    h.drag.current = onDrag ?? null;
     const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
@@ -316,6 +318,14 @@ describe('CoolingCase3D device dropdown', () => {
       await act(async () => { await new Promise(r => setTimeout(r, 0)); });
       expect(h.layout.edit).toHaveBeenCalledTimes(1);
       expect(mutate()(base(sim)).bindings).toEqual([{ channelId: 'sim:2100', slotKeys: ['front:120:0', 'rear:120:0'] }]);
+    });
+
+    it('closes the controls when the view is dragged, and keeps a Ctrl press a pick', () => {
+      mountReady(null);
+      pickTwo();
+      expect(screen.getByRole('dialog')).toBeTruthy();
+      act(() => h.drag.current?.());
+      expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     it('clears on a press on nothing', () => {

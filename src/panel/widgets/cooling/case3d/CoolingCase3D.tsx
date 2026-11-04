@@ -154,7 +154,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   const model = useMemo(() => (caseLayout ? lumpedModel(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, directions, speeds]);
 
-  const handlers = useRef<{ pick: PickHandler }>({ pick: () => {} });
+  const handlers = useRef<{ pick: PickHandler; drag: () => void }>({ pick: () => {}, drag: () => {} });
   handlers.current.pick = (key, x, y, mods) => {
     // Ctrl or Cmd toggles a fan in the selection and Shift adds it; a plain press selects just that fan, and a press on nothing clears.
     const next = nextSelection(selection, key, mods ?? { toggle: false, add: false }, k => k === RADIATOR_PICK_KEY);
@@ -166,12 +166,15 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     setAnchor({ x, y });
   };
 
+  // An orbit or pan moves the picture away from the point the controls are anchored to, so they close.
+  handlers.current.drag = () => setSelection([]);
+
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!canvas) return undefined;
     let next: CaseSceneRenderer;
     try {
-      next = createCaseRenderer(canvas, (key, x, y, mods) => handlers.current.pick(key, x, y, mods));
+      next = createCaseRenderer(canvas, (key, x, y, mods) => handlers.current.pick(key, x, y, mods), () => handlers.current.drag());
     } catch (error) {
       if (attempt > 0) throw error;
       // The browser refuses a context right after the hidden Build frame is torn down ("caused context loss and was blocked"); one retry once that settles.

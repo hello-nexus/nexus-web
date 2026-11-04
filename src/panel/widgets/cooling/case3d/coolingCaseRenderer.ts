@@ -150,7 +150,8 @@ export const rotorTurnsPerSecond = (rpm: number): number => 1.4 * (1 - Math.exp(
 /** How much the blades melt into a disc, 0 slow to 0.4 for the fastest fans. */
 export const rotorBlur = (rpm: number): number => 0.4 * Math.min(1, Math.max(0, (rpm - 2200) / 1400));
 
-export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
+/** `onDrag` runs when a press ends after the pointer moved past a click's slop: an orbit or pan, which moves the picture under any open controls. */
+export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler, onDrag?: () => void): CaseSceneRenderer {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const scene = new Scene();
@@ -404,7 +405,11 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let down: { x: number; y: number } | null = null;
   const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY }; };
   const onUp = (e: PointerEvent) => {
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) { down = null; return; }
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) {
+      if (down) onDrag?.();
+      down = null;
+      return;
+    }
     down = null;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
