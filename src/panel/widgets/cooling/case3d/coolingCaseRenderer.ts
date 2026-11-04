@@ -125,19 +125,20 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
 const ROTOR_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-// A flat five-blade rotor drawn per pixel: gently swept, evenly filled blades and a small plain hub, blending into a soft disc as the speed rises.
+// A flat five-blade rotor drawn per pixel: gently swept, evenly filled blades that start outside a clear hub ring, with a small plain dot at the centre, blending into a soft disc as the speed rises.
 const ROTOR_FRAGMENT = /* glsl */ `
-uniform vec3 uColor; uniform float uAngle; uniform float uBlur; uniform float uOpacity; uniform float uHub;
+uniform vec3 uColor; uniform float uAngle; uniform float uBlur; uniform float uOpacity;
 varying vec2 vUv;
 void main() {
   vec2 p = vUv * 2.0 - 1.0;
   float r = length(p);
   if (r > 1.0) discard;
   float f = fract((atan(p.y, p.x) - uAngle) * 5.0 / 6.2831853 - r * 0.9);
-  float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.34, 0.39, f));
-  blade = mix(blade, 0.4, uBlur) * (1.0 - smoothstep(0.93, 1.0, r));
-  float hub = 1.0 - smoothstep(uHub * 0.9, uHub, r);
-  gl_FragColor = vec4(uColor, max(blade, hub) * uOpacity);
+  float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.46, 0.51, f));
+  blade = mix(blade, 0.4, uBlur) * smoothstep(0.38, 0.41, r) * (1.0 - smoothstep(0.93, 1.0, r));
+  float hubRing = smoothstep(0.3, 0.32, r) * (1.0 - smoothstep(0.34, 0.36, r));
+  float dot = 1.0 - smoothstep(0.09, 0.11, r);
+  gl_FragColor = vec4(uColor, max(blade, max(hubRing, dot)) * uOpacity);
   gl_FragColor = linearToOutputTexel(gl_FragColor);
 }`;
 const ROTOR_OPACITY = 0.4;
@@ -328,7 +329,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (rpm !== undefined) {
         const material = new ShaderMaterial({
           vertexShader: ROTOR_VERTEX, fragmentShader: ROTOR_FRAGMENT, transparent: true, depthWrite: false, side: DoubleSide,
-          uniforms: { uColor: { value: color.clone() }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY }, uHub: { value: 0.16 } },
+          uniforms: { uColor: { value: color.clone() }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY } },
         });
         const geometry = new PlaneGeometry(2, 2);
         const blades = new Mesh(geometry, material);
