@@ -201,6 +201,7 @@ import {
 import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
 import { OverlayScaleContext } from '../components/common/Overlay/overlayScale';
+import { Overlay } from '../components/common/Overlay/Overlay';
 import { IncomingPairCard } from '../app/IncomingPairModal';
 import { usePairApprovalRequest } from '../hooks/usePairApprovalRequest';
 import { usePairPromptSheet } from './pairPromptSheet';
@@ -1714,13 +1715,13 @@ export function PanelContent({
   const pairPromptEnabled = localPairAvailable && kioskBehavior
     && (surfaceSupportsTouch(surface, deviceTouch) || mouseEditable) && !restricted;
   const pairApproval = usePairApprovalRequest(pairPromptEnabled);
-  usePairPromptSheet({
+  const pairPromptPlacement = usePairPromptSheet({
     pending: pairApproval.active !== null,
     sheetMode,
     openPairSheet: () => openSheet('pairRemote'),
     closeSheet,
   });
-  const pairPrompt = pairApproval.active ? (
+  const pairPromptCard = pairApproval.active ? (
     <IncomingPairCard
       sas={pairApproval.active.sas}
       deviceLabel={pairApproval.active.deviceLabel || t('phonePair.deviceFallback')}
@@ -1731,6 +1732,7 @@ export function PanelContent({
       onDecide={approved => void pairApproval.decide(approved)}
     />
   ) : null;
+  const pairPrompt = pairPromptPlacement === 'sheet' ? pairPromptCard : null;
 
   useEffect(() => {
     if (!embedded || openCatalogSignal === undefined) return;
@@ -2895,6 +2897,21 @@ export function PanelContent({
           editView={deckEditView}
           onEditViewChange={setDeckEditView}
         />
+        </OverlayScaleContext.Provider>
+      )}
+
+      {pairPromptPlacement === 'overlay' && pairPromptCard && (
+        <OverlayScaleContext.Provider value={sheetOverlayScale}>
+          <Overlay
+            open
+            onClose={() => { /* must explicitly Allow or Deny */ }}
+            variant="alert"
+            noEscDismiss
+            noBackdropDismiss
+            ariaLabel={t('phonePair.code.requestTitle', { device: pairApproval.active?.deviceLabel || t('phonePair.deviceFallback') })}
+          >
+            {pairPromptCard}
+          </Overlay>
         </OverlayScaleContext.Provider>
       )}
 

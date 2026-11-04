@@ -771,13 +771,13 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
  * session cookie the service sets on approval lands on this origin. Null on a
  * transport failure so the caller keeps polling until the request's deadline.
  */
-export async function confirmPanelPhonePairing(requestId: string): Promise<PanelPhonePairCodeConfirmResponse | null> {
+export async function confirmPanelPhonePairing(requestId: string, approved = true): Promise<PanelPhonePairCodeConfirmResponse | null> {
   if (isRemoteOrigin) return null;
   try {
     const res = await fetch(resolveHttp('/panel/phone/pair-code/confirm'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requestId, approved: true }),
+      body: JSON.stringify({ requestId, approved }),
     });
     return (await res.json()) as PanelPhonePairCodeConfirmResponse;
   } catch {
@@ -801,6 +801,7 @@ export async function claimPanelPhonePairingLan(
   try {
     const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
       method: 'POST',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal,
@@ -825,13 +826,17 @@ export async function confirmPanelPhonePairingLan(
   host: string,
   httpPort: string,
   requestId: string,
+  approved = true,
   signal?: AbortSignal,
 ): Promise<PanelPhonePairCodeConfirmResponse | null> {
   try {
+    // A cross-origin request to the QR's host: no credentials, so nothing this
+    // browser holds for another PC can ride along.
     const res = await fetch(`http://${host}:${httpPort}/panel/phone/pair-code/confirm`, {
       method: 'POST',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requestId, approved: true }),
+      body: JSON.stringify({ requestId, approved }),
       signal,
     });
     return (await res.json()) as PanelPhonePairCodeConfirmResponse;

@@ -195,7 +195,7 @@ describe('pairOverInternet - LAN-first decision', () => {
 describe('pairOverInternet - LAN probe host approval', () => {
   const pendingClaim = {
     paired: false, token: '', error: '', needsApproval: true, requestId: 'lan-req', sas: '987 654',
-    machineName: 'PC', expiresAt: Date.now() + 60_000,
+    machineName: 'PC',
   };
   const params = { host: '192.168.1.50', httpPort: '9400', pairToken: PAIR_TOKEN, deviceName: 'iPhone' };
 
@@ -212,7 +212,7 @@ describe('pairOverInternet - LAN probe host approval', () => {
     vi.useRealTimers();
 
     expect(onApproval).toHaveBeenCalledWith({ sas: '987 654', machineName: 'PC' });
-    expect(lanConfirmMock).toHaveBeenCalledWith('192.168.1.50', '9400', 'lan-req', undefined);
+    expect(lanConfirmMock).toHaveBeenCalledWith('192.168.1.50', '9400', 'lan-req', true, undefined);
     expect(result).toEqual({ kind: 'lan', token: 'LAN-APPROVED', machineName: 'PC' });
     expect(relaySockets).toHaveLength(0);
   });
@@ -231,6 +231,24 @@ describe('pairOverInternet - LAN probe host approval', () => {
     const result = await pairOverInternet({ ...params, pairToken: 'third-token' });
     expect(result.kind).toBe('rejected');
     expect(storePhoneTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('a pending claim without a sas is a protocol error and is not polled', async () => {
+    lanClaimMock.mockResolvedValueOnce({ ...pendingClaim, sas: '' });
+    const result = await pairOverInternet({ ...params, pairToken: 'nosas-token' });
+    expect(result).toEqual({ kind: 'rejected', error: 'protocol-error' });
+    expect(lanConfirmMock).not.toHaveBeenCalled();
+  });
+
+  it('cancelling tells the PC to drop the request', async () => {
+    lanClaimMock.mockResolvedValueOnce(pendingClaim);
+    lanConfirmMock.mockResolvedValue({ status: 'waiting-host' });
+    const abort = new AbortController();
+    const p = pairOverInternet({ ...params, pairToken: 'cancel-token', signal: abort.signal });
+    await vi.waitFor(() => expect(lanConfirmMock).toHaveBeenCalled());
+    abort.abort();
+    expect(await p).toEqual({ kind: 'rejected', error: 'cancelled' });
+    expect(lanConfirmMock).toHaveBeenCalledWith('192.168.1.50', '9400', 'lan-req', false);
   });
 
   it('an older service that mints directly still takes the fast path with no SAS', async () => {

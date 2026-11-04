@@ -380,14 +380,11 @@ export type RelayClaimResult = RelayClaimOk | RelayClaimErr;
 export interface RelayClaimPending {
   requestId: string;
   sas: string;
-  expiresAt?: number;
   machineName?: string;
   spki?: string;
 }
 
 export interface PairOverRelayOptions {
-  /** Live session token this browser already holds for the PC; the only way to skip approval. */
-  sessionToken?: string;
   /** Called when the host asks for approval (once per request id). */
   onPending?: (pending: RelayClaimPending) => void;
   /** Aborting cancels a pending approval (approved:false is sent when the link is up). */
@@ -433,7 +430,7 @@ class RelayLinkDropped extends Error {}
  *      via deriveAeadKey(pairRoot, connSalt), open the relay WSS and send the
  *      client hello;
  *   3. on peer-up send {"type":"claim","deviceName","deviceId",
- *      "supportsSasApproval":true,"sessionToken"?} sealed dir=client->host at
+ *      "supportsSasApproval":true} sealed dir=client->host at
  *      counter 0. Inbound counters must strictly increase per key, so every
  *      later frame on the same connection takes the next counter;
  *   4. reply handling:
@@ -446,11 +443,12 @@ class RelayLinkDropped extends Error {}
  *        claim-err      denied/expired are terminal; unknown, update_required
  *                       and claim-in-progress keep polling; any other error
  *                       (code-in-use, pairing token expired, ...) is terminal.
- *   5. a link that drops while a request is parked reconnects with a new salt
- *      and resumes with claim-confirm starting again at counter 0.
+ *   5. a link that drops after the claim went out reconnects with a new salt:
+ *      with a parked request it resumes with claim-confirm from counter 0,
+ *      otherwise it resends the claim. Both stop at the TTL deadline, which
+ *      runs on the local clock from the claim (then from claim-pending).
  *
- * Rejects on a transport/handshake/crypto failure before any request is
- * parked so the caller can fall back (e.g. to a "generate a fresh QR" surface).
+ * Rejects on a transport/handshake/crypto failure before the claim was sent so the caller can fall back (e.g. to a "generate a fresh QR" surface).
  */
 export async function pairOverRelay(
   url: string,
@@ -459,24 +457,30 @@ export async function pairOverRelay(
   deviceId: string,
   options: PairOverRelayOptions = {},
 ): Promise<RelayClaimResult> {
-  const { sessionToken, onPending, signal, pollMs = RELAY_CLAIM_POLL_MS } = options;
+  const { onPending, signal, pollMs = RELAY_CLAIM_POLL_MS } = options;
   const pairRoot = await derivePairRoot(pairToken);
   const ridPair = await deriveRid(pairRoot);
 
   // State that outlives one connection.
   let requestId: string | undefined;
+  // Local-clock deadline, never the PC's absolute expiry: restarted from the
+  // moment claim-pending is received, so clock skew cannot shorten or extend it.
   let deadline = Date.now() + RELAY_CLAIM_TTL_MS;
+  // A claim frame reached the PC on some connection; a drop after that point
+  // may have parked a request there, so it is retried instead of failed.
+  let claimSent = false;
   let announced: string | undefined;
 
   for (;;) {
     if (signal?.aborted) return { ok: false, error: 'cancelled' };
-    if (requestId && Date.now() >= deadline) return { ok: false, error: 'expired' };
+    if (Date.now() >= deadline) return { ok: false, error: 'expired' };
     try {
       return await runClaimConnection();
     } catch (err) {
-      // Only a lost link with a parked request is resumable; everything else
-      // (no request yet, forged frame, bad reply) surfaces to the caller.
-      if (!requestId || !(err instanceof RelayLinkDropped)) throw err;
+      // A lost link after the claim went out is resumable until the deadline
+      // (the PC may already hold a parked request); a failure before any claim
+      // reached it, a forged frame or a bad reply surfaces to the caller.
+      if (!(err instanceof RelayLinkDropped)) throw err;
     }
     await sleep(pollMs, signal);
     if (Date.now() >= deadline) return { ok: false, error: 'expired' };
@@ -537,7 +541,7 @@ export async function pairOverRelay(
       const fail = (err: Error) => {
         if (replyInFlight) return;
         // With a parked request a lost link is resumable; otherwise it is a real failure.
-        abort(requestId ? new RelayLinkDropped(err.message) : err);
+        abort(requestId || claimSent ? new RelayLinkDropped(err.message) : err);
       };
 
       const sendSealed = async (payload: object): Promise<void> => {
@@ -550,7 +554,7 @@ export async function pairOverRelay(
       // The next request: poll the parked request, else (re)send the claim.
       const sendNext = async (): Promise<void> => {
         if (settled) return;
-        if (requestId && Date.now() >= deadline) { succeed({ ok: false, error: 'expired' }); return; }
+        if (Date.now() >= deadline) { succeed({ ok: false, error: 'expired' }); return; }
         awaitingReply = true;
         clearTimeout(replyTimer);
         replyTimer = setTimeout(() => fail(new Error('relay claim reply timeout')), RELAY_PAIR_TIMEOUT_MS);
@@ -558,13 +562,8 @@ export async function pairOverRelay(
           if (requestId) {
             await sendSealed({ type: 'claim-confirm', requestId, approved: true });
           } else {
-            await sendSealed({
-              type: 'claim',
-              deviceName,
-              deviceId,
-              supportsSasApproval: true,
-              ...(sessionToken ? { sessionToken } : {}),
-            });
+            claimSent = true;
+            await sendSealed({ type: 'claim', deviceName, deviceId, supportsSasApproval: true });
           }
         } catch {
           fail(new Error('claim seal/send failed'));
@@ -612,15 +611,14 @@ export async function pairOverRelay(
             }
             return;
           case 'claim-pending': {
-            if (!reply.requestId) { abort(new Error('claim-pending without a request id')); return; }
+            if (!reply.requestId || !reply.sas) { abort(new Error('claim-pending without a request id or sas')); return; }
             requestId = reply.requestId;
-            deadline = reply.expiresAt && reply.expiresAt > 0 ? reply.expiresAt : Date.now() + RELAY_CLAIM_TTL_MS;
+            deadline = Date.now() + RELAY_CLAIM_TTL_MS;
             if (announced !== requestId) {
               announced = requestId;
               onPending?.({
                 requestId,
-                sas: reply.sas ?? '',
-                expiresAt: reply.expiresAt,
+                sas: reply.sas,
                 machineName: reply.machineName,
                 spki: reply.spki,
               });

@@ -85,7 +85,7 @@ class HostSocket {
 }
 
 const pending = (over: object = {}) => ({
-  type: 'claim-pending', requestId: 'req-1', sas: '123 456', expiresAt: Date.now() + 60_000, machineName: 'PC', spki: 'AA', ...over,
+  type: 'claim-pending', requestId: 'req-1', sas: '123 456', machineName: 'PC', spki: 'AA', ...over,
 });
 const ok = { type: 'claim-ok', sessionToken: 'SESS-1', machineName: 'PC', spki: 'AA' };
 
@@ -129,10 +129,11 @@ describe('pairOverRelay host approval', () => {
     expect(sockets[0].inbound).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it('includes the session token when the browser holds one', async () => {
+  it('never puts a session token on the claim', async () => {
     script = () => ok;
-    await run({ sessionToken: 'LIVE' });
-    expect(sockets[0].requests[0].sessionToken).toBe('LIVE');
+    await run();
+    expect(sockets[0].requests[0]).not.toHaveProperty('sessionToken');
+    expect(Object.keys(sockets[0].requests[0]).sort()).toEqual(['deviceId', 'deviceName', 'supportsSasApproval', 'type']);
   });
 
   it('old service: claim-ok straight to the first claim, no polling', async () => {
@@ -221,6 +222,46 @@ describe('pairOverRelay host approval', () => {
     expect(result.ok).toBe(true);
     // Polling continued past the injected frame; only the real claim-ok ended it.
     expect(sockets[0].requests.filter(r => r.type === 'claim-confirm')).toHaveLength(8);
+  });
+
+  it('claim-pending without a sas is a protocol error', async () => {
+    script = () => pending({ sas: undefined });
+    await expect(run()).rejects.toThrow(/sas/);
+  });
+
+  it('a link that drops before claim-pending reconnects and resends the claim on a fresh salt', async () => {
+    script = (req, sock) => {
+      if (sock === sockets[0]) {
+        setTimeout(() => sock.drop(), 5);
+        return null;
+      }
+      return ok;
+    };
+    const result = await run({ pollMs: 20 });
+    expect(result.ok).toBe(true);
+    expect(sockets).toHaveLength(2);
+    expect(sockets[1].salt).not.toBe(sockets[0].salt);
+    expect(sockets[1].requests[0].type).toBe('claim');
+    expect(sockets[1].inbound).toEqual([0]);
+  });
+
+  it('claim-in-progress resends stop at the TTL deadline instead of looping forever', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    script = () => {
+      vi.setSystemTime(Date.now() + 30_000);
+      return { type: 'claim-err', error: 'claim-in-progress' };
+    };
+    try {
+      expect(await run()).toEqual({ ok: false, error: 'expired' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the pending deadline ignores the PC clock', async () => {
+    // An absolute expiry far in the past must not end the wait early.
+    script = (req) => (req.type === 'claim' ? pending({ expiresAt: 1 }) : ok);
+    expect((await run()).ok).toBe(true);
   });
 
   it('cancel sends approved:false and resolves cancelled', async () => {

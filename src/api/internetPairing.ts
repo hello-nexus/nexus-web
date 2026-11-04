@@ -33,7 +33,7 @@ import { resolveRelayWs } from './service';
 import { claimPanelPhonePairingLan, confirmPanelPhonePairingLan } from './panel';
 import { waitForPairApproval } from './pairApproval';
 import { pairOverRelay } from '../hooks/relayChannel';
-import { getTokenSync, storePhoneToken } from './auth';
+import { storePhoneToken } from './auth';
 import { getDeviceId } from './deviceId';
 
 // How long to wait for the LAN claim before declaring the PC LAN-unreachable
@@ -137,15 +137,16 @@ async function runPairAttempt(params: InternetPairParams): Promise<InternetPairR
     // An older service mints directly; a current one only after host approval.
     return { kind: 'lan', token: lan.token, machineName: lan.machineName };
   }
-  if (lan?.needsApproval && lan.requestId) {
+  if (lan?.needsApproval) {
     // The claim parked the token on the PC's Allow prompt: show the SAS and
-    // poll the same LAN host until the PC decides.
-    onApproval?.({ sas: lan.sas ?? '', machineName: lan.machineName });
-    const requestId = lan.requestId;
+    // poll the same LAN host until the PC decides. Without a request id and a
+    // SAS there is nothing to compare, so the reply is a protocol error.
+    if (!lan.requestId || !lan.sas) return { kind: 'rejected', error: 'protocol-error' };
+    onApproval?.({ sas: lan.sas, machineName: lan.machineName });
     const outcome = await waitForPairApproval({
-      requestId,
-      expiresAt: lan.expiresAt,
-      confirm: (id) => confirmPanelPhonePairingLan(host, httpPort, id, signal),
+      requestId: lan.requestId,
+      confirm: (id) => confirmPanelPhonePairingLan(host, httpPort, id, true, signal),
+      cancel: (id) => confirmPanelPhonePairingLan(host, httpPort, id, false),
       signal,
     });
     if (outcome.kind === 'approved') {
@@ -189,10 +190,9 @@ export async function pairOverRelayClaim(
     // Send the stable per-device id alongside the name so the PC dedups a
     // re-pair of this same browser (replaces its session) rather than creating
     // a duplicate authorized device.
-    // A live session this browser already holds is the only evidence that
-    // skips the PC's approval; the PC validates it, so a stale one is harmless.
+    // No session token rides the claim: the QR's PC is not necessarily the PC
+    // that issued this browser's token, so a rescan goes through approval.
     const result = await pairOverRelay(resolveRelayWs(), pairToken, deviceName, getDeviceId(), {
-      sessionToken: getTokenSync() ?? undefined,
       signal: opts.signal,
       onPending: (p) => opts.onApproval?.({ sas: p.sas, machineName: p.machineName }),
     });

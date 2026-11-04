@@ -62,6 +62,7 @@ type PairPhase =
   | { state: 'lan'; lanURL: string; host: string; httpPort: string }
   | { state: 'relay'; machineName?: string }
   | { state: 'approval'; sas: string }
+  | { state: 'cancelled' }
   | { state: 'rejected'; error: string }
   | { state: 'unreachable' };
 
@@ -142,7 +143,7 @@ export function PairRedirect() {
         setPhase({ state: 'relay', machineName: result.machineName });
         window.location.replace(`${window.location.origin}/panel/phone`);
       } else if (result.kind === 'rejected') {
-        setPhase({ state: 'rejected', error: result.error });
+        setPhase(result.error === 'cancelled' ? { state: 'cancelled' } : { state: 'rejected', error: result.error });
       } else {
         setPhase({ state: 'unreachable' });
       }
@@ -223,16 +224,20 @@ export function PairRedirect() {
     return () => { cancelled = true; abort.abort(); };
   }, [valid, host, httpPort, pair, region, fp]);
 
-  // NOTE: App.tsx now wraps this route in an I18nProvider, and the approval
-  // and refusal screens use t(). The older landing strings below were never
-  // converted and stay literal English; the lint disables mark that gap.
   if (!valid) {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- legacy literal, see file note */}
-        <Title>Invalid pairing link</Title>
-        <Sub>This link is missing pairing information. Re-scan the QR from your dashboard.</Sub>
-        {/* eslint-enable i18next/no-literal-string */}
+        <Title>{t('pairRedirect.invalidHeadline')}</Title>
+        <Sub>{t('pairRedirect.invalidBody')}</Sub>
+      </Frame>
+    );
+  }
+
+  if (phase.state === 'cancelled') {
+    return (
+      <Frame>
+        <Title>{t('pairRedirect.cancelledHeadline')}</Title>
+        <Sub>{t('pairRedirect.cancelledBody')}</Sub>
       </Frame>
     );
   }
@@ -269,13 +274,8 @@ export function PairRedirect() {
   if (phase.state === 'unreachable') {
     return (
       <Frame>
-        {/* eslint-disable i18next/no-literal-string -- legacy literal, see file note */}
-        <Title>Couldn't reach your PC</Title>
-        <Sub>
-          Make sure Nexus is running on your PC and that "Pair Remote" (and the cloud relay) are
-          enabled in the dashboard, then re-scan the QR.
-        </Sub>
-        {/* eslint-enable i18next/no-literal-string */}
+        <Title>{t('pairRedirect.unreachableHeadline')}</Title>
+        <Sub>{t('pairRedirect.unreachableBody')}</Sub>
       </Frame>
     );
   }
@@ -311,7 +311,7 @@ function rejectedCopy(error: string): { headline: string; body: string; showCode
   if (error === 'code-in-use') {
     return { headline: 'panel.gate.fail.busyHeadline', body: 'panel.gate.fail.busyBody', showCode: false };
   }
-  return { headline: 'panel.gate.fail.expiredHeadline', body: 'panel.gate.fail.expiredBody', showCode: error !== 'expired' && error !== 'cancelled' };
+  return { headline: 'panel.gate.fail.expiredHeadline', body: 'panel.gate.fail.expiredBody', showCode: error !== 'expired' };
 }
 
 // True only for a private (RFC1918 / link-local) IPv4 LAN address - the only

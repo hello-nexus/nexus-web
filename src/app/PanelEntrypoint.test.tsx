@@ -568,7 +568,6 @@ describe('PanelEntrypoint QR claim with host approval', () => {
     requestId: 'req-1',
     sas: '123456',
     machineName: 'DESK',
-    expiresAt: Date.now() + 60_000,
   };
 
   function renderClaim() {
@@ -626,5 +625,23 @@ describe('PanelEntrypoint QR claim with host approval', () => {
     renderClaim();
     expect(await screen.findByText('panel.gate.fail.updateRequiredHeadline')).toBeTruthy();
     expect(confirmMock).not.toHaveBeenCalled();
+  });
+
+  it('treats a pending claim without a number as a protocol error', async () => {
+    claimMock.mockResolvedValueOnce({ ...pendingClaim, sas: '' });
+    renderClaim();
+    expect(await screen.findByText('panel.gate.fail.expiredHeadline')).toBeTruthy();
+    expect(confirmMock).not.toHaveBeenCalled();
+  });
+
+  it('tells the PC to drop the request when the gate unmounts mid-approval', async () => {
+    claimMock.mockResolvedValueOnce(pendingClaim);
+    confirmMock.mockReturnValue(new Promise(() => {}));
+    const view = renderClaim();
+    await screen.findByText('123456');
+    confirmMock.mockClear();
+    confirmMock.mockResolvedValue(null);
+    view.unmount();
+    await waitFor(() => expect(confirmMock).toHaveBeenCalledWith('req-1', false));
   });
 });

@@ -19,7 +19,7 @@ describe('waitForPairApproval', () => {
       { status: 'waiting-host' },
       { status: 'approved', token: 'tok', machineName: 'PC', spkiFingerprint: 'fp' },
     );
-    const p = waitForPairApproval({ requestId: 'r1', expiresAt: Date.now() + 60_000, confirm });
+    const p = waitForPairApproval({ requestId: 'r1', confirm });
     await vi.advanceTimersByTimeAsync(PAIR_APPROVAL_POLL_MS * 2);
     await expect(p).resolves.toEqual({ kind: 'approved', token: 'tok', machineName: 'PC', spki: 'fp' });
     expect(confirm).toHaveBeenCalledTimes(3);
@@ -27,23 +27,23 @@ describe('waitForPairApproval', () => {
   });
 
   it('reports denied', async () => {
-    const p = waitForPairApproval({ requestId: 'r', expiresAt: Date.now() + 60_000, confirm: sequence({ status: 'denied' }) });
+    const p = waitForPairApproval({ requestId: 'r', confirm: sequence({ status: 'denied' }) });
     await expect(p).resolves.toEqual({ kind: 'denied' });
   });
 
   it('reports expired when the service says so', async () => {
-    const p = waitForPairApproval({ requestId: 'r', expiresAt: Date.now() + 60_000, confirm: sequence({ status: 'expired' }) });
+    const p = waitForPairApproval({ requestId: 'r', confirm: sequence({ status: 'expired' }) });
     await expect(p).resolves.toEqual({ kind: 'expired' });
   });
 
   it('expires at the deadline when the host never answers, riding out transport failures', async () => {
     const confirm = sequence(null, null, null);
-    const p = waitForPairApproval({ requestId: 'r', expiresAt: Date.now() + 2500, confirm });
+    const p = waitForPairApproval({ requestId: 'r', ttlMs: 2500, confirm });
     await vi.advanceTimersByTimeAsync(5000);
     await expect(p).resolves.toEqual({ kind: 'expired' });
   });
 
-  it('uses the server TTL when the claim carries no expiry', async () => {
+  it('counts the default TTL on the local clock from the start', async () => {
     const confirm = sequence();
     const p = waitForPairApproval({ requestId: 'r', confirm });
     await vi.advanceTimersByTimeAsync(61_000);
@@ -53,10 +53,30 @@ describe('waitForPairApproval', () => {
   it('stops without a result when aborted', async () => {
     const abort = new AbortController();
     const confirm = sequence();
-    const p = waitForPairApproval({ requestId: 'r', expiresAt: Date.now() + 60_000, confirm, signal: abort.signal });
+    const p = waitForPairApproval({ requestId: 'r', confirm, signal: abort.signal });
     await vi.advanceTimersByTimeAsync(10);
     abort.abort();
     await vi.advanceTimersByTimeAsync(10);
     await expect(p).resolves.toEqual({ kind: 'aborted' });
+  });
+
+  it('tells the PC to drop the request once when aborted', async () => {
+    const abort = new AbortController();
+    const cancel = vi.fn(async () => null);
+    const p = waitForPairApproval({ requestId: 'req-9', confirm: sequence(), cancel, signal: abort.signal });
+    await vi.advanceTimersByTimeAsync(10);
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(10);
+    await expect(p).resolves.toEqual({ kind: 'aborted' });
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledWith('req-9');
+  });
+
+  it('does not cancel when the host decided', async () => {
+    const cancel = vi.fn(async () => null);
+    const p = waitForPairApproval({ requestId: 'r', confirm: sequence({ status: 'denied' }), cancel });
+    await vi.advanceTimersByTimeAsync(10);
+    await p;
+    expect(cancel).not.toHaveBeenCalled();
   });
 });

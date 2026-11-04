@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalA11y } from './useModalA11y';
 import { useOverlayScale } from './overlayScale';
@@ -105,7 +105,7 @@ export function Overlay({
         ref={surfaceRef}
         className={`${styles.surface} ${className ?? ''}`}
         // Sheets are placed by their owner; only centered dialogs follow the host's scale.
-        style={variant !== 'sheet' && scale !== 1 ? { zoom: scale } : undefined}
+        style={variant !== 'sheet' && scale !== 1 ? scaledSurfaceStyle(scale) : undefined}
         tabIndex={-1}
         onPointerDown={e => { pointerDownInSurface.current = true; e.stopPropagation(); }}
         onClick={e => e.stopPropagation()}
@@ -116,4 +116,17 @@ export function Overlay({
   );
 
   return portalTarget ? createPortal(content, portalTarget) : content;
+}
+
+// Zoom multiplies every length inside, vh-based limits included, so the
+// viewport caps are divided by the scale (as the editor sheet does) and a
+// dialog taller than the screen scrolls instead of spilling off it. The 4rem is
+// the centered backdrop's 2rem padding on both sides.
+function scaledSurfaceStyle(scale: number): CSSProperties {
+  return {
+    zoom: scale,
+    maxWidth: `calc((100vw - 4rem) / ${scale})`,
+    maxHeight: `calc((100dvh - 4rem) / ${scale})`,
+    overflowY: 'auto',
+  };
 }

@@ -20,6 +20,20 @@ describe('Overlay panel scale', () => {
     expect(surfaceOf().style.zoom).toBe('1.7');
   });
 
+  it('caps a zoomed surface to the viewport, dividing the limits by the scale', () => {
+    render(
+      <OverlayScaleContext.Provider value={2}>
+        <Overlay open onClose={() => {}} variant="alert"><p>body</p></Overlay>
+      </OverlayScaleContext.Provider>,
+    );
+    const style = surfaceOf().style;
+    expect(style.maxHeight).toContain('100dvh');
+    // jsdom normalizes the division by 2 to a 0.5 factor.
+    expect(style.maxHeight).toContain('0.5');
+    expect(style.maxWidth).toContain('0.5');
+    expect(style.overflowY).toBe('auto');
+  });
+
   it('never zooms a sheet, which its owner places itself', () => {
     render(
       <OverlayScaleContext.Provider value={1.7}>

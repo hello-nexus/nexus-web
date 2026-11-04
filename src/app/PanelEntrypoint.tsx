@@ -155,12 +155,17 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
         finishPair(result.token, result.machineName);
         return;
       }
-      if (result?.needsApproval && result.requestId) {
-        setPairSas(result.sas ?? '');
+      if (result?.needsApproval) {
+        // No request id or SAS means nothing to compare on the PC: a protocol error.
+        if (!result.requestId || !result.sas) {
+          fail('pair-expired', 'protocol-error');
+          return;
+        }
+        setPairSas(result.sas);
         const outcome = await waitForPairApproval({
           requestId: result.requestId,
-          expiresAt: result.expiresAt,
           confirm: confirmPanelPhonePairing,
+          cancel: requestId => confirmPanelPhonePairing(requestId, false),
           signal: abort.signal,
         });
         if (outcome.kind === 'aborted') return;

@@ -39,4 +39,21 @@ describe('usePairPromptSheet', () => {
     rerender({ pending: false, sheetMode: 'catalog' });
     expect(closeSheet).not.toHaveBeenCalled();
   });
+
+  it('shows the prompt over a sheet that is already open instead of replacing it', () => {
+    const { result, rerender, openPairSheet, closeSheet } = setup({ pending: false, sheetMode: 'settings' });
+    expect(result.current).toBe('sheet');
+    rerender({ pending: true, sheetMode: 'settings' });
+    expect(result.current).toBe('overlay');
+    expect(openPairSheet).not.toHaveBeenCalled();
+    rerender({ pending: false, sheetMode: 'settings' });
+    expect(result.current).toBe('sheet');
+    expect(closeSheet).not.toHaveBeenCalled();
+  });
+
+  it('keeps the prompt inline in the pairing sheet', () => {
+    const { result, rerender } = setup({ pending: false, sheetMode: 'pairRemote' });
+    rerender({ pending: true, sheetMode: 'pairRemote' });
+    expect(result.current).toBe('sheet');
+  });
 });

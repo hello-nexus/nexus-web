@@ -12,13 +12,21 @@ describe('LAN claim probe', () => {
     expect(url).toBe('http://10.0.0.2:9400/panel/phone/claim');
     expect(JSON.parse(init.body as string)).toMatchObject({ pairToken: 'tok', supportsSasApproval: true });
     expect(res?.needsApproval).toBe(true);
+    // The QR host may be a PC this browser holds no session for: no ambient credentials.
+    expect(init.credentials).toBe('omit');
+    expect(JSON.stringify(init.headers)).not.toMatch(/authorization/i);
   });
 
   it('polls the confirm route on the QR-derived host and returns null on a transport failure', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ status: 'waiting-host' })));
     vi.stubGlobal('fetch', fetchMock);
     expect(await confirmPanelPhonePairingLan('10.0.0.2', '9400', 'r')).toEqual({ status: 'waiting-host' });
-    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('http://10.0.0.2:9400/panel/phone/pair-code/confirm');
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://10.0.0.2:9400/panel/phone/pair-code/confirm');
+    expect(init.credentials).toBe('omit');
+    expect(JSON.stringify(init.headers)).not.toMatch(/authorization/i);
+    await confirmPanelPhonePairingLan('10.0.0.2', '9400', 'r', false);
+    expect(JSON.parse(fetchMock.mock.calls[1][1]!.body as string)).toEqual({ requestId: 'r', approved: false });
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down'); }));
     expect(await confirmPanelPhonePairingLan('10.0.0.2', '9400', 'r')).toBeNull();
   });
