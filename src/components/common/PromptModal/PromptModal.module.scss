@@ -20,6 +20,7 @@
 
 .title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: var(--type-heading);
   color: var(--text);
   line-height: 1.25;
@@ -27,6 +28,7 @@
 
 .message {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--text-dim);
   font-size: var(--type-body);
   line-height: 1.5;
@@ -72,6 +74,7 @@
 
 .error {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--bad);
   font-size: var(--type-small);
   line-height: 1.4;

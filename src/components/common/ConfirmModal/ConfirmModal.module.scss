@@ -30,6 +30,7 @@
 
 .title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: var(--type-heading);
   color: var(--text);
 }
@@ -53,6 +54,7 @@
 
 .text {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-size: var(--type-body);
   line-height: 1.45;
