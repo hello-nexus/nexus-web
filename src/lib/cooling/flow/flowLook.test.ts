@@ -8,7 +8,7 @@ describe('flow look', () => {
   });
 
   it('keeps the parity look the same except for the particle behavior the CPU reference lacks', () => {
-    expect({ ...PARITY_LOOK, fadeOut: FLOW_LOOK.fadeOut, exitShare: FLOW_LOOK.exitShare, outDecay: FLOW_LOOK.outDecay, speedGamma: FLOW_LOOK.speedGamma }).toEqual(FLOW_LOOK);
+    expect({ ...PARITY_LOOK, fadeOut: FLOW_LOOK.fadeOut, exitShare: FLOW_LOOK.exitShare, outDecay: FLOW_LOOK.outDecay, speedGamma: FLOW_LOOK.speedGamma, speedGammaHi: FLOW_LOOK.speedGammaHi }).toEqual(FLOW_LOOK);
     expect(PARITY_LOOK.fadeOut).toBe(0);
     expect(PARITY_LOOK.speedGamma).toBe(1);
   });

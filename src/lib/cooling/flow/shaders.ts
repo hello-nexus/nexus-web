@@ -203,7 +203,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uOutDecay; uniform float uReachCells; uniform float uSpeedGamma; uniform float uSpeedRef; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uOutDecay; uniform float uReachCells; uniform float uSpeedGamma; uniform float uSpeedGammaHi; uniform float uSpeedRef; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -223,7 +223,8 @@ vec3 pvel(vec3 q) {
   vec3 v = pvelRaw(q);
   if (uSpeedGamma < 1.0) {
     float m = length(v);
-    if (m > 1.0e-6) v *= pow(m / uSpeedRef, uSpeedGamma - 1.0);
+    // Below the reference the lift is strong; above it the easing is gentle, so the speed-up into a fan still grows and reads.
+    if (m > 1.0e-6) v *= pow(m / uSpeedRef, (m < uSpeedRef ? uSpeedGamma : uSpeedGammaHi) - 1.0);
   }
   return v;
 }
@@ -244,6 +245,7 @@ void main() {
   if (!respawn && age < 0.0) { gl_FragColor = vec4(p, age + rate); return; }
   if (!respawn) {
     vec3 q = p;
+    float rawStart = length(pvelRaw(p));
     float h = uSpeed / uSubsteps;
     // Sub-steps keep each move under a cell; one axis at a time, so a blocked axis slides along the surface instead of entering it.
     for (int k = 0; k < 8; k++) {
@@ -263,7 +265,8 @@ void main() {
       if (mask(cellAtPos(q)).b > 0.5) break;
     }
     // A particle that barely moves, in dead air or against a wall, ages fast and is soon recycled.
-    bool stuck = length(q - p) < uStuckMove * uSpeed;
+    // Stuck is a wall or truly stagnant air: with the speed mapping a slow but moving particle is lifted, so the physical speed where it started also counts.
+    bool stuck = length(q - p) < uStuckMove * uSpeed || (uSpeedGamma < 1.0 && rawStart < uStuckMove * 0.4);
     float inc = (stuck ? uStuckRate : 1.0) * rate;
     // A stuck particle's fast aging stops at the fade window, where it fades twice as fast as a moving one, so a streak resting against a wall does not loiter.
     if (uFadeOut > 0.0) inc = age < dieAt ? min(inc, dieAt - age) : (stuck ? 2.0 : 1.0) * rate;
