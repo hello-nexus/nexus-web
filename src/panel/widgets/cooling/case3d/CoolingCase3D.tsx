@@ -38,6 +38,7 @@ import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
+import { FlowReadout } from './FlowReadout';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import styles from './CoolingCase3D.module.scss';
 
@@ -358,6 +359,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
+        {DEV_TOOLS && <FlowReadout canvas={canvas} />}
         <div className={styles.topStack}>
           {result && model && (
             <div className={`${styles.overlay} ${styles.overlayTop}`}>

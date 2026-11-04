@@ -7,6 +7,8 @@ export const JACOBI_ITERATIONS = 20;
 export const FAN_BLEND = 0.6;
 /** Darcy drag per step inside a porous (radiator or cooler) cell. */
 export const DARCY_K = 0.4;
+/** Most drag per step a radiator core may add. The core's drag follows the pressure model's loss (about 8 Pa at a fan's face speed), and this keeps it to roughly half of that: the air passes the core, which only straightens the flow. At this value about nine tenths of the radiator fans' flow crosses the core. */
+export const RADIATOR_DARCY_MAX = 0.04;
 /** Per-step velocity damping. */
 export const DAMPING = 0.999;
 /** Floor of the reference fan velocity, m/s, so a weak setup does not look as fast as a strong one. */

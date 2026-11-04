@@ -63,7 +63,7 @@ export type PickHandler = (slotKey: string | null, x: number, y: number) => void
 const CLICK_SLOP_PX = 4;
 /** The Cooling view draws every outline solid: dashes mark what can be acted on in Build. */
 /** How far the case and its parts are drawn back while the airflow runs, so the fans and the air read first. */
-const AIRFLOW_DIM = 0.5;
+export const AIRFLOW_DIM = 0.3;
 /** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
 const IDLE_MS = 400;
 const CALM_FRAME_MS = 1000 / 30;
@@ -211,6 +211,16 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   };
 
   const lineMaterials: LineMaterial[] = [];
+  // Dev tools: what the case drawing is made of, for reading from a live page.
+  if (DEV_TOOLS) {
+    (globalThis as { __nexusCaseDebug?: unknown }).__nexusCaseDebug = () => {
+      const faces: number[] = [];
+      staticGroup.traverse(o => { const m = (o as Mesh).material as Material | undefined; if (m && !Array.isArray(m) && (m as MeshBasicMaterial).colorWrite !== false && m.transparent) faces.push(m.opacity); });
+      const mean = (a: number[]) => (a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(3) : 0);
+      const lines = lineMaterials.map(m => m.opacity);
+      return { dimmed, dim: dimmed ? AIRFLOW_DIM : 1, lineCount: lines.length, lineOpacityMean: mean(lines), lineOpacityMax: lines.length ? Math.max(...lines) : 0, lineWidthMean: mean(lineMaterials.map(m => m.linewidth)), faceCount: faces.length, faceOpacityMean: mean(faces) };
+    };
+  }
   const clearCase = () => {
     staticGroup.children.forEach(child => disposeGroup(child as Group));
     staticGroup.clear();

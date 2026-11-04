@@ -394,7 +394,7 @@ uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
 uniform float uHeatSpan;
 uniform float uFade; uniform float uOwed; uniform float uRefSpeed; uniform float uFieldLen; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
-out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx; out float vThin;
 #ifdef PROBE
 out vec4 vProbe;
 #endif
@@ -456,6 +456,7 @@ void main() {
   if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
   float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
   vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp);
+  vThin = 0.0;
   vec2 axis = pa - pb;
   float len = length(axis);
   axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
@@ -506,7 +507,7 @@ uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; unifo
 uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
 uniform float uSpeedLo; uniform float uSpeedHi; uniform float uSpeedMin; uniform float uCapsule; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
-out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx;
+out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx; out float vThin;
 #ifdef PROBE
 out vec4 vProbe;
 #endif
@@ -534,12 +535,11 @@ void main() {
   float owed = max(uOwed, 0.0);
   vec4 sh = s.x < -1.0e5 ? s : vec4(histPos(n, 1.0 - owed), s.w);
   float strength = mix(1.0 - uAlphaVar, 1.0, hash(vec2(r) * 1.31 + 0.5));
-  vAlpha = fadeOf(sh, vec2(r) + 0.5) * uFade * uAlpha * strength;
+  float share = fadeOf(sh, vec2(r) + 0.5);
+  vAlpha = share * uFade * uAlpha * strength;
   int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
   float b = (1.0 - owed) + float(station) / float(STREAK_SEGMENTS) * uTrailSteps;
   vec3 at = histPos(n, b);
-  // The head dissolves: alpha ramps from nothing at the tip to full over the first share of the ribbon.
-  if (uHeadFade > 0.0) vAlpha *= ease5((1.0 - corner.x) / uHeadFade);
   float hs = clamp(sampleT(at) / uHeatSpan, 0.0, 1.0);
   vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
   float wp; float wb;
@@ -548,12 +548,18 @@ void main() {
   vec2 pb = screenOf(back3, wb);
   // Width follows the speed recorded at this station (mm per particle step over a three-step baseline): slow air draws thinner, fast air full width, smoothly along the ribbon.
   float speedW = uSpeedHi > 0.0 ? mix(uSpeedMin, 1.0, smoothstep(uSpeedLo, uSpeedHi, length(at - back3) * uCell / 3.0)) : 1.0;
+  // A streak that is fading in or out also thins, so a stalled or dying one narrows to a wisp as it goes.
+  speedW *= mix(0.35, 1.0, smoothstep(0.0, 0.7, share));
   float taper = mix(uTailWidth, 1.0, corner.x);
   if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
   // A capsule streak keeps the ribbon at full width: its ends are shaped per pixel in the fragment shader.
   if (uCapsule > 0.5) taper = 1.0;
   float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper * speedW;
   vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * speedW;
+  // How narrow the streak is on screen, 0 for a wide one to 1 for a thin one; thin streaks get shorter end fades so a solid body remains.
+  vThin = 1.0 - smoothstep(14.0, 26.0, max(uMinWidthPx, uWidthMm * uScale / wp));
+  // The head dissolves: alpha ramps from nothing at the tip to full over the first share of the ribbon.
+  if (uHeadFade > 0.0) vAlpha *= ease5((1.0 - corner.x) / mix(uHeadFade, 0.18, vThin));
   vec2 axis = pp - pb;
   float len = length(axis);
   axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
@@ -575,7 +581,7 @@ in vec4 vProbe;
 void main() { gl_FragColor = vProbe; }`;
 
 export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
-in vec3 vColor; in float vAlpha; in float vAlong; in float vSide; in float vHalfPx;
+in vec3 vColor; in float vAlpha; in float vAlong; in float vSide; in float vHalfPx; in float vThin;
 uniform float uFadePow; uniform float uHeadGlow; uniform float uSoft;
 uniform float uCapsule; uniform float uShapeHead; uniform float uShapeTail;
 void main() {
@@ -583,11 +589,12 @@ void main() {
   if (uCapsule > 0.5) {
     // The outline is carved per pixel: a rounded nose and a rounded tail, with a feather of about a pixel and a half, so no segment count shows as corners.
     float ph = sqrt(clamp((1.0 - vAlong) / uShapeHead, 0.0, 1.0));
-    float pt = sqrt(clamp(vAlong / uShapeTail, 0.0, 1.0));
+    // A narrow streak keeps a solid body: its tail shaping and fade shorten as the on-screen width shrinks.
+    float pt = sqrt(clamp(vAlong / mix(uShapeTail, 0.25, vThin), 0.0, 1.0));
     float prof = min(ph, pt);
     float feather = 1.5 / max(vHalfPx, 1.0);
     float body = 1.0 - smoothstep(prof - feather, prof, across);
-    float ac = vAlpha * pow(vAlong, uFadePow) * body;
+    float ac = vAlpha * pow(vAlong, mix(uFadePow, 0.45, vThin)) * body;
     if (ac < 0.003) discard;
     gl_FragColor = vec4(vColor * 1.1 * ac, ac);
     return;

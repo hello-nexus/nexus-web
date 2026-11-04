@@ -95,7 +95,7 @@ FLOW_VARIANTS['A3-3-walk'] = { ...D, name: 'A3-3-walk', drawShare: (PARTICLE_DRA
 // A3-3 draws through recorded positions; A3-3-walk is the field-walk version it replaced, kept to compare geometry.
 FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 96, alphaVar: 0.4, smooth: true, history: true, trailSteps: 35, segments: 28, timeScaleMul: 1.6, exitShare: 0.35 };
 // A3-3 twice as wide with more particles; alpha 0.8 because the app draws the case small and the streaks read dimmer than in the explore page.
-FLOW_VARIANTS['A3-3-thick'] = { ...D, name: 'A3-3-thick', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2 * 1.5, widthMm: 32, minWidthPx: 14, alpha: 0.8, headTaper: 0.22, growTail: true, fadeOut: 120, alphaVar: 0.4, smooth: true, history: true, trailSteps: 55, segments: 32, timeScaleMul: 1.6, exitShare: 0, marginStart: 0.05, outDecay: 0.6, headFade: 0.28, capsule: true, speedWidth: [1, 5, 0.5] };
+FLOW_VARIANTS['A3-3-thick'] = { ...D, name: 'A3-3-thick', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2 * 1.5, widthMm: 32, minWidthPx: 14, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 120, alphaVar: 0.25, smooth: true, history: true, trailSteps: 55, segments: 32, timeScaleMul: 1.6, exitShare: 0, marginStart: 0.05, outDecay: 0.6, headFade: 0.28, capsule: true, speedWidth: [0.3, 5, 0.18] };
 let active: FlowVariant = CURRENT_VARIANT;
 /** Chooses the look the next FlowLayer is built with. */
 export const setFlowVariant = (v: FlowVariant) => { active = v; };

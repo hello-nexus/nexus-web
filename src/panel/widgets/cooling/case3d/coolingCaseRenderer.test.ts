@@ -39,7 +39,7 @@ import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
 import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
-import { createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
+import { AIRFLOW_DIM, createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -173,8 +173,8 @@ describe('the case is Build\'s scene', () => {
     const [D, W, H] = parsed.size;
     const expected = new Group();
     expected.position.set(D / 2, H / 2, W / 2);
-    // Build's call for a still view of a case; the fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
-    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true));
+    // Build's call for a still view of a case, with the Cooling view's own treatment: solid outlines, drawn back while the airflow runs. The fan boxes and rings are this view's interactive overlay, so they are the one thing left out.
+    expected.add(buildCase({ lines: [], ...y70 } as SceneLayout, coolingPalette(canvas), [], [], [], true, false, true, true, true, AIRFLOW_DIM));
     expect(staticGroup.children).toHaveLength(1);
     expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
     r.dispose();
