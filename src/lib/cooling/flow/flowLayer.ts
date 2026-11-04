@@ -506,8 +506,9 @@ export class FlowLayer {
       (m.uniforms.uN.value as Vector3).copy(n);
       m.uniforms.uTX.value = flow.tx;
       m.uniforms.M.value = flow.maskTexture;
-      // A new grid replaces the velocity texture: a stale one is a deleted GL name until a particle frame sets it.
+      // A new grid replaces the velocity and temperature textures: a stale one is a deleted GL name until a particle frame sets it.
       m.uniforms.U.value = flow.velocity;
+      m.uniforms.T.value = flow.temperature;
       (m.uniforms.uOrigin.value as Vector3).copy(origin);
     }
   }
