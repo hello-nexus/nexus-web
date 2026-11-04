@@ -46,7 +46,7 @@ export function CaseTempLabels({ renderer, layout, temps }: CaseTempLabelsProps)
           data-testid={`temp-label-${a.key}`}
         >
           <span className={styles.name}>{t(LABEL_KEYS[a.key])}</span>
-          <span className={styles.value}>{formatSensorValue(temps[a.key]!, '°C', '', monitoringTempUnit, numberFormat, 'Temperature', monitoringWholeNumbers)}</span>
+          <span className={styles.value}>{formatSensorValue(temps[a.key]!, '°C', `${temps[a.key]} °C`, monitoringTempUnit, numberFormat, 'Temperature', monitoringWholeNumbers)}</span>
         </div>
       ))}
     </>

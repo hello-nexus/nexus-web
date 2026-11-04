@@ -258,18 +258,34 @@ describe('tryxSensorPlaceholder', () => {
 });
 
 describe('formatTryxSensorValue', () => {
-  it('rounds whole-number types to integers (matches the panel firmware)', () => {
-    expect(formatTryxSensorValue('Temperature', 52.4)).toBe('52°C');
-    expect(formatTryxSensorValue('Load', 33.6)).toBe('34%');
-    expect(formatTryxSensorValue('Clock', 4699.8)).toBe('4700MHz');
-    expect(formatTryxSensorValue('Frequency', 5999.5)).toBe('6000MHz');
-    expect(formatTryxSensorValue('SmallData', 511.6)).toBe('512MB');
-    expect(formatTryxSensorValue('Power', 64.7)).toBe('65W');
-    expect(formatTryxSensorValue('Fan', 1199.4)).toBe('1199RPM');
+  it('uses the shared decimals rule by default (one decimal for temp/load/power/frequency)', () => {
+    expect(formatTryxSensorValue('Temperature', 52.44)).toBe('52.4°C');
+    expect(formatTryxSensorValue('Load', 33.65)).toBe('33.6%');
+    expect(formatTryxSensorValue('Frequency', 5999.55)).toBe('5999.6MHz');
+    expect(formatTryxSensorValue('Power', 64.7)).toBe('64.7W');
+    expect(formatTryxSensorValue('Flow', 120.46)).toBe('120.5L/h');
+    expect(formatTryxSensorValue('Noise', 31.25)).toBe('31.3dBA');
   });
 
-  it('keeps fixed decimals for voltage/data', () => {
-    expect(formatTryxSensorValue('Voltage', 1.234)).toBe('1.23V');
+  it('keeps whole numbers for clock, fan and fps', () => {
+    expect(formatTryxSensorValue('Clock', 4699.8)).toBe('4700MHz');
+    expect(formatTryxSensorValue('SmallData', 511.6)).toBe('512MB');
+    expect(formatTryxSensorValue('Fan', 1199.4)).toBe('1199RPM');
+    expect(formatTryxSensorValue('Framerate', 59.6)).toBe('60fps');
+  });
+
+  it('rounds temp/load/power/frequency to whole numbers when the setting is on', () => {
+    expect(formatTryxSensorValue('Temperature', 52.5, true)).toBe('53°C');
+    expect(formatTryxSensorValue('Load', 33.6, true)).toBe('34%');
+    expect(formatTryxSensorValue('Power', 64.7, true)).toBe('65W');
+    expect(formatTryxSensorValue('Frequency', 5999.5, true)).toBe('6000MHz');
+  });
+
+  it('keeps fixed precision for voltage, current, frame time and data', () => {
+    expect(formatTryxSensorValue('Voltage', 1.2345, true)).toBe('1.234V');
+    expect(formatTryxSensorValue('Voltage', 0.85)).toBe('0.850V');
+    expect(formatTryxSensorValue('Current', 1.5)).toBe('1.500A');
+    expect(formatTryxSensorValue('FrameTime', 16.66, true)).toBe('16.7ms');
     expect(formatTryxSensorValue('Data', 12.94)).toBe('12.9GB');
   });
 
@@ -277,11 +293,6 @@ describe('formatTryxSensorValue', () => {
     expect(formatTryxSensorValue('Throughput', 12_000_000)).toBe('11.4MB/s');
     expect(formatTryxSensorValue('Throughput', 50_000)).toBe('48.8KB/s');
     expect(formatTryxSensorValue('Throughput', 512)).toBe('512B/s');
-  });
-
-  it('mirrors the service fps formats (round fps, 1-decimal frame time)', () => {
-    expect(formatTryxSensorValue('Framerate', 59.6)).toBe('60fps');
-    expect(formatTryxSensorValue('FrameTime', 16.66)).toBe('16.7ms');
   });
 });
 
@@ -315,7 +326,8 @@ describe('tryxOverlayPreviewValue', () => {
   };
 
   it('formats the live value with the panel firmware rounding, not the monitoring string', () => {
-    expect(tryxOverlayPreviewValue('cpu', 'cpu-temp', 'Temperature', sensorsByGroup)).toBe('52°C');
+    expect(tryxOverlayPreviewValue('cpu', 'cpu-temp', 'Temperature', sensorsByGroup)).toBe('52.4°C');
+    expect(tryxOverlayPreviewValue('cpu', 'cpu-temp', 'Temperature', sensorsByGroup, true)).toBe('52°C');
   });
 
   it('falls back to a type-appropriate placeholder when the sensor is not live', () => {

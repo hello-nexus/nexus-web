@@ -149,7 +149,7 @@ type TryxTab = 'display' | 'media';
  */
 export function TryxDevicePage() {
   const { t, language } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const simulated = useTryxSimulated();
   const [status, setStatus] = useState<TryxStatus | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -1071,7 +1071,7 @@ export function TryxDevicePage() {
             )}
             {overlayItems.map((item, i) => {
               if (!item.enabled) return null;
-              const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup);
+              const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup, monitoringWholeNumbers);
               const fontStyle = tryxFontCssStyle(overlayFont);
               const justify = tryxOverlayJustifyStyle(overlayAlign);
               const valueFontPx = scalePanelMetric(TRYX_VALUE_FONT_PANEL_PX, overlaySize, previewHeightPx);

@@ -390,11 +390,11 @@ function gaugeProps(rawValue: number, pct: number, formatted: string, label: str
 }
 
 function formatTemp(value: number, tempUnit: TempUnit, numberFormat: NumberFormat, wholeNumbers: boolean): string {
-  return formatSensorValue(value, '°C', '', tempUnit, numberFormat, 'Temperature', wholeNumbers);
+  return formatSensorValue(value, '°C', `${value} °C`, tempUnit, numberFormat, 'Temperature', wholeNumbers);
 }
 
 function formatDuty(value: number, numberFormat: NumberFormat, wholeNumbers: boolean): string {
-  return formatSensorValue(value, '%', '', 'c', numberFormat, 'Control', wholeNumbers);
+  return formatSensorValue(value, '%', `${value}%`, 'c', numberFormat, 'Control', wholeNumbers);
 }
 
 export default CoolingWidget;

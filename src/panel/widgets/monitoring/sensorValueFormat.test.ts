@@ -42,19 +42,28 @@ describe('formatScaledDataValue', () => {
 });
 
 describe('formatSensorValue per-type rule', () => {
-  const fmt = (value: number, units: string, type: string, whole: boolean, temp: 'c' | 'f' = 'c', nf: 'system' | 'dot' | 'comma' = 'dot') =>
-    formatSensorValue(value, units, 'svc', temp, nf, type, whole);
+  // The service string is kept and only its number is replaced, so each case
+  // passes a provider-shaped string: the value written with its own suffix.
+  const fmt = (
+    value: number, units: string, type: string, whole: boolean, suffix = '',
+    temp: 'c' | 'f' = 'c', nf: 'system' | 'dot' | 'comma' = 'dot',
+  ) => formatSensorValue(value, units, `${value}${suffix}`, temp, nf, type, whole);
 
   it('keeps today decimals when whole numbers are off', () => {
-    expect(fmt(35.34, '°C', 'Temperature', false)).toBe('35.3 °C');
-    expect(fmt(97.94, 'W', 'Power', false)).toBe('97.9 W');
-    expect(fmt(12.34, '%', 'Load', false)).toBe('12.3%');
-    expect(fmt(0.85, 'V', 'Voltage', false)).toBe('0.850 V');
-    expect(fmt(1.5, 'A', 'Current', false)).toBe('1.500 A');
-    expect(fmt(2400.4, 'RPM', 'Fan', false)).toBe('2400 RPM');
-    expect(fmt(1800.6, 'MHz', 'Clock', false)).toBe('1801 MHz');
-    expect(fmt(16.66, 'ms', 'Framerate', false)).toBe('16.7 ms');
+    expect(fmt(35.34, '°C', 'Temperature', false, ' °C')).toBe('35.3 °C');
+    expect(fmt(97.94, 'W', 'Power', false, ' W')).toBe('97.9 W');
+    expect(fmt(12.34, '%', 'Load', false, '%')).toBe('12.3%');
+    expect(fmt(0.85, 'V', 'Voltage', false, ' V')).toBe('0.850 V');
+    expect(fmt(1.5, 'A', 'Current', false, ' A')).toBe('1.500 A');
+    expect(fmt(2400.4, 'RPM', 'Fan', false, ' RPM')).toBe('2400 RPM');
+    expect(fmt(1800.6, 'MHz', 'Clock', false, ' MHz')).toBe('1801 MHz');
+    expect(fmt(16.66, 'ms', 'FrameTime', false, ' ms')).toBe('16.7 ms');
     expect(fmt(143.6, 'fps', 'Framerate', false)).toBe('144');
+  });
+
+  it('returns a number-less provider string unchanged (idle FPS)', () => {
+    expect(formatSensorValue(0, 'fps', '-', 'c', 'dot', 'Framerate', false)).toBe('-');
+    expect(formatSensorValue(0, 'ms', '-', 'c', 'dot', 'FrameTime', true)).toBe('-');
   });
 
   it('classifies unitless flow, noise and frequency by sensor type', () => {
@@ -67,30 +76,48 @@ describe('formatSensorValue per-type rule', () => {
   });
 
   it('rounds half away from zero when whole numbers are on', () => {
-    expect(fmt(35.5, '°C', 'Temperature', true)).toBe('36 °C');
-    expect(fmt(-2.5, '°C', 'Temperature', true)).toBe('-3 °C');
-    expect(fmt(-0.4, '°C', 'Temperature', true)).toBe('0 °C');
-    expect(fmt(97.94, 'W', 'Power', true)).toBe('98 W');
-    expect(fmt(12.5, '%', 'Control', true)).toBe('13%');
-    expect(fmt(55.5, '%', 'Level', true)).toBe('56%');
+    expect(fmt(35.5, '°C', 'Temperature', true, ' °C')).toBe('36 °C');
+    expect(fmt(-2.5, '°C', 'Temperature', true, ' °C')).toBe('-3 °C');
+    expect(fmt(-0.4, '°C', 'Temperature', true, ' °C')).toBe('0 °C');
+    expect(fmt(97.94, 'W', 'Power', true, ' W')).toBe('98 W');
+    expect(fmt(12.5, '%', 'Control', true, '%')).toBe('13%');
+    expect(fmt(55.5, '%', 'Level', true, '%')).toBe('56%');
   });
 
   it('keeps voltage, current, frame time, clock, rpm and fps unchanged when on', () => {
-    expect(fmt(0.85, 'V', 'Voltage', true)).toBe('0.850 V');
-    expect(fmt(1.5, 'A', 'Current', true)).toBe('1.500 A');
-    expect(fmt(16.66, 'ms', 'Framerate', true)).toBe('16.7 ms');
-    expect(fmt(2400.4, 'RPM', 'Fan', true)).toBe('2400 RPM');
+    expect(fmt(0.85, 'V', 'Voltage', true, ' V')).toBe('0.850 V');
+    expect(fmt(1.5, 'A', 'Current', true, ' A')).toBe('1.500 A');
+    expect(fmt(16.66, 'ms', 'FrameTime', true, ' ms')).toBe('16.7 ms');
+    expect(fmt(2400.4, 'RPM', 'Fan', true, ' RPM')).toBe('2400 RPM');
   });
 
-  it('converts to Fahrenheit before rounding', () => {
-    expect(fmt(35, '°C', 'Temperature', false, 'f')).toBe('95.0 °F');
-    expect(fmt(35.3, '°C', 'Temperature', true, 'f')).toBe('96 °F');
+  it('matches the service rounding on exact binary ties', () => {
+    expect(fmt(0.45, 'W', 'Power', false, ' W')).toBe('0.5 W');
+    expect(fmt(1.45, 'W', 'Power', false, ' W')).toBe('1.4 W');
+    expect(fmt(12.35, 'W', 'Power', false, ' W')).toBe('12.3 W');
+    expect(fmt(1.0125, 'V', 'Voltage', false, ' V')).toBe('1.012 V');
+    expect(fmt(1.2345, 'V', 'Voltage', false, ' V')).toBe('1.234 V');
+  });
+
+  it('converts to Fahrenheit in double before rounding', () => {
+    const f = (c: number, whole = false) => fmt(c, '°C', 'Temperature', whole, ' °C', 'f');
+    expect(f(30.25)).toBe('86.5 °F');
+    expect(f(45.25)).toBe('113.5 °F');
+    expect(f(50.25)).toBe('122.5 °F');
+    expect(f(60.75)).toBe('141.3 °F');
+    expect(f(35.3, true)).toBe('96 °F');
   });
 
   it('applies the locale number format after rounding', () => {
-    expect(fmt(35.34, '°C', 'Temperature', false, 'c', 'comma')).toBe('35,3 °C');
-    expect(fmt(1234.56, 'W', 'Power', false, 'c', 'comma')).toBe('1234,6 W');
-    expect(fmt(35.6, '°C', 'Temperature', true, 'c', 'comma')).toBe('36 °C');
+    expect(fmt(35.34, '°C', 'Temperature', false, ' °C', 'c', 'comma')).toBe('35,3 °C');
+    expect(fmt(1234.56, 'W', 'Power', false, ' W', 'c', 'comma')).toBe('1234,6 W');
+    expect(fmt(35.6, '°C', 'Temperature', true, ' °C', 'c', 'comma')).toBe('36 °C');
+  });
+
+  it('passes the service string through when no type is given', () => {
+    expect(formatSensorValue(35.34, '°C', '35.34 °C', 'c', 'dot')).toBe('35.34 °C');
+    expect(formatSensorValue(35, '°C', '35.0 °C', 'f', 'dot')).toBe('95.0 °F');
+    expect(formatSensorValue(0, 'fps', '-', 'c', 'dot')).toBe('-');
   });
 
   it('leaves data scaling and unclassified sensors alone', () => {
