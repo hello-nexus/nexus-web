@@ -48,7 +48,8 @@ export function subscribeLedFrame(fn: (f: LedFrame) => void): () => void {
   // Paint once immediately so a card mounting between frames is never blank.
   fn(frame);
   if (rafId === null) {
-    // A streamed page is captured at the stream's rate; ticks past the page's cap only wake the loop.
+    // The page's cap (the stream's rate or the record's frame cap, else the panel's refresh divider) bounds
+    // the ticks; the rest only wake the loop.
     shouldTick = createAdaptivePacer(() => pageFrameCap(window.location.search), panelDisplayHz(window.location.search));
     loop();
   }
