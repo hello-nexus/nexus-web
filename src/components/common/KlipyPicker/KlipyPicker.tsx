@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageOff } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
-import { Button } from '../Button/Button';
 import { SearchInput } from '../SearchInput/SearchInput';
 import { EffectCard } from '../EffectCard/EffectCard';
 import { EmptyState } from '../EmptyState/EmptyState';
@@ -153,7 +152,6 @@ export function KlipyPicker({ open, busySlug, importError, thumbAspect, onPick, 
       </div>
 
       <div className={styles.footer}>
-        <Button tone="neutral" size="md" onClick={onClose}>{t('app.window.close')}</Button>
         {importError && <p className={styles.importError} role="alert">{importError}</p>}
         <p className={styles.attribution}>{t('lighting.controls.klipyPoweredBy')}</p>
       </div>

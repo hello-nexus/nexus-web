@@ -2795,6 +2795,7 @@
   "lighting.colorTuning.colorOrder": "Kolejność kolorów",
   "lighting.colorTuning.colorOrderInfo": "Użyj, jeśli kolory są zamienione miejscami, na przykład czerwony wyświetla się jako zielony.",
   "lighting.colorTuning.cool": "Chłodna",
+  "lighting.colorTuning.done": "Gotowe",
   "lighting.colorTuning.effectiveBrightnessInfo": "Jasność główna ogranicza wyjście do {master}%, więc to urządzenie nie może być jaśniejsze.",
   "lighting.colorTuning.green": "Zielony",
   "lighting.colorTuning.legendSource": "Źródło",
