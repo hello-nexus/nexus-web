@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalA11y } from './useModalA11y';
+import { useOverlayScale } from './overlayScale';
 import { acquireBlurScrim, releaseBlurScrim } from './blurScrimGuard';
 import styles from './Overlay.module.scss';
 
@@ -56,6 +57,7 @@ export function Overlay({
   children,
 }: OverlayProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const scale = useOverlayScale();
   useModalA11y({ open, onClose, onEnter, noEscDismiss, autoFocus, containerRef: surfaceRef });
 
   // Only the centered variants paint a blurring backdrop; sheets bring their
@@ -102,6 +104,8 @@ export function Overlay({
       <div
         ref={surfaceRef}
         className={`${styles.surface} ${className ?? ''}`}
+        // Sheets are placed by their owner; only centered dialogs follow the host's scale.
+        style={variant !== 'sheet' && scale !== 1 ? { zoom: scale } : undefined}
         tabIndex={-1}
         onPointerDown={e => { pointerDownInSurface.current = true; e.stopPropagation(); }}
         onClick={e => e.stopPropagation()}

@@ -200,6 +200,7 @@ import {
 } from './theme/panelTheme';
 import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
+import { OverlayScaleContext } from '../components/common/Overlay/overlayScale';
 import { IncomingPairCard } from '../app/IncomingPairModal';
 import { usePairApprovalRequest } from '../hooks/usePairApprovalRequest';
 import { usePairPromptSheet } from './pairPromptSheet';
@@ -812,6 +813,9 @@ export function PanelContent({
       : { ...panelThemeVars, '--panel-editor-blur-scale': webkitSafePanelScale ?? 1 } as CSSProperties),
     [touchPanelChrome, webkitSafePanelScale, webkitSafeChromeScale, panelThemeVars],
   );
+  // Dialogs opened from the sheet (a confirm) portal to <body>, outside the
+  // sheet's zoom; hand them the same scale so they match the panel chrome.
+  const sheetOverlayScale = touchPanelChrome ? (webkitSafeChromeScale ?? webkitSafePanelScale ?? 1) : 1;
   const backdrop = wallpaperBackgroundAvailable && showPanelBackground
     ? effectiveTheme.backdrop
     : 'theme';
@@ -2814,6 +2818,7 @@ export function PanelContent({
       <PanelScreenSleep asleep={screenAsleep} onSleepFaded={() => setScreenHidden(true)} onWakeStart={() => setScreenHidden(false)} onWake={() => setScreenAsleep(false)} />
 
       {sheetMode && (
+        <OverlayScaleContext.Provider value={sheetOverlayScale}>
         <PanelEditorSheet
           mode={sheetMode}
           surface={surface}
@@ -2890,6 +2895,7 @@ export function PanelContent({
           editView={deckEditView}
           onEditViewChange={setDeckEditView}
         />
+        </OverlayScaleContext.Provider>
       )}
 
       {kioskBehavior && (
