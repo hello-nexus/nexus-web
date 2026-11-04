@@ -11,6 +11,7 @@ import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { backdropHintFromUrl } from './background/panelBackground';
 import { PanelDigitizerProvider, PanelDisplayBoundProvider, PanelGenericDisplayProvider } from './widgets/common/PanelDisplayBoundContext';
 import { usePanelFpsCap } from './engine/usePanelFpsCap';
+import { streamFrameCap } from '../lib/framePacer';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -2346,6 +2347,7 @@ export function PanelContent({
         data-surface={surface}
         data-screen-sleep={screenHidden ? 'true' : undefined}
         data-simulator={simulator ? 'true' : undefined}
+        data-stream={streamFrameCap(window.location.search) !== null ? 'true' : undefined}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
         data-immersive-see-through={immersiveSeeThrough ? 'true' : undefined}
         // Omitted on single-widget surfaces: they force widgetPadding 0

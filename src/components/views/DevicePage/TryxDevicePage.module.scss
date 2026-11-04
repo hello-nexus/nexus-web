@@ -98,15 +98,26 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  // The box's own gap sits above this block's divider; mirror it below so the
+  // action row is centered between the divider above and the content below.
+  padding-top: 0.75rem;
 }
 
-// Upload button on the left, the storage indicator on the right - both sized
-// to their own content, not stretched across the row.
+// Upload and GIF buttons grouped on the left, the storage indicator on the
+// right, each sized to its own content. Wraps on a narrow pane.
 .libraryHeaderRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.libraryActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .hiddenInput {
