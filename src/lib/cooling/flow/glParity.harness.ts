@@ -2,6 +2,7 @@ import { Color, DataTexture, FloatType, Group, RGBAFormat, PerspectiveCamera, Sc
 import { CpuFlow } from './cpuSolver';
 import { caseWithGpuAndShroud, defaultDir, fronts, gpuBox, inputFor, rear } from './flowFixtures';
 import { FlowLayer } from './flowLayer';
+import { PARITY_LOOK } from './flowLook';
 import { GlFlow, PassRunner, floatSupport, pass, target } from './glFlow';
 import { STREAK_PARITY } from './shaders';
 import { stepDisplacement, streakOf } from './streak';
@@ -116,7 +117,7 @@ async function main() {
   const host = new Group();
   const layer = new FlowLayer(renderer, host, new Vector3(480, 440, 360), {
     cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
-  });
+  }, PARITY_LOOK);
   const sc = new Scene();
   sc.add(host);
   const cam = new PerspectiveCamera(40, 4 / 3, 1, 5000);
@@ -158,7 +159,7 @@ async function main() {
     scP.add(hostP);
     const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
       cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
-    });
+    }, PARITY_LOOK);
     // The coarsest tier keeps the software renderer quick; particles start once the first solve settles.
     l.dropTier();
     l.dropTier();
@@ -188,7 +189,7 @@ async function main() {
   sc2.add(host2);
   const slowFast = new FlowLayer(renderer, host2, new Vector3(480, 440, 360), {
     cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
-  });
+  }, PARITY_LOOK);
   slowFast.setInput(pair);
   slowFast.setOptions({ particles: true, collisions: false, speed: 1.5 });
   const fs2 = slowFast.scene!;

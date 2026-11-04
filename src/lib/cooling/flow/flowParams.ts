@@ -113,12 +113,7 @@ export const STREAK_STEPS = 15;
 /** Streak length bounds, scene mm: a stalled particle keeps the minimum, a fast one is capped at the maximum. */
 export const STREAK_MIN_MM = 3;
 export const STREAK_MAX_MM = 105;
-/** Streak width in scene mm, and the narrowest it is drawn on screen, px. */
-export const STREAK_WIDTH_MM = 5.5;
-export const STREAK_MIN_WIDTH_PX = 2.5;
 /** The ribbon is this many segments long. Its tail follows the flow field backward from the particle, so it bends where the air bends. */
 export const STREAK_SEGMENTS = 12;
-/** Share of the head width the tail tapers to. */
-export const STREAK_TAIL_WIDTH = 0.35;
 /** Steps shorter than this many mm have no usable direction, so the streak takes a fixed axis. */
 export const STREAK_STALL_MM = 1e-4;

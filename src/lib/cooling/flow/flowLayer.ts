@@ -1,6 +1,6 @@
 import {
-  NormalBlending, NoBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
-  Mesh, NearestFilter, PerspectiveCamera, Points, RGBAFormat, Scene, ShaderMaterial, Vector2, Vector3, type Group, type WebGLRenderer, type WebGLRenderTarget,
+  NormalBlending, BufferAttribute, BufferGeometry, Color, DataTexture, DoubleSide, FloatType, GLSL3,
+  Mesh, NearestFilter, PerspectiveCamera, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type WebGLRenderer, type WebGLRenderTarget,
 } from 'three';
 import { DEV_TOOLS } from '../../devTools';
 import { isInternalSlotKey } from '../slotFlow';
@@ -13,8 +13,8 @@ import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps }
 import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
-import { FADE_PROBE, FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, PROBE_FRAGMENT, STREAK_FRAGMENT, streakVertex } from './shaders';
-import { getFlowVariant } from './flowVariant';
+import { FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT } from './shaders';
+import { FLOW_LOOK, type FlowLook } from './flowLook';
 
 /** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
 export const flowTiers = (): number[] => {
@@ -98,7 +98,7 @@ export class FlowLayer {
   private stepsPerFrame = 4;
   private slowCount = 0;
   private lastFrameAt = 0;
-  private readonly variant = getFlowVariant();
+  private readonly look: FlowLook;
   /** Layer-wide fade for the events that would otherwise end every streak at once: a rebuild on a new grid, a coarser tier, the particles switched off, the layer cleared. */
   private fadeT = 1;
   private fadeGoal = 1;
@@ -108,8 +108,6 @@ export class FlowLayer {
   private histMat: ShaderMaterial | null = null;
   private histCur = 0;
   private histHead = 0;
-  /** Test hook: runs exactly this many particle steps a frame, the motion of a steady 60 Hz display. */
-  forceSteps = 0;
   private pendingTeardown = false;
   private options: FlowOptions = { particles: true, collisions: false, speed: PARTICLE_SPEED_SCALE };
   private seed = 1;
@@ -159,7 +157,8 @@ export class FlowLayer {
   private readonly extent: Vector3;
   private readonly colors: FlowColors;
 
-  constructor(renderer: WebGLRenderer, host: Group, extent: Vector3, colors: FlowColors) {
+  constructor(renderer: WebGLRenderer, host: Group, extent: Vector3, colors: FlowColors, look: FlowLook = FLOW_LOOK) {
+    this.look = look;
     this.renderer = renderer;
     this.extent = extent;
     this.colors = colors;
@@ -196,7 +195,7 @@ export class FlowLayer {
   private drawnSpeed(): number {
     const scale = this.options.timeScale;
     const base = scale !== undefined && this.fscene ? scale / (PARTICLE_STEPS_PER_SECOND * this.fscene.stepSeconds) : this.options.speed;
-    return base * this.speedFactor * this.variant.timeScaleMul;
+    return base * this.speedFactor * this.look.timeScaleMul;
   }
 
   // The speed at which one particle step is one unit of simulation time: normal speed, whatever the scene. Age, the stuck test and the streak length run against it, so only Slow mo and the fans' speed change scale them.
@@ -206,7 +205,7 @@ export class FlowLayer {
 
   /** Eases the layer-wide fade toward its goal, and runs the rebuild or teardown that waited for it. */
   private stepFade(dt: number) {
-    if (this.variant.fadeOut <= 0 || !this.streakMat) return;
+    if (this.look.fadeOut <= 0 || !this.streakMat) return;
     const step = dt / FADE_MS;
     this.fadeT = this.fadeT < this.fadeGoal ? Math.min(this.fadeGoal, this.fadeT + step) : Math.max(this.fadeGoal, this.fadeT - step);
     this.streakMat.uniforms.uFade.value = this.fadeT * this.fadeT * (3 - 2 * this.fadeT);
@@ -223,75 +222,23 @@ export class FlowLayer {
     }
   }
 
-  /** Test hook for the preview page: the geometry the streak shader draws, one texel per ribbon station of each drawn particle, as layout-space mm position and alpha. */
-  debugGeometry(): { data: Float32Array; stations: number; rows: number; drawn: number } | null {
-    if (!this.kind || !this.streaks || !this.streakMat || this.stateTargets.length === 0) return null;
-    const v = this.variant;
-    const probe = new ShaderMaterial({
-      glslVersion: GLSL3, defines: { PROBE: '' }, uniforms: this.streakMat.uniforms,
-      vertexShader: v.history ? histVertex(v.segments, HISTORY_SAMPLES) : streakVertex(v.streakSteps, v.streakMinMm, v.streakMaxMm, v.segments), fragmentShader: PROBE_FRAGMENT,
-      blending: NoBlending, depthTest: false, depthWrite: false, transparent: false,
-    });
-    const points = new Points(this.streaks.geometry, probe);
-    points.frustumCulled = false;
-    const tmp = new Scene();
-    tmp.add(points);
-    const stations = v.segments + 1;
-    const rt = target(stations, HISTORY_ROWS, this.kind);
-    const prevTarget = this.renderer.getRenderTarget();
-    this.renderer.setRenderTarget(rt);
-    this.renderer.setClearColor(0x000000, 0);
-    this.renderer.clear();
-    this.renderer.render(tmp, new PerspectiveCamera());
-    this.renderer.setRenderTarget(prevTarget);
-    const data = new Float32Array(stations * HISTORY_ROWS * 4);
-    this.renderer.readRenderTargetPixels(rt, 0, 0, stations, HISTORY_ROWS, data);
-    probe.dispose();
-    rt.dispose();
-    return { data, stations, rows: HISTORY_ROWS, drawn: this.drawnCount() };
-  }
-
   /** Test hook: what the layer is drawing with, for reading from a live page. */
   debugInfo() {
     const u = this.streakMat?.uniforms;
     const hex = (c: Color) => `#${c.getHexString()}`;
     return {
-      frameMs: this.frameMs, solverMsPerStep: this.timer?.msPerStep ?? 0, variant: this.variant.name, tier: this.tier, drawn: this.drawnCount(), history: this.variant.history, fade: this.fadeT, solving: this.solving,
+      frameMs: this.frameMs, solverMsPerStep: this.timer?.msPerStep ?? 0, tier: this.tier, drawn: this.drawnCount(), fade: this.fadeT, solving: this.solving,
       alpha: u?.uAlpha.value, alphaVar: u?.uAlphaVar.value, widthMm: u?.uWidthMm.value, minWidthPx: u?.uMinWidthPx.value, heatSpan: u?.uHeatSpan.value,
       colors: { cool: hex(this.colors.cool), purple: hex(this.colors.purple), hot: hex(this.colors.hot) },
       fanCfm: this.input?.fanCfm, directions: this.input?.directions, ventCfm: this.input?.ventCfm, referenceCfm: this.input?.referenceCfm, temps: this.temps,
     };
   }
 
-  /** Test hook for the preview page: the grid's cell size and origin, mm. */
-  debugScene(): { cellMm: number; origin: [number, number, number]; dims: [number, number, number] } | null {
-    return this.fscene ? { cellMm: this.fscene.cellMm, origin: this.fscene.origin as [number, number, number], dims: this.fscene.dims } : null;
-  }
-
-  /** Test hook for the preview page: steps to the next coarser grid tier now. */
-  forceDropTier() { this.dropTier(); }
-
-  /** Probe for the preview page: the drawn alpha share and the state (xyz cell, age) of every particle texel. */
-  debugFade(): { alpha: Float32Array; state: Float32Array; w: number; h: number; fade: number } | null {
-    if (!this.kind || !this.runner || this.stateTargets.length === 0 || !this.streakMat) return null;
-    const { w, h } = PARTICLE_TEXTURE;
-    const probe = pass(FADE_PROBE, { ...Object.fromEntries(['uCell', 'uOrigin', 'uCaseExtent', 'uMargin', 'uMaxAge', 'uLifeJitter', 'uFadeOut', 'uGrowTail'].map(k => [k, this.streakMat!.uniforms[k]])), PA: { value: this.stateTargets[this.stateCur].texture } });
-    const out = target(w, h, this.kind);
-    this.runner.run(probe, out);
-    const alpha = new Float32Array(w * h * 4);
-    const state = new Float32Array(w * h * 4);
-    this.renderer.readRenderTargetPixels(out, 0, 0, w, h, alpha);
-    this.renderer.readRenderTargetPixels(this.stateTargets[this.stateCur], 0, 0, w, h, state);
-    probe.dispose();
-    out.dispose();
-    return { alpha, state, w, h, fade: this.fadeT * this.fadeT * (3 - 2 * this.fadeT) };
-  }
-
   setOptions(options: FlowOptions) {
     this.options = options;
     for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uRefSpeed.value = this.referenceSpeed(); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }
     if (this.streaks) {
-      if (this.variant.fadeOut > 0) this.fadeGoal = options.particles ? 1 : 0;
+      if (this.look.fadeOut > 0) this.fadeGoal = options.particles ? 1 : 0;
       else this.streaks.visible = options.particles;
     }
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
@@ -370,10 +317,10 @@ export class FlowLayer {
     if (!this.supported) return;
     this.pendingTeardown = false;
     if (!input) {
-      if (this.variant.fadeOut > 0 && this.flow && this.fadeT > 0.02) { this.pendingTeardown = true; this.fadeGoal = 0; } else this.teardown();
+      if (this.look.fadeOut > 0 && this.flow && this.fadeT > 0.02) { this.pendingTeardown = true; this.fadeGoal = 0; } else this.teardown();
       return;
     }
-    if (this.variant.fadeOut > 0 && this.options.particles && !this.deferred) this.fadeGoal = 1;
+    if (this.look.fadeOut > 0 && this.options.particles && !this.deferred) this.fadeGoal = 1;
     // A speed change alone keeps the solved field: the particles speed up or slow down instead. A structural change, or a speed mix far from the solved one once the minimum interval has passed, solves again.
     if (previous && this.flow && this.solvedInput && sameStructure(this.solvedInput, input)) {
       const drift = speedDrift(this.solvedInput, input);
@@ -396,12 +343,12 @@ export class FlowLayer {
       this.flow.setScene(scene);
     } else {
       // A new grid restarts every particle: the old ones fade out first, then the rebuild runs.
-      if (!now && this.flow && this.variant.fadeOut > 0 && this.fadeT > 0.02) { this.deferred = { warm }; this.fadeGoal = 0; return; }
+      if (!now && this.flow && this.look.fadeOut > 0 && this.fadeT > 0.02) { this.deferred = { warm }; this.fadeGoal = 0; return; }
       this.flow?.dispose();
       this.flow = new GlFlow(this.renderer, scene, this.kind);
       this.ensureParticles();
       this.resetParticles();
-      this.streaks?.geometry.setDrawRange(0, this.drawnCount() * this.variant.segments * 6);
+      this.streaks?.geometry.setDrawRange(0, this.drawnCount() * this.look.segments * 6);
       // The streak material still points at the old field's textures until the particles next run.
       if (this.streaks) this.streaks.visible = false;
       this.coldStart = true;
@@ -442,31 +389,29 @@ export class FlowLayer {
     this.spawnTex.minFilter = NearestFilter;
     this.spawnTex.magFilter = NearestFilter;
     this.spawnTex.needsUpdate = true;
-    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uBoundsMin.value = scene.particleBounds.min; this.stateMat.uniforms.uCaseMin.value = scene.caseBounds.min; this.stateMat.uniforms.uCaseMax.value = scene.caseBounds.max; this.stateMat.uniforms.uExitCells.value = (this.variant.exitShare * OUTSIDE_REACH_MM) / scene.cellMm; this.stateMat.uniforms.uReachCells.value = OUTSIDE_REACH_MM / scene.cellMm; this.stateMat.uniforms.uBoundsMax.value = scene.particleBounds.max; }
+    if (this.stateMat) { this.stateMat.uniforms.EM.value = this.spawnTex; this.stateMat.uniforms.uEmitterCount.value = entries; this.stateMat.uniforms.uBoundsMin.value = scene.particleBounds.min; this.stateMat.uniforms.uCaseMin.value = scene.caseBounds.min; this.stateMat.uniforms.uCaseMax.value = scene.caseBounds.max; this.stateMat.uniforms.uExitCells.value = (this.look.exitShare * OUTSIDE_REACH_MM) / scene.cellMm; this.stateMat.uniforms.uReachCells.value = OUTSIDE_REACH_MM / scene.cellMm; this.stateMat.uniforms.uBoundsMax.value = scene.particleBounds.max; }
   }
 
   private drawnCount(): number {
-    const n = Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier] * this.variant.drawShare);
-    // A history variant keeps a trail for the first HISTORY_ROWS particles only.
-    return this.variant.history ? Math.min(n, HISTORY_ROWS) : n;
+    const n = Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier] * this.look.drawShare);
+    // A trail is kept for the first HISTORY_ROWS particles only.
+    return Math.min(n, HISTORY_ROWS);
   }
 
   private ensureParticles() {
     if (!this.kind || this.stateMat) return;
     const { w, h } = PARTICLE_TEXTURE;
-    const v = this.variant;
+    const v = this.look;
     this.stateTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     this.heatTargets = Array.from({ length: RING }, () => target(w, h, this.kind!));
     const base = () => ({
       uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uCaseMin: { value: [0, 0, 0] }, uCaseMax: { value: [0, 0, 0] }, uExitCells: { value: 0 }, uOutDecay: { value: v.outDecay }, uReachCells: { value: 0 }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uFadeOut: { value: v.fadeOut }, uSeed: { value: 0 }, uMaxAge: { value: v.maxAge }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: v.lifeJitter }, uSpeed: { value: this.options.speed }, uRefSpeed: { value: PARTICLE_REFERENCE_SPEED }, uSubsteps: { value: substepsFor(this.options.speed) },
+      PA: { value: null as unknown }, EM: { value: null as unknown }, uEmitterCount: { value: 0 }, uBoundsMin: { value: [0, 0, 0] }, uBoundsMax: { value: [0, 0, 0] }, uCaseMin: { value: [0, 0, 0] }, uCaseMax: { value: [0, 0, 0] }, uExitCells: { value: 0 }, uOutDecay: { value: v.outDecay }, uReachCells: { value: 0 }, uSpeedGamma: { value: v.speedGamma }, uSpeedRef: { value: v.speedRef }, uStuckMove: { value: STUCK_MOVE_CELLS }, uStuckRate: { value: STUCK_AGE_RATE }, uFadeOut: { value: v.fadeOut }, uSeed: { value: 0 }, uMaxAge: { value: v.maxAge }, uBirthSpread: { value: PARTICLE_BIRTH_SPREAD }, uLifeJitter: { value: v.lifeJitter }, uSpeed: { value: this.options.speed }, uRefSpeed: { value: PARTICLE_REFERENCE_SPEED }, uSubsteps: { value: substepsFor(this.options.speed) },
     });
     this.stateMat = pass(PARTICLE_STATE, base());
     this.heatMat = pass(PARTICLE_HEAT, { ...base(), T: { value: null as unknown } });
-    if (v.history) {
-      this.histTargets = Array.from({ length: 2 }, () => target(HISTORY_SAMPLES, HISTORY_ROWS, this.kind!));
-      this.histMat = pass(HIST_PASS, { PA: { value: null as unknown }, HP: { value: null as unknown }, uWrite: { value: 0 }, uLast: { value: 0 }, uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uFadeOut: { value: v.fadeOut } });
-    }
+    this.histTargets = Array.from({ length: 2 }, () => target(HISTORY_SAMPLES, HISTORY_ROWS, this.kind!));
+    this.histMat = pass(HIST_PASS, { PA: { value: null as unknown }, HP: { value: null as unknown }, uWrite: { value: 0 }, uLast: { value: 0 }, uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uFadeOut: { value: v.fadeOut } });
 
     const geometry = new BufferGeometry();
     // A ribbon per particle: head to tail in v.segments segments, two vertices (one per side) at each of v.segments + 1 stations.
@@ -492,13 +437,18 @@ export class FlowLayer {
     geometry.setIndex(new BufferAttribute(index, 1));
     geometry.setDrawRange(0, this.drawnCount() * v.segments * 6);
     this.streakMat = new ShaderMaterial({
-      glslVersion: GLSL3, vertexShader: v.history ? histVertex(v.segments, HISTORY_SAMPLES) : streakVertex(v.streakSteps, v.streakMinMm, v.streakMaxMm, v.segments), fragmentShader: STREAK_FRAGMENT,
+      glslVersion: GLSL3, vertexShader: histVertex(v.segments, HISTORY_SAMPLES), fragmentShader: STREAK_FRAGMENT,
       uniforms: {
-        PA: { value: null as unknown }, PP: { value: null as unknown }, PB: { value: null as unknown }, uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() },
-        uMargin: { value: OUTSIDE_REACH_MM }, uWidthMm: { value: v.widthMm }, uMinWidthPx: { value: v.minWidthPx }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
-        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uAlpha: { value: v.alpha }, uTailWidth: { value: v.tailWidth }, uFadePow: { value: v.fadePow }, uAlphaVar: { value: v.alphaVar }, uHeadTaper: { value: v.headTaper }, uFade: { value: 1 }, HIST: { value: null as unknown }, uHead: { value: 0 }, uTrailSteps: { value: v.trailSteps }, uOwed: { value: -1 }, uRefSpeed: { value: 1 }, uFieldLen: { value: v.smooth ? 1 : 0 }, uFadeOut: { value: v.fadeOut }, uGrowTail: { value: v.growTail ? 1 : 0 }, uMarginStart: { value: v.marginStart > 0 ? v.marginStart : v.exitShare }, uHeadFade: { value: v.headFade }, uCapsule: { value: v.capsule ? 1 : 0 }, uSpeedLo: { value: v.speedWidth[0] }, uSpeedHi: { value: v.speedWidth[1] }, uSpeedMin: { value: v.speedWidth[2] }, uShapeHead: { value: Math.max(v.headTaper, 0.05) }, uShapeTail: { value: 0.35 }, uStationHeat: { value: v.stationHeat ? 1 : 0 }, uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uDirect: { value: v.directRamp ? 1 : 0 }, T: { value: null as unknown }, uHeadGlow: { value: v.headGlow }, uSoft: { value: v.soft }, uRate: { value: 1 },
+        PA: { value: null as unknown }, HIST: { value: null as unknown }, uHead: { value: 0 }, uTrailSteps: { value: v.trailSteps }, T: { value: null as unknown },
+        uCell: { value: 1 }, uOrigin: { value: new Vector3() }, uCaseExtent: { value: this.extent.clone() }, uMargin: { value: OUTSIDE_REACH_MM },
+        uWidthMm: { value: v.widthMm }, uMinWidthPx: { value: v.minWidthPx }, uViewport: { value: new Vector2(1, 1) }, uScale: { value: 400 },
+        uMaxAge: { value: v.maxAge }, uLifeJitter: { value: v.lifeJitter }, uFadeOut: { value: v.fadeOut }, uMarginStart: { value: v.marginStart > 0 ? v.marginStart : v.exitShare },
+        uAlpha: { value: v.alpha }, uAlphaVar: { value: v.alphaVar }, uFadePow: { value: v.fadePow }, uFade: { value: 1 }, uOwed: { value: 0 },
+        uHeadFade: { value: v.headFade }, uShapeHead: { value: Math.max(v.headTaper, 0.05) }, uShapeTail: { value: 0.35 },
+        uSpeedLo: { value: v.speedWidth[0] }, uSpeedHi: { value: v.speedWidth[1] }, uSpeedMin: { value: v.speedWidth[2] },
+        uHeatGain: { value: v.heatGain }, uHeatCurve: { value: v.heatCurve }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
         uN: { value: new Vector3() }, uTX: { value: 1 }, M: { value: null as unknown }, U: { value: null as unknown },
-        uCool: { value: this.colors.cool }, uPurple: { value: this.colors.purple }, uHot: { value: this.colors.hot }, uHeatSpan: { value: HEAT_COLOR_SPAN_C },
+        uCool: { value: this.colors.cool }, uPurple: { value: this.colors.purple }, uHot: { value: this.colors.hot },
       },
       transparent: true, depthWrite: false, depthTest: false, premultipliedAlpha: true, blending: NormalBlending, side: DoubleSide,
     });
@@ -513,7 +463,7 @@ export class FlowLayer {
     if (!this.kind || !this.runner || this.stateTargets.length === 0) return;
     const { w, h } = PARTICLE_TEXTURE;
     const fill = new Float32Array(w * h * 4);
-    for (let i = 0; i < w * h; i++) fill[i * 4 + 3] = this.variant.maxAge * 5;
+    for (let i = 0; i < w * h; i++) fill[i * 4 + 3] = this.look.maxAge * 5;
     const init = new DataTexture(fill, w, h, RGBAFormat, FloatType);
     init.needsUpdate = true;
     const blit = pass(FRAGMENT_OUT + 'uniform sampler2D T; void main(){ gl_FragColor = texelFetch(T, ivec2(gl_FragCoord.xy), 0); }', { T: { value: init } });
@@ -607,7 +557,7 @@ export class FlowLayer {
     // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
       // Particle steps follow real elapsed time, not frames: the drawn speed is the same at any frame rate and while the camera moves.
-      const particleSteps = this.forceSteps > 0 ? this.forceSteps : this.clock.advance(dt);
+      const particleSteps = this.clock.advance(dt);
       if (DEV_TOOLS) { const g = globalThis as { __nexusParticleSteps?: number; __nexusFrames?: number }; g.__nexusParticleSteps = (g.__nexusParticleSteps ?? 0) + particleSteps; g.__nexusFrames = (g.__nexusFrames ?? 0) + 1; }
       for (let st = 0; st < particleSteps; st++) {
         const next = (this.stateCur + 1) % RING;
@@ -635,14 +585,11 @@ export class FlowLayer {
       const scale = viewportHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
       const u = this.streakMat!.uniforms;
       u.PA.value = this.stateTargets[this.stateCur].texture;
-      u.PP.value = this.stateTargets[(this.stateCur + RING - 1) % RING].texture;
-      u.PB.value = this.heatTargets[this.stateCur].texture;
       u.U.value = flow.velocity;
-      u.uRate.value = this.drawnSpeed() / this.referenceSpeed();
-      u.uRefSpeed.value = this.referenceSpeed();
-      if (this.histTargets.length > 0) { u.HIST.value = this.histTargets[this.histCur].texture; u.uHead.value = this.histHead; }
+      u.HIST.value = this.histTargets[this.histCur].texture;
+      u.uHead.value = this.histHead;
       this.streaks!.visible = true;
-      u.uOwed.value = this.variant.smooth ? (this.forceSteps > 0 ? 0 : this.clock.fraction) : -1;
+      u.uOwed.value = this.clock.fraction;
       u.uScale.value = scale;
       (u.uViewport.value as Vector2).set(viewportHeight * camera.aspect, viewportHeight);
     }

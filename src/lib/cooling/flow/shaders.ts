@@ -1,4 +1,4 @@
-import { SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_SEGMENTS, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
+import { SPAWN_TRIES, TEMP_DIFFUSION, STREAK_MAX_MM, STREAK_MIN_MM, STREAK_STALL_MM, STREAK_STEPS } from './flowParams';
 
 const glFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 
@@ -203,7 +203,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uOutDecay; uniform float uReachCells; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uOutDecay; uniform float uReachCells; uniform float uSpeedGamma; uniform float uSpeedRef; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -213,10 +213,19 @@ const SPAWN_DEFINE = `#define SPAWN_TRIES ${SPAWN_TRIES}\n`;
 export const PARTICLE_STATE = SPAWN_DEFINE + PARTICLE_COMMON + /* glsl */ `
 uniform sampler2D F; // xyz target velocity, w fan cell
 // The velocity a particle feels: a fan cell's own target, else the solved field.
-vec3 pvel(vec3 q) {
+vec3 pvelRaw(vec3 q) {
   ivec3 c = cellAtPos(q);
   if (inside(c)) { vec4 f = texelFetch(F, tc(c), 0); if (f.w > 0.5) return f.xyz; }
   return sampleU(q);
+}
+// The speed a particle is drawn at: with a gamma under one, slow air is brought up toward the reference speed and fast air eased down, keeping every direction and the order of the speeds, so a gentle drift across the case reads as motion next to a fan's jet.
+vec3 pvel(vec3 q) {
+  vec3 v = pvelRaw(q);
+  if (uSpeedGamma < 1.0) {
+    float m = length(v);
+    if (m > 1.0e-6) v *= pow(m / uSpeedRef, uSpeedGamma - 1.0);
+  }
+  return v;
 }
 void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
@@ -352,16 +361,14 @@ vec3 rampColor(float h) {
 }
 `;
 
-// The share of full alpha a particle in state s (xyz cell, w age) draws at: zero until born and once dead, eased in and out of life, and out toward the margin around the case. Shared by the streak vertex shader and the fade probe pass, so the probe reads what is drawn.
+// The share of full alpha a particle in state s (xyz cell, w age) draws at: zero until born and once dead, eased in and out of life, and out toward the margin around the case.
 export const FADE_GLSL = LIFE + /* glsl */ `
 uniform float uCell; uniform vec3 uOrigin; uniform vec3 uCaseExtent; uniform float uMargin;
-uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut; uniform float uGrowTail; uniform float uMarginStart;
+uniform float uMaxAge; uniform float uLifeJitter; uniform float uFadeOut; uniform float uMarginStart;
 float ease5(float t) { t = clamp(t, 0.0, 1.0); return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
-float easeEdge(float a, float b, float x) { return uGrowTail > 0.5 ? ease5((x - a) / (b - a)) : smoothstep(a, b, x); }
-// The margin fade is spatial, so a fast stream crosses it quickly: a wide band, half linear and half smoothstep, keeps the drop per step small.
+float easeEdge(float a, float b, float x) { return ease5((x - a) / (b - a)); }
+// The margin fade is spatial, so a fast stream crosses it quickly. With a time-based exit the margin only dims the spawn area, so it starts further out.
 float marginFade(float outside) {
-  if (uGrowTail < 0.5) return 1.0 - smoothstep(uMargin * 0.6, uMargin, outside);
-  // With a time-based exit fade the margin only dims the spawn area, so it starts further out.
   float start = uMarginStart > 0.0 ? uMarginStart : 0.1;
   float x = clamp((outside - uMargin * start) / (uMargin * (1.0 - start)), 0.0, 1.0);
   if (uMarginStart > 0.0) return 1.0 - x * x * (3.0 - 2.0 * x);
@@ -373,107 +380,10 @@ float fadeOf(vec4 s, vec2 pixel) {
   vec3 head = (s.xyz + 0.5) * uCell - uOrigin;
   vec3 over = max(max(-head, head - uCaseExtent), 0.0);
   float outside = length(over);
-  return easeEdge(0.0, uGrowTail > 0.5 ? max(60.0, uFadeOut) : 12.0, s.w) * (1.0 - easeEdge(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * marginFade(outside);
+  return easeEdge(0.0, max(60.0, uFadeOut), s.w) * (1.0 - easeEdge(uFadeOut > 0.0 ? life - uFadeOut : life * 0.85, life, s.w)) * marginFade(outside);
 }
 `;
 
-/** Probe pass: per particle texel, the alpha share the streak shader would draw at. */
-export const FADE_PROBE = FRAGMENT_OUT + FADE_GLSL + /* glsl */ `
-uniform sampler2D PA;
-void main() {
-  ivec2 f = ivec2(gl_FragCoord.xy);
-  gl_FragColor = vec4(fadeOf(texelFetch(PA, f, 0), vec2(f) + 0.5), 0.0, 0.0, 0.0);
-}`;
-
-// A particle is a camera-facing ribbon of STREAK_SEGMENTS segments from its head back along the flow: each station steps backward through the solved velocity field, so the tail bends where the air bends. Per particle 2 vertices per station: corner.x is 1 at the head and 0 at the tail, corner.y the side.
-export const streakVertex = (steps: number, minMm: number, maxMm: number, segments: number) => GRID_COMMON + TEMP_COMMON + FADE_GLSL + streakGlsl(steps, minMm, maxMm) + /* glsl */ `
-#define STREAK_SEGMENTS ${segments}
-uniform sampler2D PA; uniform sampler2D PP; uniform sampler2D PB;
-uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
-uniform float uAlpha; uniform float uTailWidth; uniform float uRate;
-uniform float uHeatSpan;
-uniform float uFade; uniform float uOwed; uniform float uRefSpeed; uniform float uFieldLen; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uStationHeat; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
-in vec2 ref; in vec2 corner;
-out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx; out float vThin;
-#ifdef PROBE
-out vec4 vProbe;
-#endif
-${RAMP}
-// Cool to hot; uDirect 1 skips the purple stop.
-vec3 streakRamp(float h) { return uDirect > 0.5 ? mixLab(uCool, uHot, clamp(h, 0.0, 1.0)) : rampColor(h); }
-vec2 screenOf(vec3 cellPos, out float w) {
-  vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
-  vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);
-  w = max(c.w, 1.0e-4);
-  return c.xy / w * 0.5 * uViewport;
-}
-void main() {
-  ivec2 r = ivec2(ref);
-  vec4 s = texelFetch(PA, r, 0);
-  vec4 p = texelFetch(PP, r, 0);
-  float h = clamp(texelFetch(PB, r, 0).r / uHeatSpan, 0.0, 1.0);
-  float fade = fadeOf(s, vec2(r) + 0.5) * uFade;
-  // The head is drawn between the previous and the current particle step by the share of the next step already owed, so motion is smooth at any frame rate.
-  vec3 hp = s.xyz;
-  if (uOwed >= 0.0 && !(p.x < -1.0e5 || s.x < -1.0e5 || p.w >= s.w) && length(s.xyz - p.xyz) < 3.0) hp = mix(p.xyz, s.xyz, uOwed);
-  // A stable per-particle strength, so neighbors differ without flickering.
-  float strength = mix(1.0 - uAlphaVar, 1.0, hash(vec2(r) * 1.31 + 0.5));
-  vAlpha = s.x < -1.0e5 ? 0.0 : fade * uAlpha * strength;
-  // Length from the displacement per unit of simulation time, so Slow mo shows the same trail moving slower.
-  // Field length reads the solved air speed at the head, which changes smoothly; the step length would collapse the instant a head stops against a wall.
-  vec3 stepMm = uFieldLen > 0.5 ? sampleU(hp) * uRefSpeed * uCell : stepDisplacement(p, s, uCell) / uRate;
-  vec4 sl = streakOf(stepMm);
-  // A new particle has travelled at most about age times its step (taken at 60% in case it sped up since spawn), so its trail grows out of the spawn point instead of reaching back into air it never crossed.
-  if (uGrowTail > 0.5) sl.w = min(sl.w, max(0.6 * length(stepMm) * max(s.w, 0.0), 0.5));
-  float stepCells = sl.w / float(STREAK_SEGMENTS) / uCell;
-  int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
-  // Walk back from the head: a station at rest keeps the direction it had, a blocked step stays put. The tangent is the last step taken to reach the station (the first step for the head).
-  vec3 back = -sl.xyz;
-  vec3 cur = hp;
-  vec3 lastBack = back * stepCells;
-  for (int k = 1; k <= STREAK_SEGMENTS; k++) {
-    if (k > max(station, 1)) break;
-    vec3 v = sampleU(cur);
-    float vm = length(v);
-    if (vm > 1.0e-5) back = -v / vm;
-    vec3 nxt = cur + back * stepCells;
-    // A station never goes past where a particle can have been born, so a tail cannot curl through air the particle never crossed.
-    vec3 mmN = (nxt + 0.5) * uCell - uOrigin;
-    bool beyondSpawn = uGrowTail > 0.5 && length(max(max(-mmN, mmN - uCaseExtent), 0.0)) > uMargin * 0.92;
-    if (!beyondSpawn && !solidAt(ivec3(floor(nxt + 0.5)))) { lastBack = nxt - cur; cur = nxt; }
-  }
-  vec3 at = station == 0 ? hp : cur;
-  // With station heat on, each station takes the temperature of the air where it lies, so the tail keeps the cooler color it passed through.
-  float hs = uStationHeat > 0.5 ? clamp(sampleT(at) / uHeatSpan, 0.0, 1.0) : h;
-  vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
-  float wa; float wb; float wp;
-  // A blocked last step keeps the direction of the last step that moved.
-  vec2 pa = screenOf(cur - lastBack, wa);
-  vec2 pb = screenOf(cur, wb);
-  vec2 pp = screenOf(at, wp);
-  float taper = mix(uTailWidth, 1.0, corner.x);
-  // The leading end narrows to a point: width ramps from zero at the head to full over the first uHeadTaper share of the ribbon.
-  if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
-  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper;
-  vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp);
-  vThin = 0.0;
-  vec2 axis = pa - pb;
-  float len = length(axis);
-  axis = len > 1.0e-4 ? axis / len : vec2(1.0, 0.0);
-  vec2 side = vec2(-axis.y, axis.x);
-  vec2 px = pp + side * half_ * corner.y;
-  vec4 c = projectionMatrix * modelViewMatrix * vec4((at + 0.5) * uCell - uOrigin, 1.0);
-  gl_Position = vec4(px / (0.5 * uViewport) * wp, c.z, c.w);
-  vAlong = corner.x;
-  vSide = corner.y;
-#ifdef PROBE
-  // Probe draw: each station writes its layout-space position and alpha to its own texel, so geometry can be read back.
-  vProbe = vec4((at + 0.5) * uCell - uOrigin, vAlpha);
-  gl_Position = vec4((vec2(float(station) + 0.5, float(r.y * 128 + r.x) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 512.0)) * 2.0 - 1.0, 0.0, 1.0);
-  gl_PointSize = 1.0;
-#endif
-}`;
-export const STREAK_VERTEX = streakVertex(STREAK_STEPS, STREAK_MIN_MM, STREAK_MAX_MM, STREAK_SEGMENTS);
 
 
 /** History ring write: per (sample, particle) texel the particle's position at that step, and its age. A respawned particle fills the whole ring with its spawn point, so no streak stretches from its old place; a particle in its fade window keeps writing its last position, so its trail catches up into a frozen head. */
@@ -505,14 +415,12 @@ uniform sampler2D PA; uniform sampler2D HIST;
 uniform int uHead; uniform float uTrailSteps;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
-uniform float uSpeedLo; uniform float uSpeedHi; uniform float uSpeedMin; uniform float uCapsule; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+uniform float uSpeedLo; uniform float uSpeedHi; uniform float uSpeedMin; uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide; out float vHalfPx; out float vThin;
-#ifdef PROBE
-out vec4 vProbe;
-#endif
 ${RAMP}
-vec3 streakRamp(float h) { return uDirect > 0.5 ? mixLab(uCool, uHot, clamp(h, 0.0, 1.0)) : rampColor(h); }
+// Cool straight to hot, with no purple stop.
+vec3 streakRamp(float h) { return mixLab(uCool, uHot, clamp(h, 0.0, 1.0)); }
 vec2 screenOf(vec3 cellPos, out float w) {
   vec3 mm = (cellPos + 0.5) * uCell - uOrigin;
   vec4 c = projectionMatrix * modelViewMatrix * vec4(mm, 1.0);
@@ -550,11 +458,8 @@ void main() {
   float speedW = uSpeedHi > 0.0 ? mix(uSpeedMin, 1.0, smoothstep(uSpeedLo, uSpeedHi, length(at - back3) * uCell / 3.0)) : 1.0;
   // A streak that is fading in or out also thins, so a stalled or dying one narrows to a wisp as it goes.
   speedW *= mix(0.35, 1.0, smoothstep(0.0, 0.7, share));
-  float taper = mix(uTailWidth, 1.0, corner.x);
-  if (uHeadTaper > 0.0) taper *= sqrt(clamp((1.0 - corner.x) / uHeadTaper, 0.0, 1.0));
-  // A capsule streak keeps the ribbon at full width: its ends are shaped per pixel in the fragment shader.
-  if (uCapsule > 0.5) taper = 1.0;
-  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * taper * speedW;
+  // The ribbon keeps its full width: the ends are shaped per pixel in the fragment shader.
+  float half_ = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * speedW;
   vHalfPx = 0.5 * max(uMinWidthPx, uWidthMm * uScale / wp) * speedW;
   // How narrow the streak is on screen, 0 for a wide one to 1 for a thin one; thin streaks get shorter end fades so a solid body remains.
   vThin = 1.0 - smoothstep(14.0, 26.0, max(uMinWidthPx, uWidthMm * uScale / wp));
@@ -569,43 +474,22 @@ void main() {
   gl_Position = vec4(px / (0.5 * uViewport) * wp, c.z, c.w);
   vAlong = corner.x;
   vSide = corner.y;
-#ifdef PROBE
-  vProbe = vec4((at + 0.5) * uCell - uOrigin, vAlpha);
-  gl_Position = vec4((vec2(float(station) + 0.5, float(n) + 0.5) / vec2(float(STREAK_SEGMENTS + 1), 512.0)) * 2.0 - 1.0, 0.0, 1.0);
-  gl_PointSize = 1.0;
-#endif
 }`;
-
-export const PROBE_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
-in vec4 vProbe;
-void main() { gl_FragColor = vProbe; }`;
 
 export const STREAK_FRAGMENT = FRAGMENT_OUT + /* glsl */ `
 in vec3 vColor; in float vAlpha; in float vAlong; in float vSide; in float vHalfPx; in float vThin;
-uniform float uFadePow; uniform float uHeadGlow; uniform float uSoft;
-uniform float uCapsule; uniform float uShapeHead; uniform float uShapeTail;
+uniform float uFadePow; uniform float uShapeHead; uniform float uShapeTail;
 void main() {
-  float across = abs(vSide);
-  if (uCapsule > 0.5) {
-    // The outline is carved per pixel: a rounded nose and a rounded tail, with a feather of about a pixel and a half, so no segment count shows as corners.
-    float ph = sqrt(clamp((1.0 - vAlong) / uShapeHead, 0.0, 1.0));
-    // A narrow streak keeps a solid body: its tail shaping and fade shorten as the on-screen width shrinks.
-    float pt = sqrt(clamp(vAlong / mix(uShapeTail, 0.25, vThin), 0.0, 1.0));
-    float prof = min(ph, pt);
-    float feather = 1.5 / max(vHalfPx, 1.0);
-    float body = 1.0 - smoothstep(prof - feather, prof, across);
-    float ac = vAlpha * pow(vAlong, mix(uFadePow, 0.45, vThin)) * body;
-    if (ac < 0.003) discard;
-    gl_FragColor = vec4(vColor * 1.1 * ac, ac);
-    return;
-  }
-  // Strong head fading to a transparent tail; a darker rim around a bright core keeps the streak apart from both light and dark backgrounds.
-  float edge = mix(smoothstep(0.8, 1.0, across), smoothstep(0.0, 1.0, across), uSoft);
-  float a = vAlpha * pow(vAlong, uFadePow) * (1.0 - edge);
+  // The outline is carved per pixel: a rounded nose and a rounded tail, with a feather of about a pixel and a half, so no segment count shows as corners.
+  float ph = sqrt(clamp((1.0 - vAlong) / uShapeHead, 0.0, 1.0));
+  // A narrow streak keeps a solid body: its tail shaping and fade shorten as the on-screen width shrinks.
+  float pt = sqrt(clamp(vAlong / mix(uShapeTail, 0.25, vThin), 0.0, 1.0));
+  float prof = min(ph, pt);
+  float feather = 1.5 / max(vHalfPx, 1.0);
+  float body = 1.0 - smoothstep(prof - feather, prof, abs(vSide));
+  float a = vAlpha * pow(vAlong, mix(uFadePow, 0.45, vThin)) * body;
   if (a < 0.003) discard;
-  vec3 col = mix(vColor * 1.15, vColor * 0.3, smoothstep(0.55, 0.9, across) * (1.0 - uSoft));
-  col *= 1.0 + uHeadGlow * pow(vAlong, 8.0);
-  gl_FragColor = vec4(col * a, a);
+  gl_FragColor = vec4(vColor * 1.1 * a, a);
 }`;
 
 // Parity pass: per texel a previous and a current particle state (cell xyz, age), out the streak of their step: xyz direction and w length in mm.

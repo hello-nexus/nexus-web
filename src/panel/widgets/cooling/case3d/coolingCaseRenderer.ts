@@ -8,6 +8,7 @@ import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBo
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
+import { advanceRotor, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
@@ -56,8 +57,6 @@ export interface CaseSceneRenderer {
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
   readonly flowSupported: boolean;
-  /** The airflow layer, for the preview page's probes. */
-  debugFlow?: () => FlowLayer | null;
   /** The orbit camera, so a caller can read the view the user left. */
   readonly camera: PerspectiveCamera;
 }
@@ -181,8 +180,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
   let hitMeshes: Mesh[] = [];
-  // Spinning rotors: the material, its rpm and the sign of the spin, advanced each frame.
-  const rotors: { material: ShaderMaterial; rpm: number; sign: number; angle: number }[] = [];
+  // Spinning rotors: the material, its rpm and the sign of the spin, advanced each frame. Each fan's angle and turn rate live on in `spins` when the scene is rebuilt, so a change of rpm or selection never restarts a rotor.
+  const rotors: { key: string; material: ShaderMaterial; rpm: number; sign: number }[] = [];
+  const spins = new Map<string, RotorSpin>();
   let lastSpin = 0;
   let layout: CaseLayout | null = null;
   let frame = 0;
@@ -217,8 +217,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const spinDt = lastSpin ? Math.min(100, now - lastSpin) : 0;
     lastSpin = now;
     for (const r of rotors) {
-      r.angle += r.sign * rotorTurnsPerSecond(r.rpm) * 2 * Math.PI * (spinDt / 1000);
-      r.material.uniforms.uAngle.value = r.angle;
+      const spin = advanceRotor(spins.get(r.key), spinDt / 1000, rotorTurnsPerSecond(r.rpm), r.sign);
+      spins.set(r.key, spin);
+      r.material.uniforms.uAngle.value = spin.angle;
     }
     flowLayer?.frame(now, camera, canvas.clientHeight);
     renderer.render(scene, camera);
@@ -348,7 +349,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         group.add(blades);
         // The rotor turns the way that drives the air along the flow.
         const flowLocal = (given ?? AXES[axis]).clone().multiplyScalar(dir === 'intake' ? 1 : -1).applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
-        rotors.push({ material, rpm, sign: Math.sign(flowLocal[axis]) || 1, angle: 0 });
+        const held = spins.get(slot.key);
+        material.uniforms.uAngle.value = held?.angle ?? 0;
+        rotors.push({ key: slot.key, material, rpm, sign: Math.sign(flowLocal[axis]) || 1 });
       }
       fanGroup.add(group);
 
@@ -482,7 +485,6 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       if (flowLayer) flowLayer.onSpan = listener;
     },
     camera,
-    debugFlow: () => flowLayer,
     get flowSupported() {
       return flowLayer?.supported ?? true;
     },
