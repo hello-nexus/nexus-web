@@ -221,18 +221,6 @@ export class FlowLayer {
     }
   }
 
-  /** What the layer is drawing with, read by the dev-tools readout. */
-  debugInfo() {
-    const u = this.streakMat?.uniforms;
-    const hex = (c: Color) => `#${c.getHexString()}`;
-    return {
-      frameMs: this.frameMs, solverMsPerStep: this.timer?.msPerStep ?? 0, tier: this.tier, drawn: this.drawnCount(), fade: this.fadeT, solving: this.solving,
-      alpha: u?.uAlpha.value, alphaVar: u?.uAlphaVar.value, widthMm: u?.uWidthMm.value, minWidthPx: u?.uMinWidthPx.value, heatSpan: u?.uHeatSpan.value,
-      colors: { cool: hex(this.colors.cool), purple: hex(this.colors.purple), hot: hex(this.colors.hot) },
-      fanCfm: this.input?.fanCfm, directions: this.input?.directions, ventCfm: this.input?.ventCfm, referenceCfm: this.input?.referenceCfm, temps: this.temps,
-    };
-  }
-
   setOptions(options: FlowOptions) {
     this.options = options;
     for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uRefSpeed.value = this.referenceSpeed(); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }

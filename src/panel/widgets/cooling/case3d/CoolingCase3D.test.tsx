@@ -1049,15 +1049,15 @@ describe('CoolingCase3D deselect', () => {
     const { onClear } = mountWith();
     act(() => h.pick.current?.('front:120:0', 10, 10));
     expect(screen.getByRole('dialog')).toBeTruthy();
+    onClear.mockClear();
     act(() => h.pick.current?.(null, 40, 40));
     expect(onClear).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('keeps the selection when a fan is clicked', () => {
-    const { onClear } = mountWith();
+  it('keeps the dialog open when a fan is clicked', () => {
+    mountWith();
     act(() => h.pick.current?.('front:120:0', 10, 10));
-    expect(onClear).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeTruthy();
   });
 });
@@ -1083,12 +1083,61 @@ describe('CoolingCase3D selection highlight', () => {
     expect(lit()).toEqual(['front:120:0', 'rear:120:0']);
   });
 
+  it('dims every fan when the selected device is bound to no slot', () => {
+    mountSel(['fan-c']);
+    expect(lit()).toEqual([]);
+    expect(lastState().filtering).toBe(true);
+  });
+
+  it('does not filter when nothing is selected', () => {
+    mountSel([]);
+    expect(lastState().filtering).toBe(false);
+  });
+
   it('clears the highlight on deselect, without re-solving the airflow', () => {
     const reselect = mountSel(['fan-a', 'fan-b']);
     const flow = lastState().flow;
     reselect([]);
     expect(lit()).toEqual([]);
     expect(lastState().flow).toBe(flow);
+  });
+});
+
+describe('CoolingCase3D replacing a fan selection', () => {
+  const bindings = [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }, { channelId: 'fan-b', slotKeys: ['rear:120:0'] }];
+  const mount = (selectedIds: string[], onSelect = vi.fn(), onClear = vi.fn()) => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    render(<CoolingCase3D channels={channels} selectedChannelId={selectedIds.length === 1 ? selectedIds[0] : null} selectedChannelIds={selectedIds} onSelectChannel={onSelect} onClearSelection={onClear} />);
+    return { onSelect, onClear };
+  };
+
+  it('moves the list selection to the newly clicked fan even while another device is selected', () => {
+    const { onSelect } = mount(['fan-a']);
+    act(() => h.pick.current?.('rear:120:0', 10, 10));
+    expect(onSelect).toHaveBeenCalledWith('fan-b');
+  });
+
+  it('does not reselect the device that is already the only selection', () => {
+    const { onSelect } = mount(['fan-a']);
+    act(() => h.pick.current?.('front:120:0', 10, 10));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('drops the previous list selection when the clicked fan has no device', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings: [{ channelId: 'fan-a', slotKeys: ['front:120:0'] }], tests: [] } });
+    const onClear = vi.fn();
+    render(<CoolingCase3D channels={channels} selectedChannelId="fan-a" selectedChannelIds={['fan-a']} onSelectChannel={vi.fn()} onClearSelection={onClear} />);
+    act(() => h.pick.current?.('rear:120:0', 10, 10, { toggle: false, add: false }));
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the list selection alone on a Ctrl toggle', () => {
+    const { onSelect, onClear } = mount(['fan-a']);
+    act(() => h.pick.current?.('rear:120:0', 10, 10, { toggle: true, add: false }));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onClear).not.toHaveBeenCalled();
   });
 });
 

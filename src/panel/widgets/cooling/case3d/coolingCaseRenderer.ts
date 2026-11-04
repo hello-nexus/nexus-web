@@ -29,6 +29,8 @@ export interface CaseSceneState {
   simulated: ReadonlySet<string>;
   /** The slot whose direction control is open. */
   active: string | null;
+  /** True while devices are selected in the list, even when none is bound to a fan: unhighlighted fans then dim. */
+  filtering?: boolean;
   /** Every selected fan: each one is emphasised and shows its direction arrow. */
   selected?: ReadonlySet<string>;
   /** Airflow simulation input; null leaves the flow layer empty. */
@@ -296,7 +298,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
     const intake = token(canvas, '--airflow-cool', '#38bdf8');
     const exhaust = token(canvas, '--bad', '#ef4444');
-    const picking = state.highlighted.size > 0 || state.active !== null || (state.selected?.size ?? 0) > 0;
+    const picking = state.filtering === true || state.highlighted.size > 0 || state.active !== null || (state.selected?.size ?? 0) > 0;
     for (const { slot, box } of fanGeometries(l)) {
       const occupied = slot.taken === 'fan';
       const dir = state.directions[slot.key] ?? 'intake';
@@ -455,7 +457,6 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
             collision: token(canvas, '--bad', '#ef4444'), porous: token(canvas, '--airflow-cool', '#38bdf8'),
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
-          if (DEV_TOOLS) (globalThis as { __nexusFlowLayer?: unknown }).__nexusFlowLayer = flowLayer;
           flowLayer.onSpan = spanListener;
           flowLayer.setTemps(temps);
         }
@@ -499,8 +500,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       document.removeEventListener('visibilitychange', onVisibility);
       viewObserver?.disconnect();
       if (DEV_TOOLS) {
-        const globals = globalThis as { __nexusFlowLayer?: unknown; __nexusCaseDebug?: unknown };
-        if (globals.__nexusFlowLayer === flowLayer) delete globals.__nexusFlowLayer;
+        const globals = globalThis as { __nexusCaseDebug?: unknown };
         if (globals.__nexusCaseDebug === caseDebug) delete globals.__nexusCaseDebug;
       }
       flowLayer?.dispose();

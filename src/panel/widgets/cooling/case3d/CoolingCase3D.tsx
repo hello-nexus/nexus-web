@@ -40,7 +40,6 @@ import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
-import { FlowReadout } from './FlowReadout';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import styles from './CoolingCase3D.module.scss';
 
@@ -159,9 +158,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // Ctrl or Cmd toggles a fan in the selection and Shift adds it; a plain press selects just that fan, and a press on nothing clears.
     const next = nextSelection(selection, key, mods ?? { toggle: false, add: false }, k => k === RADIATOR_PICK_KEY);
     setSelection(next);
-    // A lone linked fan also selects its device in the left-hand list.
-    const owner = next.length === 1 && key && !selectedChannelId ? channelOfSlot(bindings, key) : null;
-    if (owner && channels.some(c => c.id === owner)) onSelectChannel(owner);
+    // A lone linked fan also selects its device in the left-hand list, replacing what was there so the previous fan's highlight goes with it.
+    const owner = next.length === 1 && key ? channelOfSlot(bindings, key) : null;
+    const plain = !mods?.toggle && !mods?.add;
+    if (owner && channels.some(c => c.id === owner)) {
+      if (selectedKey !== owner && (plain || selectedKey === '')) onSelectChannel(owner);
+    } else if (plain && next.length === 1 && selectedKey !== '') onClearSelection?.();
     if (next.length === 0) { onClearSelection?.(); return; }
     setAnchor({ x, y });
   };
@@ -226,9 +228,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   useEffect(() => {
     if (!caseLayout || !renderer) return;
-    renderer.setState({ layout: caseLayout, directions, highlighted, bound, simulated, showCase, active, selected: selectedFans, rotors, flow: flowInput, flowOptions });
+    renderer.setState({ layout: caseLayout, directions, highlighted, filtering: selectedKey !== '', bound, simulated, showCase, active, selected: selectedFans, rotors, flow: flowInput, flowOptions });
     setFlowSupported(renderer.flowSupported);
-  }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, selectedFans, rotors, flowInput, flowOptions]);
+  }, [renderer, caseLayout, directions, highlighted, bound, simulated, showCase, active, selectedFans, rotors, flowInput, flowOptions, selectedKey]);
 
   // The legend ends are the real air temperatures: room temperature, and room plus the color span the renderer measured.
   useEffect(() => { renderer?.setSpanListener(setSpanK); return () => renderer?.setSpanListener(null); }, [renderer]);
@@ -390,7 +392,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
-        {DEV_TOOLS && <FlowReadout canvas={canvas} />}
         <div className={styles.topStack}>
           {result && model && (
             <div className={`${styles.overlay} ${styles.overlayTop}`}>
