@@ -195,23 +195,30 @@ describe('usePanelBrightness record target', () => {
   });
 
   it('never sends a value queued for one display to another', async () => {
-    vi.mocked(fetchDisplayBrightness).mockResolvedValue({ status: 'ok', brightness: 50 } as never);
-    let release: () => void = () => {};
-    vi.mocked(setDisplayBrightness).mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({} as never); }));
-    const { result, rerender } = renderHook(
-      ({ id }: { id: string }) => usePanelBrightness(true, { kind: 'display', displayId: id }),
-      { initialProps: { id: 'd1' } },
-    );
-    await waitFor(() => expect(result.current.available).toBe(true));
+    vi.useFakeTimers();
+    try {
+      vi.mocked(fetchDisplayBrightness).mockResolvedValue({ status: 'ok', brightness: 50 } as never);
+      let release: () => void = () => {};
+      vi.mocked(setDisplayBrightness).mockImplementationOnce(() => new Promise(resolve => { release = () => resolve({} as never); }));
+      const { result, rerender } = renderHook(
+        ({ id }: { id: string }) => usePanelBrightness(true, { kind: 'display', displayId: id }),
+        { initialProps: { id: 'd1' } },
+      );
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.available).toBe(true);
 
-    act(() => result.current.preview(30));
-    await waitFor(() => expect(setDisplayBrightness).toHaveBeenCalledTimes(1));
-    act(() => result.current.preview(45));
-    rerender({ id: 'd2' });
-    release();
-    await act(async () => { await new Promise(r => setTimeout(r, 200)); });
+      act(() => result.current.preview(30));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(setDisplayBrightness).toHaveBeenCalledTimes(1);
+      act(() => result.current.preview(45));
+      rerender({ id: 'd2' });
+      release();
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
 
-    expect(setDisplayBrightness).toHaveBeenCalledTimes(1);
-    expect(setDisplayBrightness).not.toHaveBeenCalledWith('d2', expect.anything());
+      expect(setDisplayBrightness).toHaveBeenCalledTimes(1);
+      expect(setDisplayBrightness).not.toHaveBeenCalledWith('d2', expect.anything());
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

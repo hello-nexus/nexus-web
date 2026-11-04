@@ -25,7 +25,7 @@ export interface PanelMixerSliderProps {
   disabled?: boolean;
   className?: string;
   onInteractionStart?: () => void;
-  // The drag ended without a commit because the slider was disabled meanwhile.
+  // The drag ended while the slider was disabled, so no commit follows; lets a consumer close its drag bookkeeping.
   onDragEnd?: () => void;
   onChange: (value: number) => void;
   onCommit?: (value: number) => void;

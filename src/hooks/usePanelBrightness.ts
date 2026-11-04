@@ -182,5 +182,5 @@ export function usePanelBrightness(enabled: boolean, target: PanelBrightnessTarg
     write(clamped, true);
   }, [write, stopKeepAlive, targetKey]);
 
-  return { available, linkDown, value, preview, commit, cancel: stopKeepAlive };
+  return { available, linkDown, value, preview, commit, endDrag: stopKeepAlive };
 }
