@@ -68,6 +68,10 @@ export interface SliderProps {
       is painted in a dimmed accent - e.g. a master-brightness cap the device is
       set above. Requires trackFill; omit for a single-tone fill. */
   fillCap?: number;
+  /** CSS color of the filled part of the track; omit for the accent. A slider with a fill color or a thumb node keeps full opacity while disabled. */
+  fillColor?: string;
+  /** Drawn on the track at the value in place of the round knob, which stays in the DOM for input but is hidden. */
+  thumbNode?: ReactNode;
   ariaLabel?: string;
   className?: string;
   /** The controlled targets hold different values. No value is shown or filled; the value
@@ -81,11 +85,14 @@ export interface SliderProps {
   valueText?: string;
 }
 
+// Width of the native knob; mirrors the thumb rule in global.scss.
+const KNOB_PX = 14;
+
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
+  disabled, trackFill, marker, markerLabel, band, fillCap, fillColor, thumbNode, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
@@ -119,9 +126,16 @@ export function Slider({
     '--slider-fill-start': mixed ? '0%' : `${fillStartPct}%`,
     '--slider-fill-end': mixed ? '0%' : `${fillEndPct}%`,
     ...(capPct != null ? { '--slider-fill-cap': `${capPct}%` } : {}),
+    ...(fillColor ? { '--slider-fill-color': fillColor } : {}),
   } as CSSProperties;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
+  // The knob's travel is the track minus its own width, so the node rides the same span.
+  const thumbNodeEl = thumbNode != null ? (
+    <span className={styles.thumbNode} style={{ left: `calc(${KNOB_PX / 2}px + (100% - ${KNOB_PX}px) * ${clamp(valuePct) / 100})` }} aria-hidden>
+      {thumbNode}
+    </span>
+  ) : null;
   const bandNode = bandPct ? (
     <span className={styles.band} style={{ left: `${bandPct[0]}%`, width: `${bandPct[1] - bandPct[0]}%` }} aria-hidden />
   ) : null;
@@ -247,6 +261,8 @@ export function Slider({
       aria-label={accessibleName}
       data-fill=""
       data-mixed={mixed ? 'true' : undefined}
+      data-toned={fillColor || thumbNode != null ? '' : undefined}
+      data-custom-thumb={thumbNode != null ? '' : undefined}
       aria-valuetext={valueText ?? (mixed ? mixedLabel : undefined)}
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
@@ -275,6 +291,7 @@ export function Slider({
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
           {bandNode}
           {markerNode}
+          {thumbNodeEl}
         </div>
       </div>
     );
@@ -294,6 +311,7 @@ export function Slider({
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
           {bandNode}
           {markerNode}
+          {thumbNodeEl}
         </div>
         {showRange && (
           <div className={styles.rangeLabels}>
@@ -320,6 +338,7 @@ export function Slider({
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
           {bandNode}
           {markerNode}
+          {thumbNodeEl}
         </div>
         {inlineValueNode}
       </div>

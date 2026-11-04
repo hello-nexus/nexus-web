@@ -53,7 +53,7 @@ export const UI_ELEMENTS = {
   'ui-spinner': { properties: ['size', 'tone'] },
   // --- interactive (events flow host -> worker) ---
   'ui-slider': {
-    properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled', 'trackFill', 'orientation'],
+    properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled', 'trackFill', 'orientation', 'thumbIcon'],
     events: ['input', 'change'],
   },
   // `href` is an https URL the host opens in the system browser on press

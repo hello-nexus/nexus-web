@@ -471,10 +471,10 @@ input[type="range"][data-fill] {
       to right,
       var(--border-strong) 0,
       var(--border-strong) var(--slider-fill-start, 0%),
-      var(--accent-glow, var(--accent)) var(--slider-fill-start, 0%),
-      var(--accent-glow, var(--accent)) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
-      var(--slider-fill-dim, var(--accent-glow, var(--accent))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
-      var(--slider-fill-dim, var(--accent-glow, var(--accent))) var(--slider-fill-end, 0%),
+      var(--slider-fill-color, var(--accent-glow, var(--accent))) var(--slider-fill-start, 0%),
+      var(--slider-fill-color, var(--accent-glow, var(--accent))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
+      var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
+      var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))) var(--slider-fill-end, 0%),
       var(--border-strong) var(--slider-fill-end, 0%),
       var(--border-strong) 100%
     );
@@ -488,6 +488,9 @@ input[type="range"][data-fill] {
     background: var(--text);
     box-shadow: var(--shadow-sm);
   }
+  // A custom knob node is drawn over the track; the native knob stays for input only.
+  &[data-custom-thumb]::-webkit-slider-thumb { background: transparent; box-shadow: none; }
+  &[data-custom-thumb]::-moz-range-thumb { background: transparent; box-shadow: none; border: none; }
 }
 
 :root {

@@ -233,6 +233,9 @@ export function Slider(p: HostProps) {
   const rawFill = p.trackFill;
   const trackFill: boolean | number | undefined =
     typeof rawFill === 'number' ? rawFill : (rawFill != null ? !!rawFill : undefined);
+  const sliderTone = str(p.tone);
+  const thumbIconName = str(p.thumbIcon);
+  const ThumbIcon = thumbIconName ? ICON_TABLE[thumbIconName.toLowerCase()] : undefined;
   const rawOrientation = str(p.orientation);
   const orientation: 'inline' | 'stacked' | 'bare' | undefined =
     rawOrientation === 'inline' || rawOrientation === 'stacked' || rawOrientation === 'bare'
@@ -247,6 +250,8 @@ export function Slider(p: HostProps) {
       disabled={!!p.disabled}
       trackFill={trackFill}
       orientation={orientation}
+      fillColor={sliderTone ? toneVar(sliderTone) : undefined}
+      thumbNode={ThumbIcon ? <ThumbIcon size={16} color={toneVar(sliderTone, 'currentColor')} aria-hidden="true" /> : undefined}
       onChange={(v, commit) => {
         setLive(v);
         emit(commit ? 'change' : 'input', v);

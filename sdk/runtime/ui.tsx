@@ -94,6 +94,8 @@ export interface SliderProps {
   tone?: UiTone; label?: string; disabled?: boolean;
   trackFill?: boolean | number;
   orientation?: 'inline' | 'stacked' | 'bare';
+  /** Icon name drawn on the track at the value in place of the knob, tinted by `tone`. */
+  thumbIcon?: string;
   onInput?: (value: number) => void; onChange?: (value: number) => void;
 }
 export interface ButtonProps extends WithChildren {

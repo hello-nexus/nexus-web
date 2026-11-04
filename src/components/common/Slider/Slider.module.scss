@@ -131,6 +131,22 @@ $inline-gap: 0.5rem;
      chunks that bundle Slider.module.scss. */
 
   &:disabled { cursor: not-allowed; opacity: 0.5; }
+  // A caller-colored fill or custom knob is a deliberate display, so it is not dimmed.
+  &[data-toned]:disabled { opacity: 1; }
+}
+
+.thumbNode {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface, var(--bg));
+  pointer-events: none;
 }
 
 .mixedValue {
