@@ -20,7 +20,7 @@ export function useStackOnOverflow(ref: RefObject<HTMLElement | null>, stackedCl
   });
 
   // Re-measure without a commit. The observer covers box changes (surface,
-  // footer, buttons whose label width moved); the window resize listener covers
+  // footer, and the buttons present at open whose label width moved); the window resize listener covers
   // a stacked card that no longer changes size when the viewport widens; font
   // loads cover glyph widths changing inside an already-capped card. All three
   // share one frame-deferred measure, which ends in the state it started from

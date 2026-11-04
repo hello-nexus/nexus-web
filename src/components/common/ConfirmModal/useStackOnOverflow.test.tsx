@@ -37,6 +37,7 @@ describe('useStackOnOverflow', () => {
   const disconnect = vi.fn();
   let frames: Array<() => void> = [];
   const cancel = vi.fn();
+  const fontsTarget = new EventTarget();
 
   beforeEach(() => {
     observeCb = null;
@@ -51,6 +52,7 @@ describe('useStackOnOverflow', () => {
     vi.stubGlobal('ResizeObserver', FakeRO);
     vi.stubGlobal('requestAnimationFrame', (cb: () => void) => { frames.push(cb); return frames.length; });
     vi.stubGlobal('cancelAnimationFrame', cancel);
+    Object.defineProperty(document, 'fonts', { value: fontsTarget, configurable: true });
   });
 
   afterEach(() => { vi.unstubAllGlobals(); });
@@ -67,7 +69,6 @@ describe('useStackOnOverflow', () => {
   it('measures on an observer callback and on a window resize', () => {
     const { el } = mount();
     const widen = (sw: number) => Object.defineProperty(el, 'scrollWidth', { value: sw, configurable: true });
-    Object.defineProperty(el, 'scrollWidth', { value: 100, configurable: true });
     widen(150);
     observeCb?.();
     flush();
@@ -78,12 +79,35 @@ describe('useStackOnOverflow', () => {
     expect(el.classList.contains('stacked')).toBe(false);
   });
 
-  it('disconnects and cancels the pending frame on unmount', () => {
-    const { view } = mount();
+  it('disconnects, cancels the pending frame and stops measuring after unmount', () => {
+    const { el, view } = mount();
+    Object.defineProperty(el, 'scrollWidth', { value: 150, configurable: true });
     observeCb?.();
+    const pending = frames.length;
     view.unmount();
     expect(disconnect).toHaveBeenCalled();
-    expect(cancel).toHaveBeenCalled();
+    expect(cancel).toHaveBeenLastCalledWith(pending);
+    frames = [];
+    window.dispatchEvent(new Event('resize'));
+    fontsTarget.dispatchEvent(new Event('loadingdone'));
+    expect(frames).toHaveLength(0);
+  });
+
+  it('schedules a measure on loadingdone while active', () => {
+    const { el } = mount();
+    Object.defineProperty(el, 'scrollWidth', { value: 150, configurable: true });
+    fontsTarget.dispatchEvent(new Event('loadingdone'));
+    flush();
+    expect(el.classList.contains('stacked')).toBe(true);
+  });
+
+  it('schedules nothing after going inactive', () => {
+    const { view } = mount();
+    view.rerender({ a: false });
+    frames = [];
+    window.dispatchEvent(new Event('resize'));
+    fontsTarget.dispatchEvent(new Event('loadingdone'));
+    expect(frames).toHaveLength(0);
   });
 
   it('attaches nothing while inactive', () => {
