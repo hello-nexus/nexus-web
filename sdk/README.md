@@ -71,7 +71,9 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
   full-width track), or `'bare'` (track only, for custom label layouts). `tone` colors the fill, and
   `thumbIcon` (an icon name) replaces the knob with that icon; a slider with either keeps full
-  opacity while `disabled`. A host that predates them ignores both: accent fill and the round knob.
+  opacity while `disabled`. `marks` (`{ value, label, detail?, tone?, side?, large? }[]`) draws labelled points on the track,
+  positioned with the knob's travel and kept inside it, each pointing at its value. A host that
+  predates these props ignores them: accent fill, the round knob and no marks.
 - **`Manipulable`** inside a `Layer` with `gestures`: a host-driven drag / pinch / twist on a
   placed child (any blessed content), reported back as a normalized transform. **`YouTube`**:
   an embed player by video id. **`useImmersive()`**: whether the render is the fullscreen

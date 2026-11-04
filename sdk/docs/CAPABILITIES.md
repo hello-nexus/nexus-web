@@ -869,6 +869,7 @@ A range input. Host renders `src/components/common/Slider/Slider.tsx`.
 | `tone` | `UiTone` | colors the filled part of the track; omit for the accent |
 | `label` | `string` | |
 | `disabled` | `boolean` | a slider with `tone` or `thumbIcon` is not dimmed while disabled |
+| `marks` | `{ value, label, detail?, tone?, side?, large? }[]` | labelled points on the scale: under the track pointing up at the value, or `side: 'above'` over it; kept inside the track, labels shift apart when they collide; `bare` and `stacked` layouts |
 | `thumbIcon` | `string` | icon name drawn on the track at the value in place of the knob, tinted by `tone` |
 | `trackFill` | `boolean \| number` | `true` auto-fills from start to thumb; a number (0..100) sets the fill end explicitly; omit for no fill |
 | `orientation` | `'inline' \| 'stacked' \| 'bare'` | `'inline'` = label+track+value on one row; `'stacked'` = label above, full-width track; `'bare'` = track only |

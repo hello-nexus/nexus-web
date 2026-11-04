@@ -14,6 +14,7 @@ import { TextInput as NativeTextInput } from '../../components/common/TextInput/
 import { Ring as NativeRing } from '../../components/common/Ring/Ring';
 import { Gauge as NativeGauge } from '../../components/common/Gauge/Gauge';
 import { Slider as NativeSlider } from '../../components/common/Slider/Slider';
+import type { SliderMark } from '../../components/common/Slider/SliderMarks';
 import { Button as NativeButton } from '../../components/common/Button/Button';
 import type { ButtonTone } from '../../components/common/Button/Button';
 import { UsageBar } from '../../components/common/UsageBar/UsageBar';
@@ -220,6 +221,23 @@ export function Sparkline(p: HostProps) {
   );
 }
 
+function toSliderMarks(raw: unknown): SliderMark[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const marks: SliderMark[] = [];
+  for (const m of raw as Array<Record<string, unknown>>) {
+    const value = num(m?.value);
+    const label = str(m?.label);
+    if (value === undefined || label === undefined) continue;
+    marks.push({
+      value, label, detail: str(m.detail),
+      color: m.tone ? toneVar(str(m.tone), '') || undefined : undefined,
+      side: m.side === 'above' ? 'above' : 'below',
+      large: m.large === true,
+    });
+  }
+  return marks;
+}
+
 export function Slider(p: HostProps) {
   const emit = (key: 'input' | 'change', value: number) => p.__events?.[key]?.(value);
   // The worker's `value` round-trips through the MessagePort, so a controlled
@@ -238,6 +256,7 @@ export function Slider(p: HostProps) {
   const sliderFill = sliderTone ? toneVar(sliderTone, '') : '';
   const thumbIconName = str(p.thumbIcon);
   const ThumbIcon = thumbIconName ? ICON_TABLE[thumbIconName.toLowerCase()] : undefined;
+  const sliderMarks = toSliderMarks(p.marks);
   const rawOrientation = str(p.orientation);
   const orientation: 'inline' | 'stacked' | 'bare' | undefined =
     rawOrientation === 'inline' || rawOrientation === 'stacked' || rawOrientation === 'bare'
@@ -254,6 +273,7 @@ export function Slider(p: HostProps) {
       orientation={orientation}
       fillColor={sliderFill || undefined}
       thumbInk={thumbInkVar(sliderTone)}
+      marks={sliderMarks}
       thumbNode={ThumbIcon ? <ThumbIcon size={14} color="currentColor" aria-hidden="true" /> : undefined}
       onChange={(v, commit) => {
         setLive(v);

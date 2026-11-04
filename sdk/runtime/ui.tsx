@@ -89,6 +89,17 @@ export interface RangeProps {
 export interface GaugeProps { value: number; min?: number; max?: number; tone?: UiTone; label?: string; sublabel?: string }
 export interface SparklineProps { values: number[]; min?: number; max?: number; tone?: UiTone }
 export interface SpinnerProps { size?: number; tone?: UiTone }
+export interface SliderMark {
+  /** Position on the scale, in [min, max]. */
+  value: number;
+  label: string;
+  detail?: string;
+  tone?: UiTone;
+  /** 'above' sits over the track with no pointer; default 'below', pointing up at the value. */
+  side?: 'above' | 'below';
+  /** Larger detail text, for a headline figure. */
+  large?: boolean;
+}
 export interface SliderProps {
   value: number; min?: number; max?: number; step?: number;
   tone?: UiTone; label?: string; disabled?: boolean;
@@ -96,6 +107,8 @@ export interface SliderProps {
   orientation?: 'inline' | 'stacked' | 'bare';
   /** Icon name drawn on the track at the value in place of the knob, tinted by `tone`. */
   thumbIcon?: string;
+  /** Labelled points on the scale, placed with the knob's travel and kept inside the track; `bare` and `stacked` layouts. */
+  marks?: SliderMark[];
   onInput?: (value: number) => void; onChange?: (value: number) => void;
 }
 export interface ButtonProps extends WithChildren {

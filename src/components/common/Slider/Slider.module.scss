@@ -220,3 +220,50 @@ $inline-gap: 0.5rem;
   font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
 }
+
+// The bare layout's column when it carries marks; without them the track fills the row alone.
+.markedColumn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+// Labelled marks along the track. The row is as wide as the track; each box is placed in px by SliderMarks.
+.marks {
+  position: relative;
+  width: 100%;
+}
+
+.mark {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.markPointer {
+  position: relative;
+  flex: none;
+  align-self: flex-start;
+}
+
+.markLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.markDetail {
+  @include text-button;
+  font-variant-numeric: tabular-nums;
+}
+
+// The headline figure (days remaining): the heading style with tabular digits.
+.markDetailLarge {
+  @include text-heading;
+  font-variant-numeric: tabular-nums;
+}

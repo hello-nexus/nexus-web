@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type CSSProperties, type PointerEventHandler, type ReactNode } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
+import { SliderMarks, type SliderMark } from './SliderMarks';
 import styles from './Slider.module.scss';
 
 /*
@@ -74,6 +75,8 @@ export interface SliderProps {
   thumbNode?: ReactNode;
   /** CSS color of the glyph inside `thumbNode`; defaults to the accent's paired text. */
   thumbInk?: string;
+  /** Labelled points on the scale, drawn under the track (or over it with `side: 'above'`) and kept inside it; bare and stacked layouts only. */
+  marks?: readonly SliderMark[];
   ariaLabel?: string;
   className?: string;
   /** The controlled targets hold different values. No value is shown or filled; the value
@@ -89,12 +92,14 @@ export interface SliderProps {
 
 // Diameter of the custom knob (thumbNode); mirrors .thumbNode in Slider.module.scss.
 const KNOB_PX = 24;
+// The native knob's width; mirrors the thumb rule in global.scss.
+const NATIVE_KNOB_PX = 14;
 
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, fillColor, thumbNode, thumbInk, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
+  disabled, trackFill, marker, markerLabel, band, fillCap, fillColor, thumbNode, thumbInk, marks, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
@@ -138,6 +143,9 @@ export function Slider({
       {thumbNode}
     </span>
   ) : null;
+  const markKnobPx = thumbNode != null ? KNOB_PX : NATIVE_KNOB_PX;
+  const marksAbove = marks?.some(m => m.side === 'above') ? <SliderMarks marks={marks} min={min} max={max} knobPx={markKnobPx} side="above" /> : null;
+  const marksBelow = marks?.some(m => (m.side ?? 'below') === 'below') ? <SliderMarks marks={marks} min={min} max={max} knobPx={markKnobPx} side="below" /> : null;
   const bandNode = bandPct ? (
     <span className={styles.band} style={{ left: `${bandPct[0]}%`, width: `${bandPct[1] - bandPct[0]}%` }} aria-hidden />
   ) : null;
@@ -288,12 +296,17 @@ export function Slider({
   if (orientation === 'bare') {
     return (
       <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
-        <div className={styles.track}>
-          {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
-          {thumbNodeEl}
+        {/* The bare root is a row; marks stack with the track in a column of their own. */}
+        <div className={styles.markedColumn}>
+          {marksAbove}
+          <div className={styles.track}>
+            {range}
+            {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+            {bandNode}
+            {markerNode}
+            {thumbNodeEl}
+          </div>
+          {marksBelow}
         </div>
       </div>
     );
@@ -308,6 +321,7 @@ export function Slider({
           <span className={styles.label}>{label && <label htmlFor={rangeId}>{label}</label>}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>
           {valueNode}
         </div>
+        {marksAbove}
         <div className={styles.track}>
           {range}
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
@@ -315,6 +329,7 @@ export function Slider({
           {markerNode}
           {thumbNodeEl}
         </div>
+        {marksBelow}
         {showRange && (
           <div className={styles.rangeLabels}>
             <span>{formatValue ? formatValue(min) : min}</span>

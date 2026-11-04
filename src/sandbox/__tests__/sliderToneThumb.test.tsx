@@ -71,6 +71,33 @@ describe('ui-slider tone and thumbIcon', () => {
   });
 });
 
+describe('ui-slider marks', () => {
+  const marks = [
+    { value: 0, label: 'Start', detail: 'Oct 1' },
+    { value: 100, label: 'End', detail: 'Oct 9', tone: 'good' },
+    { value: 50, label: 'Today', detail: '5', side: 'above', large: true },
+    { label: 'no value' },
+  ];
+  it('draws marks under and over the track and skips malformed ones', () => {
+    const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" marks={marks} />);
+    const text = container.textContent ?? '';
+    for (const t of ['Start', 'Oct 1', 'End', 'Oct 9', 'Today']) expect(text).toContain(t);
+    expect(text).not.toContain('no value');
+  });
+  it('colors a mark from its tone and points only below-track marks', () => {
+    const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" marks={marks} />);
+    const end = Array.from(container.querySelectorAll('div')).find((d) => d.textContent === 'EndOct 9') as HTMLElement;
+    expect(end.style.color).toContain('--good');
+    expect(end.querySelector('svg')).not.toBeNull();
+    const today = Array.from(container.querySelectorAll('div')).find((d) => d.textContent === 'Today5') as HTMLElement;
+    expect(today.querySelector('svg')).toBeNull();
+  });
+  it('ignores marks that are not an array', () => {
+    const { container } = render(<Slider value={50} min={0} max={100} orientation="bare" marks={'nope' as unknown as never} />);
+    expect(container.querySelector('input[type="range"]')).not.toBeNull();
+  });
+});
+
 describe('icon table', () => {
   it('has package-open', () => {
     expect(ICON_TABLE['package-open']).toBeDefined();
