@@ -159,11 +159,11 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     const next = nextSelection(selection, key, mods ?? { toggle: false, add: false }, k => k === RADIATOR_PICK_KEY);
     setSelection(next);
     // A lone linked fan also selects its device in the left-hand list, replacing what was there so the previous fan's highlight goes with it.
-    const owner = next.length === 1 && key ? channelOfSlot(bindings, key) : null;
+    const owner = next.length === 1 ? channelOfSlot(bindings, next[0]) : null;
     const plain = !mods?.toggle && !mods?.add;
     if (owner && channels.some(c => c.id === owner)) {
       if (selectedKey !== owner && (plain || selectedKey === '')) onSelectChannel(owner);
-    } else if (plain && next.length === 1 && selectedKey !== '') onClearSelection?.();
+    } else if (plain && next.length === 1 && next[0] !== RADIATOR_PICK_KEY && selectedKey !== '') onClearSelection?.();
     if (next.length === 0) { onClearSelection?.(); return; }
     setAnchor({ x, y });
   };

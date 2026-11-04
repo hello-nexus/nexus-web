@@ -46,7 +46,7 @@ export interface FlowLook {
 /** The streaks as they are drawn. */
 export const FLOW_LOOK: FlowLook = {
   drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5 * 2 * 1.5,
-  widthMm: 30, minWidthPx: 14, alpha: 1, alphaVar: 0.25,
+  widthMm: 26, minWidthPx: 14, alpha: 1, alphaVar: 0.25,
   maxAge: PARTICLE_MAX_AGE, lifeJitter: PARTICLE_LIFE_JITTER, timeScaleMul: 1.6, fadePow: 1,
   headTaper: 0.22, headFade: 0.28, fadeOut: 120, exitShare: 0, marginStart: 0.05, outDecay: 0.6, speedGamma: 0.4, speedGammaHi: 0.85, speedRef: 0.25,
   trailSteps: 55, segments: 32, speedWidth: [0.3, 5, 0.18], heatGain: 2.2, heatCurve: 0.7,

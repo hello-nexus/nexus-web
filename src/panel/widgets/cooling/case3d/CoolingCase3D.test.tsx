@@ -1133,6 +1133,15 @@ describe('CoolingCase3D replacing a fan selection', () => {
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 
+  it('selects the remaining fan, not the removed one, when a Ctrl toggle leaves one fan', () => {
+    const { onSelect } = mount([]);
+    act(() => h.pick.current?.('front:120:0', 10, 10, { toggle: false, add: true }));
+    act(() => h.pick.current?.('rear:120:0', 10, 10, { toggle: false, add: true }));
+    onSelect.mockClear();
+    act(() => h.pick.current?.('front:120:0', 10, 10, { toggle: true, add: false }));
+    expect(onSelect).toHaveBeenLastCalledWith('fan-b');
+  });
+
   it('leaves the list selection alone on a Ctrl toggle', () => {
     const { onSelect, onClear } = mount(['fan-a']);
     act(() => h.pick.current?.('rear:120:0', 10, 10, { toggle: true, add: false }));
