@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
-  isFanDisconnected,
   releaseFanAuto,
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
@@ -556,7 +555,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   // click, leaving no way to take it back out.
   const selectableFanIds = useMemo(
     () => channels
-      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed'
+      .filter(c => !(c.readOnly ?? false) && c.classification !== 'Fixed'
         && c.controlled !== false)
       .map(c => c.id),
     [channels],

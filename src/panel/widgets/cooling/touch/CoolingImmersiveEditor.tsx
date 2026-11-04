@@ -5,7 +5,7 @@ import { Notice } from '../../../../components/common/Notice/Notice';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
-import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
+import { type FanChannel } from '../../../../api/cooling';
 import { EffectEditor } from '../../lighting/effecteditor/EffectEditor';
 import { CurveCard } from '../page/CurveEditor';
 import { hazardMessages, isManagedCurve } from '../page/guardUtils';
@@ -28,12 +28,7 @@ const noopCurveEdit = () => {};
 export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveController }) {
   const { t } = useTranslation();
 
-  // Panel surfaces only list physically-connected channels: hardware-
-  // unresponsive fans are hidden outright, not shown as a Disconnected group.
-  const liveChannels = useMemo(
-    () => cooling.channels.filter(c => !isFanDisconnected(c)),
-    [cooling.channels],
-  );
+  const liveChannels = cooling.channels;
 
   return (
     <EffectEditor
@@ -126,7 +121,7 @@ function FansSection({ cooling, liveChannels }: {
 
   // Per-hub-group collapse state, same persistence key as the desktop page so
   // the choice carries across surfaces on the same install.
-  const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
+  const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', []);
   const isFanGroupCollapsed = (key: string) => collapsedFanGroups.includes(key);
   const toggleFanGroup = (key: string) =>
     setCollapsedFanGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
