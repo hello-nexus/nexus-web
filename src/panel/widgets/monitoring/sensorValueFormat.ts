@@ -32,22 +32,64 @@ export function formatScaledDataValue(value: number, units: string): string | nu
   return `${scaled.toFixed(decimals)} ${DATA_UNIT_LADDER[index]}`;
 }
 
+/** Half away from zero; never yields negative zero. */
+export function roundHalfAwayFromZero(value: number): number {
+  const r = Math.sign(value) * Math.round(Math.abs(value));
+  return r === 0 ? 0 : r;
+}
+
+type DecimalRule = { decimals: number; wholeWhenHidden: boolean; suffix: string };
+
+// The one per-type rule. Default decimals match the service's own strings;
+// wholeWhenHidden types round to an integer when the whole-numbers setting is
+// on, the rest (voltage, current, frame time) always keep their precision.
+// Classified by sensor type first: the service strings for flow, noise,
+// frequency and FPS carry no unit, so the unit string alone cannot tell them.
+function decimalRuleFor(type: string, units: string): DecimalRule | null {
+  if (units === 'ms') return { decimals: 1, wholeWhenHidden: false, suffix: ' ms' };
+  switch (type) {
+    case 'Temperature': return { decimals: 1, wholeWhenHidden: true, suffix: '' };
+    case 'Power': return { decimals: 1, wholeWhenHidden: true, suffix: ' W' };
+    case 'Load': case 'Control': case 'Level': return { decimals: 1, wholeWhenHidden: true, suffix: '%' };
+    case 'Flow': case 'Noise': case 'Frequency': return { decimals: 1, wholeWhenHidden: true, suffix: '' };
+    case 'Voltage': return { decimals: 3, wholeWhenHidden: false, suffix: ' V' };
+    case 'Current': return { decimals: 3, wholeWhenHidden: false, suffix: ' A' };
+    case 'Clock': return { decimals: 0, wholeWhenHidden: false, suffix: ' MHz' };
+    case 'Fan': return { decimals: 0, wholeWhenHidden: false, suffix: ' RPM' };
+    case 'Framerate': return { decimals: 0, wholeWhenHidden: false, suffix: '' };
+    default: break;
+  }
+  // Metadata-less callers (type unknown): fall back to the unit string.
+  if (isCelsiusUnit(units)) return { decimals: 1, wholeWhenHidden: true, suffix: '' };
+  if (units === 'W') return { decimals: 1, wholeWhenHidden: true, suffix: ' W' };
+  if (units === '%') return { decimals: 1, wholeWhenHidden: true, suffix: '%' };
+  if (units === 'V') return { decimals: 3, wholeWhenHidden: false, suffix: ' V' };
+  if (units === 'A') return { decimals: 3, wholeWhenHidden: false, suffix: ' A' };
+  return null;
+}
+
 /**
- * Format a sensor reading for display, honoring the monitoring temperature unit
- * and number format. Temperature sensors (the service always reports °C)
- * convert to the chosen unit; every other sensor keeps its service-formatted
- * string (auto-scaled for byte-data units). The number is always re-separated
- * to the chosen format. Display-only - the sensor's numeric `value` stays
- * Celsius so thresholds and gauge fills keep comparing against it.
+ * Format a sensor reading for display, honoring the monitoring temperature unit,
+ * number format and the whole-numbers setting. Temperature sensors (the service
+ * always reports °C) convert to the chosen unit. Typed sensors are rebuilt from
+ * the raw value by the per-type rule; byte-data units auto-scale and anything
+ * unclassified (energy, time spans, throughput) keeps the service string. The
+ * number is always re-separated to the chosen format. Display-only - the
+ * sensor's numeric `value` stays Celsius so thresholds and gauge fills keep
+ * comparing against it.
  */
 export function formatSensorValue(
   value: number, units: string, formatted: string, tempUnit: TempUnit, numberFormat: NumberFormat,
+  type = '', wholeNumbers = false,
 ): string {
-  if (tempUnit === 'f' && isCelsiusUnit(units)) {
-    // Preserve the source string's decimal precision so a C->F toggle doesn't
-    // silently drop the fractional degree the service reported.
-    const decimals = formatted.match(/\.(\d+)/)?.[1].length ?? 0;
-    return localizeNumbers(`${convertTemperature(value, 'f').toFixed(decimals)} ${tempUnitSymbol('f')}`, numberFormat);
-  }
-  return localizeNumbers(formatScaledDataValue(value, units) ?? formatted, numberFormat);
+  const scaled = formatScaledDataValue(value, units);
+  if (scaled !== null) return localizeNumbers(scaled, numberFormat);
+  const rule = Number.isFinite(value) ? decimalRuleFor(type, units) : null;
+  if (!rule) return localizeNumbers(formatted, numberFormat);
+  const isTemp = rule.wholeWhenHidden && (type === 'Temperature' || (type === '' && isCelsiusUnit(units)));
+  const shown = isTemp ? convertTemperature(value, tempUnit) : value;
+  const text = rule.wholeWhenHidden && wholeNumbers
+    ? String(roundHalfAwayFromZero(shown))
+    : shown.toFixed(rule.decimals);
+  return localizeNumbers(`${text}${isTemp ? ` ${tempUnitSymbol(tempUnit)}` : rule.suffix}`, numberFormat);
 }

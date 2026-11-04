@@ -5674,6 +5674,7 @@
   "settings.title": "설정",
   "settings.units.custom": "사용자 지정",
   "settings.units.date.label": "날짜 형식",
+  "settings.units.monitoringWholeNumbers.label": "모니터링에서 정수로 표시",
   "settings.units.number.label": "숫자 형식",
   "settings.units.system": "시스템",
   "settings.units.temperature.celsius": "섭씨 (°C)",

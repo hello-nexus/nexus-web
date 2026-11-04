@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CalendarDays, Clock, Hash } from 'lucide-react';
-import { SettingRow } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Select } from '../../common/Select/Select';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ThemeTab } from './ThemeTab';
@@ -66,6 +66,14 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
             ]}
           />
         </SettingRow>
+        <SettingToggle
+          label={t('settings.units.monitoringWholeNumbers.label')}
+          anchorId="set-monitoring-whole-numbers"
+          icon={<Hash />}
+          iconLeading="subtle"
+          checked={settings.general.monitoringWholeNumbers}
+          onChange={checked => updateGeneral({ monitoringWholeNumbers: checked })}
+        />
         {/* One box child: the pattern list belongs to this row, so it must not
             pick up the box's row divider. */}
         <div className={styles.dateFormatGroup}>

@@ -5674,6 +5674,7 @@
   "settings.title": "設定",
   "settings.units.custom": "自訂",
   "settings.units.date.label": "日期格式",
+  "settings.units.monitoringWholeNumbers.label": "監控中顯示整數",
   "settings.units.number.label": "數字格式",
   "settings.units.system": "系統",
   "settings.units.temperature.celsius": "攝氏（°C）",

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
-import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../../lib/units';
+import { formatSensorValue } from '../../monitoring/sensorValueFormat';
 import { heatAnchors, type ComponentTemps } from '../../../../lib/cooling/flow/heatModel';
 import type { CaseLayout } from '../../../../lib/cooling/caseLayout';
 import type { CaseSceneRenderer } from './coolingCaseRenderer';
@@ -18,7 +18,7 @@ const LABEL_KEYS = { cpu: 'cooling.label.cpu', gpu: 'cooling.label.gpu' } as con
 /** One small label per component with a live temperature, riding on the component in the canvas. The renderer reports screen positions each frame and they are written straight to the elements, so a camera move re-renders nothing here. */
 export function CaseTempLabels({ renderer, layout, temps }: CaseTempLabelsProps) {
   const { t } = useTranslation();
-  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const anchors = useMemo(() => heatAnchors(layout), [layout]);
   const shown = anchors.filter(a => temps[a.key] !== null);
   const els = useRef(new Map<string, HTMLDivElement>());
@@ -46,7 +46,7 @@ export function CaseTempLabels({ renderer, layout, temps }: CaseTempLabelsProps)
           data-testid={`temp-label-${a.key}`}
         >
           <span className={styles.name}>{t(LABEL_KEYS[a.key])}</span>
-          <span className={styles.value}>{localizeNumbers(`${Math.round(convertTemperature(temps[a.key]!, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat)}</span>
+          <span className={styles.value}>{formatSensorValue(temps[a.key]!, '°C', '', monitoringTempUnit, numberFormat, 'Temperature', monitoringWholeNumbers)}</span>
         </div>
       ))}
     </>

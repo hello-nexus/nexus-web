@@ -5721,6 +5721,7 @@
   "settings.title": "Настройки",
   "settings.units.custom": "Пользовательский",
   "settings.units.date.label": "Формат даты",
+  "settings.units.monitoringWholeNumbers.label": "Целые числа в мониторинге",
   "settings.units.number.label": "Формат чисел",
   "settings.units.system": "Системная",
   "settings.units.temperature.celsius": "Цельсий (°C)",

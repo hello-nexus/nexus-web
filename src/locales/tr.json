@@ -5674,6 +5674,7 @@
   "settings.title": "Ayarlar",
   "settings.units.custom": "Özel",
   "settings.units.date.label": "Tarih biçimi",
+  "settings.units.monitoringWholeNumbers.label": "İzlemede tam sayılar",
   "settings.units.number.label": "Sayı biçimi",
   "settings.units.system": "Sistem",
   "settings.units.temperature.celsius": "Celsius (°C)",

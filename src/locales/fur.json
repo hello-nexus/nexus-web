@@ -5674,6 +5674,7 @@
   "settings.title": "Impostazions",
   "settings.units.custom": "Personalizât",
   "settings.units.date.label": "Formât de date",
+  "settings.units.monitoringWholeNumbers.label": "Numars interis tal monitoraç",
   "settings.units.number.label": "Formât numeric",
   "settings.units.system": "Sisteme",
   "settings.units.temperature.celsius": "Celsius (°C)",

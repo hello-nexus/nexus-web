@@ -5674,6 +5674,7 @@
   "settings.title": "Settings",
   "settings.units.custom": "Custom",
   "settings.units.date.label": "Date format",
+  "settings.units.monitoringWholeNumbers.label": "Whole numbers in monitoring",
   "settings.units.number.label": "Number format",
   "settings.units.system": "System",
   "settings.units.temperature.celsius": "Celsius (°C)",

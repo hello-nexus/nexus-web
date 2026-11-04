@@ -5674,6 +5674,7 @@
   "settings.title": "Instellingen",
   "settings.units.custom": "Aangepast",
   "settings.units.date.label": "Datumnotatie",
+  "settings.units.monitoringWholeNumbers.label": "Hele getallen in monitoring",
   "settings.units.number.label": "Getalnotatie",
   "settings.units.system": "Systeem",
   "settings.units.temperature.celsius": "Celsius (°C)",
