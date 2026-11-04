@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "無法載入已儲存的方向與裝置綁定。目前顯示預設值，變更不會被儲存。",
   "cooling.case3d.linkedToMany": "已綁定到{slots}風扇",
   "cooling.case3d.linkedToOne": "已綁定到{slot}風扇",
+  "cooling.case3d.multi.title": "{count} 個風扇",
   "cooling.case3d.noFans": "此機殼未安裝風扇。",
   "cooling.case3d.noneLinked": "未綁定風扇",
   "cooling.case3d.position.bottom": "底部",

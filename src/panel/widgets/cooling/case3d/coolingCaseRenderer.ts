@@ -7,6 +7,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
+import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
@@ -27,6 +28,8 @@ export interface CaseSceneState {
   simulated: ReadonlySet<string>;
   /** The slot whose direction control is open. */
   active: string | null;
+  /** Every selected fan: each one is emphasised and shows its direction arrow. */
+  selected?: ReadonlySet<string>;
   /** Airflow simulation input; null leaves the flow layer empty. */
   flow: FlowInput | null;
   flowOptions: FlowOptions;
@@ -60,12 +63,14 @@ export interface CaseSceneRenderer {
 }
 
 /** A click that lands on a fan slot or on nothing; x and y are CSS pixels inside the canvas. */
-export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
+export type PickHandler = (slotKey: string | null, x: number, y: number, mods?: PickModifiers) => void;
 
 const CLICK_SLOP_PX = 4;
 /** The Cooling view draws every outline solid: dashes mark what can be acted on in Build. */
 /** How far the case and its parts are drawn back while the airflow runs, so the fans and the air read first. */
-export const AIRFLOW_DIM = 0.3;
+export const AIRFLOW_DIM = 0.2;
+/** The case drawn on its own: still drawn back, but brighter than behind the airflow. */
+export const CASE_ONLY_DIM = 0.6;
 /** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
 const IDLE_MS = 400;
 const CALM_FRAME_MS = 1000 / 30;
@@ -166,8 +171,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let collisionsOn = false;
   let spanListener: ((spanK: number) => void) | null = null;
   let showCase = true;
-  // The case and parts are drawn back only while the particles run.
-  let dimmed = false;
+  // The case and parts are always drawn back: further while the particles run.
+  let caseDim = AIRFLOW_DIM;
   // The collision view stands in for the case; Airflow hides the case and the fans.
   const applyVisibility = () => {
     staticGroup.visible = showCase && !collisionsOn;
@@ -254,7 +259,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       staticGroup.traverse(o => { const m = (o as Mesh).material as Material | undefined; if (m && !Array.isArray(m) && (m as MeshBasicMaterial).colorWrite !== false && m.transparent) faces.push(m.opacity); });
       const mean = (a: number[]) => (a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(3) : 0);
       const lines = lineMaterials.map(m => m.opacity);
-      return { dimmed, dim: dimmed ? AIRFLOW_DIM : 1, lineCount: lines.length, lineOpacityMean: mean(lines), lineOpacityMax: lines.length ? Math.max(...lines) : 0, lineWidthMean: mean(lineMaterials.map(m => m.linewidth)), faceCount: faces.length, faceOpacityMean: mean(faces) };
+      return { dim: caseDim, lineCount: lines.length, lineOpacityMean: mean(lines), lineOpacityMax: lines.length ? Math.max(...lines) : 0, lineWidthMean: mean(lineMaterials.map(m => m.linewidth)), faceCount: faces.length, faceOpacityMean: mean(faces) };
     };
   }
   const clearCase = () => {
@@ -273,7 +278,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     clearCase();
     const palette: Palette = coolingPalette(canvas);
     const [D, W, H] = l.size;
-    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true, true, dimmed ? AIRFLOW_DIM : 1);
+    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true, true, caseDim);
     // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.
     const holder = new Group();
     holder.position.set(D / 2, H / 2, W / 2);
@@ -292,12 +297,13 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
     const intake = token(canvas, '--airflow-cool', '#38bdf8');
     const exhaust = token(canvas, '--bad', '#ef4444');
-    const picking = state.highlighted.size > 0 || state.active !== null;
+    const picking = state.highlighted.size > 0 || state.active !== null || (state.selected?.size ?? 0) > 0;
     for (const { slot, box } of fanGeometries(l)) {
       const occupied = slot.taken === 'fan';
       const dir = state.directions[slot.key] ?? 'intake';
       const color = dir === 'intake' ? intake : exhaust;
-      const emphasised = state.highlighted.has(slot.key) || state.active === slot.key;
+      const chosen = state.active === slot.key || !!state.selected?.has(slot.key);
+      const emphasised = state.highlighted.has(slot.key) || chosen;
       const center = new Vector3(box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2);
       const given = slot.axis ? new Vector3(...slot.axis) : null;
       const localGiven = given?.clone().applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
@@ -346,19 +352,25 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       }
       fanGroup.add(group);
 
-      const world = AXES[axis].clone().applyAxisAngle(AXES.y, box.rotationY ?? 0);
-      const inward = given ?? world.clone().multiplyScalar(caseCenter.clone().sub(center).dot(world) >= 0 ? 1 : -1);
-      const flow = inward.clone().multiplyScalar(dir === 'intake' ? 1 : -1);
-      const length = diameter * 0.9;
-      const arrow = new ArrowHelper(flow, center.clone().addScaledVector(flow, -length / 2), length, color.getHex(), length * 0.3, length * 0.18);
-      for (const m of [arrow.line.material, arrow.cone.material] as Material[]) {
-        m.transparent = true;
-        m.opacity = occupied ? 0.95 : 0.35;
-        m.depthWrite = false;
-        fanDisposables.push(m);
+      // Only a chosen fan shows its direction arrow, drawn over every part so no component hides it.
+      if (chosen) {
+        const world = AXES[axis].clone().applyAxisAngle(AXES.y, box.rotationY ?? 0);
+        const inward = given ?? world.clone().multiplyScalar(caseCenter.clone().sub(center).dot(world) >= 0 ? 1 : -1);
+        const flow = inward.clone().multiplyScalar(dir === 'intake' ? 1 : -1);
+        const length = diameter * 0.9;
+        const arrow = new ArrowHelper(flow, center.clone().addScaledVector(flow, -length / 2), length, color.getHex(), length * 0.3, length * 0.18);
+        for (const m of [arrow.line.material, arrow.cone.material] as Material[]) {
+          m.transparent = true;
+          m.opacity = occupied ? 0.95 : 0.35;
+          m.depthWrite = false;
+          m.depthTest = false;
+          fanDisposables.push(m);
+        }
+        arrow.line.renderOrder = 10;
+        arrow.cone.renderOrder = 10;
+        fanDisposables.push(arrow.line.geometry, arrow.cone.geometry);
+        fanGroup.add(arrow);
       }
-      fanDisposables.push(arrow.line.geometry, arrow.cone.geometry);
-      fanGroup.add(arrow);
 
       if (state.bound.has(slot.key) && !emphasised) {
         const mark = new Mesh(new BoxGeometry(...box.size), new MeshBasicMaterial({ color, transparent: true, opacity: 0.12, depthWrite: false }));
@@ -404,7 +416,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     // A fan wins over the radiator box it sits against.
     const hits = showCase ? raycaster.intersectObjects(hitMeshes, false) : [];
     const hit = hits.find(h => h.object.userData.slotKey !== RADIATOR_PICK_KEY) ?? hits[0];
-    onPick(typeof hit?.object.userData.slotKey === 'string' ? hit.object.userData.slotKey : null, x, y);
+    onPick(typeof hit?.object.userData.slotKey === 'string' ? hit.object.userData.slotKey : null, x, y, { toggle: e.ctrlKey || e.metaKey, add: e.shiftKey });
   };
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointerup', onUp);
@@ -422,9 +434,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
 
   return {
     setState(state) {
-      const dimNow = state.flowOptions.particles;
-      const dimChanged = dimNow !== dimmed;
-      dimmed = dimNow;
+      const dimNow = state.flowOptions.particles ? AIRFLOW_DIM : CASE_ONLY_DIM;
+      const dimChanged = dimNow !== caseDim;
+      caseDim = dimNow;
       if (state.layout === layout && dimChanged && layout) buildStatic(layout, false);
       if (state.layout !== layout) {
         const previous = layout;

@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Impossibile caricare le direzioni e le associazioni dei dispositivi salvate. Vengono mostrati i valori predefiniti e le modifiche non vengono salvate.",
   "cooling.case3d.linkedToMany": "Associato alle ventole {slots}",
   "cooling.case3d.linkedToOne": "Associato alla ventola {slot}",
+  "cooling.case3d.multi.title": "{count} ventole",
   "cooling.case3d.noFans": "In questo case non sono installate ventole.",
   "cooling.case3d.noneLinked": "Nessuna ventola associata",
   "cooling.case3d.position.bottom": "Inferiore",

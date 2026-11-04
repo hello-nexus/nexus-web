@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Gespeicherte Richtungen und Geräteverknüpfungen konnten nicht geladen werden. Es werden Standardwerte angezeigt, Änderungen werden nicht gespeichert.",
   "cooling.case3d.linkedToMany": "Verknüpft mit Lüftern {slots}",
   "cooling.case3d.linkedToOne": "Verknüpft mit Lüfter {slot}",
+  "cooling.case3d.multi.title": "{count} Lüfter",
   "cooling.case3d.noFans": "In diesem Gehäuse sind keine Lüfter installiert.",
   "cooling.case3d.noneLinked": "Kein Lüfter verknüpft",
   "cooling.case3d.position.bottom": "Unten",

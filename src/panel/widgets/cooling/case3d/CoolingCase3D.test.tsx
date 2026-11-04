@@ -13,7 +13,7 @@ const h = vi.hoisted(() => ({
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   devTools: true,
   patch: vi.fn(),
-  pick: { current: null as null | ((key: string | null, x: number, y: number) => void) },
+  pick: { current: null as null | ((key: string | null, x: number, y: number, mods?: { toggle: boolean; add: boolean }) => void) },
   renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; setSpanListener: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
@@ -253,6 +253,50 @@ describe('CoolingCase3D device dropdown', () => {
     fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
     // An installed fan has a derived default, so unlinking it stores the none marker.
     expect(mutate()(base([{ channelId: 'fan-a', slotKeys: ['front:120:0'] }])).bindings).toEqual([{ channelId: 'none', slotKeys: ['front:120:0'] }]);
+  });
+
+  describe('with several fans selected', () => {
+    const pickTwo = () => {
+      act(() => h.pick.current?.('front:120:0', 10, 10));
+      act(() => h.pick.current?.('rear:120:0', 20, 20, { toggle: true, add: false }));
+    };
+
+    it('titles the shared controls by the count and tells the renderer every chosen fan', () => {
+      mountReady(null);
+      pickTwo();
+      expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.multi.title');
+      expect([...lastState().selected]).toEqual(['front:120:0', 'rear:120:0']);
+    });
+
+    it('leaves the direction undecided when the fans disagree, and sets all of them with one update', () => {
+      mountReady(null);
+      pickTwo();
+      // The front fan takes air in and the rear one blows out by default.
+      const chips = screen.getAllByRole('radio').filter(r => ['intake', 'exhaust'].includes(r.getAttribute('data-chip-key') ?? ''));
+      expect(chips).toHaveLength(2);
+      expect(chips.some(r => r.getAttribute('aria-checked') === 'true')).toBe(false);
+      expect(chips.every(r => r.getAttribute('data-partial') === 'true')).toBe(true);
+      fireEvent.click(screen.getByRole('radio', { name: /cooling\.case3d\.direction\.exhaust/ }));
+      expect(h.layout.edit).toHaveBeenCalledTimes(1);
+      const directions = mutate()(base([])).directions;
+      expect(directions['front:120:0']).toBe('exhaust');
+    });
+
+    it('links one device to every chosen fan in one update', () => {
+      mountReady(null);
+      pickTwo();
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+      fireEvent.click(screen.getByRole('option', { name: /Fan A/ }));
+      expect(h.layout.edit).toHaveBeenCalledTimes(1);
+      expect(mutate()(base([])).bindings).toEqual([{ channelId: 'fan-a', slotKeys: ['front:120:0', 'rear:120:0'] }]);
+    });
+
+    it('clears on a press on nothing', () => {
+      mountReady(null);
+      pickTwo();
+      act(() => h.pick.current?.(null, 5, 5));
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
   });
 
   it('marks a device already on another fan and adds this fan to it, keeping the other', () => {

@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "De opgeslagen richtingen en apparaatkoppelingen konden niet worden geladen. Standaardwaarden worden getoond en wijzigingen worden niet opgeslagen.",
   "cooling.case3d.linkedToMany": "Gekoppeld aan fans {slots}",
   "cooling.case3d.linkedToOne": "Gekoppeld aan fan {slot}",
+  "cooling.case3d.multi.title": "{count} fans",
   "cooling.case3d.noFans": "In deze behuizing zijn geen fans geïnstalleerd.",
   "cooling.case3d.noneLinked": "Geen fan gekoppeld",
   "cooling.case3d.position.bottom": "Onder",

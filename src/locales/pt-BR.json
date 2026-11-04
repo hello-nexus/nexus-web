@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Não foi possível carregar as direções e os vínculos de dispositivos salvos. Os valores padrão são exibidos e as alterações não são salvas.",
   "cooling.case3d.linkedToMany": "Vinculado aos ventiladores {slots}",
   "cooling.case3d.linkedToOne": "Vinculado ao ventilador {slot}",
+  "cooling.case3d.multi.title": "{count} ventiladores",
   "cooling.case3d.noFans": "Não há ventiladores instalados neste gabinete.",
   "cooling.case3d.noneLinked": "Nenhum ventilador vinculado",
   "cooling.case3d.position.bottom": "Base",

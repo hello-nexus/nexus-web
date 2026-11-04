@@ -432,6 +432,7 @@
   "cooling.case3d.layoutError": "Kayıtlı yönler ve cihaz bağlantıları yüklenemedi. Varsayılan değerler gösteriliyor ve değişiklikler kaydedilmez.",
   "cooling.case3d.linkedToMany": "{slots} fanlarına bağlı",
   "cooling.case3d.linkedToOne": "{slot} fanına bağlı",
+  "cooling.case3d.multi.title": "{count} fan",
   "cooling.case3d.noFans": "Bu kasada kurulu fan yok.",
   "cooling.case3d.noneLinked": "Bağlı fan yok",
   "cooling.case3d.position.bottom": "Alt",
