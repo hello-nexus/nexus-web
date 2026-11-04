@@ -203,7 +203,7 @@ float lifeOf(vec2 pixel, float maxAge, float jitter) { return maxAge * (1.0 - ji
 
 const PARTICLE_COMMON = COMMON + LIFE + /* glsl */ `
 uniform sampler2D PA; uniform sampler2D EM;
-uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
+uniform float uRefSpeed; uniform float uEmitterCount; uniform vec3 uBoundsMin; uniform vec3 uBoundsMax; uniform vec3 uCaseMin; uniform vec3 uCaseMax; uniform float uExitCells; uniform float uOutDecay; uniform float uReachCells; uniform float uSeed; uniform float uMaxAge; uniform float uBirthSpread; uniform float uLifeJitter; uniform float uSpeed; uniform float uSubsteps; uniform float uStuckMove; uniform float uStuckRate; uniform float uFadeOut;
 ivec3 cellAtPos(vec3 p) { return ivec3(floor(p + 0.5)); }
 `;
 
@@ -240,7 +240,14 @@ void main() {
     for (int k = 0; k < 8; k++) {
       if (float(k) >= uSubsteps) break;
       vec3 k1 = pvel(q);
-      vec3 d = pvel(q + 0.5 * h * k1) * h;
+      // Outside the case the solved air is weak: a particle on its way out slows gently with its distance from the case instead of stalling, so it leaves the way it came in.
+      float hk = h;
+      if (uOutDecay > 0.0) {
+        float o0 = length(max(max(uCaseMin - q, q - uCaseMax), vec3(0.0)));
+        float o1 = length(max(max(uCaseMin - (q + k1 * h), q + k1 * h - uCaseMax), vec3(0.0)));
+        if (o1 > o0) hk = h * (1.0 - uOutDecay * smoothstep(0.0, uReachCells, o0));
+      }
+      vec3 d = pvel(q + 0.5 * hk * k1) * hk;
       vec3 t = q + vec3(d.x, 0.0, 0.0); if (!solidAt(cellAtPos(t))) q = t;
       t = q + vec3(0.0, d.y, 0.0); if (!solidAt(cellAtPos(t))) q = t;
       t = q + vec3(0.0, 0.0, d.z); if (!solidAt(cellAtPos(t))) q = t;
@@ -496,7 +503,7 @@ uniform sampler2D PA; uniform sampler2D HIST;
 uniform int uHead; uniform float uTrailSteps;
 uniform float uWidthMm; uniform float uMinWidthPx; uniform vec2 uViewport; uniform float uScale;
 uniform float uAlpha; uniform float uTailWidth; uniform float uHeatSpan;
-uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
+uniform float uFade; uniform float uOwed; uniform float uHeadTaper; uniform float uHeadFade; uniform float uAlphaVar; uniform float uHeatGain; uniform float uHeatCurve; uniform float uDirect;
 in vec2 ref; in vec2 corner;
 out vec3 vColor; out float vAlpha; out float vAlong; out float vSide;
 #ifdef PROBE
@@ -530,6 +537,8 @@ void main() {
   int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
   float b = (1.0 - owed) + float(station) / float(STREAK_SEGMENTS) * uTrailSteps;
   vec3 at = histPos(n, b);
+  // The head dissolves: alpha ramps from nothing at the tip to full over the first share of the ribbon.
+  if (uHeadFade > 0.0) vAlpha *= ease5((1.0 - corner.x) / uHeadFade);
   float hs = clamp(sampleT(at) / uHeatSpan, 0.0, 1.0);
   vColor = streakRamp(pow(clamp(hs * uHeatGain, 0.0, 1.0), uHeatCurve));
   float wp; float wb;
