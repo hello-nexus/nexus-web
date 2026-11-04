@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import { MonitoringWidget } from './MonitoringWidget';
@@ -43,6 +43,8 @@ const widget: PanelWidget = {
 };
 
 describe('MonitoringWidget whole numbers setting', () => {
+  afterEach(() => { mockWhole.value = false; });
+
   it('shows the decimal by default', () => {
     mockWhole.value = false;
     render(<MonitoringWidget widget={widget} />);
@@ -53,6 +55,5 @@ describe('MonitoringWidget whole numbers setting', () => {
     mockWhole.value = true;
     render(<MonitoringWidget widget={widget} />);
     expect(gaugeReadings()).toContain('62 °C');
-    mockWhole.value = false;
   });
 });
