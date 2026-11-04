@@ -2,6 +2,7 @@ import {
   isSingleWidgetSurface,
   normalizePanelWidgetSize,
   parseWidgetSizeSpan,
+  forcedSlotCount,
   type PanelSurface,
   type PanelWidgetSize,
   singleWidgetSurfaceSize,
@@ -183,6 +184,9 @@ export function panelGridCapacityForCanvas(
         ? (shortSideSlots === undefined ? PANEL_Y70_LONG_AXIS_CELLS : undefined)
         : undefined;
   const fixedRows = rows ?? defaultRows;
+  // A Widget size's forced short-axis count applies where the default count is the short-axis one.
+  const forcedSlots = singleSpan || y70Landscape ? undefined : shortSideSlots;
+  const columnCount = columns !== undefined ? toEvenRound(columns) : axisCount(defaultColumns, forcedSlots);
   const canvasW = Math.max(1, width);
   const canvasH = Math.max(1, height);
   const resolvedPaddingRatio = paddingRatio === undefined
@@ -198,10 +202,10 @@ export function panelGridCapacityForCanvas(
   // the short-axis slot count, so the gap matches the portrait solve of the
   // same physical panel and survives a rotation unchanged.
   const solveSpacing = (ratio: number): PanelSpacing => isPhoneLandscape
-    ? resolvePanelSpacing(canvasH, landscapeRows(defaultColumns, shortSideSlots), ratio)
+    ? resolvePanelSpacing(canvasH, columnCount, ratio)
     : y70Landscape
       ? resolvePanelSpacing(canvasH, toEvenRound(shortAxisSlots), ratio)
-      : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), ratio);
+      : resolvePanelSpacing(canvasW, columnCount, ratio);
   const spacing: PanelInset = resolvedPaddingRatio === undefined
     ? { gap: Math.max(0, gap), padding: Math.max(0, padding) }
     : solveSpacing(resolvedPaddingRatio);
@@ -213,10 +217,10 @@ export function panelGridCapacityForCanvas(
     : solveSpacing(panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT));
 
   if (isPhoneLandscape) {
-    return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, landscapeRows(defaultColumns, shortSideSlots), spacing, contentSpacing);
+    return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, columnCount, spacing, contentSpacing);
   }
 
-  const safeColumns = toEvenRound(columns ?? defaultColumns);
+  const safeColumns = columnCount;
   const solve = (s: PanelInset): PanelGridGeometry => {
     const cellSize = Math.max(1, canvasW - s.padding * 2 - s.gap * (safeColumns - 1)) / safeColumns;
     const contentH = Math.max(1, canvasH - s.padding * 2);
@@ -294,14 +298,13 @@ export function columnsForPhysicalSize(
   if (physical.shortSideInches < jumpAtInches) return toEvenRound(PANEL_GRID_COLS);
   // Steps of four keep a Widget size half of the count even.
   const step = PANEL_GRID_COLS * PANEL_GRID_CELL_INCHES;
-  // Never odd, so a 2x2 tile always fits.
+  // A derived count is never odd, so a 2x2 tile always fits.
   return toEvenRound(Math.max(PANEL_LARGE_GRID_COLS, PANEL_GRID_COLS * Math.round(physical.shortSideInches / step)));
 }
 
-// A landscape grid's row count: a Widget size that forces its short-axis count (shortSideSlots) is kept exactly, so a
-// 3-row size stays 3; the density-derived count is rounded to even.
-function landscapeRows(slots: number, forced: number | undefined): number {
-  return forced === undefined ? toEvenRound(slots) : Math.max(2, Math.round(forced));
+// Forced short-axis counts are kept exactly; derived ones round to even.
+function axisCount(slots: number, forced: number | undefined): number {
+  return forced === undefined ? toEvenRound(slots) : forcedSlotCount(forced);
 }
 
 function toEvenRound(value: number): number {

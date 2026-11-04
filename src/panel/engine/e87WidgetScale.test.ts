@@ -4,7 +4,8 @@ import { SIMULATED_SCREEN_CATALOG } from '../../lib/simulatedScreenCatalog';
 import { panelGridCapacityForCanvas, panelWidgetPaddingRatio, PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from './grid';
 import { widgetSizeCapacity } from './widgetSizeFit';
 import { widgetSizeStops, stopForWidgetSize } from './widgetSizeStops';
-import { panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, widgetSizeShortSideSlots, ZMATRICES_LCD_FAMILY, ZMATRICES_MAX_E87_FAMILY } from '../types';
+import { panelShortSideSlots, panelWidgetSizeOptions, resolvePanelWidgetSize, widgetSizeShortSideSlots } from '../types';
+import { ZMATRICES_LCD_FAMILY, ZMATRICES_MAX_E87_FAMILY } from '../types';
 
 const E87 = SIMULATED_SCREEN_CATALOG.find(s => s.id === 'zmatrices-max-e87')!;
 const OPTIONS = panelWidgetSizeOptions('lcd-wide', ZMATRICES_MAX_E87_FAMILY)!;
@@ -50,11 +51,28 @@ describe('ZMatrices MAX E87 widget scale', () => {
     expect(glacier.shortSideSlots).toBeUndefined();
   });
 
-  it('does not change the even rounding of the density-derived landscape grid', () => {
+  it('keeps a forced three on the short side in portrait too, with the rows derived', () => {
+    const portrait = panelGridCapacityForCanvas(E87.height, E87.width, { surface: 'monitor', dpi: E87.dpi, paddingRatio: PADDING, shortSideSlots: 3 });
+    expect(portrait.columns).toBe(3);
+    expect(portrait.rows).toBeGreaterThanOrEqual(8);
+    expect(portrait.rows % 2).toBe(0);
+    const viaSize = widgetSizeCapacity('monitor', { width: E87.height, height: E87.width }, 1, E87.dpi, PADDING, 3)!;
+    expect(viaSize.gridCols).toBe(3);
+  });
+
+  it('still rounds a density-derived or even forced count to even', () => {
     const grid = panelGridCapacityForCanvas(E87.width, E87.height, { surface: 'monitor', dpi: E87.dpi, paddingRatio: PADDING });
     expect(grid.rows % 2).toBe(0);
     expect(grid.columns % 2).toBe(0);
-    const odd = panelGridCapacityForCanvas(E87.width, E87.height, { surface: 'monitor', dpi: E87.dpi, paddingRatio: PADDING, shortSideSlots: 4 });
-    expect(odd.rows).toBe(4);
+    const forced = panelGridCapacityForCanvas(E87.width, E87.height, { surface: 'monitor', dpi: E87.dpi, paddingRatio: PADDING, shortSideSlots: 4 });
+    expect(forced.rows).toBe(4);
+  });
+
+  it('gives the Glacier Matrix the density grid for its small size and no forced count', () => {
+    const glacier = panelWidgetSizeOptions('lcd-wide', ZMATRICES_LCD_FAMILY)!;
+    expect(widgetSizeShortSideSlots(glacier, 'small', undefined)).toBeUndefined();
+    const cap = widgetSizeCapacity('monitor', { width: E87.width, height: E87.height }, 1, 109, PADDING, undefined)!;
+    expect(cap.gridCols % 2).toBe(0);
+    expect(cap.pageRows % 2).toBe(0);
   });
 });

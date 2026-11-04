@@ -15,7 +15,7 @@ export function widgetSizeStops(options: PanelWidgetSizeOptions, densitySlots?: 
   if (densitySlots === undefined || !options.densitySlotShare) return labelled.sort((a, b) => b.percent - a.percent);
   const countOf = (mode: PanelWidgetSizeMode) => widgetSizeShortSideSlots(options, mode, densitySlots) ?? densitySlots;
   const baseline = labelled.find(stop => stop.percent === 100);
-  if (!baseline) return labelled;
+  if (!baseline) return labelled.sort((a, b) => b.percent - a.percent);
   const gridOf = (mode: PanelWidgetSizeMode) => `${options.layoutSurface[mode]}:${countOf(mode)}`;
   const walk = (stops: WidgetSizeStop[]) => {
     const kept: WidgetSizeStop[] = [];

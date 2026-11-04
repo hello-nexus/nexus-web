@@ -229,12 +229,12 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   if (surface === 'lcd-wide' && family === ZMATRICES_LCD_FAMILY) {
     return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, percentLabels: TILE_AND_GRID_LABELS };
   }
-  // ZMatrices MAX E87: the same pair (its record carries the glass's dpi) plus a 75% grid of exactly three rows.
+  // ZMatrices MAX E87: the same pair (its record carries the glass's dpi) plus a 75% grid on a forced short-axis count.
   if (surface === 'lcd-wide' && family === ZMATRICES_MAX_E87_FAMILY) {
     return {
       default: 'large',
       layoutSurface: { large: 'lcd-wide', medium: 'monitor', small: 'monitor' },
-      shortSideSlots: { medium: E87_MEDIUM_ROWS },
+      shortSideSlots: { medium: E87_MEDIUM_SLOTS },
       percentLabels: { large: 100, medium: 75, small: 50 },
     };
   }
@@ -270,8 +270,8 @@ export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | 
   return undefined;
 }
 
-// Three rows on the E87's short side: a forced count of three is kept as is, not rounded to an even one.
-const E87_MEDIUM_ROWS = 3;
+// Short-axis count of the E87's 75% grid; a forced count is kept exactly, not rounded to even.
+const E87_MEDIUM_SLOTS = 3;
 
 export const Y70_COLUMN_STOPS = { medium: 6, compact: 8 } as const;
 
@@ -296,17 +296,22 @@ export function widgetSizeShortSideSlots(
   const share = options.densitySlotShare?.[mode];
   if (share === undefined) {
     const forced = options.shortSideSlots?.[mode];
-    return forced === undefined ? undefined : Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, forced));
+    return forced === undefined ? undefined : forcedSlotCount(forced);
   }
   return densitySlots === undefined ? undefined : evenCount(densitySlots * share);
 }
 
-/** The nearest even count, ties up, within the grid limits: a column count is never odd, so a 2x2 tile always fits. */
+/** A forced short-axis count: integer-rounded and within the grid limits, but not made even. */
+export function forcedSlotCount(value: number): number {
+  return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, Math.round(value)));
+}
+
+/** The nearest even count, ties up, within the grid limits: a density-derived count is never odd, so a 2x2 tile always fits. */
 export function evenCount(value: number): number {
   return Math.min(GRID_SLOTS_MAX, Math.max(GRID_SLOTS_MIN, Math.round(value / 2) * 2));
 }
 
-// Short-axis cell counts a record's grid density may name; even, so a 2x2 tile always fits.
+// Short-axis cell counts a record's grid density may name; a stored density is even, so a 2x2 tile always fits.
 export const GRID_SLOTS_MIN = 2;
 export const GRID_SLOTS_MAX = 64;
 
