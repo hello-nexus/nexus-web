@@ -14,6 +14,7 @@ import { buildCollisionShapes } from './collisionShapes';
 import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT } from './shaders';
+import { fadeGoalAfterToggle } from './layerFade';
 import { FLOW_LOOK, type FlowLook } from './flowLook';
 
 /** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
@@ -238,7 +239,7 @@ export class FlowLayer {
     this.options = options;
     for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uRefSpeed.value = this.referenceSpeed(); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }
     if (this.streaks) {
-      if (this.look.fadeOut > 0) this.fadeGoal = options.particles ? 1 : 0;
+      if (this.look.fadeOut > 0) this.fadeGoal = fadeGoalAfterToggle(options.particles, this.deferred !== null || this.pendingTeardown, this.fadeGoal);
       else this.streaks.visible = options.particles;
     }
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
