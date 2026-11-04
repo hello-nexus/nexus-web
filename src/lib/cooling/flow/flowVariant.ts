@@ -76,7 +76,7 @@ FLOW_VARIANTS['A2-heat-direct'] = { ...FLOW_VARIANTS.A2, name: 'A2-heat-direct',
 const D = FLOW_VARIANTS['A2-heat-direct'];
 FLOW_VARIANTS['A3-1'] = { ...D, name: 'A3-1', drawShare: (PARTICLE_DRAW_SHARE / 6) * 1.5, widthMm: 20, minWidthPx: 8.5, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 24, alphaVar: 0.4 };
 FLOW_VARIANTS['A3-2'] = { ...D, name: 'A3-2', drawShare: (PARTICLE_DRAW_SHARE / 8) * 1.5, widthMm: 20, minWidthPx: 8.5, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 24, alphaVar: 0.4 };
-FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 20, minWidthPx: 8.5, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 50, alphaVar: 0.4, smooth: true, streakSteps: 78, streakMaxMm: 550, segments: 30 };
+FLOW_VARIANTS['A3-3'] = { ...D, name: 'A3-3', drawShare: (PARTICLE_DRAW_SHARE / 10) * 1.5, widthMm: 16, minWidthPx: 7, alpha: 1, headTaper: 0.22, growTail: true, fadeOut: 50, alphaVar: 0.4, smooth: true, streakSteps: 96, streakMaxMm: 670, segments: 36 };
 let active: FlowVariant = CURRENT_VARIANT;
 /** Chooses the look the next FlowLayer is built with. */
 export const setFlowVariant = (v: FlowVariant) => { active = v; };

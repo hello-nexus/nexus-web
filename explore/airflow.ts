@@ -23,22 +23,27 @@ for (const key of Object.keys(FLOW_VARIANTS)) {
 if (params.get('chrome') === '0') bar.style.display = 'none';
 
 // T1's Y70 with its real fans: right side and bottom draw air in, rear and top push it out.
-const intake = ['right:120:1', 'right:120:2', 'bottom:120:1'];
-const exhaust = ['rear:140:0', 'top:140:0'];
+// fans=slow|fast|mixed sets the flow of every one of those: slow about 20 CFM, fast about 80. Mixed has one slow and one fast intake on the right side, the rest medium.
+// fans=max also runs the top radiator's three fans (exhaust) and the card's two fans, every one at about 100 CFM per 120 mm fan (about 2200 RPM), scaled by area for other sizes. A3-3 opens in this mode.
+const fans = params.get('fans') ?? (name === 'A3-3' ? 'max' : null);
+const caseIntake = ['right:120:1', 'right:120:2', 'bottom:120:1'];
+const caseExhaust = ['rear:140:0', 'top:140:0'];
+const intake = fans === 'max' ? [...caseIntake, 'gpu:fan:0', 'gpu:fan:1'] : caseIntake;
+const exhaust = fans === 'max' ? [...caseExhaust, 'rad:0', 'rad:1', 'rad:2'] : caseExhaust;
 const raw = JSON.parse(JSON.stringify(fixture.caseLayout)) as { fanSlots: { key: string; taken: string | null }[] };
-for (const s of raw.fanSlots) if ([...intake, ...exhaust].includes(s.key)) s.taken = 'fan';
+for (const s of raw.fanSlots) if ([...caseIntake, ...caseExhaust].includes(s.key)) s.taken = 'fan';
 const layout = parseCaseLayout(raw)!;
+(window as unknown as { __slots: unknown }).__slots = layout.fanSlots.map(s => ({ key: s.key, position: s.position, size: s.size, taken: s.taken, axis: s.axis }));
 const directions: Record<string, FanDirection> = {};
 const fanCfm: Record<string, number> = {};
-// fans=slow|fast|mixed sets the flow of every fan: slow about 20 CFM, fast about 80. Mixed has one slow and one fast intake on the right side, the rest medium.
-const fans = params.get('fans');
 const SLOW = 20; const FAST = 80; const MID = 50;
-// fans=max runs every fan at about 100 CFM per 120 mm fan (about 2200 RPM), scaled by area for other sizes; the largest is the reference.
-const sizeOf = (k: string) => Number(k.split(':')[1]);
+const sizeOf = (k: string) => layout.fanSlots.find(s => s.key === k)?.size ?? 120;
 const maxOf = (k: string) => Math.round(100 * (sizeOf(k) / 120) ** 2);
 const flowOf = (k: string) => (fans === 'max' ? maxOf(k) : fans === 'slow' ? SLOW : fans === 'fast' ? FAST : fans === 'mixed' ? (k === 'right:120:1' ? SLOW : k === 'right:120:2' ? FAST : MID) : 55);
 for (const k of intake) { directions[k] = 'intake'; fanCfm[k] = flowOf(k); }
 for (const k of exhaust) { directions[k] = 'exhaust'; fanCfm[k] = flowOf(k); }
+const referenceCfm = fans === 'max' ? Math.max(...[...intake, ...exhaust].map(maxOf)) : fans ? FAST : undefined;
+(window as unknown as { __fans: unknown }).__fans = [...intake.map(k => ({ key: k, dir: 'intake', cfm: fanCfm[k] })), ...exhaust.map(k => ({ key: k, dir: 'exhaust', cfm: fanCfm[k] }))];
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = createCaseRenderer(canvas, () => {});
@@ -46,7 +51,7 @@ renderer.resize();
 addEventListener('resize', () => renderer.resize());
 renderer.setState({
   layout, directions, highlighted: new Set(), bound: new Set(), showCase: true, simulated: new Set(), active: null,
-  flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm: fans === 'max' ? Math.max(...[...intake, ...exhaust].map(maxOf)) : fans ? FAST : undefined },
+  flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm },
   flowOptions: { particles: true, collisions: false, speed: 1.5, timeScale: VISUAL_TIME_SCALE },
 });
 if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 });
@@ -94,11 +99,54 @@ if (variant.temps) renderer.setTemps({ cpu: 88, gpu: 80, cpuW: 160, gpuW: 320 })
     }
     if (scenario === 'tier' && frame === 40) flow?.forceDropTier();
     if (scenario === 'toggle' && (frame === 40 || frame === 160)) {
-      renderer.setState({ layout, directions, highlighted: new Set(), bound: new Set(), showCase: true, simulated: new Set(), active: null, flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm: fans === 'max' ? Math.max(...[...intake, ...exhaust].map(maxOf)) : fans ? FAST : undefined }, flowOptions: { particles: frame === 160, collisions: false, speed: 1.5, timeScale: VISUAL_TIME_SCALE } });
+      renderer.setState({ layout, directions, highlighted: new Set(), bound: new Set(), showCase: true, simulated: new Set(), active: null, flow: { layout, directions, fanCfm, ventCfm: 0, referenceCfm }, flowOptions: { particles: frame === 160, collisions: false, speed: 1.5, timeScale: VISUAL_TIME_SCALE } });
     }
     frame++;
     if (frame < frames) requestAnimationFrame(loop);
     else resolve({ frames, n, maxRatePerStep: +maxRate.toFixed(3), maxFrameDrop: +maxFrameDrop.toFixed(3), maxLayerDropPerFrame: +maxLayerDrop.toFixed(3), respawnPops: respawnPops.slice(0, 4), fast, jumps, traces });
+  };
+  requestAnimationFrame(loop);
+});
+
+// Region probe: particles under the GPU. Reports counts, speed and how long each lingers there slowly.
+(window as unknown as { __region: unknown }).__region = (frames: number, box: number[]) => new Promise(resolve => {
+  const flow = renderer.debugFlow?.();
+  const sc = flow?.debugScene();
+  const n = Math.round(128 * 84 * variant.drawShare);
+  if (!flow || !sc) { resolve(null); return; }
+  const [x0, x1, y0, y1, z0, z1] = box;
+  let prev: Float32Array | null = null;
+  const dwell = new Float32Array(n);
+  let maxDwell = 0; let frame = 0;
+  const rows: unknown[] = [];
+  const samples: unknown[] = [];
+  const loop = () => {
+    const d = flow.debugFade();
+    if (d) {
+      let inCount = 0; let slow = 0; let speedSum = 0; let alphaSum = 0;
+      for (let i = 0; i < n; i++) {
+        if (d.state[i * 4] < -1e5) continue;
+        const mm = [0, 1, 2].map(k => (d.state[i * 4 + k] + 0.5) * sc.cellMm - sc.origin[k]);
+        const inside = mm[0] >= x0 && mm[0] <= x1 && mm[1] >= y0 && mm[1] <= y1 && mm[2] >= z0 && mm[2] <= z1;
+        const alpha = d.alpha[i * 4] * d.fade;
+        if (inside && alpha > 0.03) {
+          inCount++; alphaSum += alpha;
+          if (prev) {
+            const dAge = d.state[i * 4 + 3] - prev[i * 4 + 3];
+            if (dAge > 0 && dAge < 40) {
+              const sp = Math.hypot(d.state[i * 4] - prev[i * 4], d.state[i * 4 + 1] - prev[i * 4 + 1], d.state[i * 4 + 2] - prev[i * 4 + 2]) * sc.cellMm / dAge;
+              speedSum += sp;
+              if (sp < 0.4) { slow++; dwell[i] += dAge; if (dwell[i] > maxDwell) maxDwell = dwell[i]; } else dwell[i] = 0;
+              if (samples.length < 6 && sp < 0.4 && frame > 10) samples.push({ i, mm: mm.map(v => Math.round(v)), sp: +sp.toFixed(2), age: Math.round(d.state[i * 4 + 3]), alpha: +alpha.toFixed(2) });
+            }
+          }
+        } else dwell[i] = 0;
+      }
+      if (frame % 20 === 0) rows.push({ frame, inCount, slow, meanSpeedMmPerStep: inCount ? +(speedSum / inCount).toFixed(2) : 0, meanAlpha: inCount ? +(alphaSum / inCount).toFixed(2) : 0 });
+      prev = d.state.slice();
+    }
+    frame++;
+    if (frame < frames) requestAnimationFrame(loop); else resolve({ cellMm: sc.cellMm, maxDwellSteps: Math.round(maxDwell), rows, samples });
   };
   requestAnimationFrame(loop);
 });

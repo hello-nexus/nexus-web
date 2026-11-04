@@ -213,6 +213,11 @@ export class FlowLayer {
     }
   }
 
+  /** Test hook for the preview page: the grid's cell size and origin, mm. */
+  debugScene(): { cellMm: number; origin: [number, number, number]; dims: [number, number, number] } | null {
+    return this.fscene ? { cellMm: this.fscene.cellMm, origin: this.fscene.origin as [number, number, number], dims: this.fscene.dims } : null;
+  }
+
   /** Test hook for the preview page: steps to the next coarser grid tier now. */
   forceDropTier() { this.dropTier(); }
 

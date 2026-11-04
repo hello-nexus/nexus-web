@@ -247,9 +247,10 @@ void main() {
       if (mask(cellAtPos(q)).b > 0.5) break;
     }
     // A particle that barely moves, in dead air or against a wall, ages fast and is soon recycled.
-    float inc = (length(q - p) < uStuckMove * uSpeed ? uStuckRate : 1.0) * rate;
-    // A stuck particle's fast aging stops at the fade window, so its fade runs at the normal rate.
-    if (uFadeOut > 0.0) inc = age < dieAt ? min(inc, dieAt - age) : rate;
+    bool stuck = length(q - p) < uStuckMove * uSpeed;
+    float inc = (stuck ? uStuckRate : 1.0) * rate;
+    // A stuck particle's fast aging stops at the fade window, where it fades twice as fast as a moving one, so a streak resting against a wall does not loiter.
+    if (uFadeOut > 0.0) inc = age < dieAt ? min(inc, dieAt - age) : (stuck ? 2.0 : 1.0) * rate;
     age += inc;
     p = q;
     ivec3 c = cellAtPos(p);
@@ -402,8 +403,8 @@ void main() {
   // Field length reads the solved air speed at the head, which changes smoothly; the step length would collapse the instant a head stops against a wall.
   vec3 stepMm = uFieldLen > 0.5 ? sampleU(hp) * uRefSpeed * uCell : stepDisplacement(p, s, uCell) / uRate;
   vec4 sl = streakOf(stepMm);
-  // A new particle has travelled only age times its step, so its trail grows out of the spawn point instead of reaching back into air it never crossed.
-  if (uGrowTail > 0.5) sl.w = min(sl.w, max(length(stepMm) * max(s.w, 0.0), 0.5));
+  // A new particle has travelled at most about age times its step (taken at 60% in case it sped up since spawn), so its trail grows out of the spawn point instead of reaching back into air it never crossed.
+  if (uGrowTail > 0.5) sl.w = min(sl.w, max(0.6 * length(stepMm) * max(s.w, 0.0), 0.5));
   float stepCells = sl.w / float(STREAK_SEGMENTS) / uCell;
   int station = int(floor((1.0 - corner.x) * float(STREAK_SEGMENTS) + 0.5));
   // Walk back from the head: a station at rest keeps the direction it had, a blocked step stays put. The tangent is the last step taken to reach the station (the first step for the head).
@@ -416,7 +417,10 @@ void main() {
     float vm = length(v);
     if (vm > 1.0e-5) back = -v / vm;
     vec3 nxt = cur + back * stepCells;
-    if (!solidAt(ivec3(floor(nxt + 0.5)))) { lastBack = nxt - cur; cur = nxt; }
+    // A station never goes past where a particle can have been born, so a tail cannot curl through air the particle never crossed.
+    vec3 mmN = (nxt + 0.5) * uCell - uOrigin;
+    bool beyondSpawn = uGrowTail > 0.5 && length(max(max(-mmN, mmN - uCaseExtent), 0.0)) > uMargin * 0.92;
+    if (!beyondSpawn && !solidAt(ivec3(floor(nxt + 0.5)))) { lastBack = nxt - cur; cur = nxt; }
   }
   vec3 at = station == 0 ? hp : cur;
   // With station heat on, each station takes the temperature of the air where it lies, so the tail keeps the cooler color it passed through.
