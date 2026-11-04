@@ -230,6 +230,7 @@ export function PanelTouchCell({
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
+    onClickCapture?: (e: React.MouseEvent) => void;
   };
   onSimulatorClick?: () => void;
   editHint?: boolean;
@@ -472,7 +473,12 @@ export function PanelTouchCell({
       lockNotice.handlers.end();
     },
     onLostPointerCapture: lockNotice.handlers.onLostPointerCapture,
-    onClickCapture: inert ? onInertClick : lockNotice.handlers.onClickCapture,
+    onClickCapture: (e: React.MouseEvent) => {
+      cellPointers.onClickCapture?.(e);
+      if (e.isPropagationStopped()) return;
+      if (inert) onInertClick(e);
+      else lockNotice.handlers.onClickCapture(e);
+    },
     onPointerDown: (e: React.PointerEvent) => {
       cellPointers.onPointerDown(e);
       holdPress.firedRef.current = false;

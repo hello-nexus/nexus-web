@@ -2616,6 +2616,7 @@ export function PanelContent({
                 kioskBehavior={kioskBehavior}
                 surfaceRef={rootRef}
                 displayId={recordState.record?.displayId}
+                backlightRecordId={recordState.record?.capabilities?.supportsBrightness ? recordState.record.id : undefined}
                 isLandscape={isLandscape}
                 resolvedThemeMode={resolvedThemeMode}
                 onSetThemeMode={panelTheme.commitThemeModePinned}

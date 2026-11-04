@@ -75,9 +75,12 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisab
   const ctxSeqRef = useRef(0);
   // The menu opened ahead of its native contextmenu: a host-reported right-click (that event arrives on release once the native view hides) or a long-press (the browser's own contextmenu follows). The next one is swallowed so the menu does not remount.
   const hostOpenedRef = useRef(false);
+  // The release of a hold that opened the menu still clicks the control under
+  // the finger; that one click is swallowed so the control does not also fire.
+  const swallowClickRef = useRef(false);
 
   useEffect(() => {
-    const clear = () => { hostOpenedRef.current = false; };
+    const clear = () => { hostOpenedRef.current = false; swallowClickRef.current = false; };
     // Window capture runs before React's root listeners, so neither a widget nor the background sees the release.
     const swallow = (e: MouseEvent) => {
       if (!hostOpenedRef.current) return;
@@ -121,6 +124,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisab
     if (w && !menuDisabled) {
       triggerHaptic('medium');
       hostOpenedRef.current = true;
+      swallowClickRef.current = true;
       setCtxMenu({ widget: w, x, y, seq: ++ctxSeqRef.current });
     }
   }, [clearPressFeedback, menuDisabled]);
@@ -180,6 +184,13 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false, menuDisab
   const pressOnInteractiveRef = useRef(false);
 
   const bindCellPointers = useCallback((widget: PanelWidget) => ({
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!swallowClickRef.current) return;
+      swallowClickRef.current = false;
+      if (e.detail === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+    },
     onPointerDown: (e: React.PointerEvent) => {
       if (e.isPrimary === false) return;
       if (isNonPrimaryMouseButton(e)) {
