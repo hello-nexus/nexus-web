@@ -8,7 +8,7 @@ import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBo
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
-import { advanceRotor, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
+import { advanceRotor, ROTOR_BLADES, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
@@ -65,7 +65,6 @@ export interface CaseSceneRenderer {
 export type PickHandler = (slotKey: string | null, x: number, y: number, mods?: PickModifiers) => void;
 
 const CLICK_SLOP_PX = 4;
-/** The Cooling view draws every outline solid: dashes mark what can be acted on in Build. */
 /** How far the case and its parts are drawn back while the airflow runs, so the fans and the air read first. */
 export const AIRFLOW_DIM = 0.2;
 /** The case drawn on its own: still drawn back, but brighter than behind the airflow. */
@@ -129,7 +128,7 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
 const ROTOR_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-// A flat five-blade rotor drawn per pixel: gently swept, evenly filled blades that start just outside the hub circle (the rotor is the tip circle, the hub circle a bit over a third of it). A chosen fan also shows a small dot there. The blades blend into a soft disc as the speed rises.
+// A flat rotor drawn per pixel: swept blades that start just outside the hub circle, a centre dot on a chosen fan, and blades that melt into a soft disc at speed.
 const ROTOR_FRAGMENT = /* glsl */ `
 uniform vec3 uColor; uniform float uSelected; uniform float uAngle; uniform float uBlur; uniform float uOpacity;
 varying vec2 vUv;
@@ -137,17 +136,17 @@ void main() {
   vec2 p = vUv * 2.0 - 1.0;
   float r = length(p);
   if (r > 1.0) discard;
-  float f = fract((atan(p.y, p.x) - uAngle) * 5.0 / 6.2831853 - r * 0.9);
+  float f = fract((atan(p.y, p.x) - uAngle) * ${ROTOR_BLADES}.0 / 6.2831853 - r * 0.9);
   float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.59, 0.64, f));
   blade = mix(blade, 0.4, uBlur) * smoothstep(0.41, 0.44, r) * (1.0 - smoothstep(0.93, 1.0, r));
-  float dot = 1.0 - smoothstep(0.09, 0.11, r);
-  gl_FragColor = vec4(uColor, max(blade, uSelected * dot) * uOpacity);
+  float centre = 1.0 - smoothstep(0.09, 0.11, r);
+  gl_FragColor = vec4(uColor, max(blade, uSelected * centre) * uOpacity);
   gl_FragColor = linearToOutputTexel(gl_FragColor);
 }`;
 const ROTOR_OPACITY = 0.4;
 /** Visual turns a second for a fan at `rpm`: it rises with the speed but levels off, so a fast fan does not strobe at the display rate. */
 export const rotorTurnsPerSecond = (rpm: number): number => 1.4 * (1 - Math.exp(-Math.max(0, rpm) / 1200));
-/** How much the blades melt into a disc, 0 slow to 0.4 for the fastest fans. */
+/** How much the blades melt into a disc: none for slow fans, most for the fastest. */
 export const rotorBlur = (rpm: number): number => 0.4 * Math.min(1, Math.max(0, (rpm - 2200) / 1400));
 
 /** `onDrag` runs when a press ends after the pointer moved past a click's slop: an orbit or pan, which moves the picture under any open controls. */
@@ -254,15 +253,14 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
 
   const lineMaterials: LineMaterial[] = [];
   // Dev tools: what the case drawing is made of, for reading from a live page.
-  if (DEV_TOOLS) {
-    (globalThis as { __nexusCaseDebug?: unknown }).__nexusCaseDebug = () => {
-      const faces: number[] = [];
-      staticGroup.traverse(o => { const m = (o as Mesh).material as Material | undefined; if (m && !Array.isArray(m) && (m as MeshBasicMaterial).colorWrite !== false && m.transparent) faces.push(m.opacity); });
-      const mean = (a: number[]) => (a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(3) : 0);
-      const lines = lineMaterials.map(m => m.opacity);
-      return { dim: caseDim, lineCount: lines.length, lineOpacityMean: mean(lines), lineOpacityMax: lines.length ? Math.max(...lines) : 0, lineWidthMean: mean(lineMaterials.map(m => m.linewidth)), faceCount: faces.length, faceOpacityMean: mean(faces) };
-    };
-  }
+  const caseDebug = () => {
+    const faces: number[] = [];
+    staticGroup.traverse(o => { const m = (o as Mesh).material as Material | undefined; if (m && !Array.isArray(m) && (m as MeshBasicMaterial).colorWrite !== false && m.transparent) faces.push(m.opacity); });
+    const mean = (a: number[]) => (a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(3) : 0);
+    const lines = lineMaterials.map(m => m.opacity);
+    return { dim: caseDim, lineCount: lines.length, lineOpacityMean: mean(lines), lineOpacityMax: lines.length ? Math.max(...lines) : 0, lineWidthMean: mean(lineMaterials.map(m => m.linewidth)), faceCount: faces.length, faceOpacityMean: mean(faces) };
+  };
+  if (DEV_TOOLS) (globalThis as { __nexusCaseDebug?: unknown }).__nexusCaseDebug = caseDebug;
   const clearCase = () => {
     staticGroup.children.forEach(child => disposeGroup(child as Group));
     staticGroup.clear();
@@ -500,6 +498,11 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       canvas.removeEventListener('pointerup', onUp);
       document.removeEventListener('visibilitychange', onVisibility);
       viewObserver?.disconnect();
+      if (DEV_TOOLS) {
+        const globals = globalThis as { __nexusFlowLayer?: unknown; __nexusCaseDebug?: unknown };
+        if (globals.__nexusFlowLayer === flowLayer) delete globals.__nexusFlowLayer;
+        if (globals.__nexusCaseDebug === caseDebug) delete globals.__nexusCaseDebug;
+      }
       flowLayer?.dispose();
       flowLayer = null;
       controls.dispose();
