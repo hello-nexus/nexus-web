@@ -31,6 +31,15 @@ describe('unboundWirelessFans', () => {
     expect(unboundWirelessFans({ isConnected: true, fans })).toEqual([]);
   });
 
+  it('drops a unit that is the USB-driven HydroShift II, known by MAC or only present', () => {
+    const fans = [fan({ mac: 'A', usbConnected: true }), fan({ mac: 'B', usbPresent: true }), fan({ mac: 'C' })];
+    expect(unboundWirelessFans({ isConnected: true, fans }).map(f => f.mac)).toEqual(['C']);
+  });
+
+  it('shows nothing when Nexus Control is off for the wireless controller', () => {
+    expect(unboundWirelessFans({ isConnected: false, fans: [fan({})] })).toEqual([]);
+  });
+
   it('is empty without a connected controller or state', () => {
     expect(unboundWirelessFans(null)).toEqual([]);
     expect(unboundWirelessFans({ isConnected: false, fans: [fan({})] })).toEqual([]);
