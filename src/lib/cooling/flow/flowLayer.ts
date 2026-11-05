@@ -13,12 +13,13 @@ import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps }
 import { buildCollisionShapes } from './collisionShapes';
 import { buildGridView, type GridView } from './gridView';
 import { SteadyGate } from './steadyGate';
+import { FRAME_GAP_MAX_MS, SLOW_FRAMES, SLOW_FRAME_MS, TierGovernor, predictedStepMs, solverIsCause } from './tierPolicy';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT } from './shaders';
 import { fadeGoalAfterToggle } from './layerFade';
 import { FLOW_LOOK, solverSpeedRef, type FlowLook } from './flowLook';
 
-/** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
+/** The grid sizes by tier, each target cell count; tier 0 is the target, a coarser one is a safety net the layer leaves again once the solver has headroom. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
 export const flowTiers = (): number[] => {
   let cells = GRID_TARGET_CELLS;
   if (DEV_TOOLS) {
@@ -49,8 +50,8 @@ const MIN_STEPS_PER_FRAME = 1;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
-const SLOW_FRAME_MS = 30;
-const SLOW_FRAMES = 24;
+/** Share each settled frame's length takes in the average the climb check reads, while the GPU gives no step timing. */
+const SETTLED_FRAME_EMA = 0.05;
 /** A speed change re-solves only when the fans' speed mix has drifted this far from the solved one, and at most this often. */
 const RESOLVE_DRIFT = 0.3;
 const RESOLVE_MIN_INTERVAL_MS = 60000;
@@ -99,6 +100,8 @@ export class FlowLayer {
   private solving = false;
   private stepsPerFrame = 4;
   private slowCount = 0;
+  private readonly governor = new TierGovernor();
+  private settledFrameMs = 0;
   private lastFrameAt = 0;
   private readonly look: FlowLook;
   /** Layer-wide fade for the events that would otherwise end every streak at once: a rebuild on a new grid, a coarser tier, the particles switched off, the layer cleared. */
@@ -476,7 +479,28 @@ export class FlowLayer {
     if (this.tier >= this.tiers.length - 1) return;
     this.tier++;
     this.slowCount = 0;
+    this.settledFrameMs = 0;
+    this.governor.noteDrop(performance.now());
     this.build(false);
+  }
+
+  /** Rebuilds the scene one grid tier finer. */
+  private raiseTier() {
+    if (this.tier <= 0) return;
+    this.tier--;
+    this.slowCount = 0;
+    this.settledFrameMs = 0;
+    this.governor.noteClimb(performance.now());
+    this.build(false);
+  }
+
+  // Back up a tier once the solve has settled and the finer grid's step would fit the budget, after the hold-off; a layer that cannot hold the finer grid drops again and waits longer.
+  private maybeRaiseTier(dt: number) {
+    if (this.tier <= 0 || this.solving || this.deferred || this.resolveDue || !this.options.particles) return;
+    if (dt > 0 && dt < FRAME_GAP_MAX_MS) this.settledFrameMs = this.settledFrameMs === 0 ? dt : this.settledFrameMs * (1 - SETTLED_FRAME_EMA) + dt * SETTLED_FRAME_EMA;
+    const perStep = this.timer?.msPerStep ?? 0;
+    const predicted = perStep > 0 ? predictedStepMs(perStep, this.tiers[this.tier], this.tiers[this.tier - 1]) : 0;
+    if (this.governor.mayClimb(performance.now(), predicted, SOLVER_BUDGET_MS, this.settledFrameMs)) this.raiseTier();
   }
 
   private updateUniforms() {
@@ -539,13 +563,14 @@ export class FlowLayer {
       // Outside the timed span: a PBO read inside an active query is an invalid operation.
       if (Math.floor(this.stepsSinceEdit / STEADY_CHECK_EVERY) > Math.floor(before / STEADY_CHECK_EVERY)) this.checkSteady(flow);
       this.paceSteps(dt, spent / n);
-      this.slowCount = dt > SLOW_FRAME_MS ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
+      // A slow frame counts only when the solver's own steps are what filled it: a heavy scene or a busy GPU is not cured by a coarser grid.
+      this.slowCount = dt > SLOW_FRAME_MS && solverIsCause(dt, this.timer?.msPerStep ?? 0, n) ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
       if (this.slowCount >= SLOW_FRAMES && this.tier < this.tiers.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
         this.dropTier();
         return;
       }
     }
-    if (!this.solving) this.coldStart = false;
+    if (!this.solving) { this.coldStart = false; this.maybeRaiseTier(dt); }
     if (!this.solving && this.tempStepsLeft > 0 && wantsFlow) { flow.stepTemperature(); this.fieldVersion++; this.tempStepsLeft--; }
     // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
