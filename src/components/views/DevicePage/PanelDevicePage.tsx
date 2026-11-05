@@ -246,7 +246,6 @@ interface XeneonEdgeSettingsValues {
 // Backlight a dimmable cooler LCD runs at until the user moves the slider.
 // Matches LianLiAioHandshake.DefaultBrightness in nexus-service.
 const DEFAULT_LCD_BRIGHTNESS = 100;
-const RENDER_MODES = ['performance', 'resolution'] as const;
 
 // Bench-measured factory defaults (nexus-service XeneonEdgeDefaults); used
 // only as a fallback if a settings read comes back with an unset field.
@@ -586,9 +585,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const [recordSupportsSecondaryMonitor, setRecordSupportsSecondaryMonitor] = useState(false);
   const isSecondaryMonitorCapablePanel = recordSupportsSecondaryMonitor && !isSimulated;
   const [recordSecondaryMonitor, setRecordSecondaryMonitor] = useState(false);
-  const [recordSupportsRenderScale, setRecordSupportsRenderScale] = useState(false);
-  const isRenderScalablePanel = recordSupportsRenderScale && !isSimulated;
-  const [recordHighResolution, setRecordHighResolution] = useState(true);
   // Streamed displays and display-bound kiosk panels take a frame rate cap; the list says which are streamed.
   const [recordStreamed, setRecordStreamed] = useState(false);
   const [recordDisplayBound, setRecordDisplayBound] = useState(false);
@@ -662,7 +658,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
-    || isRenderScalablePanel
     || hasFrameRateSetting
     || isGlacialLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
@@ -760,8 +755,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordSecondaryMonitor(match?.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordSecondaryMonitorHolder(match?.secondaryMonitorHolder ?? null);
-      setRecordSupportsRenderScale(match?.capabilities?.supportsRenderScale ?? false);
-      setRecordHighResolution(match?.highResolution ?? true);
       setRecordStreamed(match?.streamed === true);
       setRecordDisplayBound(!!match?.displayId);
       setRecordFpsCap(match?.fpsCap ?? null);
@@ -926,7 +919,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordSecondaryMonitorHolder(record.secondaryMonitorHolder ?? null);
       setRecordPortrait(record.portrait ?? false);
-      setRecordHighResolution(record.highResolution ?? true);
       // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
       setRecordFpsCap(record.fpsCap ?? null);
       setRecordRestricted(record.restrictedMode ?? false);
@@ -2059,22 +2051,9 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                       hardwareResetBusy={resettingHardware}
                     />
                   )}
-                  {activeTab === 'settings' && (isRenderScalablePanel || hasFrameRateSetting) && (
+                  {activeTab === 'settings' && hasFrameRateSetting && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.rendering')} boxClassName={styles.deviceSettingsBox}>
-                        {isRenderScalablePanel && (
-                          <SettingSelect
-                            label={t('devices.lcd.renderMode')}
-                            description={t('devices.lcd.renderModeHint')}
-                            value={RENDER_MODES[recordHighResolution ? 1 : 0]}
-                            options={RENDER_MODES.map(mode => ({ value: mode, label: t(`devices.lcd.renderMode.${mode}`) }))}
-                            onChange={(value) => {
-                              const next = value === RENDER_MODES[1];
-                              setRecordHighResolution(next);
-                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { highResolution: next }).catch(() => {});
-                            }}
-                          />
-                        )}
                         {hasFrameRateSetting && <FrameRateSetting recordId={device?.panelRecordId ?? null} cap={recordFpsCap} />}
                       </SettingsSection>
                     </div>

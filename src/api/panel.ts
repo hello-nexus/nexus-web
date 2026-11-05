@@ -54,8 +54,6 @@ export interface PanelDeviceCapabilitiesDto {
   supportsSecondaryMonitor?: boolean;
   // The glass mounts either way up; the record's portrait picks the render shape.
   supportsPortrait?: boolean;
-  // The stream can render below native and scale up; the record's highResolution applies.
-  supportsRenderScale?: boolean;
 }
 
 export interface PanelGaugeGradientStopDto {
@@ -180,9 +178,6 @@ export interface PanelDeviceRecord {
   // Panels whose capabilities carry supportsPortrait: mounted on the short side,
   // so the panel renders tall. Absent/null = landscape.
   portrait?: boolean | null;
-  // Panels whose capabilities carry supportsRenderScale: render at native resolution
-  // instead of a lower one. Absent/null = native (high resolution).
-  highResolution?: boolean | null;
   // Frame rate cap in fps for this device (streamed session rate, secondary-monitor pacing, or
   // how often a display-bound panel page draws). Absent/null = the device's own rate.
   fpsCap?: number | null;
@@ -288,8 +283,6 @@ export interface PanelDevicePatch {
   secondaryMonitor?: boolean;
   // Panels whose capabilities carry supportsPortrait only; ignored for other panels.
   portrait?: boolean;
-  // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
-  highResolution?: boolean;
   // Frame rate cap in fps; 0 clears it (the device's own rate). The service clamps it.
   fpsCap?: number;
   widgetSize?: PanelWidgetSizeMode;
