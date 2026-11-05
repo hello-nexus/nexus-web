@@ -60,6 +60,8 @@ export interface FlowScene {
   caseMax: [number, number, number];
   /** Physical seconds one solver step stands for. */
   stepSeconds: number;
+  /** The step the case's own fans alone would set: a card or cooler fan can shorten `stepSeconds`, and the drawn speed mapping reads in this one so a card starting up does not rescale every streak. */
+  drawStepSeconds: number;
   /** Boussinesq buoyancy, cells per step squared per degree of rise: g beta dt^2 / cell size, from real gravity, beta = 1 / room temperature and this scene's own step. */
   buoyancy: number;
   /** Cells of each heat source, by `SOURCE_*`. */
@@ -442,6 +444,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const referenceOf = (p: PlannedFan, c: FanCells) => (input.referenceCfm && c.perLayer > 0 ? (input.referenceCfm * M3S_PER_CFM) / (c.perLayer * cellAreaM2) : velocityMps(p, c));
   const reference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map((p, i) => referenceOf(p, cellsOf[i])));
   const stepSeconds = (CFL_TARGET * (cellMm / MM_PER_M)) / reference;
+  const caseReference = Math.max(MIN_REFERENCE_SPEED, ...plan.fans.map((p, i) => (isInternalFan(p.slot) ? 0 : referenceOf(p, cellsOf[i]))));
+  const drawStepSeconds = (CFL_TARGET * (cellMm / MM_PER_M)) / (caseReference > MIN_REFERENCE_SPEED ? caseReference : reference);
   // Core drag from the pressure model's loss, as a linear drag over the core's thickness at the design face velocity (the radiator fans' own flow over the core face), and kept light: the core only straightens the flow.
   if (radiatorCells.length > 0) {
     const faces = plan.radiators.map(r => {
@@ -623,7 +627,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   for (let c = 0; c < heat.length; c++) heatCellCount[heat[c]]++;
   const cellM = cellMm / MM_PER_M;
   const buoyancy = (GRAVITY / ROOM_TEMP_K) * stepSeconds * stepSeconds / cellM;
-  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, buoyancy, heatCellCount, cellVolumeM3: cellM ** 3, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), plumeEmitters: new Float32Array(plume), emitterCounts, caseBounds, particleBounds: { min: caseBounds.min.map(v => v - OUTSIDE_REACH_MM / cellMm) as Vec3, max: caseBounds.max.map(v => v + OUTSIDE_REACH_MM / cellMm) as Vec3 }, spawns: new Float32Array(0), fanCount };
+  const result: FlowScene = { dims, cellMm, origin, caseMin, caseMax, stepSeconds, drawStepSeconds, buoyancy, heatCellCount, cellVolumeM3: cellM ** 3, maxTargetCells: maxTarget, solid, open, darcy, heat, target, fanCell, opening, obstacles, emitters: new Float32Array(emitters), plumeEmitters: new Float32Array(plume), emitterCounts, caseBounds, particleBounds: { min: caseBounds.min.map(v => v - OUTSIDE_REACH_MM / cellMm) as Vec3, max: caseBounds.max.map(v => v + OUTSIDE_REACH_MM / cellMm) as Vec3 }, spawns: new Float32Array(0), fanCount };
   const scene: FlowScene = result;
   let seed = 7;
   const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };

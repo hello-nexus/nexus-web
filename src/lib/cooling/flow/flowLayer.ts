@@ -15,7 +15,7 @@ import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT } from './shaders';
 import { fadeGoalAfterToggle } from './layerFade';
-import { FLOW_LOOK, type FlowLook } from './flowLook';
+import { FLOW_LOOK, solverSpeedRef, type FlowLook } from './flowLook';
 
 /** The grid sizes by tier, each target cell count; a slow step drops one tier. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
 export const flowTiers = (): number[] => {
@@ -222,7 +222,7 @@ export class FlowLayer {
 
   setOptions(options: FlowOptions) {
     this.options = options;
-    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uRefSpeed.value = this.referenceSpeed(); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }
+    for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uRefSpeed.value = this.referenceSpeed(); if (this.fscene) m.uniforms.uSpeedRef.value = solverSpeedRef(this.look, this.fscene); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }
     if (this.streaks) {
       if (this.look.fadeOut > 0) this.fadeGoal = fadeGoalAfterToggle(options.particles, this.deferred !== null || this.pendingTeardown, this.fadeGoal);
       else this.streaks.visible = options.particles;

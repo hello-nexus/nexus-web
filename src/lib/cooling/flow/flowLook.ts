@@ -1,3 +1,4 @@
+import type { FlowScene } from './gridScene';
 import { PARTICLE_DRAW_SHARE, PARTICLE_LIFE_JITTER, PARTICLE_MAX_AGE } from './flowParams';
 
 /** How the airflow streaks are drawn and how the particles behave while they live and when they end. */
@@ -54,3 +55,6 @@ export const FLOW_LOOK: FlowLook = {
 
 /** The same look with the particle behavior the CPU reference does not model switched off, for the GL parity harness. */
 export const PARITY_LOOK: FlowLook = { ...FLOW_LOOK, fadeOut: 0, exitShare: 0, outDecay: 0, speedGamma: 1, speedGammaHi: 1 };
+
+/** The look's gamma reference speed in solver cells per step: it is set for the case fans' step, so a shorter step set by a card fan lowers it in proportion and a card starting up leaves the mapped speeds alone. */
+export const solverSpeedRef = (look: FlowLook, scene: Pick<FlowScene, 'stepSeconds' | 'drawStepSeconds'>): number => look.speedRef * (scene.stepSeconds / scene.drawStepSeconds);
