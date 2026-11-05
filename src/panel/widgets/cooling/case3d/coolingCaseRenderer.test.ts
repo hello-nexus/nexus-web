@@ -102,6 +102,35 @@ describe('camera across rebuilds', () => {
   });
 });
 
+describe('fan dimming while devices are selected in the list', () => {
+  const ringOpacities = (filtering: boolean | undefined, highlighted: string[]) => {
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    r.setState({ layout, directions: {}, highlighted: new Set(highlighted), filtering, bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1 } });
+    const found: number[] = [];
+    const walk = (node: unknown) => {
+      const n = node as { type?: string; material?: { opacity: number }; children?: unknown[] };
+      if (n.type === 'LineLoop' && n.material) found.push(n.material.opacity);
+      n.children?.forEach(walk);
+    };
+    walk(layers.host?.parent);
+    r.dispose();
+    return found;
+  };
+
+  it('dims every fan when the selected devices light no slot', () => {
+    const idle = ringOpacities(undefined, []);
+    const none = ringOpacities(true, []);
+    expect(idle.length).toBeGreaterThan(0);
+    expect(Math.max(...none)).toBeLessThan(Math.min(...idle.filter(o => o === 1)));
+  });
+
+  it('lights only the highlighted slot', () => {
+    const one = ringOpacities(true, ['front:120:0']);
+    expect(one.filter(o => o === 1)).toHaveLength(2);
+    expect(Math.min(...one)).toBeLessThan(1);
+  });
+});
+
 describe('ringFaceShift', () => {
   it('moves a card fan ring from the middle of the card to the face the air enters through', () => {
     expect(ringFaceShift('gpu:fan:0', 40, 1)).toBe(-20);

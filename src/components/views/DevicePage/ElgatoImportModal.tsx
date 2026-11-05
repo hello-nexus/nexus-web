@@ -89,7 +89,7 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
 
   return (
     <DeviceModal open={open} onClose={onClose} title={t('devices.streamdeck.import.title')} medium
-      cancelLabel={result ? t('devices.streamdeck.import.done') : undefined}
+      cancelLabel={result ? t('devices.streamdeck.import.done') : t('confirm.cancel')}
       footer={status === 'list' && !result && profiles.length > 0 ? (
         <Button type="button" tone="accent" size="md" loading={importing} disabled={!selectedId || atCap} onClick={handleImport}>
           {t('devices.streamdeck.import.import')}
