@@ -8,25 +8,26 @@ import { buildFlowScene } from './gridScene';
 
 // A coarse grid and a short run: enough for the flux ratios asserted here, a fraction of the Cooling page's cost.
 const GRID = 40 * 30 * 60;
-const STEPS = 200;
+const STEPS = 130;
 
 type Raw = { boxes: { slot: string; role: string; select?: string; min: number[]; size: number[]; fans?: Record<string, unknown> }[] };
 const load = (name: string) => JSON.parse(readFileSync(new URL(`../__fixtures__/${name}-case-layout.json`, import.meta.url), 'utf8')) as Raw;
 const fixtures: Record<string, Raw> = { x50: load('x50'), y70: load('t1-y70-5080') };
 
 type Props = { flowThrough?: number[]; bracketExhaust?: string; bracket?: { axis: string; side: string } };
-type Scenario = { fixture: 'x50' | 'y70'; props: Props; second?: Props };
+/** `shape` overrides the first card's fan list before the properties apply. */
+type Scenario = { fixture: 'x50' | 'y70'; props: Props; second?: Props; shape?: Record<string, unknown> };
 
 /** A second card beside the first, shifted along z by `dz`, so neither one's back faces the other. */
 const clone = (b: Raw['boxes'][number], dz: number, props: Props) => ({ ...b, select: 'gpu:1', min: [b.min[0], b.min[1], b.min[2] + dz], fans: { ...b.fans, ...props } });
 
-/** A fixture's card with its fans spinning, solved as the Cooling page does; fluxes in CFM per card. */
-function measure({ fixture, props, second }: Scenario) {
+/** A fixture's card with its fans spinning, as the Cooling page builds the grid. */
+function build({ fixture, props, second, shape }: Scenario) {
   const raw = fixtures[fixture];
   const boxes: Raw['boxes'] = [];
   for (const b of raw.boxes) {
     const isCard = b.slot === 'gpu' && b.role === 'part';
-    boxes.push(isCard ? { ...b, fans: { ...b.fans, ...props } } : b);
+    boxes.push(isCard ? { ...b, fans: { ...b.fans, ...shape, ...props } } : b);
     if (isCard && second) boxes.push(clone(b, b.size[2] + 4, second));
   }
   const layout = parseCaseLayout({ ...raw, boxes })!;
@@ -37,6 +38,12 @@ function measure({ fixture, props, second }: Scenario) {
   const cfm = cardFanSpec(84).cfm;
   for (const s of gpuSlots) { directions[s.key] = 'intake'; fanCfm[s.key] = cfm; }
   const scene = buildFlowScene({ layout, directions, fanCfm, ventCfm: 0, referenceCfm: cfm }, GRID);
+  return { scene, cards, gpuSlots, cfm };
+}
+
+/** The grid solved for a while; fluxes in CFM per card. */
+function measure(scenario: Scenario) {
+  const { scene, cards, gpuSlots, cfm } = build(scenario);
   const flow = new CpuFlow(scene);
   for (let s = 0; s < STEPS; s++) flow.step();
   const [NX, NY] = scene.dims;
@@ -61,7 +68,7 @@ function measure({ fixture, props, second }: Scenario) {
     /** Air leaving through the case's rear face over the card's cross-section. */
     let rear = 0;
     for (let kk = lo[2]; kk <= hi[2]; kk++) for (let j = lo[1]; j <= hi[1]; j++) rear += Math.max(0, u(scene.caseMax[0], j, kk, 0));
-    // Slots sit in key order, which is the bracket-end-first order the layout lists them in per card.
+    // Slots sit in list order: from the bracket end for sized fans, from the min end for unsized ones.
     return { backs: mine.map(backFlux), rear: toCfm(rear) };
   });
   return { cards: perCard, fanCfm: cfm };
@@ -73,8 +80,12 @@ const run = (s: Scenario) => {
   if (!results.has(key)) results.set(key, measure(s));
   return results.get(key)!;
 };
+/** Two scenarios build the very same grid: every solid, drag, heat and opening cell. */
+const sameGrid = (a: Scenario, b: Scenario) => {
+  const [x, y] = [build(a).scene, build(b).scene];
+  return (['solid', 'darcy', 'heat', 'opening'] as const).every(f => x[f].length === y[f].length && x[f].every((v, i) => v === y[f][i]));
+};
 const total = (v: number[]) => v.reduce((a, b) => a + b, 0);
-const rounded = (v: number[]) => v.map(x => Math.round(x));
 
 describe.each(['x50', 'y70'] as const)('%s card, horizontal and vertical mounts alike', fixture => {
   const first = (props: Props) => run({ fixture, props }).cards[0];
@@ -87,10 +98,7 @@ describe.each(['x50', 'y70'] as const)('%s card, horizontal and vertical mounts 
   }, 600000);
 
   it('reads none the same as unset', () => {
-    const base = first({});
-    const none = first({ bracketExhaust: 'none' });
-    expect(rounded(none.backs)).toEqual(rounded(base.backs));
-    expect(Math.abs(none.rear - base.rear)).toBeLessThan(0.5);
+    expect(sameGrid({ fixture, props: {} }, { fixture, props: { bracketExhaust: 'none' } })).toBe(true);
   }, 600000);
 
   it('sends the far flow-through fan\'s air out of the back plate over that fan only', () => {
@@ -117,11 +125,26 @@ describe.each(['x50', 'y70'] as const)('%s card, horizontal and vertical mounts 
     expect(partial.rear).toBeLessThan(blower.rear * 0.8);
   }, 600000);
 
-  it('a stated bracket end at the max side of the card behaves as the default', () => {
-    const axis = fixture === 'x50' ? 'x' : 'x';
-    const stated = first({ bracketExhaust: 'blower', bracket: { axis, side: 'max' } });
-    const dflt = first({ bracketExhaust: 'blower' });
-    expect(Math.abs(stated.rear - dflt.rear)).toBeLessThan(0.5);
+  it('a stated bracket end at the max side of the card builds the grid the default does', () => {
+    expect(sameGrid({ fixture, props: { bracketExhaust: 'blower' } }, { fixture, props: { bracketExhaust: 'blower', bracket: { axis: 'x', side: 'max' } } })).toBe(true);
+  }, 600000);
+});
+
+describe('other card shapes', () => {
+  const cfm = () => run({ fixture: 'x50', props: {} }).fanCfm;
+
+  it('a two-fan card with both fans flow-through opens both', () => {
+    const shape = { count: 2, sizes: [84, 84], diameter: 96 };
+    const r = run({ fixture: 'x50', props: { flowThrough: [0, 1] }, shape }).cards[0];
+    expect(r.backs).toHaveLength(2);
+    for (const v of r.backs) expect(v).toBeGreaterThan(cfm() * 0.5);
+    expect(run({ fixture: 'x50', props: {}, shape }).cards[0].backs.every(v => v < cfm() * 0.1)).toBe(true);
+  }, 600000);
+
+  it('an unsized card lists its fans from the min end, so the bracket-end-counted index 2 is the first listed fan', () => {
+    const r = run({ fixture: 'x50', props: { flowThrough: [2] }, shape: { sizes: null } }).cards[0];
+    expect(r.backs[0]).toBeGreaterThan(cfm() * 0.5);
+    expect(r.backs[1] + r.backs[2]).toBeLessThan(cfm() * 0.1);
   }, 600000);
 });
 

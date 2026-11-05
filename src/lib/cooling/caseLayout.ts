@@ -89,6 +89,8 @@ export interface CaseFanSlot {
   box?: { min: Vec3; size: Vec3; rotationY?: number };
   /** Unit vector into the case: intake moves air along it, exhaust against it. */
   axis?: Vec3;
+  /** The card a graphics card fan belongs to: the card box's `select` key, empty for the first card. */
+  card?: string;
   /** A graphics card fan that blows straight through the card, over a cut-out board or open back plate. */
   flowThrough?: boolean;
   /** A power supply fan that draws room air through a case vent under it, not air from the case. */

@@ -52,6 +52,8 @@ export interface SceneFanRing {
   sizes?: number[];
   faces?: ('cooler' | 'backplate')[];
   source?: string;
+  /** The end of the card's length axis that carries the I/O bracket; absent means the max end of the longer face edge. */
+  bracket?: { axis: 'x' | 'y' | 'z'; side: 'min' | 'max' };
 }
 
 /** What the scene reads of one box. Build's PcBox and the setup record's CaseBox both satisfy it. */
@@ -342,8 +344,10 @@ function chamferedGeometry(size: Vec3, chamfers: SceneChamfer[]): ConvexGeometry
 function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial): Object3D[] {
   const axisIndex = { x: 0, y: 1, z: 2 }[ring.axis];
   const inPlane = [0, 1, 2].filter((i) => i !== axisIndex);
-  // Fans line up along the face's longer edge.
-  const along = box.size[inPlane[0]] >= box.size[inPlane[1]] ? inPlane[0] : inPlane[1];
+  // Fans line up along the bracket's axis when the layout states it, else along the face's longer edge.
+  const stated = ring.bracket && ring.bracket.axis !== ring.axis ? { x: 0, y: 1, z: 2 }[ring.bracket.axis] : null;
+  const along = stated ?? (box.size[inPlane[0]] >= box.size[inPlane[1]] ? inPlane[0] : inPlane[1]);
+  const fromMax = (ring.bracket?.side ?? 'max') === 'max';
   const across = along === inPlane[0] ? inPlane[1] : inPlane[0];
   const out: Object3D[] = [];
   const faces = ring.bothSides ? ['min', 'max'] : [ring.side];
@@ -356,8 +360,8 @@ function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial): Ob
     const opposite = ring.faces?.[i] === 'backplate';
     const face = faces[Math.floor(k / count)];
     center[axisIndex] = box.min[axisIndex] + ((face === 'max') !== opposite ? box.size[axisIndex] : 0);
-    // Card fans count from the bracket end, the max end along the card.
-    center[along] = offsets ? box.min[along] + box.size[along] - offsets[i] : box.min[along] + (box.size[along] * (i + 0.5)) / count;
+    // Sized card fans pack from the bracket end; unsized ones share the length evenly from the min end.
+    center[along] = !offsets ? box.min[along] + (box.size[along] * (i + 0.5)) / count : fromMax ? box.min[along] + box.size[along] - offsets[i] : box.min[along] + offsets[i];
     center[across] = box.min[across] + box.size[across] / 2;
     const spokes = new LineSegmentsGeometry().setPositions(Array.from({ length: 5 }, (_, k) => {
       const a = (k * 2 * Math.PI) / 5;

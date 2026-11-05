@@ -323,18 +323,20 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     } else {
       const source = o.box.slot === 'gpu' ? SOURCE_GPU : o.box.slot === 'cpu' && !cpuOnRadiator && !hasCooler ? SOURCE_CPU : SOURCE_NONE;
       const key = o.box.select ?? '';
-      if (source === SOURCE_GPU && !gpuCards.has(key)) gpuCards.set(key, { box: o.box, cells: [] });
-      const card = gpuCards.get(key);
+      const card = source === SOURCE_GPU ? gpuCards.get(key) ?? { box: o.box, cells: [] } : null;
+      if (card) gpuCards.set(key, card);
       const psu = o.box.slot === 'psu' && o.box.role === 'part' && o.box.fans?.exhaust ? { box: o.box, cells: [] as number[] } : null;
       if (psu) psuBodies.push(psu);
-      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); if (source === SOURCE_GPU) card!.cells.push(c); psu?.cells.push(c); });
+      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); card?.cells.push(c); psu?.cells.push(c); });
     }
   }
 
   const plan = planFans(input, extents, cellMm * MIN_FAN_HALF_THICKNESS_CELLS);
   // With a card fan spinning, the card's body is a porous heatsink, closed only at its back plate, so the air the fans push in leaves through the card's edges instead of straight through its thickness.
-  for (const card of gpuCards.values()) {
-    const fan = plan.fans.find(f => f.slot.position === 'gpu' && f.cfm > 0 && f.slot.box && boxesOverlap(card.box, f.slot.box));
+  for (const [cardKey, card] of gpuCards) {
+    // A fan belongs to the card its slot names; a slot that names none falls back to the card whose box it overlaps.
+    const ownFan = (f: (typeof plan.fans)[number]) => f.slot.position === 'gpu' && (f.slot.card !== undefined ? f.slot.card === cardKey : !!f.slot.box && boxesOverlap(card.box, f.slot.box));
+    const fan = plan.fans.find(f => f.cfm > 0 && ownFan(f));
     if (!fan) continue;
     const cells = card.cells;
     const exhaustMode = card.box.fans?.bracketExhaust ?? 'none';
@@ -371,7 +373,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     for (let m = sources.length - 1; m >= 0; m--) if (cardCells.has(sources[m][0]) && along(sources[m][0]) !== backIndex) sources.splice(m, 1);
     // A flow-through fan blows straight out of the back of the card: over its disc the card is open through its whole thickness.
     for (const f of plan.fans) {
-      if (f.slot.position !== 'gpu' || !f.slot.flowThrough || f.cfm <= 0 || axisIndex(f.disk.axis) !== k || !f.slot.box || !boxesOverlap(card.box, f.slot.box)) continue;
+      if (!ownFan(f) || !f.slot.flowThrough || f.cfm <= 0 || axisIndex(f.disk.axis) !== k) continue;
       for (const c of cells) {
         const d = sub(layoutMm(...(idxOf(c) as [number, number, number])), f.disk.center);
         const offAxis = Math.hypot(d[0] - f.disk.axis[0] * dot(d, f.disk.axis), d[1] - f.disk.axis[1] * dot(d, f.disk.axis), d[2] - f.disk.axis[2] * dot(d, f.disk.axis));
@@ -392,7 +394,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
         const c = id(ii, jj, kk);
         if (outside[c]) continue;
         solid[c] = 0;
-        if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseEdge) opening[c] = OPENING_EXHAUST;
+        if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseEdge) opening[c] = OPENING_VENT;
       }
     }
   }
