@@ -20,6 +20,7 @@ import { COOLING_FLOW_MODES, DEFAULT_COOLING_FLOW_MODE, type CoolingFlowMode } f
 import { useCoolingLayout } from '../../../../hooks/useCoolingLayout';
 import { usePcSetupRecord } from '../../../../hooks/usePcSetupRecord';
 import { useComponentTemps } from '../../../../hooks/useComponentTemps';
+import { useEasedFlow } from '../../../../hooks/useEasedFlow';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { useTranslation } from '../../../../lib/i18n';
 import {
@@ -86,6 +87,7 @@ const SIM_VALUE = '#sim';
 // Matches no option, so the device list shows its placeholder while the selected fans disagree.
 const MIXED_VALUE = '\u0000mixed';
 const REF_KEY = '#ref';
+const EASE_DIRECT_KEYS = [VENT_KEY, REF_KEY];
 const NONE = '';
 const INTAKE: FanDirection = 'intake';
 const EXHAUST: FanDirection = 'exhaust';
@@ -206,10 +208,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   // Settled in the same render the raw flows arrive, so the scene never sees a stale set of fans for one frame and re-solves twice.
   const effectiveFlow = rawFlow ? (settledFlow ? settleFlows(settledFlow, rawFlow) : rawFlow) : null;
   useEffect(() => { setSettledFlow(effectiveFlow); }, [effectiveFlow]);
-  const flowKey = effectiveFlow ? JSON.stringify([layoutText, mountChoice, boundKeyText, directions, effectiveFlow]) : '';
+  // The solver sees the fan flows eased toward the settled ones; the case-wide figures follow them at once, as a change in them rebuilds the whole scene.
+  const drawnFlow = useEasedFlow(effectiveFlow, EASE_DIRECT_KEYS);
+  const flowKey = drawnFlow ? JSON.stringify([layoutText, mountChoice, boundKeyText, directions, drawnFlow]) : '';
   const flowInput = useMemo<FlowInput | null>(() => {
-    if (!caseLayout || !effectiveFlow || flowKey === '') return null;
-    const { [VENT_KEY]: ventCfm = 0, [REF_KEY]: referenceCfm, ...fanCfm } = effectiveFlow;
+    if (!caseLayout || !drawnFlow || flowKey === '') return null;
+    const { [VENT_KEY]: ventCfm = 0, [REF_KEY]: referenceCfm, ...fanCfm } = drawnFlow;
     return { layout: caseLayout, directions, fanCfm, ventCfm, referenceCfm };
     // flowKey covers every input read here.
     // eslint-disable-next-line react-hooks/exhaustive-deps

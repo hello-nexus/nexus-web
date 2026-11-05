@@ -1,7 +1,7 @@
 import type { PcSetupItem } from '../../api/pcSetup';
 import type { CaseFanSlot } from './caseLayout';
 import { scaledSpec, type SlotSpeed } from './fanSpeed';
-import { defaultFanSpec, type FanSpec } from './pressureModel';
+import { cardFanSpec, defaultFanSpec, type FanSpec } from './pressureModel';
 
 /** Catalog spec field names. A rename in the catalog is a change here only. */
 export const CATALOG_FIELDS = {
@@ -44,8 +44,8 @@ interface PartialSpec {
 }
 
 /** The slot's own spec first, then a catalog item of the same size, then the size default; each value falls back on its own. */
-export function resolveFanSpec(sizeMm: number, catalog: readonly CatalogFanSpec[], own?: PartialSpec): ResolvedFanSpec {
-  const fallback = defaultFanSpec(sizeMm);
+export function resolveFanSpec(sizeMm: number, catalog: readonly CatalogFanSpec[], own?: PartialSpec, card = false): ResolvedFanSpec {
+  const fallback = card ? cardFanSpec(sizeMm) : defaultFanSpec(sizeMm);
   const sameSize = catalog.filter(c => c.sizeMm === sizeMm);
   const cfm = own?.cfm ?? sameSize.find(c => c.cfm)?.cfm;
   const staticMmH2O = own?.staticMmH2O ?? sameSize.find(c => c.staticMmH2O)?.staticMmH2O;
@@ -66,5 +66,5 @@ function applySpeed(fan: ModelFan, speed?: SlotSpeed): ModelFan {
 /** The fan a slot contributes: one for a taken fan slot, none otherwise (a case slot the radiator covers has no fans of its own). */
 export function slotModelFans(slot: CaseFanSlot, catalog: readonly CatalogFanSpec[], speed?: SlotSpeed): ModelFan[] {
   if (slot.taken !== 'fan') return [];
-  return [applySpeed({ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }) }, speed)];
+  return [applySpeed({ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }, slot.position === 'gpu') }, speed)];
 }

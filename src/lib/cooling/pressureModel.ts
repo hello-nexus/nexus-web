@@ -23,10 +23,20 @@ export const M3S_PER_CFM = 0.000471947;
 const BALANCED_BAND_PA = 0.25;
 const BISECTION_STEPS = 60;
 
-export function defaultFanSpec(sizeMm: number): FanSpec {
+const nearestListedSize = (sizeMm: number): number => {
   const sizes = Object.keys(FAN_DEFAULTS).map(Number);
-  const nearest = sizes.reduce((best, s) => (Math.abs(s - sizeMm) < Math.abs(best - sizeMm) ? s : best), sizes[0]);
-  return FAN_DEFAULTS[nearest];
+  return sizes.reduce((best, s) => (Math.abs(s - sizeMm) < Math.abs(best - sizeMm) ? s : best), sizes[0]);
+};
+
+export function defaultFanSpec(sizeMm: number): FanSpec {
+  return FAN_DEFAULTS[nearestListedSize(sizeMm)];
+}
+
+/** A card fan's size-based spec: the nearest listed frame's, with flow scaled by frame area when the fan is smaller. */
+export function cardFanSpec(sizeMm: number): FanSpec {
+  const nearest = nearestListedSize(sizeMm);
+  const base = FAN_DEFAULTS[nearest];
+  return { cfm: base.cfm * Math.min(1, (sizeMm / nearest) ** 2), staticMmH2O: base.staticMmH2O };
 }
 
 export interface PressureFan extends FanSpec {
