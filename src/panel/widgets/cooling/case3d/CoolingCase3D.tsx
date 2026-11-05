@@ -41,10 +41,8 @@ import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
+import { PRESSURE_COLOR } from './pressureColor';
 import styles from './CoolingCase3D.module.scss';
-
-// The intake and exhaust colors the fan rotors and arrows draw with (see coolingCaseRenderer).
-const PRESSURE_COLOR = { positive: 'var(--airflow-cool)', negative: 'var(--bad)', balanced: 'var(--text)' } as const;
 
 export interface CoolingCase3DProps {
   channels: FanChannel[];
@@ -349,6 +347,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const selectedName = channels.find(c => c.id === selectedChannelId)?.name;
   const result = model?.result;
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
+  const pressureTooltip = { title: t(modeKey), body: `${t(`${modeKey}.body`)} ${t('cooling.case3d.pressure.estimate')}` };
   const cfm = (v: number) => t('cooling.case3d.cfm', { value: String(Math.round(Math.abs(v))) });
   const positionName = (position: string) => t(POSITION_KEYS[position] ?? 'cooling.case3d.position.other');
   const radiatorChips = (caseLayout.radiatorOptions && (radiatorPicked || activeSlot?.key.startsWith('rad:') || (multi && multiKeys.every(k => k.startsWith('rad:'))))) ? (
@@ -403,7 +402,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                   <span className={styles.statNote}>{t('cooling.case3d.noFans')}</span>
                 ) : (
                   <>
-                    <span className={styles.control}><Badge compact label={t(modeKey)} color={PRESSURE_COLOR[result.mode]} tooltip={{ body: `${t(`${modeKey}.body`)} ${t('cooling.case3d.pressure.estimate')}` }} /></span>
+                    <span className={styles.control}><Badge compact label={t(modeKey)} color={PRESSURE_COLOR[result.mode]} tooltip={pressureTooltip} /></span>
                     <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.net')}</span>{result.netCfm >= 0 ? '+' : '-'}{cfm(result.netCfm)}</span>
                     <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.intake')}</span>{cfm(result.intakeCfm)}</span>
                     <span className={styles.stat}><span className={styles.statLabel}>{t('cooling.case3d.stat.exhaust')}</span>{cfm(result.exhaustCfm)}</span>

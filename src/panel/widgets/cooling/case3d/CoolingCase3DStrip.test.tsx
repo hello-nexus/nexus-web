@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import t1 from '../../../../lib/cooling/__fixtures__/t1-cooling-state.json';
 import { CoolingCase3D } from './CoolingCase3D';
+import { PRESSURE_COLOR } from './pressureColor';
 
 const h = vi.hoisted(() => ({
   setup: { record: null as unknown, loaded: true },
@@ -47,18 +48,31 @@ describe('the top strip on T1 data', () => {
 });
 
 describe('the pressure chip', () => {
-  it('is one badge with an explanatory tooltip, colored like the intake or exhaust fans, and no separate estimate chip', () => {
-    strip(null, 0);
+  const chipFor = (directions: Record<string, string>, bindings: unknown[]) => {
     h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: t1.caseLayout } } }, loaded: true };
-    h.layout = { ...h.layout, layout: { directions: t1.layout.directions, bindings: t1.layout.bindings, tests: [] } };
+    h.layout = { ...h.layout, layout: { directions, bindings, tests: [] } };
     render(<CoolingCase3D channels={channels()} selectedChannelId={null} onSelectChannel={vi.fn()} />);
     const group = screen.getByRole('group', { name: 'cooling.case3d.stats.label' });
-    const chip = within(group).getByRole('img');
-    const mode = /cooling\.case3d\.pressure\.(positive|negative|balanced)/.exec(chip.textContent ?? '')?.[1];
-    expect(mode).toBeDefined();
-    expect(chip.getAttribute('aria-label')).toBe(`cooling.case3d.pressure.${mode}.body cooling.case3d.pressure.estimate`);
-    const color = { positive: 'var(--airflow-cool)', negative: 'var(--bad)', balanced: 'var(--text)' }[mode as string];
-    expect(chip.firstElementChild?.getAttribute('style')).toContain(`--badge-color: ${color}`);
+    return { group, chip: within(group).getByRole('img') };
+  };
+  const slotKeys = t1.caseLayout.fanSlots.map((slot: { key: string }) => slot.key);
+  const all = (direction: string) => Object.fromEntries(slotKeys.map(k => [k, direction]));
+
+  it.each([
+    ['positive', all('intake')],
+    ['negative', all('exhaust')],
+  ] as const)('shows %s pressure as a colored chip named for the state, with the meaning and estimate in the tooltip', (mode, directions) => {
+    const { group, chip } = chipFor(directions, t1.layout.bindings);
+    expect(chip.textContent).toContain(`cooling.case3d.pressure.${mode}`);
+    expect(chip.getAttribute('aria-label')).toBe(`cooling.case3d.pressure.${mode}. cooling.case3d.pressure.${mode}.body cooling.case3d.pressure.estimate`);
+    expect(chip.firstElementChild?.getAttribute('style')).toContain(`--badge-color: ${PRESSURE_COLOR[mode]}`);
     expect(within(group).queryByText('cooling.case3d.estimate')).toBeNull();
+  });
+
+  it('keeps a neutral chip when intake and exhaust nearly cancel out', () => {
+    const nearlyEven = Object.fromEntries(slotKeys.map((k, i) => [k, i < 13 ? 'intake' : 'exhaust']));
+    const { chip } = chipFor(nearlyEven, t1.layout.bindings);
+    expect(chip.textContent).toContain('cooling.case3d.pressure.balanced');
+    expect(chip.firstElementChild?.getAttribute('style')).toContain(`--badge-color: ${PRESSURE_COLOR.balanced}`);
   });
 });
