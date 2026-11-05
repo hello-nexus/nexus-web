@@ -127,12 +127,13 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
   return x <= y && x <= z ? 'x' : y <= z ? 'y' : 'z';
 }
 
+const ROTOR_DOTS = 12;
 const ROTOR_VERTEX = /* glsl */ `
 varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 // A flat rotor drawn per pixel: swept blades that start just outside the hub circle, a centre dot on a chosen fan, and blades that melt into a soft disc at speed.
 const ROTOR_FRAGMENT = /* glsl */ `
-uniform vec3 uColor; uniform float uSelected; uniform float uAngle; uniform float uBlur; uniform float uOpacity;
+uniform vec3 uColor; uniform float uSelected; uniform float uAngle; uniform float uBlur; uniform float uOpacity; uniform float uDotted;
 varying vec2 vUv;
 void main() {
   vec2 p = vUv * 2.0 - 1.0;
@@ -141,11 +142,19 @@ void main() {
   float f = fract((atan(p.y, p.x) - uAngle) * ${ROTOR_BLADES}.0 / 6.2831853 - r * 0.9);
   float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.59, 0.64, f));
   blade = mix(blade, 0.4, uBlur) * smoothstep(0.41, 0.44, r) * (1.0 - smoothstep(0.93, 1.0, r));
+  blade *= mix(1.0, smoothstep(0.3, 0.4, fract(r * ${ROTOR_DOTS}.0)) * (1.0 - smoothstep(0.7, 0.8, fract(r * ${ROTOR_DOTS}.0))), uDotted);
   float centre = 1.0 - smoothstep(0.09, 0.11, r);
   gl_FragColor = vec4(uColor, max(blade, uSelected * centre) * uOpacity);
   gl_FragColor = linearToOutputTexel(gl_FragColor);
 }`;
 const ROTOR_OPACITY = 0.4;
+/** The rotor shader material; a simulated fan's blades are dotted along their length. */
+export function rotorMaterial(color: Color, chosen: boolean, rpm: number, dotted: boolean): ShaderMaterial {
+  return new ShaderMaterial({
+    vertexShader: ROTOR_VERTEX, fragmentShader: ROTOR_FRAGMENT, transparent: true, depthWrite: false, side: DoubleSide,
+    uniforms: { uColor: { value: color.clone() }, uSelected: { value: chosen ? 1 : 0 }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY }, uDotted: { value: dotted ? 1 : 0 } },
+  });
+}
 /** Visual turns a second for a fan at `rpm`: it rises with the speed but levels off, so a fast fan does not strobe at the display rate. */
 export const rotorTurnsPerSecond = (rpm: number): number => 1.4 * (1 - Math.exp(-Math.max(0, rpm) / 1200));
 /** How much the blades melt into a disc: none for slow fans, most for the fastest. */
@@ -335,10 +344,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       }
       const rpm = state.rotors?.get(slot.key);
       if (rpm !== undefined) {
-        const material = new ShaderMaterial({
-          vertexShader: ROTOR_VERTEX, fragmentShader: ROTOR_FRAGMENT, transparent: true, depthWrite: false, side: DoubleSide,
-          uniforms: { uColor: { value: color.clone() }, uSelected: { value: chosen ? 1 : 0 }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY } },
-        });
+        const material = rotorMaterial(color, chosen, rpm, state.simulated.has(slot.key));
         const geometry = new PlaneGeometry(2, 2);
         const blades = new Mesh(geometry, material);
         blades.scale.set(radii.tip * 0.96, radii.tip * 0.96, 1);

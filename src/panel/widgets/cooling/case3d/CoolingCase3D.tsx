@@ -228,8 +228,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const bound = useMemo(() => new Set(bindings.filter(b => b.channelId !== NONE_CHANNEL).flatMap(b => b.slotKeys)), [bindings]);
   const simulated = useMemo(() => new Set(bindings.filter(b => isSimChannel(b.channelId)).flatMap(b => b.slotKeys)), [bindings]);
   const selectedFans = useMemo(() => new Set(selection.filter(k => k !== RADIATOR_PICK_KEY)), [selection]);
-  // Spinning rotors turn for the fans someone assigned: a real channel or a chosen simulated speed, not the derived default.
-  const rotors = useMemo(() => (caseLayout ? fanRotorSpeeds(caseLayout.fanSlots, bindings, canonOf ? normalizeBindings(storedBindings, canonOf) : storedBindings, channels) : undefined), [caseLayout, bindings, storedBindings, canonOf, channels]);
+  // Spinning rotors turn for every fan with a speed: a real channel or a simulated one (drawn dotted).
+  const rotors = useMemo(() => (caseLayout ? fanRotorSpeeds(caseLayout.fanSlots, bindings, channels) : undefined), [caseLayout, bindings, channels]);
 
   useEffect(() => {
     if (!caseLayout || !renderer) return;

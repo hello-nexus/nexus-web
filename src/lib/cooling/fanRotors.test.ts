@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SIM_RPM_UNASSIGNED, simChannelId, type FanBinding } from './caseLayout';
+import { NONE_CHANNEL, SIM_RPM_UNASSIGNED, simChannelId, type FanBinding } from './caseLayout';
 import { fanRotorSpeeds } from './fanRotors';
 
 const slots = [
@@ -12,23 +12,19 @@ const slots = [
 const channels = [{ id: '/gpu/0', rpm: 1300 }];
 
 describe('fanRotorSpeeds', () => {
-  it('turns a rotor for a stored simulated speed and for a real channel', () => {
-    const stored: FanBinding[] = [{ channelId: simChannelId(3000), slotKeys: ['front:120:0'] }, { channelId: '/gpu/0', slotKeys: ['rad:0'] }];
-    const speeds = fanRotorSpeeds(slots, stored, stored, channels);
+  it('turns a rotor for a simulated speed and for a real channel', () => {
+    const bindings: FanBinding[] = [{ channelId: simChannelId(3000), slotKeys: ['front:120:0'] }, { channelId: '/gpu/0', slotKeys: ['rad:0'] }];
+    const speeds = fanRotorSpeeds(slots, bindings, channels);
     expect(speeds.get('front:120:0')).toBe(3000);
     expect(speeds.get('rad:0')).toBe(1300);
   });
 
-  it('gives no rotor to the derived default speed, an empty mount or a radiator slot', () => {
-    const effective: FanBinding[] = [{ channelId: simChannelId(SIM_RPM_UNASSIGNED), slotKeys: ['rear:120:0'] }];
-    const speeds = fanRotorSpeeds(slots, effective, [], channels);
-    expect(speeds.has('rear:120:0')).toBe(false);
+  it('spins the derived default speed, but not an empty mount, a radiator slot or a none binding', () => {
+    const bindings: FanBinding[] = [{ channelId: simChannelId(SIM_RPM_UNASSIGNED), slotKeys: ['rear:120:0'] }, { channelId: NONE_CHANNEL, slotKeys: ['rad:0'] }];
+    const speeds = fanRotorSpeeds(slots, bindings, channels);
+    expect(speeds.get('rear:120:0')).toBe(SIM_RPM_UNASSIGNED);
+    expect(speeds.has('rad:0')).toBe(false);
     expect(speeds.has('bottom:120:0')).toBe(false);
     expect(speeds.has('top:120:0')).toBe(false);
-  });
-
-  it('keeps a rotor for a user-chosen simulated speed that equals the default value', () => {
-    const stored: FanBinding[] = [{ channelId: simChannelId(SIM_RPM_UNASSIGNED), slotKeys: ['rear:120:0'] }];
-    expect(fanRotorSpeeds(slots, stored, stored, channels).has('rear:120:0')).toBe(true);
   });
 });

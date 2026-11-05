@@ -39,7 +39,7 @@ import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
 import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
-import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringFaceShift, ringMaterial } from './coolingCaseRenderer';
+import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringFaceShift, ringMaterial, rotorMaterial } from './coolingCaseRenderer';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -139,6 +139,13 @@ describe('ringFaceShift', () => {
 
   it('leaves case, cooler and radiator fan rings on their own box', () => {
     for (const key of ['fan:front:0', 'cpu:fan:0', 'rad:fan:0']) expect(ringFaceShift(key, 25, 1)).toBe(0);
+  });
+});
+
+describe('rotorMaterial', () => {
+  it('dots the blades of a simulated fan only', () => {
+    expect(rotorMaterial(new Color('#fff'), false, 800, true).uniforms.uDotted.value).toBe(1);
+    expect(rotorMaterial(new Color('#fff'), false, 800, false).uniforms.uDotted.value).toBe(0);
   });
 });
 
