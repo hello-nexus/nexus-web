@@ -302,7 +302,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const boxesOverlap = (b: { min: Vec3; size: Vec3 }, r: { min: Vec3; size: Vec3 }) => [0, 1, 2].every(a => b.min[a] < r.min[a] + r.size[a] && r.min[a] < b.min[a] + b.size[a]);
   const overRadiator = (b: CaseBox) => radiatorSlotBoxes.some(r => boxesOverlap(b, r));
   const radiatorCores: { box: CaseBox; cells: Set<number> }[] = [];
-  const gpuCells: number[] = [];
+  /** Each graphics card's own cells, keyed by its part selection, so several cards each get their own airflow. */
+  const gpuCards = new Map<string, { box: CaseBox; cells: number[] }>();
   /** A spinning card's closed back plate: no fan disc reopens it. */
   const gpuBackPlate = new Set<number>();
   for (const o of obstacles) {
@@ -316,35 +317,41 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       if (core) radiatorCores.push({ box: o.box, cells });
     } else {
       const source = o.box.slot === 'gpu' ? SOURCE_GPU : o.box.slot === 'cpu' && !cpuOnRadiator && !hasCooler ? SOURCE_CPU : SOURCE_NONE;
-      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); if (source === SOURCE_GPU) gpuCells.push(c); });
+      const key = o.box.select ?? '';
+      if (source === SOURCE_GPU && !gpuCards.has(key)) gpuCards.set(key, { box: o.box, cells: [] });
+      const card = gpuCards.get(key);
+      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); if (source === SOURCE_GPU) card!.cells.push(c); });
     }
   }
 
   const plan = planFans(input, extents, cellMm * MIN_FAN_HALF_THICKNESS_CELLS);
   // With a card fan spinning, the card's body is a porous heatsink, closed only at its back plate, so the air the fans push in leaves through the card's edges instead of straight through its thickness.
-  const gpuProps = layout.boxes.find(b => b.slot === 'gpu' && b.role === 'part' && b.fans)?.fans;
-  const exhaustMode = gpuProps?.bracketExhaust ?? 'none';
-  const spinningCard = plan.fans.find(fan => fan.slot.position === 'gpu' && fan.cfm > 0 && gpuCells.length > 0);
-  if (spinningCard) {
-    const fan = spinningCard;
+  for (const card of gpuCards.values()) {
+    const fan = plan.fans.find(f => f.slot.position === 'gpu' && f.cfm > 0 && f.slot.box && boxesOverlap(card.box, f.slot.box));
+    if (!fan) continue;
+    const cells = card.cells;
+    const exhaustMode = card.box.fans?.bracketExhaust ?? 'none';
     const k = axisIndex(fan.disk.axis);
     const idxOf = (c: number) => [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
     const along = (c: number) => idxOf(c)[k];
-    const ends = gpuCells.reduce((a, c) => [Math.min(a[0], along(c)), Math.max(a[1], along(c))], [Infinity, -Infinity]);
+    const ends = cells.reduce((a, c) => [Math.min(a[0], along(c)), Math.max(a[1], along(c))], [Infinity, -Infinity]);
     const backIndex = fan.disk.axis[k] > 0 ? ends[1] : ends[0];
-    const cardCells = new Set(gpuCells);
+    const cardCells = new Set(cells);
     const strides = [1, NX, NX * NY];
     const depth = (c: number) => Math.abs(along(c) - backIndex);
-    const fanSide = gpuCells.reduce((m, c) => Math.max(m, depth(c)), 0);
-    // The card's bracket end is its far end along the longer face edge; the rear face of the case is where the bracket vents open.
-    const spans = [0, 1, 2].map(a => gpuCells.reduce((m, c) => [Math.min(m[0], idxOf(c)[a]), Math.max(m[1], idxOf(c)[a])], [Infinity, -Infinity]));
+    const fanSide = cells.reduce((m, c) => Math.max(m, depth(c)), 0);
+    // The bracket end is where Build put it; a layout that does not say takes the max end of the card's longer face edge. The case face past it is where the bracket vents open.
+    const spans = [0, 1, 2].map(a => cells.reduce((m, c) => [Math.min(m[0], idxOf(c)[a]), Math.max(m[1], idxOf(c)[a])], [Infinity, -Infinity]));
     const lateral = [0, 1, 2].filter(a => a !== k);
-    const long = spans[lateral[0]][1] - spans[lateral[0]][0] >= spans[lateral[1]][1] - spans[lateral[1]][0] ? lateral[0] : lateral[1];
-    const bracketEnd = spans[long][1];
+    const stated = card.box.fans?.bracket;
+    const long = stated ? { x: 0, y: 1, z: 2 }[stated.axis] : spans[lateral[0]][1] - spans[lateral[0]][0] >= spans[lateral[1]][1] - spans[lateral[1]][0] ? lateral[0] : lateral[1];
+    const dir = (stated?.side ?? 'max') === 'max' ? 1 : -1;
+    const bracketEnd = dir === 1 ? spans[long][1] : spans[long][0];
+    const caseEdge = dir === 1 ? caseMax[long] : caseMin[long];
     const reachCells = Math.ceil(BRACKET_REACH_MM / cellMm);
-    const bracketOpens = exhaustMode !== 'none' && caseMax[long] - bracketEnd <= reachCells;
-    const toBracket = (c: number, a: number, d: number) => bracketOpens && a === long && d === 1 && idxOf(c)[a] === bracketEnd;
-    for (const c of gpuCells) {
+    const bracketOpens = exhaustMode !== 'none' && (caseEdge - bracketEnd) * dir >= 0 && (caseEdge - bracketEnd) * dir <= reachCells;
+    const toBracket = (c: number, a: number, d: number) => bracketOpens && a === long && d === dir && idxOf(c)[a] === bracketEnd;
+    for (const c of cells) {
       if (along(c) === backIndex) { gpuBackPlate.add(c); continue; }
       // The shroud is closed round the fan-side half: the heated air leaves through the back half's edges, away from the fans' own intake. A blower closes it all round but its bracket end.
       const rim = [0, 1, 2].some(a => a !== k && [-1, 1].some(d => !cardCells.has(c + d * strides[a]) && idxOf(c)[a] + d >= 0 && idxOf(c)[a] + d < dims[a] && !toBracket(c, a, d)));
@@ -357,8 +364,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     for (let m = sources.length - 1; m >= 0; m--) if (cardCells.has(sources[m][0]) && along(sources[m][0]) !== backIndex) sources.splice(m, 1);
     // A flow-through fan blows straight out of the back of the card: over its disc the card is open through its whole thickness.
     for (const f of plan.fans) {
-      if (f.slot.position !== 'gpu' || !f.slot.flowThrough || f.cfm <= 0 || axisIndex(f.disk.axis) !== k) continue;
-      for (const c of gpuCells) {
+      if (f.slot.position !== 'gpu' || !f.slot.flowThrough || f.cfm <= 0 || axisIndex(f.disk.axis) !== k || !f.slot.box || !boxesOverlap(card.box, f.slot.box)) continue;
+      for (const c of cells) {
         const d = sub(layoutMm(...(idxOf(c) as [number, number, number])), f.disk.center);
         const offAxis = Math.hypot(d[0] - f.disk.axis[0] * dot(d, f.disk.axis), d[1] - f.disk.axis[1] * dot(d, f.disk.axis), d[2] - f.disk.axis[2] * dot(d, f.disk.axis));
         if (offAxis > f.disk.radius) continue;
@@ -370,16 +377,15 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     }
     for (let m = sources.length - 1; m >= 0; m--) if (!solid[sources[m][0]] && cardCells.has(sources[m][0])) sources.splice(m, 1);
     if (bracketOpens) {
-      // The bracket end opens onto the case's rear face across the card's cross-section: the cells between them clear, and the face opens as a vent.
+      // The bracket end opens onto the case face across the card's cross-section: the cells between them clear, and the face opens as a vent.
       const lo: Vec3 = [spans[0][0], spans[1][0], spans[2][0]];
       const hi: Vec3 = [spans[0][1], spans[1][1], spans[2][1]];
-      lo[long] = bracketEnd + 1;
-      hi[long] = caseMax[long];
+      if (dir === 1) { lo[long] = bracketEnd + 1; hi[long] = caseEdge; } else { lo[long] = caseEdge; hi[long] = bracketEnd - 1; }
       for (let kk = lo[2]; kk <= hi[2]; kk++) for (let jj = lo[1]; jj <= hi[1]; jj++) for (let ii = lo[0]; ii <= hi[0]; ii++) {
         const c = id(ii, jj, kk);
         if (outside[c]) continue;
         solid[c] = 0;
-        if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseMax[long]) opening[c] = OPENING_EXHAUST;
+        if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseEdge) opening[c] = OPENING_EXHAUST;
       }
     }
   }

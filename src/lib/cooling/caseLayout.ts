@@ -36,6 +36,12 @@ export interface CasePlate {
 /** How much of a graphics card's heat leaves through the vents of its I/O bracket: all of it, some of it, or none (the rest goes into the case). */
 export type BracketExhaust = 'blower' | 'partial' | 'none';
 
+/** Which end of a graphics card carries its I/O bracket: the layout axis the card's length runs along and the end of it, as Build placed the card. */
+export interface BracketEnd {
+  axis: 'x' | 'y' | 'z';
+  side: 'min' | 'max';
+}
+
 export interface CaseBox {
   slot: string;
   role: string;
@@ -49,7 +55,7 @@ export interface CaseBox {
   cadSolid?: boolean;
   /** A part that collides with another, drawn in the warning color. */
   conflict?: boolean;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; boardLength?: number; bracketExhaust?: BracketExhaust };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; bracketExhaust?: BracketExhaust; bracket?: BracketEnd };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -171,12 +177,14 @@ function ringLists(fans: Record<string, unknown>): { sizes?: number[]; faces?: (
   return { ...(sizes ? { sizes } : {}), ...(faces ? { faces } : {}) };
 }
 
-/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `boardLength` is the board's length from the bracket end, mm. */
-function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'boardLength' | 'bracketExhaust'> {
+/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `bracket` is where the I/O bracket sits on the card. */
+function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'bracketExhaust' | 'bracket'> {
   const count = finite(fans.count) ? fans.count : 0;
   const through = Array.isArray(fans.flowThrough) && fans.flowThrough.every(i => finite(i) && Number.isInteger(i) && i >= 0 && i < count) ? [...new Set(fans.flowThrough as number[])].sort((a, b) => a - b) : [];
   const exhaust = fans.bracketExhaust === 'blower' || fans.bracketExhaust === 'partial' || fans.bracketExhaust === 'none' ? fans.bracketExhaust : undefined;
-  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(positiveNum(fans.boardLength) !== undefined && (fans.boardLength as number) <= MAX_DIM_MM ? { boardLength: fans.boardLength as number } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}) };
+  const end = fans.bracket as Record<string, unknown> | undefined;
+  const bracket: BracketEnd | undefined = end && typeof end === 'object' && (end.axis === 'x' || end.axis === 'y' || end.axis === 'z') && (end.side === 'min' || end.side === 'max') && end.axis !== fans.axis ? { axis: end.axis, side: end.side } : undefined;
+  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}), ...(bracket ? { bracket } : {}) };
 }
 
 function parseShapes(b: Record<string, unknown>, box: CaseBox) {

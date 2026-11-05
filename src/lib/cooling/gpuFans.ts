@@ -23,10 +23,12 @@ export function gpuFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
   const out: CaseFanSlot[] = [];
   for (const box of boxes) {
     if (box.slot !== 'gpu' || box.role !== 'part' || !box.fans?.count) continue;
-    const { axis, count, diameter, side, sizes, faces, flowThrough, boardLength } = box.fans;
+    const { axis, count, diameter, side, sizes, faces, flowThrough, bracket } = box.fans;
     const k = { x: 0, y: 1, z: 2 }[axis];
     const plane = [0, 1, 2].filter(a => a !== k);
-    const along = box.size[plane[0]] >= box.size[plane[1]] ? plane[0] : plane[1];
+    // The card's length runs along the bracket's axis when Build says so, else along its longer face edge with the bracket at the max end.
+    const along = bracket ? { x: 0, y: 1, z: 2 }[bracket.axis] : box.size[plane[0]] >= box.size[plane[1]] ? plane[0] : plane[1];
+    const fromMax = (bracket?.side ?? 'max') === 'max';
     const across = plane[0] === along ? plane[1] : plane[0];
     const packed = sizes ? gpuFanOffsets(box.size[along], sizes) : null;
     for (let i = 0; i < count; i++) {
@@ -37,14 +39,13 @@ export function gpuFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
       min[k] = box.min[k];
       size[k] = box.size[k];
       size[along] = size[across] = frame;
-      // With per-fan sizes the fans count from the bracket end, the max end along the card, as Build draws them.
-      const center = packed ? box.min[along] + box.size[along] - packed.offsets[i] : box.min[along] + (box.size[along] * (i + 0.5)) / count;
+      // Fans count from the bracket end, as Build draws them.
+      const fromBracketEnd = packed ? packed.offsets[i] : box.size[along] * (1 - (fromMax ? i + 0.5 : count - i - 0.5) / count);
+      const center = fromMax ? box.min[along] + box.size[along] - fromBracketEnd : box.min[along] + fromBracketEnd;
       min[along] = center - frame / 2;
       min[across] = box.min[across] + box.size[across] / 2 - frame / 2;
-      // Distance of the fan from the bracket end: past the board's end a fan has no board under it to block its air.
-      const fromBracket = box.min[along] + box.size[along] - center;
-      const index = packed ? i : count - 1 - i;
-      const through = !!flowThrough?.includes(index) || (boardLength !== undefined && fromBracket > boardLength);
+      const index = packed ? i : fromMax ? count - 1 - i : i;
+      const through = !!flowThrough?.includes(index);
       const into: Vec3 = [0, 0, 0];
       // The fans sit on one face of the card and draw air in through it.
       // A backplate fan sits on the opposite face and draws air the other way.
