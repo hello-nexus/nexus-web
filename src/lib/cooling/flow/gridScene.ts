@@ -5,6 +5,7 @@ import {
   MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, BRACKET_REACH_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO, PLUME_EMITTERS_MAX,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
+import { grilleGapMm } from '../psuFans';
 import { obstaclesOf, type Obstacle } from './obstacles';
 import { boxBounds, boxContains } from './voxelize';
 
@@ -403,6 +404,9 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const fan = plan.fans.find(f => f.slot.position === 'psu' && f.cfm > 0 && f.slot.box && boxesOverlap(body.box, f.slot.box));
     const grille = body.box.fans?.exhaust;
     if (!fan || !grille || body.cells.length === 0) continue;
+    const reaches = (grilleGapMm(body.box, layout.size) ?? Infinity) <= BRACKET_REACH_MM;
+    // A grille that faces no panel within reach has nowhere to send the air: the fan does not run, so it carves, emits and moves nothing.
+    if (!reaches) { fan.cfm = 0; continue; }
     const long = { x: 0, y: 1, z: 2 }[grille.axis];
     const dir = grille.side === 'max' ? 1 : -1;
     const idxOf = (c: number): [number, number, number] => [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
@@ -410,8 +414,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const end = dir === 1 ? spans[long][1] : spans[long][0];
     const caseEdge = dir === 1 ? caseMax[long] : caseMin[long];
     const gap = (caseEdge - end) * dir;
-    // A grille that faces no panel within reach stays shut, and the box stays the solid it was.
-    if (gap < 0 || gap > Math.ceil(BRACKET_REACH_MM / cellMm)) continue;
+    if (gap < 0) continue;
     const bodyCells = new Set(body.cells);
     const strides = [1, NX, NX * NY];
     for (const c of body.cells) {

@@ -251,13 +251,17 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // One edit carries every chosen fan, so a shared change is one update, not one per fan.
   const setDirections = useCallback((slots: readonly { key: string; position: string }[], direction: FanDirection) => {
-    edit(l => ({ ...l, directions: slots.reduce((d, slot) => withDirection(d, slot, direction), l.directions) }));
+    // A PSU fan always draws into its box, so no direction is stored for it.
+    edit(l => ({ ...l, directions: slots.filter(slot => !isPsuSlotKey(slot.key)).reduce((d, slot) => withDirection(d, slot, direction), l.directions) }));
   }, [edit]);
   const setDirection = useCallback((key: string, position: string, direction: FanDirection) => setDirections([{ key, position }], direction), [setDirections]);
 
   // Choosing a device links it to these fans: each fan's earlier device is replaced, and the device keeps its other fans. Unlinking a fan that has a derived default (GPU, AIO and installed case fans) stores the `none` marker instead of letting the default return.
   const linkChannels = useCallback((channelId: string, keys: readonly string[]) => {
-    edit(l => ({ ...l, bindings: linkChannelToSlots(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, keys, (b, id, key) => linkChannelToSlot(b, id, key, hasDerivedLink(key) || installedKeys.has(key))) }));
+    // A PSU fan stays simulated: no real device can be linked to it.
+    const linkable = isSimChannel(channelId) ? keys : keys.filter(k => !isPsuSlotKey(k));
+    if (linkable.length === 0) return;
+    edit(l => ({ ...l, bindings: linkChannelToSlots(canonOf ? normalizeBindings(l.bindings, canonOf) : l.bindings, channelId, linkable, (b, id, key) => linkChannelToSlot(b, id, key, hasDerivedLink(key) || installedKeys.has(key))) }));
   }, [edit, canonOf, installedKeys]);
   const linkChannel = useCallback((channelId: string, key: string) => linkChannels(channelId, [key]), [linkChannels]);
 
@@ -345,7 +349,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const multiSlots = selection.length > 1 ? caseLayout.fanSlots.filter(sl => selection.includes(sl.key)) : [];
   const multi = multiSlots.length > 1;
   const multiKeys = multiSlots.map(sl => sl.key);
-  const multiDirection = sharedOf(multiSlots.map(sl => directions[sl.key]));
+  const multiDirectional = multiSlots.filter(sl => !isPsuSlotKey(sl.key));
+  const multiDirection = sharedOf(multiDirectional.map(sl => directions[sl.key]));
   const multiOwner = sharedOf(multiKeys.map(k => channelOfSlot(bindings, k) ?? NONE_CHANNEL));
   const multiSim = multi ? simSpeeds(k => channelOfSlot(bindings, k), multiKeys) : null;
   const multiRpm = sharedOf(multiSim ?? []);
@@ -370,7 +375,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // Every device of the left-hand list, by the name it shows there; one already on another fan says which, and choosing it moves it here.
   const deviceTargets = multi ? multiKeys : activeSlot ? [activeSlot.key] : [];
-  const deviceOptions: SelectOption[] = deviceTargets.length > 0 ? [
+  // A lone PSU fan offers only the simulated choice.
+  const psuOnly = deviceTargets.length > 0 && deviceTargets.every(isPsuSlotKey);
+  const deviceOptions: SelectOption[] = psuOnly ? [{ value: SIM_VALUE, label: t('cooling.case3d.sim.fan') }] : deviceTargets.length > 0 ? [
     { value: NONE, label: t('cooling.case3d.noneLinked') },
     ...channels.map(c => {
       const elsewhere = [...new Set(bindings.filter(b => b.channelId === c.id).flatMap(b => b.slotKeys).filter(k => !deviceTargets.includes(k)).map(k => positionName(slotPosition(k))))];
@@ -526,14 +533,16 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             ariaLabel={t('cooling.case3d.direction.label')}
           >
             <div className={styles.popoverTitle}>{t('cooling.case3d.multi.title', { count: String(multiSlots.length) })}</div>
-            <ChipGroup
-              ariaLabel={t('cooling.case3d.direction.label')}
-              options={[{ key: INTAKE, label: t('cooling.case3d.direction.intake') }, { key: EXHAUST, label: t('cooling.case3d.direction.exhaust') }]}
-              activeKey={multiDirection.value ?? ''}
-              partialKeys={multiDirection.mixed ? new Set(multiSlots.map(sl => directions[sl.key])) : undefined}
-              partialLabel={t('common.mixed')}
-              onChange={next => setDirections(multiSlots, next as FanDirection)}
-            />
+            {multiDirectional.length > 0 && (
+              <ChipGroup
+                ariaLabel={t('cooling.case3d.direction.label')}
+                options={[{ key: INTAKE, label: t('cooling.case3d.direction.intake') }, { key: EXHAUST, label: t('cooling.case3d.direction.exhaust') }]}
+                activeKey={multiDirection.value ?? ''}
+                partialKeys={multiDirection.mixed ? new Set(multiDirectional.map(sl => directions[sl.key])) : undefined}
+                partialLabel={t('common.mixed')}
+                onChange={next => setDirections(multiDirectional, next as FanDirection)}
+              />
+            )}
             {radiatorChips}
             <Select
               ariaLabel={t('cooling.case3d.device.label')}

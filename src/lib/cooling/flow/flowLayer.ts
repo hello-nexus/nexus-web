@@ -3,7 +3,7 @@ import {
   Mesh, NearestFilter, PerspectiveCamera, RGBAFormat, ShaderMaterial, Vector2, Vector3, type Group, type WebGLRenderer, type WebGLRenderTarget,
 } from 'three';
 import { DEV_TOOLS } from '../../devTools';
-import { isInternalSlotKey } from '../slotFlow';
+import { drawsCaseAir, isInternalSlotKey } from '../slotFlow';
 import { HeatVolume } from './heatVolume';
 import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
@@ -719,12 +719,14 @@ function speedDrift(solved: FlowInput, next: FlowInput): { mean: number; worst: 
   return { mean, worst };
 }
 
-/** Air leaving the case, CFM: the exhaust fans plus whatever the unfanned openings let out. GPU and air cooler fans recirculate and are left out. */
+/** Air leaving the case, CFM: the exhaust fans, a power supply fan drawing from the main chamber, plus whatever the unfanned openings let out. GPU and air cooler fans recirculate and are left out. */
 function exhaustFlowCfm(input: FlowInput): number {
   let total = Math.max(0, input.ventCfm);
+  const slots = new Map(input.layout.fanSlots.map(s => [s.key, s]));
   for (const key of Object.keys(input.fanCfm)) {
-    const slot = key.split('#')[0];
-    if (!isInternalSlotKey(slot) && input.directions[slot] === 'exhaust') total += input.fanCfm[key];
+    const name = key.split('#')[0];
+    const slot = slots.get(name);
+    if ((slot && drawsCaseAir(slot)) || (!isInternalSlotKey(name) && input.directions[name] === 'exhaust')) total += input.fanCfm[key];
   }
   return total;
 }

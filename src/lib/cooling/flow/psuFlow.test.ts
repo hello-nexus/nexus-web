@@ -2,7 +2,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseCaseLayout, type CaseLayout } from '../caseLayout';
-import { PSU_SIM_RPM } from '../psuFans';
 import { drawsCaseAir, slotDirections, slotSpeeds, withDefaultBindings } from '../slotFlow';
 import { visualFlow } from '../visualFlow';
 import { CpuFlow } from './cpuSolver';
@@ -30,7 +29,7 @@ const flowOf = (layout: CaseLayout) => {
   return { slots, visual: visualFlow(slots, catalog, speeds, directions), directions };
 };
 
-/** Air leaving the grille through the case panel it faces (CFM), and the cells it leaves by. */
+/** The shell cells the scene marks as the given kind of opening, and their total area in m^2. */
 function throughOpenings(scene: FlowScene, kind: number): { cells: number[]; area: number } {
   const cells: number[] = [];
   for (let c = 0; c < scene.opening.length; c++) if (scene.opening[c] === kind) cells.push(c);
@@ -98,14 +97,19 @@ describe('X50: the PSU sits at the top rear of a single chamber', () => {
     expect(out).toBeGreaterThan(0.5 * visual.fanCfm['psu:fan:0']);
   }, 60000);
 
-  it('leaves the scene as it was when the PSU box carries no fan data', () => {
-    const bare = withPsuFan('x50', null);
-    const before = buildFlowScene({ layout: bare, directions: {}, fanCfm: {}, ventCfm: 0 }, MID);
-    const without = parseCaseLayout({ ...fixture('x50') , boxes: fixture('x50').boxes.map(b => (b.slot === 'psu' && b.role === 'part' ? { ...b, fans: undefined } : b)) })!;
-    const same = buildFlowScene({ layout: without, directions: {}, fanCfm: {}, ventCfm: 0 }, MID);
-    expect(bare.fanSlots.filter(s => s.position === 'psu')).toHaveLength(0);
-    expect(Array.from(before.solid)).toEqual(Array.from(same.solid));
-    expect(Array.from(before.opening)).toEqual(Array.from(same.opening));
+  it('leaves the scene as it was for the fixture as Build wrote it, a PSU ring with no grille end', () => {
+    // The fixture's own PSU fans (no `exhaust`), against the same layout with the ring taken off: neither has a PSU slot, so both are the scene before PSU fans existed.
+    const original = parseCaseLayout(fixture('x50'))!;
+    const stripped = withPsuFan('x50', null);
+    expect(original.fanSlots.filter(s => s.position === 'psu')).toHaveLength(0);
+    const a = buildFlowScene({ layout: original, directions: {}, fanCfm: {}, ventCfm: 0 }, MID);
+    const b = buildFlowScene({ layout: stripped, directions: {}, fanCfm: {}, ventCfm: 0 }, MID);
+    for (const key of ['solid', 'opening', 'darcy', 'fanCell', 'target', 'heat'] as const) expect(Array.from(a[key])).toEqual(Array.from(b[key]));
+  });
+
+  it('runs no PSU fan when the grille faces no case panel within reach', () => {
+    const far = parseCaseLayout({ ...fixture('x50'), boxes: fixture('x50').boxes.map(b => (b.slot === 'psu' && b.role === 'part' ? { ...b, min: [100, (b.min as number[])[1], (b.min as number[])[2]], fans: { ...(b.fans as object), diameter: 120, exhaust: { axis: 'x', side: 'max' } } } : b)) })!;
+    expect(far.fanSlots.filter(s => s.position === 'psu')).toHaveLength(0);
   });
 });
 
@@ -140,11 +144,5 @@ describe('a PSU on the floor over a documented case vent', () => {
     const bare = buildFlowScene({ layout: withPsuFan('x50', null, FLOOR_MM), directions: {}, fanCfm: {}, ventCfm: 0 }, MID);
     expect(throughOpenings(scene, OPENING_INTAKE).cells.length).toBeGreaterThan(throughOpenings(bare, OPENING_INTAKE).cells.length);
     expect(throughOpenings(scene, OPENING_EXHAUST).cells.length).toBeGreaterThan(0);
-  });
-});
-
-describe('PSU fan speed default', () => {
-  it('is the named slow simulated speed', () => {
-    expect(PSU_SIM_RPM).toBeLessThan(1500);
   });
 });

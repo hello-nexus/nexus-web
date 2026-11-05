@@ -11,8 +11,11 @@ export const CPU_FAN_PREFIX = 'cpu:fan:';
 export const isGpuSlotKey = (key: string): boolean => key.startsWith(GPU_FAN_PREFIX);
 /** A fan that blows through its own part (a card's shroud, an air cooler's fins, a power supply): the part, not a case mount, is what it moves air through. */
 export const isInternalSlotKey = (key: string): boolean => key.startsWith(GPU_FAN_PREFIX) || key.startsWith(CPU_FAN_PREFIX) || key.startsWith(PSU_FAN_PREFIX);
-/** A power supply fan that takes its air from the case and sends it out the rear grille: to the case's air it is an exhaust fan. One over a case vent never touches the case's air. */
-export const drawsCaseAir = (slot: Pick<CaseFanSlot, 'key' | 'ventFed'>): boolean => isPsuSlotKey(slot.key) && !slot.ventFed;
+/** A power supply fan that takes its air from the main chamber and sends it out the rear grille: to the case's air it is an exhaust fan. One over a case vent, or in a compartment of its own (under a shroud, in a rear chamber), never touches the main chamber's air. */
+export const drawsCaseAir = (slot: Pick<CaseFanSlot, 'key' | 'ventFed' | 'compartment'>): boolean => isPsuSlotKey(slot.key) && !slot.ventFed && !slot.compartment;
+
+/** The channel the derived PSU fan sits on: its simulated speed, under an id of its own so it never merges with user fans saved at the same simulated speed. */
+const PSU_SIM_CHANNEL = `${simChannelId(PSU_SIM_RPM)}:psu`;
 
 const gpuIndex = (key: string): number => Number.parseInt(key.slice(GPU_FAN_PREFIX.length), 10) || 0;
 
@@ -41,7 +44,7 @@ export function withDefaultBindings(bindings: readonly FanBinding[], slots: read
   assign(slots.filter(isAioSlot).flatMap(sl => slotFanKeys(sl).map(key => ({ key, free: !named.has(key) }))), fans(c => !!c.isAio));
   for (const sl of slots) {
     if (isGpuSlotKey(sl.key) || isAioSlot(sl) || sl.taken !== 'fan' || named.has(sl.key)) continue;
-    add(isPsuSlotKey(sl.key) ? simChannelId(PSU_SIM_RPM) : simulated, sl.key);
+    add(isPsuSlotKey(sl.key) ? PSU_SIM_CHANNEL : simulated, sl.key);
   }
   // A derived group joins a stored binding on the same channel, so a channel id never appears twice.
   const merged = bindings.map(b => ({ ...b, slotKeys: [...b.slotKeys, ...(derived.get(b.channelId) ?? [])] }));
@@ -52,7 +55,7 @@ export function withDefaultBindings(bindings: readonly FanBinding[], slots: read
 /** Each slot's direction: the user's override, else the GPU's and an air cooler's fans blow into their part (intake), else the position's default. */
 export function slotDirections(slots: readonly Pick<CaseFanSlot, 'key' | 'position'>[], overrides: Readonly<Record<string, FanDirection>>): Record<string, FanDirection> {
   const out: Record<string, FanDirection> = {};
-  for (const slot of slots) out[slot.key] = overrides[slot.key] ?? (isInternalSlotKey(slot.key) ? 'intake' : defaultDirection(slot.position));
+  for (const slot of slots) out[slot.key] = (isPsuSlotKey(slot.key) ? undefined : overrides[slot.key]) ?? (isInternalSlotKey(slot.key) ? 'intake' : defaultDirection(slot.position));
   return out;
 }
 

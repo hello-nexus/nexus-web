@@ -56,7 +56,7 @@ export interface CaseBox {
   cadSolid?: boolean;
   /** A part that collides with another, drawn in the warning color. */
   conflict?: boolean;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; bracketExhaust?: BracketExhaust; bracket?: BracketEnd; exhaust?: BracketEnd; draws?: 'outside' };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; bracketExhaust?: BracketExhaust; bracket?: BracketEnd; exhaust?: BracketEnd; draws?: 'outside'; compartment?: boolean };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -95,6 +95,8 @@ export interface CaseFanSlot {
   flowThrough?: boolean;
   /** A power supply fan that draws room air through a case vent under it, not air from the case. */
   ventFed?: boolean;
+  /** A power supply fan whose PSU sits in a compartment of its own (under a shroud, in a rear chamber): it does not draw from the main chamber. */
+  compartment?: boolean;
   fan?: SlotFanSpec;
   radiator?: SlotRadiatorSpec;
 }
@@ -188,14 +190,14 @@ function boxEnd(raw: unknown, fanAxis: unknown): BracketEnd | undefined {
   return end && typeof end === 'object' && (end.axis === 'x' || end.axis === 'y' || end.axis === 'z') && (end.side === 'min' || end.side === 'max') && end.axis !== fanAxis ? { axis: end.axis, side: end.side } : undefined;
 }
 
-/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `bracket` is where the I/O bracket sits on the card. A power supply carries `exhaust`, the end of its box with the rear grille, and `draws`, whether its fan takes room air through a case vent. */
-function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'bracketExhaust' | 'bracket' | 'exhaust' | 'draws'> {
+/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `bracket` is where the I/O bracket sits on the card. A power supply carries `exhaust`, the end of its box with the rear grille, `draws`, whether its fan takes room air through a case vent, and `compartment`, whether it sits in a compartment of its own. */
+function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'bracketExhaust' | 'bracket' | 'exhaust' | 'draws' | 'compartment'> {
   const count = finite(fans.count) ? fans.count : 0;
   const through = Array.isArray(fans.flowThrough) && fans.flowThrough.every(i => finite(i) && Number.isInteger(i) && i >= 0 && i < count) ? [...new Set(fans.flowThrough as number[])].sort((a, b) => a - b) : [];
   const exhaust = fans.bracketExhaust === 'blower' || fans.bracketExhaust === 'partial' || fans.bracketExhaust === 'none' ? fans.bracketExhaust : undefined;
   const bracket = boxEnd(fans.bracket, fans.axis);
   const grille = boxEnd(fans.exhaust, fans.axis);
-  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}), ...(bracket ? { bracket } : {}), ...(grille ? { exhaust: grille } : {}), ...(fans.draws === 'outside' ? { draws: 'outside' as const } : {}) };
+  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}), ...(bracket ? { bracket } : {}), ...(grille ? { exhaust: grille } : {}), ...(fans.draws === 'outside' ? { draws: 'outside' as const } : {}), ...(fans.compartment === true ? { compartment: true } : {}) };
 }
 
 function parseShapes(b: Record<string, unknown>, box: CaseBox) {
@@ -383,7 +385,7 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
     boxes,
     ...(tubes.length > 0 ? { tubes } : {}),
     ...(lines.length > 0 ? { lines } : {}),
-    fanSlots: [...slots, ...gpuFanSlots(boxes), ...psuFanSlots(boxes), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
+    fanSlots: [...slots, ...gpuFanSlots(boxes), ...psuFanSlots(boxes, size), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
     ...(mount ? { radiatorMount: mount } : {}),
     ...(options.length >= 2 ? { radiatorOptions: options } : {}),
     ...(radiatorMove ? { radiatorMove } : {}),

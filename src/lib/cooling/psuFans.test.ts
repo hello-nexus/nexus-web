@@ -20,13 +20,17 @@ describe('psuFanSlots', () => {
   });
 
   it('points a max-side fan the other way', () => {
-    const [slot] = psuFanSlots(withBoxes([psuBox({ ...FACE_DOWN, axis: 'z', side: 'max' })]).boxes);
+    const [slot] = psuFanSlots(withBoxes([psuBox({ ...FACE_DOWN, axis: 'z', side: 'max' })]).boxes, [510, 255, 509]);
     expect(slot.axis).toEqual([0, 0, -1]);
   });
 
   it('adds nothing for a PSU box that names no grille end', () => {
     expect(withBoxes([psuBox({ axis: 'y', side: 'min', count: 1, diameter: 120 })]).fanSlots).toEqual([]);
     expect(withBoxes([psuBox(undefined)]).fanSlots).toEqual([]);
+  });
+
+  it('adds nothing when the grille faces no case panel within reach', () => {
+    expect(withBoxes([{ ...psuBox(FACE_DOWN), min: [100, 411, 18.7] }]).fanSlots).toEqual([]);
   });
 
   it('drops an exhaust end on the fan axis itself', () => {
@@ -46,7 +50,7 @@ describe('PSU fan in the flow model', () => {
 
   it('simulates an unbound PSU fan at its own slow speed', () => {
     const l = layout(FACE_DOWN);
-    expect(withDefaultBindings([], l.fanSlots, [])).toEqual([{ channelId: simChannelId(PSU_SIM_RPM), slotKeys: ['psu:fan:0'] }]);
+    expect(withDefaultBindings([], l.fanSlots, [])).toEqual([{ channelId: `${simChannelId(PSU_SIM_RPM)}:psu`, slotKeys: ['psu:fan:0'] }]);
   });
 
   it('gives the PSU fan a rotor turning at the simulated speed', () => {
@@ -56,8 +60,23 @@ describe('PSU fan in the flow model', () => {
 
   it('draws the fan into its box whatever the case direction override says', () => {
     const l = layout(FACE_DOWN);
-    expect(slotDirections(l.fanSlots, { 'psu:fan:0': 'exhaust' })['psu:fan:0']).toBe('exhaust');
+    expect(slotDirections(l.fanSlots, { 'psu:fan:0': 'exhaust' })['psu:fan:0']).toBe('intake');
     expect(slotDirections(l.fanSlots, {})['psu:fan:0']).toBe('intake');
+  });
+
+  it('keeps the derived PSU binding apart from user fans saved at the same simulated speed', () => {
+    const l = layout(FACE_DOWN);
+    const user = [{ channelId: simChannelId(PSU_SIM_RPM), slotKeys: ['top:120:0'] }];
+    const merged = withDefaultBindings(user, l.fanSlots, []);
+    expect(merged.find(b => b.channelId === simChannelId(PSU_SIM_RPM))?.slotKeys).toEqual(['top:120:0']);
+    expect(merged.find(b => b.slotKeys.includes('psu:fan:0'))?.slotKeys).toEqual(['psu:fan:0']);
+    expect(fanRotorSpeeds(l.fanSlots, merged, []).get('psu:fan:0')).toBe(PSU_SIM_RPM);
+  });
+
+  it('leaves a PSU in a compartment of its own out of the main chamber pressure model', () => {
+    const l = layout({ ...FACE_DOWN, compartment: true });
+    expect(l.fanSlots[0].compartment).toBe(true);
+    expect(lumpedModel(l.fanSlots, [], speeds(l), slotDirections(l.fanSlots, {})).fanCount).toBe(0);
   });
 
   it('counts a case-drawing PSU fan as an exhaust fan in the case pressure model', () => {
