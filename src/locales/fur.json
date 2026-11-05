@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Vierç Build",
   "cooling.case3d.flow.collisions": "Formis di colision",
   "cooling.case3d.flow.controls": "Viodude dal flus di aiar",
+  "cooling.case3d.flow.grid": "Mostre la gridele",
   "cooling.case3d.flow.heat": "Volum di calôr",
   "cooling.case3d.flow.legend": "Temperature de l'aiar, di {from} a {to}",
   "cooling.case3d.flow.mode.airflow": "Flus di aiar",

@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Build openen",
   "cooling.case3d.flow.collisions": "Botsingsvormen",
   "cooling.case3d.flow.controls": "Luchtstroomweergave",
+  "cooling.case3d.flow.grid": "Raster tonen",
   "cooling.case3d.flow.heat": "Warmtevolume",
   "cooling.case3d.flow.legend": "Luchttemperatuur, {from} tot {to}",
   "cooling.case3d.flow.mode.airflow": "Luchtstroom",

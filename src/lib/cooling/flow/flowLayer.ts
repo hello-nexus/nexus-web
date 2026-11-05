@@ -11,6 +11,7 @@ import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from '
 import { PARTICLE_TEXTURE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
+import { buildGridView, type GridView } from './gridView';
 import { SteadyGate } from './steadyGate';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT } from './shaders';
@@ -71,6 +72,8 @@ export interface FlowOptions {
   particles: boolean;
   /** Draws the obstacles the solver rasterizes, as shapes, in place of the case model. */
   collisions: boolean;
+  /** Dev tools: draws the grid cells and how the solver uses them. */
+  grid?: boolean;
   /** Dev tools: draws the temperature field as a volume. */
   heat?: boolean;
   /** Screen speed over real speed: below one is slow motion. When set, the particle speed comes from it and the scene's own step length, so the flow reads at this slow motion whatever the case size; `speed` then only serves a layer given no scale. */
@@ -136,6 +139,8 @@ export class FlowLayer {
   private streaks: Mesh | null = null;
   private streakMat: ShaderMaterial | null = null;
   private collisionsShown = false;
+  private gridView: GridView | null = null;
+  private gridShown = false;
   private volume: HeatVolume | null = null;
   /** Counts the changes that can alter the temperature field, so the volume redraws only when it must. */
   private fieldVersion = 0;
@@ -228,6 +233,7 @@ export class FlowLayer {
       else this.streaks.visible = options.particles;
     }
     if (options.collisions !== this.collisionsShown) this.syncCollisions();
+    if (DEV_TOOLS && !!options.grid !== this.gridShown) this.syncGrid();
     if (DEV_TOOLS && !!options.heat !== !!this.volume) this.syncVolume();
   }
 
@@ -353,6 +359,7 @@ export class FlowLayer {
     this.wakeWatts = sourceWatts(this.temps);
     this.heatCells = scene.heat.some(v => v === SOURCE_GPU || v === SOURCE_CPU);
     if (this.collisionsShown) this.syncCollisions(true);
+    if (this.gridShown) this.syncGrid(true);
     this.fluidCells = caseFluidCells(scene);
     this.fieldVersion++;
     if (DEV_TOOLS && this.options.heat && !this.volume) this.syncVolume();
@@ -670,10 +677,22 @@ export class FlowLayer {
     this.group.add(this.collisions.group);
   }
 
+  // Rebuilds the dev grid view for the current scene.
+  private syncGrid(force = false) {
+    if (this.gridView) { this.group.remove(this.gridView.group); this.gridView.dispose(); this.gridView = null; }
+    this.gridShown = DEV_TOOLS && !!this.options.grid;
+    const scene = this.fscene;
+    if (!this.gridShown || !scene) { if (force) this.gridShown = DEV_TOOLS && !!this.options.grid; return; }
+    this.gridView = buildGridView(scene);
+    this.gridView.group.renderOrder = 1;
+    this.group.add(this.gridView.group);
+  }
+
   private teardown() {
     this.volume?.dispose();
     this.volume = null;
     if (this.collisions) { this.group.remove(this.collisions.group); this.collisions.dispose(); this.collisions = null; }
+    if (this.gridView) { this.group.remove(this.gridView.group); this.gridView.dispose(); this.gridView = null; }
     this.flow?.dispose();
     this.flow = null;
     this.fscene = null;

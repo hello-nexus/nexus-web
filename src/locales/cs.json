@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Otevřít Build",
   "cooling.case3d.flow.collisions": "Kolizní tvary",
   "cooling.case3d.flow.controls": "Zobrazení proudění vzduchu",
+  "cooling.case3d.flow.grid": "Zobrazit mřížku",
   "cooling.case3d.flow.heat": "Teplotní objem",
   "cooling.case3d.flow.legend": "Teplota vzduchu, {from} až {to}",
   "cooling.case3d.flow.mode.airflow": "Proudění",

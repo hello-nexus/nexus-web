@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Buildを開く",
   "cooling.case3d.flow.collisions": "衝突形状",
   "cooling.case3d.flow.controls": "エアフロー表示",
+  "cooling.case3d.flow.grid": "グリッドを表示",
   "cooling.case3d.flow.heat": "熱ボリューム",
   "cooling.case3d.flow.legend": "空気の温度({from}から{to})",
   "cooling.case3d.flow.mode.airflow": "気流",

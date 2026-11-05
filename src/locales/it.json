@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Apri Build",
   "cooling.case3d.flow.collisions": "Forme di collisione",
   "cooling.case3d.flow.controls": "Visualizzazione del flusso d'aria",
+  "cooling.case3d.flow.grid": "Mostra griglia",
   "cooling.case3d.flow.heat": "Volume di calore",
   "cooling.case3d.flow.legend": "Temperatura dell'aria, da {from} a {to}",
   "cooling.case3d.flow.mode.airflow": "Flusso d'aria",

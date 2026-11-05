@@ -598,7 +598,7 @@ describe('CoolingCase3D airflow controls', () => {
     expect(state.flow.fanCfm['front:120:0']).toBeGreaterThan(0);
     expect(state.flow.fanCfm['rear:120:0']).toBeGreaterThan(0);
     expect(new Set(state.simulated)).toEqual(new Set(['front:120:0', 'rear:120:0']));
-    expect(state.flowOptions).toEqual({ particles: true, collisions: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
+    expect(state.flowOptions).toEqual({ particles: true, collisions: false, grid: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
   it('keeps the flow input when a setup ping changes nothing it reads', () => {
@@ -625,7 +625,7 @@ describe('CoolingCase3D airflow controls', () => {
   it('has no speed slider and a fixed normal speed', () => {
     mountReady();
     expect(screen.queryByRole('slider')).toBeNull();
-    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
+    expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, grid: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
   it('slow mo scales the particle step to a quarter without re-solving', () => {
@@ -686,7 +686,7 @@ describe('CoolingCase3D airflow controls', () => {
     }
   });
 
-  it('puts the heat volume toggle then the info button inside the frame, top right, with dev tools off', () => {
+  it('puts the heat volume pill beside the legend, then the info button, inside the frame with dev tools off', () => {
     h.devTools = false;
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
@@ -696,7 +696,10 @@ describe('CoolingCase3D airflow controls', () => {
     const info = within(frame).getByRole('button', { name: 'cooling.case3d.hint.label' });
     expect(frame.contains(heat)).toBe(true);
     expect(heat.compareDocumentPosition(info) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(heat.closest('[class*="legendActions"]')).toBe(info.closest('[class*="legendActions"]'));
+    const legend = screen.getByRole('group', { name: /cooling\.case3d\.flow\.legend/ });
+    expect(legend.parentElement!.contains(heat)).toBe(true);
+    expect(legend.compareDocumentPosition(heat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(heat.closest('[class*="legendActions"]')).toBeNull();
   });
 
   it('opens in the remembered mode', () => {
@@ -1361,7 +1364,7 @@ describe('CoolingCase3D renderer creation', () => {
 });
 
 describe('CoolingCase3D dev-tools flow controls', () => {
-  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.slowMo', 'cooling.case3d.flow.collisions'];
+  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.slowMo', 'cooling.case3d.flow.collisions', 'cooling.case3d.flow.grid'];
   const devOnly = names.slice(1);
   const mount = () => {
     h.setup = { record: record(), loaded: true };
@@ -1369,16 +1372,38 @@ describe('CoolingCase3D dev-tools flow controls', () => {
     return render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
   };
 
-  it('renders heat volume, slow mo and collision shapes with dev tools on', () => {
+  it('renders heat volume, slow mo, collision shapes and show grid with dev tools on', () => {
     mount();
     for (const name of names) expect(screen.getByRole('switch', { name })).toBeTruthy();
   });
 
-  it('hides slow mo and collision shapes but keeps heat volume with dev tools off', () => {
+  it('hides slow mo, collision shapes and show grid but keeps heat volume with dev tools off', () => {
     h.devTools = false;
     mount();
     for (const name of devOnly) expect(screen.queryByRole('switch', { name })).toBeNull();
     expect(screen.getByRole('switch', { name: names[0] })).toBeTruthy();
+  });
+
+  it('lays the toggles out as pills after the legend: heat volume first, then the dev toggles, none in the bottom bar', () => {
+    mount();
+    const legend = screen.getByRole('group', { name: /cooling.case3d.flow.legend/ });
+    const row = legend.parentElement!;
+    const order = [...row.querySelectorAll('[role="switch"]')].map(el => el.getAttribute('aria-label'));
+    expect(order[0]).toBe(names[0]);
+    expect([...order].sort()).toEqual([...names].sort());
+    const bar = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
+    expect(bar.querySelector('[role="switch"]')).toBeNull();
+  });
+
+  it('turns the grid view on only with dev tools on', () => {
+    mount();
+    expect(lastState().flowOptions.grid).toBe(false);
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.grid' }));
+    expect(lastState().flowOptions.grid).toBe(true);
+    h.devTools = false;
+    const pick = (name: string) => fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText(name));
+    pick('cooling.case3d.flow.mode.case');
+    expect(lastState().flowOptions.grid).toBe(false);
   });
 
   it('runs at normal speed with dev tools off even when slow mo was switched on', () => {

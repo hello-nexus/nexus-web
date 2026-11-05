@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "打开 Build",
   "cooling.case3d.flow.collisions": "碰撞形状",
   "cooling.case3d.flow.controls": "气流显示",
+  "cooling.case3d.flow.grid": "显示网格",
   "cooling.case3d.flow.heat": "热量体积",
   "cooling.case3d.flow.legend": "空气温度（{from}至{to}）",
   "cooling.case3d.flow.mode.airflow": "气流",

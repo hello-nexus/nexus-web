@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Открыть Build",
   "cooling.case3d.flow.collisions": "Формы столкновений",
   "cooling.case3d.flow.controls": "Отображение воздушного потока",
+  "cooling.case3d.flow.grid": "Показать сетку",
   "cooling.case3d.flow.heat": "Объём тепла",
   "cooling.case3d.flow.legend": "Температура воздуха, от {from} до {to}",
   "cooling.case3d.flow.mode.airflow": "Воздушный поток",

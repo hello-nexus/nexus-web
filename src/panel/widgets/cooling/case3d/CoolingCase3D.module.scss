@@ -95,14 +95,6 @@
   gap: 0.4rem 1.2rem;
 }
 
-.flowToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  @include text-button;
-  color: var(--text);
-}
-
 // Strips over the canvas: dark and translucent so their text reads over the scene; a press on one is not a press on empty canvas.
 .overlay {
   position: absolute;
@@ -168,12 +160,14 @@
 
 .legendRow {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
   align-items: center;
   align-self: stretch;
   padding: 0 0.75rem;
 }
 
-// Heat volume toggle then the info button, at the far right of the legend's row.
+// The info button, at the far right of the legend's row.
 .legendActions {
   display: flex;
   align-items: center;
@@ -185,17 +179,6 @@
   display: inline-flex;
   align-items: center;
   margin-left: 0.5rem;
-}
-
-.legendToggle {
-  display: inline-flex;
-  align-items: center;
-  @include text-caption;
-  color: var(--text-dim);
-
-  > span {
-    margin-left: 0.4rem;
-  }
 }
 
 .legend {

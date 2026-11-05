@@ -333,6 +333,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   }
 
   const plan = planFans(input, extents, cellMm * MIN_FAN_HALF_THICKNESS_CELLS);
+  /** Card fans whose air leaves sideways through an open bracket: their square frame is no wall, only the hub is. */
+  const blowerFans = new Set<(typeof plan.fans)[number]>();
   // With a card fan spinning, the card's body is a porous heatsink, closed only at its back plate, so the air the fans push in leaves through the card's edges instead of straight through its thickness.
   for (const [cardKey, card] of gpuCards) {
     // A fan belongs to the card its slot names; a slot that names none falls back to the card whose box it overlaps.
@@ -360,9 +362,12 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
     const caseEdge = dir === 1 ? caseMax[long] : caseMin[long];
     const reachCells = Math.ceil(BRACKET_REACH_MM / cellMm);
     const bracketOpens = exhaustMode !== 'none' && (caseEdge - bracketEnd) * dir >= 0 && (caseEdge - bracketEnd) * dir <= reachCells;
+    if (exhaustMode === 'blower' && bracketOpens) blowerFans.add(fan);
     const toBracket = (c: number, a: number, d: number) => bracketOpens && a === long && d === dir && idxOf(c)[a] === bracketEnd;
     for (const c of cells) {
       if (along(c) === backIndex) { gpuBackPlate.add(c); continue; }
+      // A blower's duct is shut on its fan side too, but over the fan's own disc: the fan carve below reopens that.
+      if (blowerFans.has(fan) && depth(c) === fanSide) continue;
       // The shroud is closed round the fan-side half: the heated air leaves through the back half's edges, away from the fans' own intake. A blower closes it all round but its bracket end.
       const rim = [0, 1, 2].some(a => a !== k && [-1, 1].some(d => !cardCells.has(c + d * strides[a]) && idxOf(c)[a] + d >= 0 && idxOf(c)[a] + d < dims[a] && !toBracket(c, a, d)));
       if (rim && ((exhaustMode === 'blower' && bracketOpens) || depth(c) > fanSide / 2)) continue;
@@ -522,7 +527,7 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       if (inRing / (SUB * SUB) >= 0.4) {
         annulus.push(id3);
         layers.add([i, j, kk][k]);
-      } else if (!p.porousBox && p.slot.taken !== null) blocked.push(id3);
+      } else if (!p.porousBox && p.slot.taken !== null && (!blowerFans.has(p) || Math.hypot(dot(d0, e1), dot(d0, e2)) <= hub)) blocked.push(id3);
     });
     return { annulus, blocked, layers: layers.size, perLayer: layers.size > 0 ? annulus.length / layers.size : 0 };
   };

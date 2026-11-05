@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Open Build",
   "cooling.case3d.flow.collisions": "Collision shapes",
   "cooling.case3d.flow.controls": "Airflow display",
+  "cooling.case3d.flow.grid": "Show grid",
   "cooling.case3d.flow.heat": "Heat volume",
   "cooling.case3d.flow.legend": "Air temperature, {from} to {to}",
   "cooling.case3d.flow.mode.airflow": "Airflow",

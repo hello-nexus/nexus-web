@@ -416,6 +416,7 @@
   "cooling.case3d.empty.action": "Build 열기",
   "cooling.case3d.flow.collisions": "충돌 형태",
   "cooling.case3d.flow.controls": "공기 흐름 표시",
+  "cooling.case3d.flow.grid": "격자 표시",
   "cooling.case3d.flow.heat": "열 볼륨",
   "cooling.case3d.flow.legend": "공기 온도({from}~{to})",
   "cooling.case3d.flow.mode.airflow": "공기 흐름",

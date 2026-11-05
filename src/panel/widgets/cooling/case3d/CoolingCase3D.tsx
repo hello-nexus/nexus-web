@@ -140,6 +140,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
   const [heatVolume, setHeatVolume] = useState(false);
+  const [gridCells, setGridCells] = useState(false);
   const [spanK, setSpanK] = useState<number | null>(null);
   // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
   useEffect(() => { setFlowMode(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE); }, [savedFlowMode]);
@@ -222,8 +223,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   }, [flowKey]);
   const flowOptions = useMemo<FlowOptions>(() => {
     const slow = DEV_TOOLS && slowMo;
-    return { particles, collisions: DEV_TOOLS && collisions && showCase, heat: heatVolume, speed: slow ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slow ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE };
-  }, [particles, collisions, heatVolume, showCase, slowMo]);
+    return { particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, heat: heatVolume, speed: slow ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slow ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE };
+  }, [particles, collisions, gridCells, heatVolume, showCase, slowMo]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -432,13 +433,31 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 <span>{legendTo}</span>
               </div>
             )}
+            {flowSupported && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
+                <span>{t('cooling.case3d.flow.heat')}</span>
+              </label>
+            )}
+            {DEV_TOOLS && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={gridCells} onChange={setGridCells} ariaLabel={t('cooling.case3d.flow.grid')} />
+                <span>{t('cooling.case3d.flow.grid')}</span>
+              </label>
+            )}
+            {DEV_TOOLS && showCase && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
+                <span>{t('cooling.case3d.flow.collisions')}</span>
+              </label>
+            )}
+            {DEV_TOOLS && particles && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
+                <span>{t('cooling.case3d.flow.slowMo')}</span>
+              </label>
+            )}
             <div className={styles.legendActions}>
-              {flowSupported && (
-                <label className={styles.legendToggle}>
-                  <Toggle size="sm" checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
-                  <span>{t('cooling.case3d.flow.heat')}</span>
-                </label>
-              )}
               <span className={styles.legendInfo}>
                 <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
               </span>
@@ -460,18 +479,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                   if (mode === 'airflow') setActive(null);
                 }}
               />
-              {DEV_TOOLS && showCase && (
-                <label className={`${styles.flowToggle} ${styles.control}`}>
-                  <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
-                  <span>{t('cooling.case3d.flow.collisions')}</span>
-                </label>
-              )}
-              {DEV_TOOLS && particles && (
-                <label className={`${styles.flowToggle} ${styles.control}`}>
-                  <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
-                  <span>{t('cooling.case3d.flow.slowMo')}</span>
-                </label>
-              )}
             </div>
           </div>
           <Button className={styles.control} size="sm" tone="accent" icon={<span aria-hidden="true"><BuildLogo className={styles.buildLogo} fontSize={9} /></span>} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
