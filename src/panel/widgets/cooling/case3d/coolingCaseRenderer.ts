@@ -217,12 +217,12 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     onProject(projected);
   };
 
-  // Once the air has settled and the camera is still, only the particles move: draw at a reduced rate; the particle clock keeps their speed.
+  // Once the air has settled (or no air is drawn) and the camera is still, only particles and rotors move: draw at a reduced rate; both are timed by the clock.
   let lastDraw = 0;
   let lastInteraction = 0;
   const render = (now: number) => {
     frame = 0;
-    const calm = !!flowLayer?.settled && now - lastInteraction > IDLE_MS;
+    const calm = (flowLayer ? flowLayer.settled || !flowLayer.active : true) && now - lastInteraction > IDLE_MS;
     if (calm && now - lastDraw < CALM_FRAME_MS - FRAME_SLACK_MS) { requestRender(); return; }
     lastDraw = now;
     const spinDt = lastSpin ? Math.min(100, now - lastSpin) : 0;

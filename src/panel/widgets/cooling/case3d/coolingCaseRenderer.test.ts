@@ -238,6 +238,31 @@ describe('the case is Build\'s scene', () => {
   });
 });
 
+describe('frame rate with only rotors moving', () => {
+  it('draws spinning rotors at the reduced rate once the camera is still and no air is drawn', () => {
+    const queued: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { queued.push(cb); return queued.length; });
+    const canvas = document.createElement('canvas');
+    const r = createCaseRenderer(canvas, () => {});
+    const parsed = parseCaseLayout(y70)!;
+    const key = parsed.fanSlots[0].key;
+    r.setState({ layout: parsed, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set([key]), rotors: new Map([[key, 500]]), showCase: true, active: null, flow: null, flowOptions: { particles: false, collisions: false, speed: 1 } });
+    const frames = (from: number, to: number) => {
+      drawn.length = 0;
+      for (let t = from; t <= to; t += 4) { const cb = queued.shift(); if (!cb) break; cb(t); }
+      return drawn.length;
+    };
+    // Frame times share performance.now()'s clock, which camera interaction is stamped with.
+    const base = performance.now() + 1000;
+    frames(base, base + 600);
+    const idle = frames(base + 1000, base + 1500);
+    expect(idle).toBeGreaterThan(0);
+    expect(idle).toBeLessThanOrEqual(Math.ceil(500 / (1000 / 30)) + 1);
+    r.dispose();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('presses on the canvas', () => {
   it('reports a drag past a click\'s slop and not a plain click', () => {
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 1; });
