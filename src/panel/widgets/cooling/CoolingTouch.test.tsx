@@ -162,12 +162,12 @@ describe('CoolingTouch', () => {
     expect(addChip.compareDocumentPosition(options) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('lists connected fans on the Devices tab and hides unresponsive hardware', async () => {
+  it('lists every fan on the Devices tab, an unresponsive one included', async () => {
     renderTouch();
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     expect(await screen.findByText('CPU Fan')).toBeInTheDocument();
     expect(screen.getByText('Case Fan')).toBeInTheDocument();
-    expect(screen.queryByText('Dead Header')).toBeNull();
+    expect(screen.getByText('Dead Header')).toBeInTheDocument();
   });
 
   it('groups external-hub fans under a collapsible device header', async () => {
@@ -212,9 +212,9 @@ describe('CoolingTouch', () => {
     fireEvent.click(selectAll);
     await waitFor(() => expect(selectAll).toBeDisabled());
     expect(selectNone).toBeEnabled();
-    // The unresponsive header is not listed, so it never joins the selection.
+    // The unresponsive header is a normal fan, so it joins the selection.
     expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]').sort())
-      .toEqual(['fan-case', 'fan-cpu']);
+      .toEqual(['fan-case', 'fan-cpu', 'fan-dead']);
 
     fireEvent.click(selectNone);
     await waitFor(() => expect(selectNone).toBeDisabled());
@@ -244,7 +244,7 @@ describe('CoolingTouch', () => {
     const first = renderTouch();
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     fireEvent.click(await screen.findByRole('button', { name: /lighting.ledMap.selectAll/ }));
-    await waitFor(() => expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]').sort()).toEqual(['fan-case', 'fan-cpu']));
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans.immersive') ?? '[]').sort()).toEqual(['fan-case', 'fan-cpu', 'fan-dead']));
     first.unmount();
 
     renderTouch();
@@ -256,7 +256,7 @@ describe('CoolingTouch', () => {
     const a = renderTouch('panel-a');
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     fireEvent.click(await screen.findByRole('button', { name: /lighting.ledMap.selectAll/ }));
-    await waitFor(() => expect([...(panelRecords.current['panel-a']?.coolingSelection ?? [])].sort()).toEqual(['fan-case', 'fan-cpu']));
+    await waitFor(() => expect([...(panelRecords.current['panel-a']?.coolingSelection ?? [])].sort()).toEqual(['fan-case', 'fan-cpu', 'fan-dead']));
     a.unmount();
 
     // Another panel and the desktop start with nothing selected.

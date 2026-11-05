@@ -55,13 +55,12 @@ export interface FanChannel {
 }
 
 /**
- * A fan counts as disconnected only when calibration marked it Unresponsive
- * AND it is not currently spinning. Live RPM is ground truth: a fan reporting
- * RPM is physically connected, so a stale Unresponsive label (e.g. from a
- * calibration run while the fan was stopped) must not hide it. Re-calibration
- * refreshes the label; until then this recovers it immediately.
+ * Calibration read no tach signal on this fan at any duty, and it reports no
+ * RPM now. That proves nothing about control (a splitter or a tach-less fan
+ * still obeys PWM), so it labels the readout and nothing else. Live RPM wins
+ * over a stale classification.
  */
-export const isFanDisconnected = (c: FanChannel): boolean =>
+export const isFanUnresponsive = (c: FanChannel): boolean =>
   c.classification === 'Unresponsive' && (c.rpm ?? 0) <= 0;
 
 export interface FanCalibrationPoint {
