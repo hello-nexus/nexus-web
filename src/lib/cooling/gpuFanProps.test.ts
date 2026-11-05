@@ -38,4 +38,9 @@ describe('card airflow properties', () => {
     expect(zs[0]).toBeGreaterThan(zs[1]);
     expect(new Set(slots.map(s => s.box!.min[0])).size).toBe(1);
   });
+
+  it('names the card each fan belongs to', () => {
+    const slots = parseCaseLayout({ size: [480, 360, 440], boxes: [card({ count: 2 }), { ...card({ count: 1 }), select: 'gpu:1' }], fanSlots: [] })!.fanSlots.filter(s => s.position === 'gpu');
+    expect(slots.map(s => s.card)).toEqual(['', '', 'gpu:1']);
+  });
 });

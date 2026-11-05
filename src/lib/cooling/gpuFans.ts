@@ -39,18 +39,18 @@ export function gpuFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
       min[k] = box.min[k];
       size[k] = box.size[k];
       size[along] = size[across] = frame;
-      // Fans count from the bracket end, as Build draws them.
-      const fromBracketEnd = packed ? packed.offsets[i] : box.size[along] * (1 - (fromMax ? i + 0.5 : count - i - 0.5) / count);
-      const center = fromMax ? box.min[along] + box.size[along] - fromBracketEnd : box.min[along] + fromBracketEnd;
+      // Sized fans are packed from the bracket end; unsized fans share the length evenly, listed from the min end whichever end the bracket is.
+      const center = !packed ? box.min[along] + (box.size[along] * (i + 0.5)) / count : fromMax ? box.min[along] + box.size[along] - packed.offsets[i] : box.min[along] + packed.offsets[i];
       min[along] = center - frame / 2;
       min[across] = box.min[across] + box.size[across] / 2 - frame / 2;
-      const index = packed ? i : fromMax ? count - 1 - i : i;
+      // `flowThrough` counts from the bracket end: the loop order for packed fans, reversed for unsized fans listed from the min end under a max-end bracket.
+      const index = packed || !fromMax ? i : count - 1 - i;
       const through = !!flowThrough?.includes(index);
       const into: Vec3 = [0, 0, 0];
       // The fans sit on one face of the card and draw air in through it.
       // A backplate fan sits on the opposite face and draws air the other way.
       into[k] = (side === 'max') !== (faces?.[i] === 'backplate') ? -1 : 1;
-      out.push({ key: `gpu:fan:${out.length}`, position: 'gpu', size: Math.round(frame), index: out.length, taken: 'fan', box: { min, size }, axis: into, ...(through ? { flowThrough: true } : {}) });
+      out.push({ key: `gpu:fan:${out.length}`, position: 'gpu', size: Math.round(frame), index: out.length, taken: 'fan', box: { min, size }, axis: into, card: box.select ?? '', ...(through ? { flowThrough: true } : {}) });
     }
   }
   return out;
