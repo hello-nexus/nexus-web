@@ -108,6 +108,8 @@ export const OUTSIDE_SPAWN_TO = 0.9;
 export const PARTICLE_DRAW_SHARE = 0.1;
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
 export const FAN_CLEARANCE_MM = 30;
+/** Farthest, mm, a card's bracket end may sit from the case's rear face for the bracket vents to open onto it. */
+export const BRACKET_REACH_MM = 60;
 
 /** Velocity streaks: each particle is drawn as a ribbon whose total length is its last step's displacement times this many steps. */
 export const STREAK_STEPS = 15;

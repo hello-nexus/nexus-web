@@ -33,6 +33,9 @@ export interface CasePlate {
   onShell?: boolean;
 }
 
+/** How much of a graphics card's heat leaves through the vents of its I/O bracket: all of it, some of it, or none (the rest goes into the case). */
+export type BracketExhaust = 'blower' | 'partial' | 'none';
+
 export interface CaseBox {
   slot: string;
   role: string;
@@ -46,7 +49,7 @@ export interface CaseBox {
   cadSolid?: boolean;
   /** A part that collides with another, drawn in the warning color. */
   conflict?: boolean;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; boardLength?: number; bracketExhaust?: BracketExhaust };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -79,6 +82,8 @@ export interface CaseFanSlot {
   box?: { min: Vec3; size: Vec3; rotationY?: number };
   /** Unit vector into the case: intake moves air along it, exhaust against it. */
   axis?: Vec3;
+  /** A graphics card fan that blows straight through the card, over a cut-out board or open back plate. */
+  flowThrough?: boolean;
   fan?: SlotFanSpec;
   radiator?: SlotRadiatorSpec;
 }
@@ -166,6 +171,14 @@ function ringLists(fans: Record<string, unknown>): { sizes?: number[]; faces?: (
   return { ...(sizes ? { sizes } : {}), ...(faces ? { faces } : {}) };
 }
 
+/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `boardLength` is the board's length from the bracket end, mm. */
+function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'boardLength' | 'bracketExhaust'> {
+  const count = finite(fans.count) ? fans.count : 0;
+  const through = Array.isArray(fans.flowThrough) && fans.flowThrough.every(i => finite(i) && Number.isInteger(i) && i >= 0 && i < count) ? [...new Set(fans.flowThrough as number[])].sort((a, b) => a - b) : [];
+  const exhaust = fans.bracketExhaust === 'blower' || fans.bracketExhaust === 'partial' || fans.bracketExhaust === 'none' ? fans.bracketExhaust : undefined;
+  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(positiveNum(fans.boardLength) !== undefined && (fans.boardLength as number) <= MAX_DIM_MM ? { boardLength: fans.boardLength as number } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}) };
+}
+
 function parseShapes(b: Record<string, unknown>, box: CaseBox) {
   if (Array.isArray(b.chamfers)) {
     const cuts: CaseChamfer[] = [];
@@ -219,7 +232,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(finite(fans.stack) && Number.isInteger(fans.stack) && fans.stack > 1 && fans.stack <= 4 ? { stack: fans.stack } : {}), ...(positiveNum(fans.airflowCfm) !== undefined ? { airflowCfm: positiveNum(fans.airflowCfm) } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans) };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(finite(fans.stack) && Number.isInteger(fans.stack) && fans.stack > 1 && fans.stack <= 4 ? { stack: fans.stack } : {}), ...(positiveNum(fans.airflowCfm) !== undefined ? { airflowCfm: positiveNum(fans.airflowCfm) } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans), ...airflowProps(fans) };
   }
   parseShapes(b, box);
   return box;

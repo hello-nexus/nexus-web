@@ -2,7 +2,7 @@ import { fanGeometries, type CaseBox, type CaseFanSlot, type CaseLayout, type Ve
 import { RADIATOR_LOSS_K, type FanDirection } from '../pressureModel';
 import {
   AIR_DENSITY, AIR_SPECIFIC_HEAT, GRAVITY, ROOM_TEMP_K, CFL_TARGET, DARCY_K, RADIATOR_DARCY_MAX, DOMAIN_MARGIN_MM, GRID_TARGET_CELLS, HEAT_REACH_CELLS, MAX_GRID_AXIS, EMITTERS_PER_60_CFM, MAX_EMITTER_ENTRIES, MAX_EMITTERS_PER_FAN, MIN_EMITTERS_PER_FAN, SPAWN_TRIES,
-  MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO, PLUME_EMITTERS_MAX,
+  MIN_FAN_HALF_THICKNESS_CELLS, MIN_GRID_AXIS, MIN_REFERENCE_SPEED, MOUNT_REACH_MM, EMITTER_STRIDE, FAN_CLEARANCE_MM, BRACKET_REACH_MM, OUTSIDE_REACH_MM, OUTSIDE_SPAWN_FROM, OUTSIDE_SPAWN_TO, PLUME_EMITTERS_MAX,
 } from './flowParams';
 import { fanRadii } from '../fanGeometry';
 import { obstaclesOf, type Obstacle } from './obstacles';
@@ -29,6 +29,8 @@ const SAMPLE_SPAWNS = 2048;
 const MIN_CASE_CELLS = 4;
 /** Drag per step in a spinning card's heatsink block. */
 const GPU_FIN_DARCY = 0.1;
+/** Drag per step in a blower card's duct, which carries all of the card's air to the bracket. */
+const GPU_DUCT_DARCY = 0.02;
 /** Share of a fan's blade radius kept free of the radiator edge wall. */
 const FREE_DISC_SHARE = 0.9;
 
@@ -320,29 +322,66 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
 
   const plan = planFans(input, extents, cellMm * MIN_FAN_HALF_THICKNESS_CELLS);
   // With a card fan spinning, the card's body is a porous heatsink, closed only at its back plate, so the air the fans push in leaves through the card's edges instead of straight through its thickness.
-  for (const fan of plan.fans) {
-    if (fan.slot.position !== 'gpu' || fan.cfm <= 0 || gpuCells.length === 0) continue;
+  const gpuProps = layout.boxes.find(b => b.slot === 'gpu' && b.role === 'part' && b.fans)?.fans;
+  const exhaustMode = gpuProps?.bracketExhaust ?? 'none';
+  const spinningCard = plan.fans.find(fan => fan.slot.position === 'gpu' && fan.cfm > 0 && gpuCells.length > 0);
+  if (spinningCard) {
+    const fan = spinningCard;
     const k = axisIndex(fan.disk.axis);
-    const along = (c: number) => [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))][k];
+    const idxOf = (c: number) => [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
+    const along = (c: number) => idxOf(c)[k];
     const ends = gpuCells.reduce((a, c) => [Math.min(a[0], along(c)), Math.max(a[1], along(c))], [Infinity, -Infinity]);
     const backIndex = fan.disk.axis[k] > 0 ? ends[1] : ends[0];
     const cardCells = new Set(gpuCells);
     const strides = [1, NX, NX * NY];
-    const idxOf = (c: number) => [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
     const depth = (c: number) => Math.abs(along(c) - backIndex);
     const fanSide = gpuCells.reduce((m, c) => Math.max(m, depth(c)), 0);
+    // The card's bracket end is its far end along the longer face edge; the rear face of the case is where the bracket vents open.
+    const spans = [0, 1, 2].map(a => gpuCells.reduce((m, c) => [Math.min(m[0], idxOf(c)[a]), Math.max(m[1], idxOf(c)[a])], [Infinity, -Infinity]));
+    const lateral = [0, 1, 2].filter(a => a !== k);
+    const long = spans[lateral[0]][1] - spans[lateral[0]][0] >= spans[lateral[1]][1] - spans[lateral[1]][0] ? lateral[0] : lateral[1];
+    const bracketEnd = spans[long][1];
+    const reachCells = Math.ceil(BRACKET_REACH_MM / cellMm);
+    const bracketOpens = exhaustMode !== 'none' && caseMax[long] - bracketEnd <= reachCells;
+    const toBracket = (c: number, a: number, d: number) => bracketOpens && a === long && d === 1 && idxOf(c)[a] === bracketEnd;
     for (const c of gpuCells) {
       if (along(c) === backIndex) { gpuBackPlate.add(c); continue; }
-      // The shroud is closed round the fan-side half: the heated air leaves through the back half's edges, away from the fans' own intake.
-      const rim = [0, 1, 2].some(a => a !== k && [-1, 1].some(d => !cardCells.has(c + d * strides[a]) && idxOf(c)[a] + d >= 0 && idxOf(c)[a] + d < dims[a]));
-      if (rim && depth(c) > fanSide / 2) continue;
+      // The shroud is closed round the fan-side half: the heated air leaves through the back half's edges, away from the fans' own intake. A blower closes it all round but its bracket end.
+      const rim = [0, 1, 2].some(a => a !== k && [-1, 1].some(d => !cardCells.has(c + d * strides[a]) && idxOf(c)[a] + d >= 0 && idxOf(c)[a] + d < dims[a] && !toBracket(c, a, d)));
+      if (rim && ((exhaustMode === 'blower' && bracketOpens) || depth(c) > fanSide / 2)) continue;
       solid[c] = 0;
-      darcy[c] = GPU_FIN_DARCY;
+      darcy[c] = exhaustMode === 'blower' && bracketOpens ? GPU_DUCT_DARCY : GPU_FIN_DARCY;
       heat[c] = SOURCE_GPU;
     }
     // Only the back plate warms the air beside it: the block heats its own air, and the fan-side air stays as the case delivers it.
     for (let m = sources.length - 1; m >= 0; m--) if (cardCells.has(sources[m][0]) && along(sources[m][0]) !== backIndex) sources.splice(m, 1);
-    break;
+    // A flow-through fan blows straight out of the back of the card: over its disc the card is open through its whole thickness.
+    for (const f of plan.fans) {
+      if (f.slot.position !== 'gpu' || !f.slot.flowThrough || f.cfm <= 0 || axisIndex(f.disk.axis) !== k) continue;
+      for (const c of gpuCells) {
+        const d = sub(layoutMm(...(idxOf(c) as [number, number, number])), f.disk.center);
+        const offAxis = Math.hypot(d[0] - f.disk.axis[0] * dot(d, f.disk.axis), d[1] - f.disk.axis[1] * dot(d, f.disk.axis), d[2] - f.disk.axis[2] * dot(d, f.disk.axis));
+        if (offAxis > f.disk.radius) continue;
+        solid[c] = 0;
+        darcy[c] = 0;
+        heat[c] = SOURCE_GPU;
+        gpuBackPlate.delete(c);
+      }
+    }
+    for (let m = sources.length - 1; m >= 0; m--) if (!solid[sources[m][0]] && cardCells.has(sources[m][0])) sources.splice(m, 1);
+    if (bracketOpens) {
+      // The bracket end opens onto the case's rear face across the card's cross-section: the cells between them clear, and the face opens as a vent.
+      const lo: Vec3 = [spans[0][0], spans[1][0], spans[2][0]];
+      const hi: Vec3 = [spans[0][1], spans[1][1], spans[2][1]];
+      lo[long] = bracketEnd + 1;
+      hi[long] = caseMax[long];
+      for (let kk = lo[2]; kk <= hi[2]; kk++) for (let jj = lo[1]; jj <= hi[1]; jj++) for (let ii = lo[0]; ii <= hi[0]; ii++) {
+        const c = id(ii, jj, kk);
+        if (outside[c]) continue;
+        solid[c] = 0;
+        if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseMax[long]) opening[c] = OPENING_EXHAUST;
+      }
+    }
   }
   for (const r of plan.radiators) {
     voxelize({ slot: 'radiator', role: 'part', min: r.box.min, size: r.box.size, rotationY: r.box.rotationY }, c => { if (!solid[c]) { radiatorCells.push(c); heat[c] = SOURCE_CPU; } });

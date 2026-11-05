@@ -18,12 +18,12 @@ function gpuFanOffsets(length: number, sizes: number[]): { sizes: number[]; offs
   return { sizes: scaled, offsets };
 }
 
-/** Fan slots for the fans each graphics card carries, placed as Build draws them: in a row along the card's longer face edge, each ring centered in its share, on the card's `side` face (`min` when unset). */
+/** Fan slots for the fans each graphics card carries, placed as Build draws them: in a row along the card's longer face edge, each ring centered in its share (`flowThrough` indices count from the bracket end), on the card's `side` face (`min` when unset). */
 export function gpuFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
   const out: CaseFanSlot[] = [];
   for (const box of boxes) {
     if (box.slot !== 'gpu' || box.role !== 'part' || !box.fans?.count) continue;
-    const { axis, count, diameter, side, sizes, faces } = box.fans;
+    const { axis, count, diameter, side, sizes, faces, flowThrough, boardLength } = box.fans;
     const k = { x: 0, y: 1, z: 2 }[axis];
     const plane = [0, 1, 2].filter(a => a !== k);
     const along = box.size[plane[0]] >= box.size[plane[1]] ? plane[0] : plane[1];
@@ -41,11 +41,15 @@ export function gpuFanSlots(boxes: readonly CaseBox[]): CaseFanSlot[] {
       const center = packed ? box.min[along] + box.size[along] - packed.offsets[i] : box.min[along] + (box.size[along] * (i + 0.5)) / count;
       min[along] = center - frame / 2;
       min[across] = box.min[across] + box.size[across] / 2 - frame / 2;
+      // Distance of the fan from the bracket end: past the board's end a fan has no board under it to block its air.
+      const fromBracket = box.min[along] + box.size[along] - center;
+      const index = packed ? i : count - 1 - i;
+      const through = !!flowThrough?.includes(index) || (boardLength !== undefined && fromBracket > boardLength);
       const into: Vec3 = [0, 0, 0];
       // The fans sit on one face of the card and draw air in through it.
       // A backplate fan sits on the opposite face and draws air the other way.
       into[k] = (side === 'max') !== (faces?.[i] === 'backplate') ? -1 : 1;
-      out.push({ key: `gpu:fan:${out.length}`, position: 'gpu', size: Math.round(frame), index: out.length, taken: 'fan', box: { min, size }, axis: into });
+      out.push({ key: `gpu:fan:${out.length}`, position: 'gpu', size: Math.round(frame), index: out.length, taken: 'fan', box: { min, size }, axis: into, ...(through ? { flowThrough: true } : {}) });
     }
   }
   return out;
