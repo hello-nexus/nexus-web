@@ -943,9 +943,19 @@ describe('CoolingCase3D Build link', () => {
     expect(build.textContent).toContain('cooling.case3d.build.customize');
     expect(within(build).getByRole('img', { name: 'panel.widget.build.badge', hidden: true })).toBeTruthy();
     const controls = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
-    expect(build.parentElement?.contains(controls)).toBe(true);
+    expect(build.parentElement?.parentElement?.contains(controls)).toBe(true);
     expect(controls.contains(build)).toBe(false);
     expect(build.parentElement?.contains(screen.getByRole('button', { name: 'cooling.case3d.hint.label' }))).toBe(false);
+  });
+
+  it('captions the view as a model, with the detail behind an info button, beside the Build button', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+    const build = screen.getByRole('button', { name: 'cooling.case3d.build.customize' });
+    const note = screen.getByText('cooling.case3d.model.note');
+    expect(note.parentElement).toBe(build.parentElement);
+    expect(note.contains(screen.getByRole('button', { name: 'cooling.case3d.model.label' }))).toBe(true);
   });
 });
 
