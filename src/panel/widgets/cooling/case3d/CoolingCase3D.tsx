@@ -27,6 +27,7 @@ import {
   channelOfSlot, hasDerivedLink, MAX_SLOT_KEYS_PER_BINDING, isSimChannel, NONE_CHANNEL, simChannelId, SIM_RPM_DEFAULT, SIM_RPM_MIN, SIM_RPM_STEP, fanGeometries, parseCaseLayout, RADIATOR_PICK_KEY, slotsOfChannel, linkChannelToSlot, withDirection, collapseMounts, normalizeBindings,
 } from '../../../../lib/cooling/caseLayout';
 import { settleFlows, simRpm, SIM_RPM_CEILING } from '../../../../lib/cooling/fanSpeed';
+import { isPsuSlotKey } from '../../../../lib/cooling/psuFans';
 import { boundSlotKeys, lumpedModel, slotDirections, slotSpeeds, withDefaultBindings } from '../../../../lib/cooling/slotFlow';
 import { catalogFanSpecs } from '../../../../lib/cooling/fanSpecs';
 import { HEAT_COLOR_SPAN_C, ROOM_TEMP_C, VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
@@ -76,6 +77,7 @@ const POSITION_KEYS: Record<string, string> = {
   'front-right': 'cooling.case3d.position.frontRight',
   gpu: 'cooling.case3d.position.gpu',
   cpu: 'cooling.case3d.position.cpu',
+  psu: 'cooling.case3d.position.psu',
 };
 
 /** Particle speed multiplier, and the share of it that Slow mo keeps. */
@@ -488,12 +490,14 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             <div className={styles.popoverTitle}>
               {activeOwner?.name ?? (activeSimRpm !== null ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
             </div>
-            <ChipGroup
-              ariaLabel={t('cooling.case3d.direction.label')}
-              options={[{ key: INTAKE, label: t('cooling.case3d.direction.intake') }, { key: EXHAUST, label: t('cooling.case3d.direction.exhaust') }]}
-              activeKey={directions[activeSlot.key]}
-              onChange={next => setDirection(activeSlot.key, activeSlot.position, next as FanDirection)}
-            />
+            {!isPsuSlotKey(activeSlot.key) && (
+              <ChipGroup
+                ariaLabel={t('cooling.case3d.direction.label')}
+                options={[{ key: INTAKE, label: t('cooling.case3d.direction.intake') }, { key: EXHAUST, label: t('cooling.case3d.direction.exhaust') }]}
+                activeKey={directions[activeSlot.key]}
+                onChange={next => setDirection(activeSlot.key, activeSlot.position, next as FanDirection)}
+              />
+            )}
             {radiatorChips}
             <Select
               ariaLabel={t('cooling.case3d.device.label')}

@@ -2,7 +2,7 @@ import type { CaseFanSlot } from './caseLayout';
 import { scaledSpec, type SlotSpeed } from './fanSpeed';
 import { slotModelFans, type CatalogFanSpec } from './fanSpecs';
 import { solveCasePressure, type FanDirection } from './pressureModel';
-import { isInternalSlotKey, pressureFans } from './slotFlow';
+import { drawsCaseAir, isInternalSlotKey, pressureFans } from './slotFlow';
 
 /** Share of its rated flow a spinning fan is drawn with at least, so the slowest still reads as clearly moving; above it the flow is the physical operating point. */
 export const MIN_DRAWN_FLOW_SHARE = 0.3;
@@ -29,7 +29,7 @@ export function visualFlow(slots: readonly CaseFanSlot[], catalog: readonly Cata
     for (const fan of slotModelFans(slot, catalog)) {
       referenceCfm = Math.max(referenceCfm, fan.cfm);
       const fraction = speeds.get(fan.key)?.fraction ?? 1;
-      const cfm = isInternalSlotKey(slot.key) ? scaledSpec(fan, fraction).cfm : operating.get(fan.key) ?? 0;
+      const cfm = isInternalSlotKey(slot.key) && !drawsCaseAir(slot) ? scaledSpec(fan, fraction).cfm : operating.get(fan.key) ?? 0;
       fanCfm[fan.key] = fraction > 0 ? Math.max(cfm, MIN_DRAWN_FLOW_SHARE * fan.cfm) : 0;
     }
   }

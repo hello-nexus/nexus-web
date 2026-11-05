@@ -441,6 +441,7 @@
   "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Çampe",
   "cooling.case3d.position.other": "Ventule",
+  "cooling.case3d.position.psu": "Alimentadôr",
   "cooling.case3d.position.psuShroud": "Cuvierte dal alimentadôr",
   "cooling.case3d.position.rear": "Daûr",
   "cooling.case3d.position.right": "Gjestre",

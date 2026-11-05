@@ -441,6 +441,7 @@
   "cooling.case3d.position.gpu": "GPU",
   "cooling.case3d.position.left": "Sol",
   "cooling.case3d.position.other": "Fan",
+  "cooling.case3d.position.psu": "PSU",
   "cooling.case3d.position.psuShroud": "PSU kapağı",
   "cooling.case3d.position.rear": "Arka",
   "cooling.case3d.position.right": "Sağ",

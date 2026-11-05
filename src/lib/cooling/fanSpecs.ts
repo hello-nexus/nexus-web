@@ -66,5 +66,5 @@ function applySpeed(fan: ModelFan, speed?: SlotSpeed): ModelFan {
 /** The fan a slot contributes: one for a taken fan slot, none otherwise (a case slot the radiator covers has no fans of its own). */
 export function slotModelFans(slot: CaseFanSlot, catalog: readonly CatalogFanSpec[], speed?: SlotSpeed): ModelFan[] {
   if (slot.taken !== 'fan') return [];
-  return [applySpeed({ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }, slot.position === 'gpu') }, speed)];
+  return [applySpeed({ key: slot.key, ...resolveFanSpec(slot.size, catalog, { cfm: slot.fan?.airflowCfm, staticMmH2O: slot.fan?.staticPressureMmH2O }, slot.position === 'gpu' || slot.position === 'psu') }, speed)];
 }

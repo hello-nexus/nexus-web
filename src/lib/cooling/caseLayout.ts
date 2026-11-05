@@ -3,6 +3,7 @@ import type { FanDirection } from './pressureModel';
 import { SIM_PREFIX } from './fanSpeed';
 import { coolerFanSlots } from './coolerFans';
 import { gpuFanSlots } from './gpuFans';
+import { psuFanSlots } from './psuFans';
 import { radiatorFanSlots } from './radiatorFans';
 
 /** Read-only view of the PcLayout nexus-build writes as `resolved.caseLayout`. Millimeters; x front to rear, y up, z from the window side. */
@@ -55,7 +56,7 @@ export interface CaseBox {
   cadSolid?: boolean;
   /** A part that collides with another, drawn in the warning color. */
   conflict?: boolean;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; bracketExhaust?: BracketExhaust; bracket?: BracketEnd };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; bracketExhaust?: BracketExhaust; bracket?: BracketEnd; exhaust?: BracketEnd; draws?: 'outside' };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -90,6 +91,8 @@ export interface CaseFanSlot {
   axis?: Vec3;
   /** A graphics card fan that blows straight through the card, over a cut-out board or open back plate. */
   flowThrough?: boolean;
+  /** A power supply fan that draws room air through a case vent under it, not air from the case. */
+  ventFed?: boolean;
   fan?: SlotFanSpec;
   radiator?: SlotRadiatorSpec;
 }
@@ -177,14 +180,20 @@ function ringLists(fans: Record<string, unknown>): { sizes?: number[]; faces?: (
   return { ...(sizes ? { sizes } : {}), ...(faces ? { faces } : {}) };
 }
 
-/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `bracket` is where the I/O bracket sits on the card. */
-function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'bracketExhaust' | 'bracket'> {
+/** The end of a box a valid `{ axis, side }` names, when it is not the fans' own axis. */
+function boxEnd(raw: unknown, fanAxis: unknown): BracketEnd | undefined {
+  const end = raw as Record<string, unknown> | undefined;
+  return end && typeof end === 'object' && (end.axis === 'x' || end.axis === 'y' || end.axis === 'z') && (end.side === 'min' || end.side === 'max') && end.axis !== fanAxis ? { axis: end.axis, side: end.side } : undefined;
+}
+
+/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `bracket` is where the I/O bracket sits on the card. A power supply carries `exhaust`, the end of its box with the rear grille, and `draws`, whether its fan takes room air through a case vent. */
+function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'bracketExhaust' | 'bracket' | 'exhaust' | 'draws'> {
   const count = finite(fans.count) ? fans.count : 0;
   const through = Array.isArray(fans.flowThrough) && fans.flowThrough.every(i => finite(i) && Number.isInteger(i) && i >= 0 && i < count) ? [...new Set(fans.flowThrough as number[])].sort((a, b) => a - b) : [];
   const exhaust = fans.bracketExhaust === 'blower' || fans.bracketExhaust === 'partial' || fans.bracketExhaust === 'none' ? fans.bracketExhaust : undefined;
-  const end = fans.bracket as Record<string, unknown> | undefined;
-  const bracket: BracketEnd | undefined = end && typeof end === 'object' && (end.axis === 'x' || end.axis === 'y' || end.axis === 'z') && (end.side === 'min' || end.side === 'max') && end.axis !== fans.axis ? { axis: end.axis, side: end.side } : undefined;
-  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}), ...(bracket ? { bracket } : {}) };
+  const bracket = boxEnd(fans.bracket, fans.axis);
+  const grille = boxEnd(fans.exhaust, fans.axis);
+  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}), ...(bracket ? { bracket } : {}), ...(grille ? { exhaust: grille } : {}), ...(fans.draws === 'outside' ? { draws: 'outside' as const } : {}) };
 }
 
 function parseShapes(b: Record<string, unknown>, box: CaseBox) {
@@ -372,7 +381,7 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
     boxes,
     ...(tubes.length > 0 ? { tubes } : {}),
     ...(lines.length > 0 ? { lines } : {}),
-    fanSlots: [...slots, ...gpuFanSlots(boxes), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
+    fanSlots: [...slots, ...gpuFanSlots(boxes), ...psuFanSlots(boxes), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
     ...(mount ? { radiatorMount: mount } : {}),
     ...(options.length >= 2 ? { radiatorOptions: options } : {}),
     ...(radiatorMove ? { radiatorMove } : {}),
@@ -507,7 +516,7 @@ export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[])
   const slots = layout.fanSlots;
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
-  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:');
+  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:') || s.key.startsWith('psu:');
   const faceSize = new Map<string, number>();
   for (const tier of [1, 2]) {
     for (const s of slots) {

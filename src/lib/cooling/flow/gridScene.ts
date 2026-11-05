@@ -31,6 +31,8 @@ const MIN_CASE_CELLS = 4;
 const GPU_FIN_DARCY = 0.1;
 /** Drag per step in a blower card's duct, which carries all of the card's air to the bracket. */
 const GPU_DUCT_DARCY = 0.02;
+/** Drag per step inside a power supply's body, which the fan pulls air through on its way to the rear grille. */
+const PSU_INTERIOR_DARCY = 0.05;
 /** Share of a fan's blade radius kept free of the radiator edge wall. */
 const FREE_DISC_SHARE = 0.9;
 
@@ -159,8 +161,8 @@ interface Plan {
   radiators: { box: { min: Vec3; size: Vec3; rotationY?: number }; axis: Vec3; direction: FanDirection }[];
 }
 
-/** A fan inside its own part (a card's shroud, an air cooler's fins), not on a case face. */
-const isInternalFan = (slot: Pick<CaseFanSlot, 'position'>): boolean => slot.position === 'gpu' || slot.position === 'cpu';
+/** A fan inside its own part (a card's shroud, an air cooler's fins, a power supply), not on a case face. A power supply fan over a case vent is the exception: it draws room air through that face like a case fan. */
+const isInternalFan = (slot: Pick<CaseFanSlot, 'position' | 'ventFed'>): boolean => slot.position === 'gpu' || slot.position === 'cpu' || (slot.position === 'psu' && !slot.ventFed);
 
 function diskRadii(frame: number): { radius: number; hub: number; frame: number } {
   const r = fanRadii(frame);
@@ -173,7 +175,8 @@ function planFans(input: FlowInput, extents: Vec3, minThickness: number): Plan {
   const radiators: Plan['radiators'] = [];
   const geometry = new Map(fanGeometries(layout).map(g => [g.slot.key, g.box]));
   for (const slot of layout.fanSlots) {
-    const direction = input.directions[slot.key] ?? 'intake';
+    // A power supply fan always draws air into its box; the case's direction control does not turn it round.
+    const direction = slot.position === 'psu' ? 'intake' : input.directions[slot.key] ?? 'intake';
     if (slot.taken === 'radiator') {
       if (slot.box) radiators.push({ box: slot.box, axis: inwardAxis(slot, slot.box, extents), direction });
       continue;
@@ -306,6 +309,8 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
   const gpuCards = new Map<string, { box: CaseBox; cells: number[] }>();
   /** A spinning card's closed back plate: no fan disc reopens it. */
   const gpuBackPlate = new Set<number>();
+  /** Each power supply whose box names its grille end, with its cells. */
+  const psuBodies: { box: CaseBox; cells: number[] }[] = [];
   for (const o of obstacles) {
     if (o.kind === 'hull') {
       voxelize(o.box, c => { solid[c] = 1; outside[c] = 1; }, true);
@@ -320,7 +325,9 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
       const key = o.box.select ?? '';
       if (source === SOURCE_GPU && !gpuCards.has(key)) gpuCards.set(key, { box: o.box, cells: [] });
       const card = gpuCards.get(key);
-      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); if (source === SOURCE_GPU) card!.cells.push(c); });
+      const psu = o.box.slot === 'psu' && o.box.role === 'part' && o.box.fans?.exhaust ? { box: o.box, cells: [] as number[] } : null;
+      if (psu) psuBodies.push(psu);
+      voxelize(o.box, c => { solid[c] = 1; if (source !== SOURCE_NONE) sources.push([c, source]); if (source === SOURCE_GPU) card!.cells.push(c); psu?.cells.push(c); });
     }
   }
 
@@ -387,6 +394,39 @@ export function buildFlowScene(input: FlowInput, targetCells: number = GRID_TARG
         solid[c] = 0;
         if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseEdge) opening[c] = OPENING_EXHAUST;
       }
+    }
+  }
+  // A running power supply fan pulls air in through its face and out of the rear grille: the body is hollow but for its walls, the grille end is open, and when a case panel sits within reach past it the air leaves through that panel over the grille's footprint.
+  for (const body of psuBodies) {
+    const fan = plan.fans.find(f => f.slot.position === 'psu' && f.cfm > 0 && f.slot.box && boxesOverlap(body.box, f.slot.box));
+    const grille = body.box.fans?.exhaust;
+    if (!fan || !grille || body.cells.length === 0) continue;
+    const long = { x: 0, y: 1, z: 2 }[grille.axis];
+    const dir = grille.side === 'max' ? 1 : -1;
+    const idxOf = (c: number): [number, number, number] => [c % NX, Math.floor(c / NX) % NY, Math.floor(c / (NX * NY))];
+    const spans = [0, 1, 2].map(a => body.cells.reduce((m, c) => [Math.min(m[0], idxOf(c)[a]), Math.max(m[1], idxOf(c)[a])], [Infinity, -Infinity]));
+    const end = dir === 1 ? spans[long][1] : spans[long][0];
+    const caseEdge = dir === 1 ? caseMax[long] : caseMin[long];
+    const gap = (caseEdge - end) * dir;
+    // A grille that faces no panel within reach stays shut, and the box stays the solid it was.
+    if (gap < 0 || gap > Math.ceil(BRACKET_REACH_MM / cellMm)) continue;
+    const bodyCells = new Set(body.cells);
+    const strides = [1, NX, NX * NY];
+    for (const c of body.cells) {
+      const atGrille = idxOf(c)[long] === end;
+      const rim = [0, 1, 2].some(a => [-1, 1].some(d => !bodyCells.has(c + d * strides[a])));
+      if (rim && !atGrille) continue;
+      solid[c] = 0;
+      darcy[c] = atGrille ? 0 : PSU_INTERIOR_DARCY;
+    }
+    const lo: Vec3 = [spans[0][0], spans[1][0], spans[2][0]];
+    const hi: Vec3 = [spans[0][1], spans[1][1], spans[2][1]];
+    if (dir === 1) { lo[long] = end + 1; hi[long] = caseEdge; } else { lo[long] = caseEdge; hi[long] = end - 1; }
+    for (let kk = lo[2]; kk <= hi[2]; kk++) for (let jj = lo[1]; jj <= hi[1]; jj++) for (let ii = lo[0]; ii <= hi[0]; ii++) {
+      const c = id(ii, jj, kk);
+      if (outside[c]) continue;
+      solid[c] = 0;
+      if (onCaseShell(ii, jj, kk) && [ii, jj, kk][long] === caseEdge) opening[c] = OPENING_EXHAUST;
     }
   }
   for (const r of plan.radiators) {
