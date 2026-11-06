@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, Globe, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
+import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, Globe, History, IdCard, KeyRound, Lightbulb, PanelTop, RefreshCcwDot, Server } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
@@ -30,13 +30,14 @@ export interface AiIntegrationSectionProps {
   numberFormat?: NumberFormat;
 }
 
-const CAPABILITY_KEYS = ['telemetry', 'cooling', 'lighting', 'profiles', 'history'] as const;
+const CAPABILITY_KEYS = ['telemetry', 'cooling', 'lighting', 'panels', 'profiles', 'history'] as const;
 type CapabilityKey = typeof CAPABILITY_KEYS[number];
 
 const CAPABILITY_ICONS: Record<CapabilityKey, ReactNode> = {
   telemetry: <Activity />,
   cooling: <Fan />,
   lighting: <Lightbulb />,
+  panels: <PanelTop />,
   profiles: <IdCard />,
   history: <History />,
 };
