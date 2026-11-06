@@ -363,6 +363,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   // character typed inside the window would be lost.
   const pendingWritesRef = useRef(0);
   const writeSeqRef = useRef(0);
+  const rotationSeqRef = useRef(0);
   // A broadcast skipped during a local write is DEFERRED, not dropped: the
   // service broadcasts before the PATCH response returns, so our own echo is
   // skipped too and no later frame would arrive to trigger a catch-up. A
@@ -2073,12 +2074,13 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                               const next = normalizeRotation(Number(v));
                               if (next === undefined) return;
                               const prev = recordRotation;
+                              const seq = ++rotationSeqRef.current;
                               setRecordRotation(next);
                               const id = device?.panelRecordId;
                               if (!id) return;
                               void patchPanelDevice(id, { rotation: next })
-                                .then(r => { if (!r) setRecordRotation(prev); })
-                                .catch(() => setRecordRotation(prev));
+                                .then(r => { if (!r && seq === rotationSeqRef.current) setRecordRotation(prev); })
+                                .catch(() => { if (seq === rotationSeqRef.current) setRecordRotation(prev); });
                             }}
                             options={rotationOptions(recordSupportedRotations, glassSurface, t)}
                           />

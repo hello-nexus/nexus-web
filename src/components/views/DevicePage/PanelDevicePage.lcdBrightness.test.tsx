@@ -197,6 +197,31 @@ describe('PanelDevicePage cooler-LCD brightness', () => {
     await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { rotation: 90 }));
   });
 
+  it('does not roll back to a stale value when an earlier rotation save fails after a later one', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1', rotation: 0, supportedRotations: [0, 90, 180, 270],
+        capabilities: { surface: 'lcd-round', touch: false, family: 'lianli-galahad2-lcd' },
+      }],
+    });
+    let failFirst: (e: Error) => void = () => {};
+    patchPanelDeviceMock
+      .mockReturnValueOnce(new Promise((_, rej) => { failFirst = rej; }))
+      .mockResolvedValueOnce({ ok: true });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const select = await screen.findByRole('button', { name: 'devices.y70.orientation' });
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: '90°' }));
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: '270°' }));
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledTimes(2));
+    failFirst(new Error('late failure'));
+    await new Promise(r => setTimeout(r, 0));
+    expect(select).toHaveTextContent('270°');
+  });
+
   it('hides the orientation dropdown but keeps Mirror when the service allows only one rotation', async () => {
     fetchPanelDevicesMock.mockResolvedValue({
       devices: [{
