@@ -175,7 +175,7 @@ describe('PanelDevicePage cooler-LCD brightness', () => {
     // The mounting section still renders, so the tab is open and the slider's
     // absence is the capability gate rather than an unrendered tab.
     expect(await screen.findByRole('switch', { name: 'devices.lcd.mirror' })).toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: 'devices.lcd.flip180' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.y70.orientation' })).toBeInTheDocument();
     expect(screen.queryByRole('slider', { name: BRIGHTNESS_LABEL })).not.toBeInTheDocument();
   });
 

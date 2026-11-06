@@ -13,6 +13,11 @@ describe('resolveRecordRotation', () => {
     expect(resolveRecordRotation({ flip180: false })).toBe(0);
     expect(resolveRecordRotation(undefined)).toBe(0);
   });
+  it('maps legacy portrait to 90, or 270 with flip180', () => {
+    expect(resolveRecordRotation({ portrait: true })).toBe(90);
+    expect(resolveRecordRotation({ portrait: true, flip180: true })).toBe(270);
+    expect(resolveRecordRotation({ rotation: 0, portrait: true })).toBe(0);
+  });
 });
 
 describe('resolveSupportedRotations', () => {

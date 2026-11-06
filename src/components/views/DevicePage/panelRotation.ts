@@ -16,10 +16,11 @@ export function normalizeRotation(value: number | null | undefined): PanelRotati
   return ROTATIONS.find(r => r === value);
 }
 
-// Older services only send flip180, so it stands in until rotation arrives.
-export function resolveRecordRotation(record: { rotation?: number | null; flip180?: boolean | null } | undefined): PanelRotation {
+// Older services only send flip180 and portrait, so they stand in until rotation arrives.
+export function resolveRecordRotation(record: { rotation?: number | null; flip180?: boolean | null; portrait?: boolean | null } | undefined): PanelRotation {
   const rotation = normalizeRotation(record?.rotation);
   if (rotation !== undefined) return rotation;
+  if (record?.portrait) return record.flip180 ? 270 : 90;
   return record?.flip180 ? 180 : 0;
 }
 
