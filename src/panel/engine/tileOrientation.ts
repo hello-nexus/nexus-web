@@ -18,8 +18,8 @@ export function rotationCrossesClass(from: number | null | undefined, to: number
 /**
  * Whether a single-widget surface's tile has its axes swapped. Only a quarter
  * turn can; the tile then follows the effective render size (taller than wide
- * gets the tall tile), never the surface's name. Without a size the tile swaps
- * from the surface's base shape. Square tiles never swap.
+ * gets the tall tile), never the surface's name. Without a size the tile is left
+ * as is. Square tiles never swap.
  */
 export function tileTransposed(
   surface: PanelSurface,
@@ -30,6 +30,7 @@ export function tileTransposed(
   const base = singleWidgetSurfaceSize(surface);
   const span = base ? parseWidgetSizeSpan(base) : null;
   if (!span || span.cols === span.rows) return false;
-  if (!canvas || canvas.width === canvas.height || !(canvas.width > 0) || !(canvas.height > 0)) return true;
+  // Without a usable size the render shape is unknown, so leave the tile alone until the canvas decides.
+  if (!canvas || canvas.width === canvas.height || !(canvas.width > 0) || !(canvas.height > 0)) return false;
   return (span.rows > span.cols) !== (canvas.height > canvas.width);
 }

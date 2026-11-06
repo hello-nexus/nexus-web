@@ -52,10 +52,12 @@ describe('transposed single tile', () => {
     expect(tileTransposed('lcd-wide', 90, TALL)).toBe(true);
   });
 
-  it('swaps from the base shape when the size is unknown', () => {
-    expect(tileTransposed('lcd-wide', 90)).toBe(true);
-    expect(tileTransposed('lcd-wide', 0)).toBe(false);
+  it('leaves the tile alone when the size is unknown or unusable', () => {
+    expect(tileTransposed('lcd-wide', 90)).toBe(false);
+    expect(tileTransposed('lcd-wide', 90, null)).toBe(false);
+    expect(tileTransposed('lcd-wide', 90, { width: 0, height: 0 })).toBe(false);
   });
+});
 });
 
 describe('grid for a quarter-turn render', () => {
