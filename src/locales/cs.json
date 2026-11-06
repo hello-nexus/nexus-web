@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "Uložené směry a přiřazení zařízení se nepodařilo načíst. Zobrazují se výchozí hodnoty a změny se neukládají.",
   "cooling.case3d.linkedToMany": "Přiřazeno k ventilátorům: {slots}",
   "cooling.case3d.linkedToOne": "Přiřazeno k ventilátoru: {slot}",
-  "cooling.case3d.model.detail": "Simulace proudění vzduchu ve vašem PC. Nemění chod ventilátorů. Pro přesnější shodu nastavte díly v Přizpůsobit díly a propojte každý ventilátor s jeho konektorem. Vyberte vlevo ventilátor a přiřaďte ho k ventilátoru ve skříni. Kliknutím na ventilátor ve skříni nastavíte přívod nebo odvod.",
+  "cooling.case3d.model.detail": "Simulace proudění vzduchu ve vašem PC. Nemění chod ventilátorů. Pro přesnější shodu nastavte součásti v Upravit součásti a přiřaďte každý ventilátor k jeho konektoru. Vyberte vlevo ventilátor a přiřaďte ho k ventilátoru ve skříni. Kliknutím na ventilátor ve skříni nastavíte přívod nebo odvod.",
   "cooling.case3d.model.label": "O tomto modelu",
   "cooling.case3d.model.note": "Pouze simulace. Přiřazení ventilátorů nezmění vaše chlazení.",
   "cooling.case3d.multi.title": "Ventilátory: {count}",

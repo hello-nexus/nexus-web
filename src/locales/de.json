@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "Gespeicherte Richtungen und Geräteverknüpfungen konnten nicht geladen werden. Es werden Standardwerte angezeigt, Änderungen werden nicht gespeichert.",
   "cooling.case3d.linkedToMany": "Verknüpft mit Lüftern {slots}",
   "cooling.case3d.linkedToOne": "Verknüpft mit Lüfter {slot}",
-  "cooling.case3d.model.detail": "Eine Simulation des Luftstroms in deinem PC. Sie ändert nichts an deinen Lüftern. Für ein genaueres Ergebnis lege deine Teile unter Teile anpassen fest und verknüpfe jeden Lüfter mit seinem Anschluss. Wählen Sie links einen Lüfter aus, um ihn mit einem Lüfter im Gehäuse zu verknüpfen. Klicken Sie auf einen Gehäuselüfter, um Ansaugen oder Ausblasen festzulegen.",
+  "cooling.case3d.model.detail": "Eine Simulation des Luftstroms in Ihrem PC. Sie ändert nichts an Ihren Lüftern. Für ein genaueres Ergebnis legen Sie Ihre Komponenten unter Komponenten anpassen fest und verknüpfen Sie jeden Lüfter mit seinem Anschluss. Wählen Sie links einen Lüfter aus, um ihn mit einem Lüfter im Gehäuse zu verknüpfen. Klicken Sie auf einen Gehäuselüfter, um Ansaugen oder Ausblasen festzulegen.",
   "cooling.case3d.model.label": "Über dieses Modell",
   "cooling.case3d.model.note": "Nur eine Simulation. Das Verknüpfen von Lüftern ändert Ihre Kühlung nicht.",
   "cooling.case3d.multi.title": "{count} Lüfter",

@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "Não foi possível carregar as direções e os vínculos de dispositivos salvos. Os valores padrão são exibidos e as alterações não são salvas.",
   "cooling.case3d.linkedToMany": "Vinculado aos ventiladores {slots}",
   "cooling.case3d.linkedToOne": "Vinculado ao ventilador {slot}",
-  "cooling.case3d.model.detail": "Uma simulação do fluxo de ar no seu PC. Não muda o funcionamento dos ventiladores. Para um resultado mais fiel, defina as peças em Personalizar peças e vincule cada ventilador ao seu conector. Selecione um ventilador à esquerda para vinculá-lo a um ventilador do gabinete. Clique em um ventilador do gabinete para definir entrada ou saída.",
+  "cooling.case3d.model.detail": "Uma simulação do fluxo de ar no seu PC. Não muda o funcionamento dos ventiladores. Para um resultado mais fiel, defina seus componentes em Personalizar componentes e vincule cada ventilador ao seu conector. Selecione um ventilador à esquerda para vinculá-lo a um ventilador do gabinete. Clique em um ventilador do gabinete para definir entrada ou saída.",
   "cooling.case3d.model.label": "Sobre este modelo",
   "cooling.case3d.model.note": "Apenas uma simulação. Vincular ventiladores não altera o seu resfriamento.",
   "cooling.case3d.multi.title": "{count} ventiladores",

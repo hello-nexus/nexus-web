@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "No se pudieron cargar las direcciones ni las asociaciones de dispositivos guardadas. Se muestran los valores por defecto y los cambios no se guardan.",
   "cooling.case3d.linkedToMany": "Asociado a los ventiladores {slots}",
   "cooling.case3d.linkedToOne": "Asociado al ventilador {slot}",
-  "cooling.case3d.model.detail": "Una simulación del flujo de aire en tu PC. No cambia cómo funcionan tus ventiladores. Para un resultado más fiel, configura tus componentes en Personalizar componentes y vincula cada ventilador a su conector. Selecciona un ventilador a la izquierda para asociarlo a un ventilador de la caja. Haz clic en un ventilador de la caja para elegir entrada o salida.",
+  "cooling.case3d.model.detail": "Una simulación del flujo de aire en tu PC. No cambia cómo funcionan tus ventiladores. Para un resultado más fiel, configura tus componentes en Personaliza los componentes y asocia cada ventilador a su conector. Selecciona un ventilador a la izquierda para asociarlo a un ventilador de la caja. Haz clic en un ventilador de la caja para elegir entrada o salida.",
   "cooling.case3d.model.label": "Sobre este modelo",
   "cooling.case3d.model.note": "Solo una simulación. Asociar ventiladores no cambia tu refrigeración.",
   "cooling.case3d.multi.title": "{count} ventiladores",

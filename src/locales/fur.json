@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "No si à podût cjamâ lis direzions e lis associazions dai dispositîfs salvadis. A vegnin mostrâts i valôrs predefinîts e lis modifichis no vegnin salvadis.",
   "cooling.case3d.linkedToMany": "Associât a lis ventulis {slots}",
   "cooling.case3d.linkedToOne": "Associât a la ventule {slot}",
-  "cooling.case3d.model.detail": "Une simulazion dal flus di aiar tal to PC. No cambie il funzionament des tôs ventulis. Par une corispondence miôr, imposte i tiei components cun Personalize components e coleghe ogni ventule al so conetôr. Selezione une ventule a çampe par associâle a une ventule dal case. Frache su une ventule dal case par sielgi jentrade o jessude.",
+  "cooling.case3d.model.detail": "Une simulazion dal flus di aiar tal to PC. No cambie il funzionament des tôs ventulis. Par une corispondence miôr, imposte i tiei components cun Personalize i components e associe ogni ventule al so conetôr. Selezione une ventule a çampe par associâle a une ventule dal case. Frache su une ventule dal case par sielgi jentrade o jessude.",
   "cooling.case3d.model.label": "Informazions su chest model",
   "cooling.case3d.model.note": "Dome une simulazion. Associâ i ventulis no cambie il to frescjament.",
   "cooling.case3d.multi.title": "{count} ventulis",

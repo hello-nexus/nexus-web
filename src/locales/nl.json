@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "De opgeslagen richtingen en apparaatkoppelingen konden niet worden geladen. Standaardwaarden worden getoond en wijzigingen worden niet opgeslagen.",
   "cooling.case3d.linkedToMany": "Gekoppeld aan fans {slots}",
   "cooling.case3d.linkedToOne": "Gekoppeld aan fan {slot}",
-  "cooling.case3d.model.detail": "Een simulatie van de luchtstroom in je pc. Het verandert niets aan je ventilatoren. Stel voor een betere overeenkomst je onderdelen in via Onderdelen aanpassen en koppel elke ventilator aan zijn header. Selecteer links een fan om die aan een fan in de behuizing te koppelen. Klik op een fan in de behuizing om inlaat of uitlaat in te stellen.",
+  "cooling.case3d.model.detail": "Een simulatie van de luchtstroom in je pc. Het verandert niets aan je fans. Stel voor een betere overeenkomst je onderdelen in via Onderdelen aanpassen en koppel elke fan aan zijn aansluiting. Selecteer links een fan om die aan een fan in de behuizing te koppelen. Klik op een fan in de behuizing om inlaat of uitlaat in te stellen.",
   "cooling.case3d.model.label": "Over dit model",
   "cooling.case3d.model.note": "Alleen een simulatie. Fans koppelen verandert je koeling niet.",
   "cooling.case3d.multi.title": "{count} fans",

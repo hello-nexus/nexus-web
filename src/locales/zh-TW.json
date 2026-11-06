@@ -428,7 +428,7 @@
   "cooling.case3d.layoutError": "無法載入已儲存的方向與裝置綁定。目前顯示預設值，變更不會被儲存。",
   "cooling.case3d.linkedToMany": "已綁定到{slots}風扇",
   "cooling.case3d.linkedToOne": "已綁定到{slot}風扇",
-  "cooling.case3d.model.detail": "這是 PC 內部氣流的模擬，不會改變風扇的運作方式。若要更貼近實際，請在「自訂零件」中設定零件，並將每個風扇連結到對應的接頭。先在左側選擇一個風扇，再將其綁定到機殼中的風扇。點擊機殼中的風扇可設定進風或出風。",
+  "cooling.case3d.model.detail": "這是 PC 內部氣流的模擬，不會改變風扇的運作方式。若要更貼近實際，請在「自訂零件」中設定零件，並將每個風扇綁定到對應的接頭。先在左側選擇一個風扇，再將其綁定到機殼中的風扇。點擊機殼中的風扇可設定進風或出風。",
   "cooling.case3d.model.label": "關於此模型",
   "cooling.case3d.model.note": "僅為模擬。綁定風扇不會改變你的實際散熱。",
   "cooling.case3d.multi.title": "{count} 個風扇",
