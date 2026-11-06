@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "{count} Lüfter auswählen",
   "cooling.fan.selectOnly": "Nur {name} auswählen",
   "cooling.fan.unresponsive": "Reagiert nicht",
-  "cooling.fan.unresponsiveHint": "Dieser Lüfter meldet seine Drehzahl nicht. Er ist möglicherweise nicht angeschlossen oder hat Probleme bei der Meldung.",
+  "cooling.fan.unresponsiveHint": "Dieser Lüfter meldet seine Drehzahl nicht. Er ist möglicherweise nicht angeschlossen oder hat Kommunikationsprobleme.",
   "cooling.fanRole.generic": "Normaler Lüfter",
   "cooling.fanRole.picker": "Lüftergerät markieren",
   "cooling.guard.banner.escalated": "Die CPU heizt sich weiter auf: {temp} °C (Limit {limit} °C), obwohl alle Lüfter mit voller Drehzahl laufen. Prüfen Sie Kühler, Lüfter und Pumpe.",

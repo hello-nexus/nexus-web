@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "选择 {count} 个风扇",
   "cooling.fan.selectOnly": "仅选择 {name}",
   "cooling.fan.unresponsive": "无响应",
-  "cooling.fan.unresponsiveHint": "此风扇不报告转速。它可能未连接，或无法正常报告。",
+  "cooling.fan.unresponsiveHint": "此风扇不报告转速。它可能未连接，或通信异常。",
   "cooling.fanRole.generic": "通用风扇",
   "cooling.fanRole.picker": "标记风扇设备",
   "cooling.guard.banner.escalated": "所有风扇已全速运行，CPU 仍在升温：{temp} °C（上限 {limit} °C）。请检查散热器、风扇和水泵。",

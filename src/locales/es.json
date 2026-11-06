@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "Seleccionar {count} ventiladores",
   "cooling.fan.selectOnly": "Seleccionar solo {name}",
   "cooling.fan.unresponsive": "Sin respuesta",
-  "cooling.fan.unresponsiveHint": "Este ventilador no informa su velocidad. Puede estar desconectado o tener problemas para informarla.",
+  "cooling.fan.unresponsiveHint": "Este ventilador no informa su velocidad. Puede estar desconectado o tener problemas de comunicación.",
   "cooling.fanRole.generic": "Ventilador genérico",
   "cooling.fanRole.picker": "Definir dispositivo del ventilador",
   "cooling.guard.banner.escalated": "La CPU sigue calentándose: {temp} °C (límite {limit} °C) con todos los ventiladores a máxima velocidad. Revisa el disipador, los ventiladores y la bomba.",

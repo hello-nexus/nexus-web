@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "Selecionar {count} ventoinhas",
   "cooling.fan.selectOnly": "Selecionar apenas {name}",
   "cooling.fan.unresponsive": "Sem resposta",
-  "cooling.fan.unresponsiveHint": "Esta ventoinha não indica a velocidade. Pode estar desligada ou ter problemas em indicá-la.",
+  "cooling.fan.unresponsiveHint": "Esta ventoinha não indica a velocidade. Pode estar desligada ou ter problemas de comunicação.",
   "cooling.fanRole.generic": "Ventoinha genérica",
   "cooling.fanRole.picker": "Definir dispositivo da ventoinha",
   "cooling.guard.banner.escalated": "A CPU continua a aquecer: {temp} °C (limite {limit} °C) com todas as ventoinhas à velocidade máxima. Verifique o cooler, as ventoinhas e a bomba.",

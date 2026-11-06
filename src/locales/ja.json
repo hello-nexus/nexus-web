@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "{count} 基のファンを選択",
   "cooling.fan.selectOnly": "{name} のみを選択",
   "cooling.fan.unresponsive": "応答なし",
-  "cooling.fan.unresponsiveHint": "このファンは回転数を報告しません。切断されているか、報告に問題がある可能性があります。",
+  "cooling.fan.unresponsiveHint": "このファンは回転数を報告しません。切断されているか、通信に問題がある可能性があります。",
   "cooling.fanRole.generic": "汎用ファン",
   "cooling.fanRole.picker": "ファンのデバイスを設定",
   "cooling.guard.banner.escalated": "すべてのファンが最大速度で動作していますが、CPU の温度が上がり続けています: {temp} °C (上限 {limit} °C)。クーラー、ファン、ポンプを確認してください。",
