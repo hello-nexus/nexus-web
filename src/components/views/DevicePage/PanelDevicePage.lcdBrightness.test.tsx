@@ -196,4 +196,18 @@ describe('PanelDevicePage cooler-LCD brightness', () => {
     fireEvent.click(await screen.findByRole('option', { name: '90°' }));
     await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { rotation: 90 }));
   });
+
+  it('hides the orientation dropdown but keeps Mirror when the service allows only one rotation', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1', supportedRotations: [0],
+        capabilities: { surface: 'lcd-round', touch: false, family: 'lianli-galahad2-lcd' },
+      }],
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    expect(await screen.findByRole('switch', { name: 'devices.lcd.mirror' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.y70.orientation' })).not.toBeInTheDocument();
+  });
 });

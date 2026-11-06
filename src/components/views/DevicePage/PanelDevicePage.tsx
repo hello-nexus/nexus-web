@@ -2065,22 +2065,24 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                     && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
-                        <SettingSelect
-                          label={t('devices.y70.orientation')}
-                          value={String(recordRotation)}
-                          onChange={(v) => {
-                            const next = normalizeRotation(Number(v));
-                            if (next === undefined) return;
-                            const prev = recordRotation;
-                            setRecordRotation(next);
-                            const id = device?.panelRecordId;
-                            if (!id) return;
-                            void patchPanelDevice(id, { rotation: next })
-                              .then(r => { if (!r) setRecordRotation(prev); })
-                              .catch(() => setRecordRotation(prev));
-                          }}
-                          options={rotationOptions(recordSupportedRotations, glassSurface, t)}
-                        />
+                        {recordSupportedRotations.length > 1 && (
+                          <SettingSelect
+                            label={t('devices.y70.orientation')}
+                            value={String(recordRotation)}
+                            onChange={(v) => {
+                              const next = normalizeRotation(Number(v));
+                              if (next === undefined) return;
+                              const prev = recordRotation;
+                              setRecordRotation(next);
+                              const id = device?.panelRecordId;
+                              if (!id) return;
+                              void patchPanelDevice(id, { rotation: next })
+                                .then(r => { if (!r) setRecordRotation(prev); })
+                                .catch(() => setRecordRotation(prev));
+                            }}
+                            options={rotationOptions(recordSupportedRotations, glassSurface, t)}
+                          />
+                        )}
                         <SettingToggle
                           label={t('devices.lcd.mirror')}
                           checked={recordMirror}
