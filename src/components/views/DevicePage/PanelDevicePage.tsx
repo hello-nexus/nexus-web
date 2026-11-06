@@ -103,6 +103,7 @@ import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { createUuid } from '../../../lib/uuid';
 import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
@@ -401,9 +402,9 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordRestricted, setRecordRestricted] = useState(false);
-  const [recordFlip180, setRecordFlip180] = useState(false);
+  const [recordRotation, setRecordRotation] = useState<PanelRotation>(0);
+  const [recordSupportedRotations, setRecordSupportedRotations] = useState<PanelRotation[]>(() => resolveSupportedRotations(undefined, false));
   const [recordMirror, setRecordMirror] = useState(false);
-  const [recordPortrait, setRecordPortrait] = useState(false);
   const [recordSupportsPortrait, setRecordSupportsPortrait] = useState(false);
   const [recordLcdBrightness, setRecordLcdBrightness] = useState(DEFAULT_LCD_BRIGHTNESS);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
@@ -749,10 +750,10 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordRestricted(match?.restrictedMode ?? false);
-      setRecordFlip180(match?.flip180 ?? false);
+      setRecordRotation(resolveRecordRotation(match));
       setRecordMirror(match?.mirror ?? false);
-      setRecordPortrait(match?.portrait ?? false);
       setRecordSupportsPortrait(match?.capabilities?.supportsPortrait ?? false);
+      setRecordSupportedRotations(resolveSupportedRotations(match?.supportedRotations, match?.capabilities?.supportsPortrait ?? false));
       setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
       setRecordSleepWhenLocked(match?.sleepWhenLocked ?? true);
       setRecordSupportsBrightness(match?.capabilities?.supportsBrightness ?? false);
@@ -925,8 +926,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordSecondaryMonitorHolder(record.secondaryMonitorHolder ?? null);
-      setRecordPortrait(record.portrait ?? false);
       setRecordHighResolution(record.highResolution ?? false);
+      setRecordRotation(resolveRecordRotation(record));
       // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
       setRecordFpsCap(record.fpsCap ?? null);
       setRecordRestricted(record.restrictedMode ?? false);
@@ -2085,26 +2086,16 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                     && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
-                        {recordSupportsPortrait && (
-                          <SettingToggle
-                            label={t('devices.lcd.portrait')}
-                            description={t('devices.lcd.portraitHint')}
-                            checked={recordPortrait}
-                            onChange={() => {
-                              const next = !recordPortrait;
-                              setRecordPortrait(next);
-                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { portrait: next }).catch(() => {});
-                            }}
-                          />
-                        )}
-                        <SettingToggle
-                          label={t('devices.lcd.flip180')}
-                          checked={recordFlip180}
-                          onChange={() => {
-                            const next = !recordFlip180;
-                            setRecordFlip180(next);
-                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { flip180: next }).catch(() => {});
+                        <SettingSelect
+                          label={t('devices.y70.orientation')}
+                          value={String(recordRotation)}
+                          onChange={(v) => {
+                            const next = normalizeRotation(Number(v));
+                            if (next === undefined) return;
+                            setRecordRotation(next);
+                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { rotation: next }).catch(() => {});
                           }}
+                          options={rotationOptions(recordSupportedRotations, glassSurface, t)}
                         />
                         <SettingToggle
                           label={t('devices.lcd.mirror')}
