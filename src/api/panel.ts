@@ -182,6 +182,9 @@ export interface PanelDeviceRecord {
   rotation?: 0 | 90 | 180 | 270 | null;
   // The rotations this glass accepts, computed by the service.
   supportedRotations?: number[];
+  // The size the panel renders at after rotation (width and height swap at a quarter turn). Absent on a service that predates it.
+  renderWidth?: number | null;
+  renderHeight?: number | null;
   mirror?: boolean;
   // Panels whose capabilities carry supportsRenderScale: render at native resolution
   // instead of a lower one. Absent/null = lower (high performance).

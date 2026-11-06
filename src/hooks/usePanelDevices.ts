@@ -369,8 +369,9 @@ export function buildPanelDevices({
   // kiosk to launch, no display to control, and no touch digitizer.
   for (const record of records) {
     if (!record.streamed) continue;
-    const cssWidth = record.capabilities?.cssWidth ?? 0;
-    const cssHeight = record.capabilities?.cssHeight ?? 0;
+    // A rotated glass renders at the swapped size, which the service states; an older service sends none.
+    const cssWidth = record.renderWidth || (record.capabilities?.cssWidth ?? 0);
+    const cssHeight = record.renderHeight || (record.capabilities?.cssHeight ?? 0);
     const surface = record.capabilities?.surface as PanelSurface | undefined;
     // The family is the handler id, which is also the curated device row's id. Claiming
     // that row merges the two into one sidebar entry, the way the Q60 carries its cooler.

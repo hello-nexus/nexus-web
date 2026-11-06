@@ -85,6 +85,8 @@ interface PanelEmbedFrameProps {
   gridDpi?: number;
   // Short-axis slot count Widget size forces on the grid, forwarded with the density.
   shortSideSlots?: number;
+  // The single-widget tile has its axes swapped (a quarter-turn render).
+  transposedTile?: boolean;
   // The Large-size grid that sizes floating chrome in the preview.
   chromeGrid?: ChromeGrid;
   brightness: number;
@@ -235,6 +237,7 @@ export function PanelEmbedFrame({
   canvasIsCssPixels,
   gridDpi,
   shortSideSlots,
+  transposedTile = false,
   chromeGrid,
   brightness,
   screenOn,
@@ -342,7 +345,7 @@ export function PanelEmbedFrame({
           // A playlist stand-in is not in the layout; its type is enough for the editor.
           const playlistType = playlistTypeOfWidgetId(data.widgetId);
           const widget = findWidget(layout, data.widgetId)
-            ?? (playlistType ? playlistWidget(layout, playlistType, surface) : undefined);
+            ?? (playlistType ? playlistWidget(layout, playlistType, surface, '', transposedTile) : undefined);
           if (widget) onWidgetClicked(widget);
           break;
         }
@@ -374,7 +377,7 @@ export function PanelEmbedFrame({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onBackgroundCovered, onBackgroundMenu, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
+  }, [layout, onBackgroundClicked, onBackgroundCovered, onBackgroundMenu, onLayoutChange, onPlaylistShown, onWidgetClicked, surface, transposedTile]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {
@@ -387,6 +390,7 @@ export function PanelEmbedFrame({
       genericDisplay,
       dpi: effectiveGridDpi,
       shortSideSlots,
+      transposedTile,
       chromeGrid,
       layout,
       theme,
@@ -434,8 +438,8 @@ export function PanelEmbedFrame({
   // fetch races the iframe boot), so mirror it like the other props.
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots, chromeGrid });
-  }, [childReady, effectiveGridDpi, shortSideSlots, chromeGrid, post]);
+    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi, shortSideSlots, transposedTile, chromeGrid });
+  }, [childReady, effectiveGridDpi, shortSideSlots, transposedTile, chromeGrid, post]);
 
   // Touch capability can resolve after init the same way (record fetch),
   // so mirror it too - the preview's drag sensor gates on it.

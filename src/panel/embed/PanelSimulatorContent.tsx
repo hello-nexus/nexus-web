@@ -30,6 +30,7 @@ export function PanelSimulatorContent() {
           deviceTouch={sim.deviceTouch}
           deviceDpi={sim.dpi}
           shortSideSlots={sim.shortSideSlots}
+          transposedTile={sim.transposedTile}
           chromeGrid={sim.chromeGrid}
           simulatorPreviewScale={sim.previewScale}
           displayBound={sim.displayBound}
