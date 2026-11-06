@@ -174,7 +174,26 @@ describe('PanelDevicePage cooler-LCD brightness', () => {
 
     // The mounting section still renders, so the tab is open and the slider's
     // absence is the capability gate rather than an unrendered tab.
-    expect(await screen.findByRole('switch', { name: 'devices.lcd.flip180' })).toBeInTheDocument();
+    expect(await screen.findByRole('switch', { name: 'devices.lcd.mirror' })).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.lcd.flip180' })).not.toBeInTheDocument();
     expect(screen.queryByRole('slider', { name: BRIGHTNESS_LABEL })).not.toBeInTheDocument();
+  });
+
+  it('patches rotation from the orientation dropdown, offering only supported values', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1', flip180: true, supportedRotations: [0, 90, 180, 270],
+        capabilities: { surface: 'lcd-round', touch: false, family: 'lianli-galahad2-lcd' },
+      }],
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const select = await screen.findByRole('button', { name: 'devices.y70.orientation' });
+    // Record has no rotation, so the legacy flip180 seeds the shown value.
+    expect(select).toHaveTextContent('180°');
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: '90°' }));
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { rotation: 90 }));
   });
 });

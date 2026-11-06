@@ -52,7 +52,7 @@ export interface PanelDeviceCapabilitiesDto {
   // This panel's driver can drive it as a Windows secondary monitor.
   // Absent/false hides the setting entirely.
   supportsSecondaryMonitor?: boolean;
-  // The glass mounts either way up; the record's portrait picks the render shape.
+  // The glass mounts either way up; the record's rotation picks the render shape.
   supportsPortrait?: boolean;
 }
 
@@ -173,11 +173,13 @@ export interface PanelDeviceRecord {
   autoOrient?: boolean;
   // Pushed-frame cooler LCDs: how the glass is mounted. Applied to the bytes in
   // the service transport, so everything else renders upright. Absent/null = off.
+  // Legacy: older services send this instead of rotation.
   flip180?: boolean;
+  // Clockwise degrees the glass is mounted at. Absent/null = 0.
+  rotation?: 0 | 90 | 180 | 270 | null;
+  // The rotations this glass accepts, computed by the service.
+  supportedRotations?: number[];
   mirror?: boolean;
-  // Panels whose capabilities carry supportsPortrait: mounted on the short side,
-  // so the panel renders tall. Absent/null = landscape.
-  portrait?: boolean | null;
   // Frame rate cap in fps for this device (streamed session rate, secondary-monitor pacing, or
   // how often a display-bound panel page draws). Absent/null = the device's own rate.
   fpsCap?: number | null;
@@ -273,16 +275,14 @@ export interface PanelDevicePatch {
   // Display-bound records with a physical orientation sensor only; ignored
   // for other panels.
   autoOrient?: boolean;
-  // Pushed-frame cooler LCDs only; ignored for other panels.
-  flip180?: boolean;
+  // Pushed-frame cooler LCDs and portrait-capable glass only; ignored for other panels.
+  rotation?: 0 | 90 | 180 | 270;
   mirror?: boolean;
   // Dimmable cooler LCDs only; ignored for other panels.
   lcdBrightness?: number;
   sleepWhenLocked?: boolean;
   // Streamed panels whose driver supports it only; ignored for other panels.
   secondaryMonitor?: boolean;
-  // Panels whose capabilities carry supportsPortrait only; ignored for other panels.
-  portrait?: boolean;
   // Frame rate cap in fps; 0 clears it (the device's own rate). The service clamps it.
   fpsCap?: number;
   widgetSize?: PanelWidgetSizeMode;
