@@ -430,7 +430,7 @@
   white-space: nowrap;
 }
 .calBadge { font-size: 0.7rem; }
-.calUnresponsive { background: rgba(107, 114, 128, 0.15); color: var(--text-dim); }
+.calUnresponsive { display: inline-flex; align-items: center; gap: 4px; background: rgba(107, 114, 128, 0.15); color: var(--text-dim); }
 
 // ── Fan Card ───────────────────────────────────────────────────────────────
 // Styled like the lighting device card: snug padding, full-width in the
