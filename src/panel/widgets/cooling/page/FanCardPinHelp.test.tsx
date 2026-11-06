@@ -119,13 +119,13 @@ describe('FanCard pin menu rows', () => {
 describe('FanCard unresponsive readout', () => {
   it('shows the Unresponsive label instead of RPM and keeps the mode dropdown', () => {
     renderCard(channel({ classification: 'Unresponsive', rpm: 0 }));
-    expect(screen.getByText('cooling.fan.unresponsive')).toBeInTheDocument();
+    expect(screen.getByLabelText('cooling.fan.unresponsive')).toBeInTheDocument();
     expect(screen.queryByText('RPM')).toBeNull();
   });
 
   it('lets live RPM win over a stale Unresponsive classification', () => {
     renderCard(channel({ classification: 'Unresponsive', rpm: 700 }));
-    expect(screen.queryByText('cooling.fan.unresponsive')).toBeNull();
+    expect(screen.queryByLabelText('cooling.fan.unresponsive')).toBeNull();
     expect(screen.getByText('RPM')).toBeInTheDocument();
   });
 });
