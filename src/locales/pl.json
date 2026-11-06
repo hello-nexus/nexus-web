@@ -423,6 +423,7 @@
   "cooling.case3d.flow.mode.both": "Obudowa + przepływ powietrza",
   "cooling.case3d.flow.mode.case": "Obudowa",
   "cooling.case3d.flow.mode.label": "Widok",
+  "cooling.case3d.flow.settling": "Symulowanie przepływu powietrza",
   "cooling.case3d.flow.slowMo": "Zwolnione tempo",
   "cooling.case3d.flow.unsupported": "Ta konfiguracja grafiki nie może uruchomić symulacji przepływu powietrza.",
   "cooling.case3d.hint.bind": "Kliknij wentylator w obudowie, aby przypisać go do urządzenia {name} lub ustawić jego kierunek.",

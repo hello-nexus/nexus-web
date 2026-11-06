@@ -423,6 +423,7 @@
   "cooling.case3d.flow.mode.both": "Skříň + proudění",
   "cooling.case3d.flow.mode.case": "Skříň",
   "cooling.case3d.flow.mode.label": "Zobrazení",
+  "cooling.case3d.flow.settling": "Simuluje se proudění vzduchu",
   "cooling.case3d.flow.slowMo": "Zpomalení",
   "cooling.case3d.flow.unsupported": "Toto grafické nastavení nedokáže spustit simulaci proudění vzduchu.",
   "cooling.case3d.hint.bind": "Kliknutím na ventilátor ve skříni jej přiřadíte k zařízení {name} nebo nastavíte jeho směr.",

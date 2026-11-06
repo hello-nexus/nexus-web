@@ -423,6 +423,7 @@
   "cooling.case3d.flow.mode.both": "Case + airflow",
   "cooling.case3d.flow.mode.case": "Case",
   "cooling.case3d.flow.mode.label": "Display",
+  "cooling.case3d.flow.settling": "Simulating airflow",
   "cooling.case3d.flow.slowMo": "Slow mo",
   "cooling.case3d.flow.unsupported": "This graphics setup cannot run the airflow simulation.",
   "cooling.case3d.hint.bind": "Click a fan in the case to link it to {name} or set its direction.",

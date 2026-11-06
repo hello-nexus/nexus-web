@@ -8,26 +8,24 @@ import { HeatVolume } from './heatVolume';
 import { caseFluidCells, easeSpan, percentileRise, spanFor } from './heatSpan';
 import { PARTICLE_STEPS_PER_SECOND, ParticleClock } from './particleClock';
 import { GlFlow, PassRunner, floatSupport, pass, target, type FloatKind } from './glFlow';
-import { PARTICLE_TEXTURE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, GRID_LOW_CELLS, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
+import { PARTICLE_TEXTURE, STUCK_AGE_RATE, STUCK_MOVE_CELLS, substepsFor, EMITTER_STRIDE, OUTSIDE_REACH_MM, GRID_TARGET_CELLS, PARTICLE_BIRTH_SPREAD, PARTICLE_REFERENCE_SPEED, PARTICLE_SPEED_SCALE, HEAT_COLOR_SPAN_C, HEAT_SPAN_READ_MS, HEAT_SPAN_REPORT_K, POWER_RESUME_DELTA_W, VISUAL_TIME_SCALE, TEMP_RESUME_DELTA_K, TEMP_SETTLE_STEPS } from './flowParams';
 import { NO_TEMPS, exhaustRiseK, sourceRises, sourceWatts, type ComponentTemps } from './heatModel';
 import { buildCollisionShapes } from './collisionShapes';
 import { buildGridView, type GridView } from './gridView';
 import { SteadyGate } from './steadyGate';
-import { FRAME_GAP_MAX_MS, SLOW_FRAMES, SLOW_FRAME_MS, TierGovernor, predictedStepMs, solverIsCause } from './tierPolicy';
 import { SOURCE_CPU, SOURCE_GPU, buildFlowScene, type FlowInput, type FlowScene } from './gridScene';
 import { FRAGMENT_OUT, HIST_PASS, histVertex, PARTICLE_HEAT, PARTICLE_STATE, STREAK_FRAGMENT } from './shaders';
 import { fadeGoalAfterToggle } from './layerFade';
 import { FLOW_LOOK, solverSpeedRef, type FlowLook } from './flowLook';
 
-/** The grid sizes by tier, each target cell count; tier 0 is the target, a coarser one is a safety net the layer leaves again once the solver has headroom. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
-export const flowTiers = (): number[] => {
+/** The solver grid's target cell count. A dev-tools build may set `nexus.dev.flowCells` in local storage to try another density. */
+const flowCells = (): number => {
   let cells = GRID_TARGET_CELLS;
   if (DEV_TOOLS) {
     try { cells = Number(localStorage.getItem('nexus.dev.flowCells')) || cells; } catch { /* storage unavailable */ }
   }
-  return [cells, Math.round(cells / 2), GRID_LOW_CELLS];
+  return cells;
 };
-const TIER_PARTICLE_SHARE = [1, 0.75, 0.5];
 /** Particle states kept: the current one and the one before it, whose difference is the streak. */
 const RING = 2;
 /** Samples in a particle's history ring, and how many particles keep one (the first ones, which are the drawn ones). */
@@ -50,8 +48,6 @@ const MIN_STEPS_PER_FRAME = 1;
 const STEADY_CHECK_EVERY = 16;
 const STEADY_RATIO = 0.01;
 const MAX_SOLVE_STEPS = 1500;
-/** Share each settled frame's length takes in the average the climb check reads, while the GPU gives no step timing. */
-const SETTLED_FRAME_EMA = 0.05;
 /** A speed change re-solves only when the fans' speed mix has drifted this far from the solved one, and at most this often. */
 const RESOLVE_DRIFT = 0.3;
 const RESOLVE_MIN_INTERVAL_MS = 60000;
@@ -90,21 +86,16 @@ export class FlowLayer {
   private readonly runner: PassRunner | null;
   private readonly group: Group;
   private input: FlowInput | null = null;
-  private tier = 0;
   private flow: GlFlow | null = null;
   private fscene: FlowScene | null = null;
-  private readonly tiers = flowTiers();
   private readonly clock = new ParticleClock();
   private solveStartedAt = 0;
   private stepsSinceEdit = 0;
   private solving = false;
   private stepsPerFrame = 4;
-  private slowCount = 0;
-  private readonly governor = new TierGovernor();
-  private settledFrameMs = 0;
   private lastFrameAt = 0;
   private readonly look: FlowLook;
-  /** Layer-wide fade for the events that would otherwise end every streak at once: a rebuild on a new grid, a coarser tier, the particles switched off, the layer cleared. */
+  /** Layer-wide fade for the events that would otherwise end every streak at once: a rebuild on a new grid, the particles switched off, the layer cleared. */
   private fadeT = 1;
   private fadeGoal = 1;
   private deferred: { warm: boolean } | null = null;
@@ -155,6 +146,9 @@ export class FlowLayer {
   private spanReadVersion = -1;
   private spanReported = Number.NaN;
   private fluidCells: Uint32Array | null = null;
+  /** Called when the solve starts or stops settling, as a view would show it: a solve in progress while the particles are on. */
+  onSettling: ((settling: boolean) => void) | null = null;
+  private settlingReported = false;
   /** Called when the span moves enough to matter to a legend. */
   onSpan: ((spanK: number) => void) | null = null;
   private collisions: { group: Group; dispose: () => void } | null = null;
@@ -175,11 +169,6 @@ export class FlowLayer {
     const ext = this.supported ? (renderer.getContext() as WebGL2RenderingContext).getExtension('EXT_disjoint_timer_query_webgl2') : null;
     this.timer = ext ? { ext, pending: [], msPerStep: 0 } : null;
     this.group = host;
-  }
-
-  /** The grid tier in use, 0 being the finest. */
-  get currentTier(): number {
-    return this.tier;
   }
 
   /** How the solver's step count is paced: from GPU timer queries when the context has them, else from frame times. */
@@ -230,6 +219,7 @@ export class FlowLayer {
 
   setOptions(options: FlowOptions) {
     this.options = options;
+    this.reportSettling();
     for (const m of [this.stateMat, this.heatMat]) if (m) { m.uniforms.uSpeed.value = this.drawnSpeed(); m.uniforms.uRefSpeed.value = this.referenceSpeed(); if (this.fscene) m.uniforms.uSpeedRef.value = solverSpeedRef(this.look, this.fscene); m.uniforms.uSubsteps.value = substepsFor(this.drawnSpeed()); }
     if (this.streaks) {
       if (this.look.fadeOut > 0) this.fadeGoal = fadeGoalAfterToggle(options.particles, this.deferred !== null || this.pendingTeardown, this.fadeGoal);
@@ -297,6 +287,14 @@ export class FlowLayer {
     if (!(Math.abs(this.spanK - this.spanReported) < HEAT_SPAN_REPORT_K)) { this.spanReported = this.spanK; this.onSpan?.(this.spanK); }
   }
 
+  // Tells the listener when the solve starts or stops settling; only a change is reported.
+  private reportSettling() {
+    const settling = this.supported && !!this.fscene && this.solving && this.options.particles;
+    if (settling === this.settlingReported) return;
+    this.settlingReported = settling;
+    this.onSettling?.(settling);
+  }
+
   /** Solves again from the current fields: the temperature field has a new target. */
   private wake(rises: number[]) {
     this.wakeRises = rises;
@@ -332,7 +330,7 @@ export class FlowLayer {
 
   private build(warm: boolean, now = false) {
     if (!this.input || !this.kind || !this.runner) return;
-    const scene = buildFlowScene(this.input, this.tiers[this.tier]);
+    const scene = buildFlowScene(this.input, flowCells());
     const sameGrid = !!this.flow && !!this.fscene && this.fscene.dims.every((d, i) => d === scene.dims[i]);
     if (this.flow && sameGrid && warm) {
       this.flow.setScene(scene);
@@ -389,7 +387,7 @@ export class FlowLayer {
   }
 
   private drawnCount(): number {
-    const n = Math.round(MAX_PARTICLES * TIER_PARTICLE_SHARE[this.tier] * this.look.drawShare);
+    const n = Math.round(MAX_PARTICLES * this.look.drawShare);
     // A trail is kept for the first HISTORY_ROWS particles only.
     return Math.min(n, HISTORY_ROWS);
   }
@@ -474,35 +472,6 @@ export class FlowLayer {
     this.stateCur = 0;
   }
 
-  /** Rebuilds the scene one grid tier coarser. */
-  dropTier() {
-    if (this.tier >= this.tiers.length - 1) return;
-    this.tier++;
-    this.slowCount = 0;
-    this.settledFrameMs = 0;
-    this.governor.noteDrop(performance.now());
-    this.build(false);
-  }
-
-  /** Rebuilds the scene one grid tier finer. */
-  private raiseTier() {
-    if (this.tier <= 0) return;
-    this.tier--;
-    this.slowCount = 0;
-    this.settledFrameMs = 0;
-    this.governor.noteClimb(performance.now());
-    this.build(false);
-  }
-
-  // Back up a tier once the solve has settled and the finer grid's step would fit the budget, after the hold-off; a layer that cannot hold the finer grid drops again and waits longer.
-  private maybeRaiseTier(dt: number) {
-    if (this.tier <= 0 || this.solving || this.deferred || this.resolveDue || !this.options.particles) return;
-    if (dt > 0 && dt < FRAME_GAP_MAX_MS) this.settledFrameMs = this.settledFrameMs === 0 ? dt : this.settledFrameMs * (1 - SETTLED_FRAME_EMA) + dt * SETTLED_FRAME_EMA;
-    const perStep = this.timer?.msPerStep ?? 0;
-    const predicted = perStep > 0 ? predictedStepMs(perStep, this.tiers[this.tier], this.tiers[this.tier - 1]) : 0;
-    if (this.governor.mayClimb(performance.now(), predicted, SOLVER_BUDGET_MS, this.settledFrameMs)) this.raiseTier();
-  }
-
   private updateUniforms() {
     const flow = this.flow;
     const scene = this.fscene;
@@ -536,6 +505,7 @@ export class FlowLayer {
     if (!this.supported || !flow || !scene || !this.runner) return;
     const dt = this.lastFrameAt ? now - this.lastFrameAt : 0;
     this.lastFrameAt = now;
+    this.reportSettling();
     this.stepFade(dt);
     // A rebuild or teardown that waited for the fade replaced the field this frame started with.
     if (this.flow !== flow) return;
@@ -543,6 +513,7 @@ export class FlowLayer {
     const wantsFlow = this.options.particles;
     if (this.resolveDue && performance.now() - this.solvedAt >= RESOLVE_MIN_INTERVAL_MS) { this.build(true); return; }
     this.pollSteady(flow);
+    this.reportSettling();
     if (this.solving && wantsFlow) {
       this.pollTimer();
       const gl = this.renderer.getContext() as WebGL2RenderingContext;
@@ -563,14 +534,8 @@ export class FlowLayer {
       // Outside the timed span: a PBO read inside an active query is an invalid operation.
       if (Math.floor(this.stepsSinceEdit / STEADY_CHECK_EVERY) > Math.floor(before / STEADY_CHECK_EVERY)) this.checkSteady(flow);
       this.paceSteps(dt, spent / n);
-      // A slow frame counts only when the solver's own steps are what filled it: a heavy scene or a busy GPU is not cured by a coarser grid.
-      this.slowCount = dt > SLOW_FRAME_MS && solverIsCause(dt, this.timer?.msPerStep ?? 0, n) ? this.slowCount + 1 : Math.max(0, this.slowCount - 1);
-      if (this.slowCount >= SLOW_FRAMES && this.tier < this.tiers.length - 1 && this.stepsPerFrame <= MIN_STEPS_PER_FRAME + 1) {
-        this.dropTier();
-        return;
-      }
     }
-    if (!this.solving) { this.coldStart = false; this.maybeRaiseTier(dt); }
+    if (!this.solving) this.coldStart = false;
     if (!this.solving && this.tempStepsLeft > 0 && wantsFlow) { flow.stepTemperature(); this.fieldVersion++; this.tempStepsLeft--; }
     // Particles wait for the first solver steps: with no velocity yet they would sit on their spawn points.
     if (this.options.particles && !(this.coldStart && this.solving && this.coldSteps < COLD_PARTICLE_STEPS) && this.stateMat && this.heatMat && this.streaks && this.spawnTex) {
@@ -725,6 +690,7 @@ export class FlowLayer {
     this.tempStepsLeft = 0;
     this.solving = false;
     if (this.streaks) this.streaks.visible = false;
+    this.reportSettling();
   }
 
   dispose() {

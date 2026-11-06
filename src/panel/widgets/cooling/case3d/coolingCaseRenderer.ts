@@ -55,6 +55,8 @@ export interface CaseSceneRenderer {
   setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
   /** Receives the airflow color span in degrees whenever it moves enough to change a legend; null stops it. */
   setSpanListener: (listener: ((spanK: number) => void) | null) => void;
+  /** Receives true while the airflow solve is still settling (a solve in progress with the particles on), false once it is steady; null stops it. */
+  setSettlingListener: (listener: ((settling: boolean) => void) | null) => void;
   resize: () => void;
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
@@ -179,6 +181,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
   let collisionsOn = false;
   let spanListener: ((spanK: number) => void) | null = null;
+  let settlingListener: ((settling: boolean) => void) | null = null;
   let showCase = true;
   // The case and parts are always drawn back: further while the particles run.
   let caseDim = AIRFLOW_DIM;
@@ -464,6 +467,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
           flowLayer.onSpan = spanListener;
+          flowLayer.onSettling = settlingListener;
           flowLayer.setTemps(temps);
         }
       }
@@ -493,6 +497,10 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     setSpanListener(listener) {
       spanListener = listener;
       if (flowLayer) flowLayer.onSpan = listener;
+    },
+    setSettlingListener(listener) {
+      settlingListener = listener;
+      if (flowLayer) flowLayer.onSettling = listener;
     },
     camera,
     get flowSupported() {

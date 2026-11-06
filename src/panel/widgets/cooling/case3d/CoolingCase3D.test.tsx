@@ -1,11 +1,12 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import type { CoolingLayout } from '../../../../api/coolingLayout';
 import { onOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
 import { CoolingCase3D } from './CoolingCase3D';
 import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
+import { SETTLING_NOTICE_DELAY_MS } from './useSettlingNotice';
 
 const h = vi.hoisted(() => ({
   flowSupported: true,
@@ -15,7 +16,7 @@ const h = vi.hoisted(() => ({
   patch: vi.fn(),
   pick: { current: null as null | ((key: string | null, x: number, y: number, mods?: { toggle: boolean; add: boolean }) => void) },
   drag: { current: null as null | (() => void) },
-  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; setSpanListener: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
+  renderers: [] as { setState: ReturnType<typeof vi.fn>; setTemps: ReturnType<typeof vi.fn>; setAnchors: ReturnType<typeof vi.fn>; setSpanListener: ReturnType<typeof vi.fn>; setSettlingListener: ReturnType<typeof vi.fn>; resize: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; flowSupported: boolean }[],
 }));
 
 vi.mock('../../../../lib/devTools', () => ({ get DEV_TOOLS() { return h.devTools; } }));
@@ -26,7 +27,7 @@ vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler, onDrag?: () => void) => {
     h.pick.current = onPick;
     h.drag.current = onDrag ?? null;
-    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), setSettlingListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),
@@ -1415,5 +1416,56 @@ describe('CoolingCase3D dev-tools flow controls', () => {
     pick('cooling.case3d.flow.mode.case');
     expect(lastState().flowOptions.speed).toBe(0.6);
     expect(lastState().flowOptions.timeScale).toBe(VISUAL_TIME_SCALE);
+  });
+});
+
+describe('CoolingCase3D settling notice', () => {
+  const NOTICE = 'cooling.case3d.flow.settling';
+  const emit = (settling: boolean) => act(() => { h.renderers[0].setSettlingListener.mock.calls.at(-1)![0](settling); });
+  const mounted = () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    render(ui());
+  };
+
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('stays hidden until the solve has run for 1.5 s', () => {
+    mounted();
+    emit(true);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS - 1); });
+    expect(screen.queryByText(NOTICE)).toBeNull();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(screen.getByText(NOTICE)).toBeTruthy();
+  });
+
+  it('never flashes for a solve that settles first', () => {
+    mounted();
+    emit(true);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS - 1); });
+    emit(false);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS * 2); });
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+
+  it('hides as soon as the solve is steady', () => {
+    mounted();
+    emit(true);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS); });
+    expect(screen.getByText(NOTICE)).toBeTruthy();
+    emit(false);
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+
+  it('waits the delay again on a re-solve', () => {
+    mounted();
+    emit(true);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS); });
+    emit(false);
+    emit(true);
+    expect(screen.queryByText(NOTICE)).toBeNull();
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS); });
+    expect(screen.getByText(NOTICE)).toBeTruthy();
   });
 });

@@ -42,6 +42,7 @@ import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
+import { useSettlingNotice } from './useSettlingNotice';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import { PRESSURE_COLOR } from './pressureColor';
 import styles from './CoolingCase3D.module.scss';
@@ -242,6 +243,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // The legend ends are the real air temperatures: room temperature, and room plus the color span the renderer measured.
   useEffect(() => { renderer?.setSpanListener(setSpanK); return () => renderer?.setSpanListener(null); }, [renderer]);
+  const settling = useSettlingNotice(renderer);
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const legendTemp = (celsius: number) => `${formatNumber(convertTemperature(celsius, monitoringTempUnit), numberFormat, { maximumFractionDigits: 1 })} ${tempUnitSymbol(monitoringTempUnit)}`;
   const legendFrom = legendTemp(ROOM_TEMP_C);
@@ -466,6 +468,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
         </div>
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>
           <div className={styles.bottomMain}>
+            <span className={styles.settling} role="status">{settling ? t('cooling.case3d.flow.settling') : null}</span>
             <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
               <ChipGroup
                 className={styles.control}

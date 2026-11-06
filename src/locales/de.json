@@ -423,6 +423,7 @@
   "cooling.case3d.flow.mode.both": "Gehäuse + Luftstrom",
   "cooling.case3d.flow.mode.case": "Gehäuse",
   "cooling.case3d.flow.mode.label": "Anzeige",
+  "cooling.case3d.flow.settling": "Luftstrom wird simuliert",
   "cooling.case3d.flow.slowMo": "Zeitlupe",
   "cooling.case3d.flow.unsupported": "Diese Grafikkonfiguration kann die Luftstromsimulation nicht ausführen.",
   "cooling.case3d.hint.bind": "Klicken Sie im Gehäuse auf einen Lüfter, um ihn mit {name} zu verknüpfen oder seine Richtung festzulegen.",

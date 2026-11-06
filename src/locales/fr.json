@@ -423,6 +423,7 @@
   "cooling.case3d.flow.mode.both": "Boîtier + flux d'air",
   "cooling.case3d.flow.mode.case": "Boîtier",
   "cooling.case3d.flow.mode.label": "Affichage",
+  "cooling.case3d.flow.settling": "Simulation du flux d'air",
   "cooling.case3d.flow.slowMo": "Ralenti",
   "cooling.case3d.flow.unsupported": "Cette configuration graphique ne peut pas exécuter la simulation du flux d'air.",
   "cooling.case3d.hint.bind": "Cliquez sur un ventilateur du boîtier pour l'associer à {name} ou définir son sens.",

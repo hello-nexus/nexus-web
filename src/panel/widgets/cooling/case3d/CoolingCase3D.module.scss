@@ -134,6 +134,13 @@
   pointer-events: auto;
 }
 
+// Shown while the airflow is still settling: bottom left, above the display chips, in the weight of a caption.
+.settling {
+  @include text-caption;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
 // The logo takes the button's ink so it reads in the enabled, hover and disabled states.
 .control .buildLogo {
   color: inherit;

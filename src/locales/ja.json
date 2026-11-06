@@ -423,6 +423,7 @@
   "cooling.case3d.flow.mode.both": "ケース + 気流",
   "cooling.case3d.flow.mode.case": "ケース",
   "cooling.case3d.flow.mode.label": "表示",
+  "cooling.case3d.flow.settling": "エアフローをシミュレーション中",
   "cooling.case3d.flow.slowMo": "スローモーション",
   "cooling.case3d.flow.unsupported": "このグラフィックス環境ではエアフローのシミュレーションを実行できません。",
   "cooling.case3d.hint.bind": "ケース内のファンをクリックすると、{name}に割り当てたり向きを設定したりできます。",
