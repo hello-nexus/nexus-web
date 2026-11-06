@@ -29,6 +29,35 @@ export function usePhonePanelManifest(enabled: boolean) {
   }, [enabled]);
 }
 
+// The pull-down lays out landscape for a pushed-frame LCD by its aspect ratio, whatever its pixel
+// size. Kept apart from useIsLandscape, which also gates immersive modes a fixed LCD cannot rotate into.
+export const LCD_LANDSCAPE_MIN_ASPECT = 1.5;
+
+export function isWideAspect(width: number, height: number): boolean {
+  return height > 0 && width / height >= LCD_LANDSCAPE_MIN_ASPECT;
+}
+
+export function isLcdSurface(surface: PanelSurface): boolean {
+  return surface === 'lcd-wide' || surface === 'lcd-square' || surface === 'lcd-round';
+}
+
+export function useIsWideLcd(surface: PanelSurface): boolean {
+  const lcd = isLcdSurface(surface);
+  const measure = () => lcd && typeof window !== 'undefined' && isWideAspect(window.innerWidth, window.innerHeight);
+  const [wide, setWide] = useState(measure);
+  useEffect(() => {
+    if (!lcd) {
+      setWide(false);
+      return;
+    }
+    const update = () => setWide(isWideAspect(window.innerWidth, window.innerHeight));
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [lcd]);
+  return wide;
+}
+
 export function useIsLandscape(surface: PanelSurface): boolean {
   // Q60 is a physically fixed orientation and doesn't flip; 'phone', a
   // promoted monitor (Xeneon Edge, which a user can physically rotate), and

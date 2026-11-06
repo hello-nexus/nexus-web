@@ -178,6 +178,7 @@ import { CONTROL_CENTER_ENGAGE_MM } from './engine/controlCenterGesture';
 import { TRAY_ENGAGE_TRAVEL_MM } from './engine/gestureThresholds';
 import {
   useIsLandscape,
+  useIsWideLcd,
   usePhoneContentScale,
   usePhonePanelManifest,
 } from './device/panelPhone';
@@ -986,6 +987,9 @@ export function PanelContent({
   // the edited widget reads dimmed under it. See .cellEditorDocked rules.
   const editorDockSupported = dragEditable;
   const isLandscape = useIsLandscape(surface);
+  // Control center only: a fixed wide LCD cannot rotate, so the immersive gates keep isLandscape.
+  const wideLcd = useIsWideLcd(surface);
+  const controlCenterLandscape = isLandscape || wideLcd;
   const capacity = useMemo<PaginateCapacity>(
     () => ({ gridCols: gridColumns, pageRows }),
     [gridColumns, pageRows],
@@ -2649,7 +2653,7 @@ export function PanelContent({
                 surfaceRef={rootRef}
                 displayId={recordState.record?.displayId}
                 backlightRecordId={recordState.record?.capabilities?.supportsBrightness ? recordState.record.id : undefined}
-                isLandscape={isLandscape}
+                isLandscape={controlCenterLandscape}
                 resolvedThemeMode={resolvedThemeMode}
                 onSetThemeMode={panelTheme.commitThemeModePinned}
                 onScreenSleep={() => setScreenAsleep(true)}
