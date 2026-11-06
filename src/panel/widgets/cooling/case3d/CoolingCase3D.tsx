@@ -355,7 +355,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const multiSim = multi ? simSpeeds(k => channelOfSlot(bindings, k), multiKeys) : null;
   const multiRpm = sharedOf(multiSim ?? []);
   const activeOwner = activeSlot ? channels.find(c => c.id === channelOfSlot(bindings, activeSlot.key)) : undefined;
-  const selectedName = channels.find(c => c.id === selectedChannelId)?.name;
   const result = model?.result;
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
   const pressureTooltip = { title: t(modeKey), body: `${t(`${modeKey}.body`)} ${t('cooling.case3d.pressure.estimate')}` };
@@ -450,11 +449,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 <span>{t('cooling.case3d.flow.collisions')}</span>
               </label>
             )}
-            <div className={styles.legendActions}>
-              <span className={styles.legendInfo}>
-                <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
-              </span>
-            </div>
           </div>
         </div>
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>

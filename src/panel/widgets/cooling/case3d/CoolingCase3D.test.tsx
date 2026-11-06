@@ -676,20 +676,17 @@ describe('CoolingCase3D airflow controls', () => {
     }
   });
 
-  it('puts the heat volume pill beside the legend, then the info button, inside the frame with dev tools off', () => {
+  it('puts the heat volume pill beside the legend, inside the frame with dev tools off', () => {
     h.devTools = false;
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
     render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
     const frame = screen.getByRole('img', { name: 'cooling.case3d.canvas' }).parentElement as HTMLElement;
     const heat = screen.getByRole('switch', { name: 'cooling.case3d.flow.heat' });
-    const info = within(frame).getByRole('button', { name: 'cooling.case3d.hint.label' });
     expect(frame.contains(heat)).toBe(true);
-    expect(heat.compareDocumentPosition(info) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const legend = screen.getByRole('group', { name: /cooling\.case3d\.flow\.legend/ });
     expect(legend.parentElement!.contains(heat)).toBe(true);
     expect(legend.compareDocumentPosition(heat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(heat.closest('[class*="legendActions"]')).toBeNull();
   });
 
   it('opens in the remembered mode', () => {
@@ -899,11 +896,11 @@ describe('CoolingCase3D info button', () => {
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
     render(ui());
-    expect(screen.queryByText('cooling.case3d.hint.select')).toBeNull();
-    const button = screen.getByRole('button', { name: 'cooling.case3d.hint.label' });
+    expect(screen.queryByText('cooling.case3d.model.detail')).toBeNull();
+    const button = screen.getByRole('button', { name: 'cooling.case3d.model.label' });
     expect(button.closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
     fireEvent.click(button);
-    const tip = screen.getByText('cooling.case3d.hint.select');
+    const tip = screen.getByText('cooling.case3d.model.detail');
     expect(tip.closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
   });
 });
@@ -925,10 +922,10 @@ describe('CoolingCase3D Build link', () => {
     setLayout({ settled: true });
     render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} flowMode="case" collisionShapes />);
     expect(screen.getByRole('button', { name: 'cooling.case3d.build.customize' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'cooling.case3d.hint.label' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'cooling.case3d.model.label' })).toBeTruthy();
   });
 
-  it('shows the Build button with its label beside the bottom controls, apart from the info button', () => {
+  it('shows the Build button with its label beside the bottom controls', () => {
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
     render(ui());
@@ -938,7 +935,6 @@ describe('CoolingCase3D Build link', () => {
     const controls = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
     expect(build.parentElement?.parentElement?.contains(controls)).toBe(true);
     expect(controls.contains(build)).toBe(false);
-    expect(build.parentElement?.contains(screen.getByRole('button', { name: 'cooling.case3d.hint.label' }))).toBe(false);
   });
 
   it('captions the view as a simulation, with the detail behind an info button, beside the Build button', () => {
