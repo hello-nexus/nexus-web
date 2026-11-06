@@ -46,9 +46,12 @@ const RPM_POLL_MS = 2000;
 // Give up waiting for a Restart LCD to show in the polled state.
 const RESTART_PENDING_TIMEOUT_MS = 20000;
 
-// A controller restart waits out the service's silence window, a possible port cycle and the
-// re-arrival before the page judges whether the link came back.
-const CONTROLLER_RESTART_SETTLE_MS = 15000;
+// A controller restart is judged from the polled link. A link that was never seen down counts as
+// back once the service's silence window (the TX port cycle decision) has passed; the upper bound
+// covers that window, the port cycle, the re-arrival and the reconnect.
+const CONTROLLER_RESTART_CHECK_MS = 1000;
+const CONTROLLER_RESTART_QUIET_OK_MS = 10000;
+const CONTROLLER_RESTART_MAX_MS = 45000;
 
 const RESTART_FAILURE_KEYS: Record<Exclude<LianLiWirelessRestartResult, 'started'>, string> = {
   busy: 'devices.lianli-wireless.restartBusy',
@@ -109,6 +112,8 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
   const flexSync = useLianLiFlexSync(flex && activeTab === 'lighting', onSyncWritten);
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
+  // The last polled link was up with nothing recovering or missing.
+  const linkOkRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const seq = ++sentSeqRef.current;
@@ -117,6 +122,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     if (s === null || seq < appliedSeqRef.current) return;
     appliedSeqRef.current = seq;
     setLinkStatus(s.linkStatus);
+    linkOkRef.current = s.isConnected && s.linkStatus === 'ok';
     if (!s.isConnected) {
       connectedRef.current = false;
       setConnection('disconnected');
@@ -137,6 +143,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     if (!aliveRef.current || s === null || seq < appliedSeqRef.current) return;
     appliedSeqRef.current = seq;
     setLinkStatus(s.linkStatus);
+    linkOkRef.current = s.isConnected && s.linkStatus === 'ok';
     if (!s.isConnected) {
       connectedRef.current = false;
       setConnection('disconnected');
@@ -223,10 +230,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     },
   } : undefined;
 
-  // Controller restart: pending until the settle window ends, then the polled link decides the toast.
+  // Controller restart: pending until the polled link is back (or the upper bound passes).
   const [controllerRestarting, setControllerRestarting] = useState(false);
-  const controllerTimerRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(controllerTimerRef.current), []);
+  const controllerTimerRef = useRef<ReturnType<typeof window.setInterval> | undefined>(undefined);
+  useEffect(() => () => window.clearInterval(controllerTimerRef.current), []);
   const onRestartController = () => {
     setControllerRestarting(true);
     void restartLianLiWirelessController().catch((): LianLiWirelessRestartResult => 'failed').then(result => {
@@ -236,14 +243,28 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
         push({ title: t('devices.lianli-wireless.restartFailed'), body: t(RESTART_FAILURE_KEYS[result]) });
         return;
       }
-      void refreshLive();
-      controllerTimerRef.current = window.setTimeout(() => {
-        if (!aliveRef.current) return;
+      const startedAt = Date.now();
+      let sawDown = false;
+      let checking = false;
+      const finish = (ok: boolean) => {
+        window.clearInterval(controllerTimerRef.current);
         setControllerRestarting(false);
-        void refresh();
-        if (connectedRef.current) push({ title: t('devices.lianli-wireless.restartDone') });
+        if (ok) push({ title: t('devices.lianli-wireless.restartDone') });
         else push({ title: t('devices.lianli-wireless.restartFailed'), body: t('devices.lianli-wireless.restartNotBack') });
-      }, CONTROLLER_RESTART_SETTLE_MS);
+      };
+      window.clearInterval(controllerTimerRef.current);
+      controllerTimerRef.current = window.setInterval(() => {
+        if (checking) return;
+        checking = true;
+        void refreshLive().finally(() => {
+          checking = false;
+          if (!aliveRef.current) return;
+          const elapsed = Date.now() - startedAt;
+          if (!linkOkRef.current) sawDown = true;
+          if (linkOkRef.current && (sawDown || elapsed >= CONTROLLER_RESTART_QUIET_OK_MS)) finish(true);
+          else if (elapsed >= CONTROLLER_RESTART_MAX_MS) finish(false);
+        });
+      }, CONTROLLER_RESTART_CHECK_MS);
     });
   };
   const restartButton = flex ? undefined : (

@@ -63,7 +63,8 @@ export type LianLiWirelessLinkStatus =
   | 'rxMissing'
   | 'busy'
   | 'openFailed'
-  | 'noResponse';
+  | 'noResponse'
+  | 'recovering';
 
 export interface LianLiWirelessState {
   isConnected: boolean;

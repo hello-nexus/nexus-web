@@ -63,6 +63,7 @@ vi.mock('../../../api/cooling', () => ({
 
 const connectedState = {
   isConnected: true,
+  linkStatus: 'ok',
   masterMac: '8A0EEF6232DC',
   channel: 8,
   txFirmwareVersion: 16,
@@ -243,10 +244,48 @@ describe('LianLiWirelessDevicePage', () => {
       expect(mockPush).not.toHaveBeenCalled();
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(15_000);
+        await vi.advanceTimersByTimeAsync(11_000);
       });
       expect(mockPush).toHaveBeenCalledWith({ title: 'devices.lianli-wireless.restartDone' });
       expect(restartButton()).not.toBeDisabled();
+    });
+
+    it('toasts as soon as a link that was seen recovering reports ok again', async () => {
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      await act(async () => {
+        fireEvent.click(restartButton());
+      });
+      mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, linkStatus: 'recovering' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      expect(mockPush).not.toHaveBeenCalled();
+
+      mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, linkStatus: 'ok' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+      expect(mockPush).toHaveBeenCalledWith({ title: 'devices.lianli-wireless.restartDone' });
+    });
+
+    it('does not call a link that stays recovering or half missing a success', async () => {
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      await act(async () => {
+        fireEvent.click(restartButton());
+      });
+      mockGetLianLiWirelessState.mockResolvedValue({ ...connectedState, linkStatus: 'txMissing' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50_000);
+      });
+      expect(mockPush).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith({
+        title: 'devices.lianli-wireless.restartFailed',
+        body: 'devices.lianli-wireless.restartNotBack',
+      });
     });
 
     it('names the refusal and re-enables the button', async () => {
@@ -273,7 +312,7 @@ describe('LianLiWirelessDevicePage', () => {
       });
       mockGetLianLiWirelessState.mockResolvedValue({ isConnected: false, linkStatus: 'noResponse', masterMac: '', channel: 0, txFirmwareVersion: 0, fans: [] });
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(15_000);
+        await vi.advanceTimersByTimeAsync(50_000);
       });
       expect(mockPush).toHaveBeenCalledWith({
         title: 'devices.lianli-wireless.restartFailed',
