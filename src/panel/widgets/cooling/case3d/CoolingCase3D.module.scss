@@ -43,6 +43,7 @@
 .statLabel,
 .statNote {
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
 }
 
@@ -142,6 +143,7 @@
   left: 0;
   margin-bottom: 0.3rem;
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
   pointer-events: none;
 
@@ -167,6 +169,7 @@
   gap: 0.3rem;
   text-align: right;
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
   pointer-events: none;
 }
@@ -213,6 +216,7 @@
   background: rgb(0 0 0 / var(--alpha-strong));
   backdrop-filter: blur(var(--blur-backdrop));
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
 }
 
