@@ -467,7 +467,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
           flowLayer.onSpan = spanListener;
-          flowLayer.onSettling = settlingListener;
+          flowLayer.setSettlingListener(settlingListener);
           flowLayer.setTemps(temps);
         }
       }
@@ -500,7 +500,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     },
     setSettlingListener(listener) {
       settlingListener = listener;
-      if (flowLayer) flowLayer.onSettling = listener;
+      if (flowLayer) flowLayer.setSettlingListener(listener);
+      else listener?.(false);
     },
     camera,
     get flowSupported() {

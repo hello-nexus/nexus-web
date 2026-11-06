@@ -19,7 +19,7 @@ vi.mock('three', async importOriginal => {
   return { ...actual, WebGLRenderer: FakeRenderer };
 });
 
-const layers = vi.hoisted(() => ({ created: 0, disposed: 0, host: null as null | { parent: { children: { matrixWorld: { elements: number[] }; position: { length(): number }; scale: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number } }[] } | null } }));
+const layers = vi.hoisted(() => ({ created: 0, disposed: 0, settling: false, host: null as null | { parent: { children: { matrixWorld: { elements: number[] }; position: { length(): number }; scale: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number } }[] } | null } }));
 vi.mock('../../../../lib/cooling/flow/flowLayer', () => ({
   FlowLayer: class {
     supported = true;
@@ -27,6 +27,7 @@ vi.mock('../../../../lib/cooling/flow/flowLayer', () => ({
     setOptions() {}
     setInput() {}
     setTemps() {}
+    setSettlingListener(listener: ((settling: boolean) => void) | null) { listener?.(layers.settling); }
     frame() {}
     get active() { return false; }
     dispose() { layers.disposed++; }
@@ -71,6 +72,7 @@ describe('createCaseRenderer', () => {
   it('keeps the flow layer through a fan edit and rebuilds it only when the case shape changes', () => {
     layers.created = 0;
     layers.disposed = 0;
+    layers.settling = false;
     const r = createCaseRenderer(document.createElement('canvas'), () => {});
     const state = (l: CaseLayout) => ({ layout: l, directions: {}, highlighted: new Set<string>(), bound: new Set<string>(), simulated: new Set<string>(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1.5 } });
     r.setState(state(layout));
@@ -235,6 +237,24 @@ describe('the case is Build\'s scene', () => {
     expect(sceneSignature(staticGroup.children[0])).toEqual(sceneSignature(expected));
     r.dispose();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('settling listener', () => {
+  it('hands a listener attached while the solve is settling the current state', () => {
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    const parsed = parseCaseLayout(y70)!;
+    try {
+      r.setState({ layout: parsed, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), rotors: new Map(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1 } });
+      layers.settling = true;
+      const seen: boolean[] = [];
+      r.setSettlingListener(s => seen.push(s));
+      expect(seen).toEqual([true]);
+    } finally {
+      r.dispose();
+      vi.unstubAllGlobals();
+    }
   });
 });
 

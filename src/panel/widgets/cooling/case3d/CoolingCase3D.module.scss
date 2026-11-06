@@ -128,17 +128,31 @@
   gap: 0.3rem;
   flex: 1 1 0;
   min-width: 0;
+  position: relative;
 }
 
 .control {
   pointer-events: auto;
 }
 
-// Shown while the airflow is still settling: bottom left, above the display chips, in the weight of a caption.
+// Shown while the airflow is still settling: bottom left, above the display chips, in the weight of a caption. Out of the flex flow, so the always-mounted live region leaves no gap while empty.
 .settling {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.3rem;
   @include text-caption;
   color: var(--text-dim);
   pointer-events: none;
+
+  // Sits over the scene rather than inside the strip, so it carries the strip's backdrop to stay legible.
+  &:not(:empty) {
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    background: rgb(0 0 0 / var(--alpha-strong));
+    backdrop-filter: blur(var(--blur-backdrop));
+    color: #fff;
+  }
 }
 
 // The logo takes the button's ink so it reads in the enabled, hover and disabled states.

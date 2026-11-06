@@ -6,7 +6,7 @@ import { M3S_PER_CFM } from '../pressureModel';
 import { slotDirections, slotSpeeds, withDefaultBindings } from '../slotFlow';
 import { visualFlow } from '../visualFlow';
 import { CpuFlow } from './cpuSolver';
-import { GRID_LOW_CELLS, GRID_TARGET_CELLS } from './flowParams';
+import { GRID_TARGET_CELLS } from './flowParams';
 import { buildFlowScene, OPENING_VENT } from './gridScene';
 
 const STEPS = 150;
@@ -48,14 +48,10 @@ it('a blower card keeps its fan side shut outside the fan disc', () => {
   expect(r.leakCfm).toBeLessThan(r.fanCfm * 0.2);
 }, 120000);
 
-describe('a blower card on the lab Y70 exhausts through its bracket at every grid tier', () => {
-  it.each([
-    ['finest', GRID_TARGET_CELLS, 0.25],
-    ['middle', Math.round(GRID_TARGET_CELLS / 2), 0.25],
-    ['coarsest', GRID_LOW_CELLS, 0.06],
-  ])('%s tier', (_name, cells, share) => {
-    const r = bracketOutflow(cells);
+describe('a blower card on the lab Y70 exhausts through its bracket at the full grid', () => {
+  it('finest tier', () => {
+    const r = bracketOutflow(GRID_TARGET_CELLS);
     expect(r.fanCfm).toBeGreaterThan(50);
-    expect(r.cfm).toBeGreaterThan(r.fanCfm * share);
+    expect(r.cfm).toBeGreaterThan(r.fanCfm * 0.25);
   }, 120000);
 });

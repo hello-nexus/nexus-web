@@ -146,8 +146,7 @@ export class FlowLayer {
   private spanReadVersion = -1;
   private spanReported = Number.NaN;
   private fluidCells: Uint32Array | null = null;
-  /** Called when the solve starts or stops settling, as a view would show it: a solve in progress while the particles are on. */
-  onSettling: ((settling: boolean) => void) | null = null;
+  private onSettling: ((settling: boolean) => void) | null = null;
   private settlingReported = false;
   /** Called when the span moves enough to matter to a legend. */
   onSpan: ((spanK: number) => void) | null = null;
@@ -285,6 +284,12 @@ export class FlowLayer {
     if (nowMs - this.spanReadAt >= HEAT_SPAN_READ_MS && this.fieldVersion !== this.spanReadVersion && flow.beginTemperatureRead()) { this.spanReadAt = nowMs; this.spanReadVersion = this.fieldVersion; }
     this.updateSpan();
     if (!(Math.abs(this.spanK - this.spanReported) < HEAT_SPAN_REPORT_K)) { this.spanReported = this.spanK; this.onSpan?.(this.spanK); }
+  }
+
+  /** Listens for the solve starting or stopping settling, as a view would show it: a solve in progress while the particles are on. The current state is pushed on assignment, so a late listener is not left out of date. */
+  setSettlingListener(listener: ((settling: boolean) => void) | null) {
+    this.onSettling = listener;
+    listener?.(this.settlingReported);
   }
 
   // Tells the listener when the solve starts or stops settling; only a change is reported.

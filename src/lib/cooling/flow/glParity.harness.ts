@@ -149,22 +149,25 @@ async function main() {
     scP.add(hostP);
     // A coarse grid keeps the software renderer quick; the dev-tools density override sets it, and particles start once the first solve settles.
     localStorage.setItem('nexus.dev.flowCells', String(GRID_LOW_CELLS));
-    const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
-      cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
-    }, PARITY_LOOK);
-    l.setTemps({ gpu, cpu: null });
-    l.setInput(stillInput);
-    l.setOptions({ particles: true, collisions: false, speed: 1.5 });
-    let frames = 0;
-    while (!l.settled && frames < 3000) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
-    for (let f = 0; f < 150; f++) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); }
-    const { pos, heat } = l.readParticles();
-    let alive = 0;
-    let warm = 0;
-    for (let i = 0; i < pos.length / 4; i++) if (pos[i * 4] > -1e5 && pos[i * 4 + 3] > 0) { alive++; if (heat[i * 4] > 2) warm++; }
-    l.dispose();
-    localStorage.removeItem('nexus.dev.flowCells');
-    return { alive, warm, frames };
+    try {
+      const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
+        cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+      }, PARITY_LOOK);
+      l.setTemps({ gpu, cpu: null });
+      l.setInput(stillInput);
+      l.setOptions({ particles: true, collisions: false, speed: 1.5 });
+      let frames = 0;
+      while (!l.settled && frames < 3000) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
+      for (let f = 0; f < 150; f++) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); }
+      const { pos, heat } = l.readParticles();
+      let alive = 0;
+      let warm = 0;
+      for (let i = 0; i < pos.length / 4; i++) if (pos[i * 4] > -1e5 && pos[i * 4 + 3] > 0) { alive++; if (heat[i * 4] > 2) warm++; }
+      l.dispose();
+      return { alive, warm, frames };
+    } finally {
+      localStorage.removeItem('nexus.dev.flowCells');
+    }
   };
   out.plume = { hot: await plumeAt(75), cold: await plumeAt(22) };
   err('plume');

@@ -6,13 +6,14 @@ import { onOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { VISUAL_TIME_SCALE } from '../../../../lib/cooling/flow/flowParams';
 import { CoolingCase3D } from './CoolingCase3D';
 import { createCaseRenderer, type PickHandler } from './coolingCaseRenderer';
-import { SETTLING_NOTICE_DELAY_MS } from './useSettlingNotice';
+import { SETTLING_NOTICE_DELAY_MS, SETTLING_NOTICE_MIN_SHOWN_MS } from './useSettlingNotice';
 
 const h = vi.hoisted(() => ({
   flowSupported: true,
   setup: { record: null as unknown, loaded: false },
   layout: { layout: { directions: {}, bindings: [], tests: [] } as unknown, settled: false, failed: false, edit: vi.fn() },
   devTools: true,
+  settlingOnAttach: false,
   patch: vi.fn(),
   pick: { current: null as null | ((key: string | null, x: number, y: number, mods?: { toggle: boolean; add: boolean }) => void) },
   drag: { current: null as null | (() => void) },
@@ -27,7 +28,7 @@ vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn((_canvas: HTMLCanvasElement, onPick: PickHandler, onDrag?: () => void) => {
     h.pick.current = onPick;
     h.drag.current = onDrag ?? null;
-    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), setSettlingListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), setSettlingListener: vi.fn((l: ((s: boolean) => void) | null) => { if (l && h.settlingOnAttach) l(true); }), resize: vi.fn(), dispose: vi.fn(), get flowSupported() { return h.flowSupported; } };
     h.renderers.push(r);
     return r;
   }),
@@ -1429,7 +1430,7 @@ describe('CoolingCase3D settling notice', () => {
   };
 
   beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => { vi.useRealTimers(); h.settlingOnAttach = false; });
 
   it('stays hidden until the solve has run for 1.5 s', () => {
     mounted();
@@ -1452,16 +1453,45 @@ describe('CoolingCase3D settling notice', () => {
   it('hides as soon as the solve is steady', () => {
     mounted();
     emit(true);
-    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS); });
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS + SETTLING_NOTICE_MIN_SHOWN_MS); });
     expect(screen.getByText(NOTICE)).toBeTruthy();
     emit(false);
     expect(screen.queryByText(NOTICE)).toBeNull();
   });
 
-  it('waits the delay again on a re-solve', () => {
+  it('keeps the notice for a minimum time when the solve settles just after it shows', () => {
     mounted();
     emit(true);
     act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS); });
+    emit(false);
+    expect(screen.getByText(NOTICE)).toBeTruthy();
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_MIN_SHOWN_MS - 1); });
+    expect(screen.getByText(NOTICE)).toBeTruthy();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+
+  it('hides at once when the notice has already been shown past the minimum', () => {
+    mounted();
+    emit(true);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS + SETTLING_NOTICE_MIN_SHOWN_MS); });
+    emit(false);
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+
+  it('shows the notice for a solve already settling when the listener attaches', () => {
+    h.setup = { record: record(), loaded: true };
+    setLayout({ settled: true });
+    h.settlingOnAttach = true;
+    render(ui());
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS); });
+    expect(screen.getByText(NOTICE)).toBeTruthy();
+  });
+
+  it('waits the delay again on a re-solve', () => {
+    mounted();
+    emit(true);
+    act(() => { vi.advanceTimersByTime(SETTLING_NOTICE_DELAY_MS + SETTLING_NOTICE_MIN_SHOWN_MS); });
     emit(false);
     emit(true);
     expect(screen.queryByText(NOTICE)).toBeNull();
