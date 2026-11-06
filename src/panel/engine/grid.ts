@@ -137,6 +137,7 @@ export function panelGridCapacityForCanvas(
     gap = PANEL_GRID_GAP,
     padding = PANEL_GRID_PREVIEW_PADDING,
     paddingRatio,
+    transposedTile = false,
   }: {
     surface?: PanelSurface;
     dpi?: number;
@@ -152,6 +153,8 @@ export function panelGridCapacityForCanvas(
     // single-widget surface (q60) regardless of the value passed in - any
     // inset there reads as a border around the one tile.
     paddingRatio?: number;
+    // The single-widget tile has its axes swapped (a quarter-turn render).
+    transposedTile?: boolean;
   } = {},
 ): PanelGridCapacity {
   // Y70 landscape transposes the portrait grid: the fixed long-axis cell
@@ -166,7 +169,7 @@ export function panelGridCapacityForCanvas(
   // span makes the widget fill the glass on any such surface. This reproduces the
   // Q-series 2x4 exactly and gives the round Kraken glass its 2x2.
   const singleSpan = (() => {
-    const size = singleWidgetSurfaceSize(surface);
+    const size = singleWidgetSurfaceSize(surface, transposedTile);
     return size === undefined ? undefined : sizeToSpan(size);
   })();
   const defaultColumns = singleSpan

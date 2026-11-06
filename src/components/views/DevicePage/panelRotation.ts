@@ -1,23 +1,13 @@
-import type { PanelSurface } from '../../../panel/types';
-
 export type PanelRotation = 0 | 90 | 180 | 270;
 
 const ROTATIONS: readonly PanelRotation[] = [0, 90, 180, 270];
-
-// Y70 locale key suffix per clockwise quarter turn, for rectangular glass.
-const RECT_ORIENTATION_KEY: Record<PanelRotation, string> = {
-  0: 'Landscape',
-  90: 'Portrait',
-  180: 'LandscapeFlipped',
-  270: 'PortraitFlipped',
-};
 
 export function normalizeRotation(value: number | null | undefined): PanelRotation | undefined {
   return ROTATIONS.find(r => r === value);
 }
 
 // Older services only send flip180 and portrait, so they stand in until rotation arrives.
-export function resolveRecordRotation(record: { rotation?: number | null; flip180?: boolean | null; portrait?: boolean | null } | undefined): PanelRotation {
+export function resolveRecordRotation(record: { rotation?: number | null; flip180?: boolean | null; portrait?: boolean | null } | null | undefined): PanelRotation {
   const rotation = normalizeRotation(record?.rotation);
   if (rotation !== undefined) return rotation;
   if (record?.portrait) return record.flip180 ? 270 : 90;
@@ -33,18 +23,7 @@ export function resolveSupportedRotations(supported: readonly number[] | undefin
   return supportsPortrait ? [...ROTATIONS] : [0, 180];
 }
 
-export function usesDegreeLabels(surface: PanelSurface): boolean {
-  return surface === 'lcd-round' || surface === 'lcd-square';
-}
-
-export function rotationOptions(
-  rotations: readonly PanelRotation[],
-  surface: PanelSurface,
-  t: (key: string) => string,
-): { value: string; label: string }[] {
-  const degrees = usesDegreeLabels(surface);
-  return rotations.map(r => ({
-    value: String(r),
-    label: degrees ? `${r}°` : t(`devices.y70.orientation.${RECT_ORIENTATION_KEY[r]}`),
-  }));
+// Degrees on every surface: a quarter turn names the same mounting whatever the glass's shape.
+export function rotationOptions(rotations: readonly PanelRotation[]): { value: string; label: string }[] {
+  return rotations.map(r => ({ value: String(r), label: `${r}°` }));
 }
