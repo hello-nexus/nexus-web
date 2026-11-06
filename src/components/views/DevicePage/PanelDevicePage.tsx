@@ -2081,7 +2081,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                     </div>
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
-                      (its own section below), so the software flip would double-apply. */}
+                      (its own section below), so the software rotation would double-apply. */}
                   {activeTab === 'settings' && (supportsMountOrientation || recordSupportsPortrait)
                     && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
@@ -2092,8 +2092,13 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                           onChange={(v) => {
                             const next = normalizeRotation(Number(v));
                             if (next === undefined) return;
+                            const prev = recordRotation;
                             setRecordRotation(next);
-                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { rotation: next }).catch(() => {});
+                            const id = device?.panelRecordId;
+                            if (!id) return;
+                            void patchPanelDevice(id, { rotation: next })
+                              .then(r => { if (!r) setRecordRotation(prev); })
+                              .catch(() => setRecordRotation(prev));
                           }}
                           options={rotationOptions(recordSupportedRotations, glassSurface, t)}
                         />

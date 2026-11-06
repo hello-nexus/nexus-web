@@ -175,8 +175,9 @@ export interface PanelDeviceRecord {
   autoOrient?: boolean;
   // Pushed-frame cooler LCDs: how the glass is mounted. Applied to the bytes in
   // the service transport, so everything else renders upright. Absent/null = off.
-  // Legacy: older services send this instead of rotation.
+  // Legacy: older services send these instead of rotation.
   flip180?: boolean;
+  portrait?: boolean | null;
   // Clockwise degrees the glass is mounted at. Absent/null = 0.
   rotation?: 0 | 90 | 180 | 270 | null;
   // The rotations this glass accepts, computed by the service.
