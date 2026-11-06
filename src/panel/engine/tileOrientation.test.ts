@@ -58,7 +58,6 @@ describe('transposed single tile', () => {
     expect(tileTransposed('lcd-wide', 90, { width: 0, height: 0 })).toBe(false);
   });
 });
-});
 
 describe('grid for a quarter-turn render', () => {
   it('lcd-wide: 4x2 at 0/180 as before, 2x4 at 90/270', () => {
