@@ -155,6 +155,26 @@
   }
 }
 
+// The model caption sits right-aligned above the Build button; the column keeps both at the strip's right edge.
+.buildColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 55%;
+}
+
+.modelNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: right;
+  @include text-caption;
+  color: var(--text-dim);
+}
+
 // The logo takes the button's ink so it reads in the enabled, hover and disabled states.
 .control .buildLogo {
   color: inherit;
