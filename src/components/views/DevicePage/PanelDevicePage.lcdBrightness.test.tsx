@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The Lian Li AIO LCDs (Galahad II, HydroShift) take a backlight command, so
@@ -217,9 +217,34 @@ describe('PanelDevicePage cooler-LCD brightness', () => {
     fireEvent.click(select);
     fireEvent.click(await screen.findByRole('option', { name: '270°' }));
     await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledTimes(2));
-    failFirst(new Error('late failure'));
-    await new Promise(r => setTimeout(r, 0));
+    await act(async () => { failFirst(new Error('late failure')); });
     expect(select).toHaveTextContent('270°');
+  });
+
+  it('rolls back to the last confirmed rotation when two successive saves both fail', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1', rotation: 0, supportedRotations: [0, 90, 180, 270],
+        capabilities: { surface: 'lcd-round', touch: false, family: 'lianli-galahad2-lcd' },
+      }],
+    });
+    let failFirst: (e: Error) => void = () => {};
+    let failSecond: (e: Error) => void = () => {};
+    patchPanelDeviceMock
+      .mockReturnValueOnce(new Promise((_, rej) => { failFirst = rej; }))
+      .mockReturnValueOnce(new Promise((_, rej) => { failSecond = rej; }));
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const select = await screen.findByRole('button', { name: 'devices.y70.orientation' });
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: '90°' }));
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole('option', { name: '270°' }));
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledTimes(2));
+    await act(async () => { failFirst(new Error('first')); });
+    await act(async () => { failSecond(new Error('second')); });
+    expect(select).toHaveTextContent('0°');
   });
 
   it('hides the orientation dropdown but keeps Mirror when the service allows only one rotation', async () => {
