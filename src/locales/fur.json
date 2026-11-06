@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "Selezione {count} ventilatôrs",
   "cooling.fan.selectOnly": "Selezione dome {name}",
   "cooling.fan.unresponsive": "Nol rispuint",
-  "cooling.fan.unresponsiveHint": "Cheste ventule no segnale la sô velocitât.",
+  "cooling.fan.unresponsiveHint": "Cheste ventule no segnale la sô velocitât. Al podarès jessi distacât o vê problemis a segnalâ la sô velocitât.",
   "cooling.fanRole.generic": "Ventiladôr gjeneric",
   "cooling.fanRole.picker": "Segne il dispositîf dal ventiladôr",
   "cooling.guard.banner.escalated": "Il CPU al continue a scjaldâsi: {temp} °C (limit {limit} °C) cun ducj i ventilatôrs a la massime velocitât. Controle il refredadôr, i ventilatôrs e la pompe.",

@@ -587,7 +587,7 @@
   "cooling.fan.selectGroupCount.other": "Vybrat {count} ventilátorů",
   "cooling.fan.selectOnly": "Vybrat pouze {name}",
   "cooling.fan.unresponsive": "Nereaguje",
-  "cooling.fan.unresponsiveHint": "Tento ventilátor nehlásí své otáčky.",
+  "cooling.fan.unresponsiveHint": "Tento ventilátor nehlásí své otáčky. Může být odpojený nebo mít potíže s hlášením otáček.",
   "cooling.fanRole.generic": "Obecný ventilátor",
   "cooling.fanRole.picker": "Označit zařízení ventilátoru",
   "cooling.guard.banner.escalated": "CPU se stále zahřívá, má {temp} °C (limit {limit} °C), i když všechny ventilátory běží na plné otáčky. Zkontrolujte chladič, ventilátory a čerpadlo.",
