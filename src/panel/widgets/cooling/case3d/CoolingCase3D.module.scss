@@ -148,7 +148,7 @@
   // Sits over the scene rather than inside the strip, so it carries the strip's backdrop to stay legible.
   &:not(:empty) {
     padding: 0.2rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     background: rgb(0 0 0 / var(--alpha-strong));
     backdrop-filter: blur(var(--blur-backdrop));
     color: #fff;
