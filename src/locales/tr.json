@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "{count} fan seç",
   "cooling.fan.selectOnly": "Yalnızca {name} seç",
   "cooling.fan.unresponsive": "Yanıt vermiyor",
-  "cooling.fan.unresponsiveHint": "Bu fan hızını bildirmiyor. Bağlantısı kesilmiş olabilir veya hızını bildirmekte sorun yaşıyor olabilir.",
+  "cooling.fan.unresponsiveHint": "Bu fan hızını bildirmiyor. Bağlantısı kesilmiş olabilir veya bildirmekte sorun yaşıyor olabilir.",
   "cooling.fanRole.generic": "Genel fan",
   "cooling.fanRole.picker": "Fan cihazını belirle",
   "cooling.guard.banner.escalated": "CPU, tüm fanlar tam hızdayken bile ısınmaya devam ediyor: {temp} °C (sınır {limit} °C). Soğutucuyu, fanları ve pompayı kontrol edin.",

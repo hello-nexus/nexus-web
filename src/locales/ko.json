@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "{count}개 팬 선택",
   "cooling.fan.selectOnly": "{name}만 선택",
   "cooling.fan.unresponsive": "응답 없음",
-  "cooling.fan.unresponsiveHint": "이 팬은 속도를 보고하지 않습니다. 연결이 끊어졌거나 속도를 보고하는 데 문제가 있을 수 있습니다.",
+  "cooling.fan.unresponsiveHint": "이 팬은 속도를 보고하지 않습니다. 연결이 끊어졌거나 보고하는 데 문제가 있을 수 있습니다.",
   "cooling.fanRole.generic": "일반 팬",
   "cooling.fanRole.picker": "팬 장치 지정",
   "cooling.guard.banner.escalated": "모든 팬이 최대 속도로 작동 중인데도 CPU가 계속 뜨거워지고 있습니다: {temp} °C (한계 {limit} °C). 쿨러, 팬, 펌프를 확인하세요.",

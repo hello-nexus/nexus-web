@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "{count} ventilatoren selecteren",
   "cooling.fan.selectOnly": "Alleen {name} selecteren",
   "cooling.fan.unresponsive": "Reageert niet",
-  "cooling.fan.unresponsiveHint": "Deze ventilator meldt zijn toerental niet. Hij is mogelijk losgekoppeld of heeft moeite zijn toerental te melden.",
+  "cooling.fan.unresponsiveHint": "Deze ventilator meldt zijn toerental niet. Hij is mogelijk losgekoppeld of heeft moeite met melden.",
   "cooling.fanRole.generic": "Algemene ventilator",
   "cooling.fanRole.picker": "Apparaat van ventilator instellen",
   "cooling.guard.banner.escalated": "De CPU wordt nog steeds warmer: {temp} °C (limiet {limit} °C) terwijl alle ventilatoren op volle snelheid draaien. Controleer de koeler, ventilatoren en pomp.",

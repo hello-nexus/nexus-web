@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "Select {count} fans",
   "cooling.fan.selectOnly": "Select only {name}",
   "cooling.fan.unresponsive": "Unresponsive",
-  "cooling.fan.unresponsiveHint": "This fan doesn't report its speed. It may be disconnected or have trouble reporting its speed.",
+  "cooling.fan.unresponsiveHint": "This fan doesn't report its speed. It may be disconnected or have trouble reporting.",
   "cooling.fanRole.generic": "Generic fan",
   "cooling.fanRole.picker": "Mark fan device",
   "cooling.guard.banner.escalated": "CPU is still heating up at {temp} °C (limit {limit} °C) with all fans at full speed. Check the cooler, fans and pump.",

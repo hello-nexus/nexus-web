@@ -582,7 +582,7 @@
   "cooling.fan.selectGroupCount.other": "Seleziona {count} ventole",
   "cooling.fan.selectOnly": "Seleziona solo {name}",
   "cooling.fan.unresponsive": "Non risponde",
-  "cooling.fan.unresponsiveHint": "Questa ventola non segnala la sua velocità. Potrebbe essere scollegata o avere problemi a segnalare la velocità.",
+  "cooling.fan.unresponsiveHint": "Questa ventola non segnala la sua velocità. Potrebbe essere scollegata o avere problemi a segnalarla.",
   "cooling.fanRole.generic": "Ventola generica",
   "cooling.fanRole.picker": "Definisci dispositivo della ventola",
   "cooling.guard.banner.escalated": "La CPU continua a scaldarsi: {temp} °C (limite {limit} °C) con tutte le ventole alla massima velocità. Controlla dissipatore, ventole e pompa.",
