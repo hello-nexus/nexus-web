@@ -117,7 +117,7 @@ describe('FanCard pin menu rows', () => {
 });
 
 describe('FanCard unresponsive readout', () => {
-  it('shows the Unresponsive label instead of RPM and keeps the mode dropdown', () => {
+  it('shows the Unresponsive unplug icon instead of RPM and keeps the mode dropdown', () => {
     renderCard(channel({ classification: 'Unresponsive', rpm: 0 }));
     expect(screen.getByLabelText('cooling.fan.unresponsive')).toBeInTheDocument();
     expect(screen.queryByText('RPM')).toBeNull();
