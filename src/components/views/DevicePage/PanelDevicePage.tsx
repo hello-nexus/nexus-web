@@ -365,6 +365,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const pendingWritesRef = useRef(0);
   const writeSeqRef = useRef(0);
   const rotationSeqRef = useRef(0);
+  const confirmedRotationRef = useRef<PanelRotation>(0);
   // A broadcast skipped during a local write is DEFERRED, not dropped: the
   // service broadcasts before the PATCH response returns, so our own echo is
   // skipped too and no later frame would arrive to trigger a catch-up. A
@@ -751,7 +752,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordRestricted(match?.restrictedMode ?? false);
-      setRecordRotation(resolveRecordRotation(match));
+      confirmedRotationRef.current = resolveRecordRotation(match);
+      setRecordRotation(confirmedRotationRef.current);
       setRecordMirror(match?.mirror ?? false);
       setRecordSupportsPortrait(match?.capabilities?.supportsPortrait ?? false);
       setRecordSupportedRotations(resolveSupportedRotations(match?.supportedRotations, match?.capabilities?.supportsPortrait ?? false));
@@ -928,7 +930,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       setRecordSecondaryMonitorHolder(record.secondaryMonitorHolder ?? null);
       setRecordHighResolution(record.highResolution ?? false);
-      setRecordRotation(resolveRecordRotation(record));
+      confirmedRotationRef.current = resolveRecordRotation(record);
+      setRecordRotation(confirmedRotationRef.current);
       // A broadcast carries no maxFps (it is computed on the list), so only the cap follows it.
       setRecordFpsCap(record.fpsCap ?? null);
       setRecordRestricted(record.restrictedMode ?? false);
@@ -2094,14 +2097,16 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                             onChange={(v) => {
                               const next = normalizeRotation(Number(v));
                               if (next === undefined) return;
-                              const prev = recordRotation;
                               const seq = ++rotationSeqRef.current;
                               setRecordRotation(next);
                               const id = device?.panelRecordId;
                               if (!id) return;
                               void patchPanelDevice(id, { rotation: next })
-                                .then(r => { if (!r && seq === rotationSeqRef.current) setRecordRotation(prev); })
-                                .catch(() => { if (seq === rotationSeqRef.current) setRecordRotation(prev); });
+                                .then(r => {
+                                  if (r) confirmedRotationRef.current = next;
+                                  else if (seq === rotationSeqRef.current) setRecordRotation(confirmedRotationRef.current);
+                                })
+                                .catch(() => { if (seq === rotationSeqRef.current) setRecordRotation(confirmedRotationRef.current); });
                             }}
                             options={rotationOptions(recordSupportedRotations, glassSurface, t)}
                           />
