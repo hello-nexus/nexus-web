@@ -108,6 +108,16 @@ export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/identify', { mac }));
 }
 
+/** Outcome of a controller restart request; the failures are the service's result names. */
+export type LianLiWirelessRestartResult = 'started' | 'busy' | 'heldBack' | 'unavailable' | 'failed';
+
+export async function restartLianLiWirelessController(): Promise<LianLiWirelessRestartResult> {
+  const r = await postService<OkResponse>('/devices/lianli-wireless/restart-controller', {});
+  if (!r) return 'failed';
+  if (r.error !== true) return 'started';
+  return r.msg === 'Busy' ? 'busy' : r.msg === 'HeldBack' ? 'heldBack' : r.msg === 'Unavailable' ? 'unavailable' : 'failed';
+}
+
 export interface LianLiWirelessLightingEffect {
   key: string;
   hasSpeed: boolean;

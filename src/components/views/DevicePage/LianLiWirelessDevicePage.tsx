@@ -2,9 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Fan, CircleEqual, Lightbulb, RadioReceiver, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
+import { Button } from '../../common/Button/Button';
+import { useToastSafe } from '../../common/Toast/Toast';
 import {
   getLianLiWirelessState,
+  restartLianLiWirelessController,
   type LianLiWirelessLinkStatus,
+  type LianLiWirelessRestartResult,
 } from '../../../api/lianli-wireless';
 import {
   LIANLI_FLEX_CHANNEL_PREFIX,
@@ -42,6 +46,17 @@ const RPM_POLL_MS = 2000;
 // Give up waiting for a Restart LCD to show in the polled state.
 const RESTART_PENDING_TIMEOUT_MS = 20000;
 
+// A controller restart waits out the service's silence window, a possible port cycle and the
+// re-arrival before the page judges whether the link came back.
+const CONTROLLER_RESTART_SETTLE_MS = 15000;
+
+const RESTART_FAILURE_KEYS: Record<Exclude<LianLiWirelessRestartResult, 'started'>, string> = {
+  busy: 'devices.lianli-wireless.restartBusy',
+  heldBack: 'devices.lianli-wireless.restartHeldBack',
+  unavailable: 'devices.lianli-wireless.restartUnavailable',
+  failed: 'devices.lianli-wireless.restartUnavailable',
+};
+
 // The streamed-panel family of a HydroShift II on USB: its screen's own device page.
 const HYDROSHIFT2_PANEL_FAMILY = 'lianli-hydroshift2';
 const AIO_PANEL_LOOKUP_MS = 10_000;
@@ -78,6 +93,7 @@ interface LianLiWirelessDevicePageProps {
  */
 export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: LianLiWirelessDevicePageProps) {
   const { t } = useTranslation();
+  const { push } = useToastSafe();
   const getState = flex ? getLianLiFlexState : getLianLiWirelessState;
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
@@ -207,6 +223,35 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
     },
   } : undefined;
 
+  // Controller restart: pending until the settle window ends, then the polled link decides the toast.
+  const [controllerRestarting, setControllerRestarting] = useState(false);
+  const controllerTimerRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(controllerTimerRef.current), []);
+  const onRestartController = () => {
+    setControllerRestarting(true);
+    void restartLianLiWirelessController().catch((): LianLiWirelessRestartResult => 'failed').then(result => {
+      if (!aliveRef.current) return;
+      if (result !== 'started') {
+        setControllerRestarting(false);
+        push({ title: t('devices.lianli-wireless.restartFailed'), body: t(RESTART_FAILURE_KEYS[result]) });
+        return;
+      }
+      void refreshLive();
+      controllerTimerRef.current = window.setTimeout(() => {
+        if (!aliveRef.current) return;
+        setControllerRestarting(false);
+        void refresh();
+        if (connectedRef.current) push({ title: t('devices.lianli-wireless.restartDone') });
+        else push({ title: t('devices.lianli-wireless.restartFailed'), body: t('devices.lianli-wireless.restartNotBack') });
+      }, CONTROLLER_RESTART_SETTLE_MS);
+    });
+  };
+  const restartButton = flex ? undefined : (
+    <Button size="sm" tone="neutral" disabled={controllerRestarting} onClick={onRestartController}>
+      {controllerRestarting ? t('devices.lianli-wireless.restartingButton') : t('devices.lianli-wireless.restartButton')}
+    </Button>
+  );
+
   const disconnected = connection === 'disconnected';
   const hintKey = linkStatus ? (flex ? FLEX_LINK_HINT_KEYS : LINK_HINT_KEYS)[linkStatus] : undefined;
   // Only polled while the reason for being down is an app holding the dongle.
@@ -248,6 +293,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
         tabs={disconnected ? undefined : tabs}
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
+        actions={disconnected ? undefined : restartButton}
         tabActions={disconnected || !onSectionNavigate ? undefined
           : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} anchors={flex ? lianLiFlexCoolingAnchors(boundMacs) : lianLiWirelessCoolingAnchors(boundMacs)} fanId={flex && boundMacs[0] ? `${LIANLI_FLEX_CHANNEL_PREFIX}${boundMacs[0]}:port0` : undefined} />
           : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={flex ? lianLiFlexLightingAnchors(boundMacs) : lianLiWirelessLightingAnchors()} />
@@ -259,7 +305,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate, flex = false }: Li
             icon={<Unplug size={40} />}
             title={t(flex ? 'devices.lianli-flex.notConnected' : 'devices.lianli-wireless.notConnected')}
             hint={hintKey ? t(hintKey) : undefined}
-            action={blockingApp ? <ConflictAppCard conflict={blockingApp} /> : undefined}
+            action={blockingApp ? <ConflictAppCard conflict={blockingApp} /> : linkStatus === 'noResponse' ? restartButton : undefined}
           />
         )}
         {/* Tab body stays mounted across a transient disconnect so a fan's

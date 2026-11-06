@@ -26,6 +26,12 @@ const mockBindLianLiWirelessFan = vi.fn();
 const mockUnbindLianLiWirelessFan = vi.fn();
 const mockIdentifyLianLiWirelessFan = vi.fn();
 const mockSetLianLiWirelessLockBound = vi.fn();
+const mockRestartController = vi.fn();
+const mockPush = vi.fn();
+
+vi.mock('../../common/Toast/Toast', () => ({
+  useToastSafe: () => ({ push: mockPush }),
+}));
 
 const mockGetLianLiAioScreen = vi.fn(() => Promise.resolve(null as unknown));
 
@@ -35,6 +41,7 @@ vi.mock('../../../api/lianli-wireless', () => ({
   unbindLianLiWirelessFan: (...args: any[]) => mockUnbindLianLiWirelessFan(...args),
   identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
   setLianLiWirelessLockBound: (...args: any[]) => mockSetLianLiWirelessLockBound(...args),
+  restartLianLiWirelessController: (...args: any[]) => mockRestartController(...args),
   getLianLiWirelessLighting: () => Promise.resolve(null),
   getLianLiAioScreen: (...args: any[]) => mockGetLianLiAioScreen(...args),
   getLianLiFlexLcd: () => Promise.resolve(null),
@@ -86,6 +93,7 @@ beforeEach(() => {
   mockUnbindLianLiWirelessFan.mockResolvedValue(true);
   mockIdentifyLianLiWirelessFan.mockResolvedValue(true);
   mockSetLianLiWirelessLockBound.mockResolvedValue(true);
+  mockRestartController.mockResolvedValue('started');
 });
 
 afterEach(() => {
@@ -218,6 +226,76 @@ describe('LianLiWirelessDevicePage', () => {
     });
     expect(screen.getByText('devices.lianli-wireless.bound - devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.unbound')).not.toBeInTheDocument();
+  });
+
+  describe('Restart controller', () => {
+    const restartButton = () => screen.getByRole('button', { name: /devices\.lianli-wireless\.restart(ing)?Button/ });
+
+    it('posts the restart, stays pending, and toasts once the link is back', async () => {
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      await act(async () => {
+        fireEvent.click(restartButton());
+      });
+      expect(mockRestartController).toHaveBeenCalledTimes(1);
+      expect(restartButton()).toBeDisabled();
+      expect(mockPush).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+      expect(mockPush).toHaveBeenCalledWith({ title: 'devices.lianli-wireless.restartDone' });
+      expect(restartButton()).not.toBeDisabled();
+    });
+
+    it('names the refusal and re-enables the button', async () => {
+      mockRestartController.mockResolvedValue('heldBack');
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      await act(async () => {
+        fireEvent.click(restartButton());
+      });
+      expect(mockPush).toHaveBeenCalledWith({
+        title: 'devices.lianli-wireless.restartFailed',
+        body: 'devices.lianli-wireless.restartHeldBack',
+      });
+      expect(restartButton()).not.toBeDisabled();
+    });
+
+    it('reports a link that has not come back', async () => {
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      await act(async () => {
+        fireEvent.click(restartButton());
+      });
+      mockGetLianLiWirelessState.mockResolvedValue({ isConnected: false, linkStatus: 'noResponse', masterMac: '', channel: 0, txFirmwareVersion: 0, fans: [] });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+      expect(mockPush).toHaveBeenCalledWith({
+        title: 'devices.lianli-wireless.restartFailed',
+        body: 'devices.lianli-wireless.restartNotBack',
+      });
+    });
+
+    it('is offered under a controller that connects but gets no reply, and not when nothing enumerated', async () => {
+      mockGetLianLiWirelessState.mockResolvedValue({ isConnected: false, linkStatus: 'noResponse', masterMac: '', channel: 0, txFirmwareVersion: 0, fans: [] });
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      expect(restartButton()).toBeInTheDocument();
+    });
+
+    it('is absent when no controller enumerated', async () => {
+      mockGetLianLiWirelessState.mockResolvedValue({ isConnected: false, linkStatus: 'none', masterMac: '', channel: 0, txFirmwareVersion: 0, fans: [] });
+      await act(async () => {
+        render(<LianLiWirelessDevicePage />);
+      });
+      expect(screen.queryByRole('button', { name: /restartButton/ })).not.toBeInTheDocument();
+    });
   });
 
   it('renders disconnected placeholder when not connected', async () => {
