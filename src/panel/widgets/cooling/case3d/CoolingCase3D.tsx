@@ -81,9 +81,8 @@ const POSITION_KEYS: Record<string, string> = {
   psu: 'cooling.case3d.position.psu',
 };
 
-/** Particle speed multiplier, and the share of it that Slow mo keeps. */
+/** Particle speed multiplier. */
 const NORMAL_SPEED = 0.6;
-const SLOW_MO_FACTOR = 0.25;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
@@ -138,7 +137,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
-  const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
   const [heatVolume, setHeatVolume] = useState(false);
   const [gridCells, setGridCells] = useState(false);
@@ -223,9 +221,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
   const flowOptions = useMemo<FlowOptions>(() => {
-    const slow = DEV_TOOLS && slowMo;
-    return { particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, heat: heatVolume, speed: slow ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slow ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE };
-  }, [particles, collisions, gridCells, heatVolume, showCase, slowMo]);
+    return { particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, heat: heatVolume, speed: NORMAL_SPEED, timeScale: VISUAL_TIME_SCALE };
+  }, [particles, collisions, gridCells, heatVolume, showCase]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -451,12 +448,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               <label className={`${styles.legend} ${styles.control}`}>
                 <Toggle size="sm" checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
                 <span>{t('cooling.case3d.flow.collisions')}</span>
-              </label>
-            )}
-            {DEV_TOOLS && particles && (
-              <label className={`${styles.legend} ${styles.control}`}>
-                <Toggle size="sm" checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
-                <span>{t('cooling.case3d.flow.slowMo')}</span>
               </label>
             )}
             <div className={styles.legendActions}>

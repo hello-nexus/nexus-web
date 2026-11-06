@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "Casse",
   "cooling.case3d.flow.mode.label": "Visualizazion",
   "cooling.case3d.flow.settling": "Si simule il flus di aiar",
-  "cooling.case3d.flow.slowMo": "Ralentî",
   "cooling.case3d.flow.unsupported": "Cheste configurazion grafiche no pues eseguî la simulazion dal flus di aiar.",
   "cooling.case3d.hint.bind": "Frache su une ventule dal case par associâle a {name} o par stabilî la so direzion.",
   "cooling.case3d.hint.label": "Cemût doprâ cheste viodude",

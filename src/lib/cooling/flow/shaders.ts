@@ -232,7 +232,7 @@ void main() {
   ivec2 f = ivec2(gl_FragCoord.xy);
   vec4 s = texelFetch(PA, f, 0);
   vec3 p = s.xyz; float age = s.w;
-  // Age runs in simulation time: a slower drawn speed or Slow mo ages a particle per step by the same share, so its path before recycling never shortens.
+  // Age runs in simulation time: a slower drawn speed ages a particle per step by the same share, so its path before recycling never shortens.
   float rate = uSpeed / uRefSpeed;
   bool respawn = age > uMaxAge * 4.0;
   bool fresh = respawn;

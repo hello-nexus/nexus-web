@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "Case",
   "cooling.case3d.flow.mode.label": "Visualizzazione",
   "cooling.case3d.flow.settling": "Simulazione del flusso d'aria",
-  "cooling.case3d.flow.slowMo": "Rallentatore",
   "cooling.case3d.flow.unsupported": "Questa configurazione grafica non può eseguire la simulazione del flusso d'aria.",
   "cooling.case3d.hint.bind": "Fai clic su una ventola del case per associarla a {name} o impostarne la direzione.",
   "cooling.case3d.hint.label": "Come usare questa vista",

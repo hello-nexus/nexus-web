@@ -192,7 +192,7 @@ export class FlowLayer {
     return base * this.speedFactor * this.look.timeScaleMul;
   }
 
-  // The speed at which one particle step is one unit of simulation time: normal speed, whatever the scene. Age, the stuck test and the streak length run against it, so only Slow mo and the fans' speed change scale them.
+  // The speed at which one particle step is one unit of simulation time: normal speed, whatever the scene. Age, the stuck test and the streak length run against it, so only the fans' speed changes scale them.
   private referenceSpeed(): number {
     return this.options.timeScale !== undefined && this.fscene ? VISUAL_TIME_SCALE / (PARTICLE_STEPS_PER_SECOND * this.fscene.stepSeconds) : PARTICLE_REFERENCE_SPEED;
   }

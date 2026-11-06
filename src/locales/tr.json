@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "Kasa",
   "cooling.case3d.flow.mode.label": "Görünüm",
   "cooling.case3d.flow.settling": "Hava akışı simüle ediliyor",
-  "cooling.case3d.flow.slowMo": "Ağır çekim",
   "cooling.case3d.flow.unsupported": "Bu grafik yapılandırması hava akışı simülasyonunu çalıştıramıyor.",
   "cooling.case3d.hint.bind": "Kasadaki bir fana tıklayarak onu {name} cihazına bağlayın veya yönünü ayarlayın.",
   "cooling.case3d.hint.label": "Bu görünüm nasıl kullanılır",

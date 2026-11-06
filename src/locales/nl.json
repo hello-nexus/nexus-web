@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "Behuizing",
   "cooling.case3d.flow.mode.label": "Weergave",
   "cooling.case3d.flow.settling": "Luchtstroom wordt gesimuleerd",
-  "cooling.case3d.flow.slowMo": "Slow motion",
   "cooling.case3d.flow.unsupported": "Deze grafische configuratie kan de luchtstroomsimulatie niet uitvoeren.",
   "cooling.case3d.hint.bind": "Klik op een fan in de behuizing om die aan {name} te koppelen of de richting in te stellen.",
   "cooling.case3d.hint.label": "Zo gebruik je deze weergave",

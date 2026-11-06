@@ -630,17 +630,6 @@ describe('CoolingCase3D airflow controls', () => {
     expect(lastState().flowOptions).toEqual({ particles: true, collisions: false, grid: false, heat: false, speed: 0.6, timeScale: VISUAL_TIME_SCALE });
   });
 
-  it('slow mo scales the particle step to a quarter without re-solving', () => {
-    mountReady();
-    const flow = lastState().flow;
-    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
-    expect(lastState().flowOptions.speed).toBe(0.15);
-    expect(lastState().flowOptions.timeScale).toBeCloseTo(VISUAL_TIME_SCALE * 0.25, 10);
-    expect(lastState().flow).toBe(flow);
-    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
-    expect(lastState().flowOptions.speed).toBe(0.6);
-  });
-
   it('switches between case and airflow, and reports the choice to be remembered', () => {
     const onMode = vi.fn();
     h.setup = { record: record(), loaded: true };
@@ -652,7 +641,6 @@ describe('CoolingCase3D airflow controls', () => {
     pick('cooling.case3d.flow.mode.case');
     expect(lastState().showCase).toBe(true);
     expect(lastState().flowOptions.particles).toBe(false);
-    expect(screen.queryByRole('switch', { name: 'cooling.case3d.flow.slowMo' })).toBeNull();
     pick('cooling.case3d.flow.mode.airflow');
     expect(lastState().showCase).toBe(false);
     expect(lastState().flowOptions.particles).toBe(true);
@@ -1376,7 +1364,7 @@ describe('CoolingCase3D renderer creation', () => {
 });
 
 describe('CoolingCase3D dev-tools flow controls', () => {
-  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.slowMo', 'cooling.case3d.flow.collisions', 'cooling.case3d.flow.grid'];
+  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.collisions', 'cooling.case3d.flow.grid'];
   const devOnly = names.slice(1);
   const mount = () => {
     h.setup = { record: record(), loaded: true };
@@ -1384,12 +1372,12 @@ describe('CoolingCase3D dev-tools flow controls', () => {
     return render(<CoolingCase3D channels={channels} selectedChannelId={null} onSelectChannel={vi.fn()} />);
   };
 
-  it('renders heat volume, slow mo, collision shapes and show grid with dev tools on', () => {
+  it('renders heat volume, collision shapes and show grid with dev tools on', () => {
     mount();
     for (const name of names) expect(screen.getByRole('switch', { name })).toBeTruthy();
   });
 
-  it('hides slow mo, collision shapes and show grid but keeps heat volume with dev tools off', () => {
+  it('hides collision shapes and show grid but keeps heat volume with dev tools off', () => {
     h.devTools = false;
     mount();
     for (const name of devOnly) expect(screen.queryByRole('switch', { name })).toBeNull();
@@ -1416,17 +1404,6 @@ describe('CoolingCase3D dev-tools flow controls', () => {
     const pick = (name: string) => fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText(name));
     pick('cooling.case3d.flow.mode.case');
     expect(lastState().flowOptions.grid).toBe(false);
-  });
-
-  it('runs at normal speed with dev tools off even when slow mo was switched on', () => {
-    mount();
-    fireEvent.click(screen.getByRole('switch', { name: 'cooling.case3d.flow.slowMo' }));
-    expect(lastState().flowOptions.speed).toBe(0.15);
-    h.devTools = false;
-    const pick = (name: string) => fireEvent.click(within(screen.getByRole('radiogroup', { name: 'cooling.case3d.flow.mode.label' })).getByText(name));
-    pick('cooling.case3d.flow.mode.case');
-    expect(lastState().flowOptions.speed).toBe(0.6);
-    expect(lastState().flowOptions.timeScale).toBe(VISUAL_TIME_SCALE);
   });
 });
 

@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "케이스",
   "cooling.case3d.flow.mode.label": "표시",
   "cooling.case3d.flow.settling": "공기 흐름을 시뮬레이션하는 중",
-  "cooling.case3d.flow.slowMo": "슬로 모션",
   "cooling.case3d.flow.unsupported": "이 그래픽 환경에서는 공기 흐름 시뮬레이션을 실행할 수 없습니다.",
   "cooling.case3d.hint.bind": "케이스의 팬을 클릭하면 {name}에 연결하거나 방향을 설정할 수 있습니다.",
   "cooling.case3d.hint.label": "이 보기 사용 방법",

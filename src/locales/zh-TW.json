@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "機殼",
   "cooling.case3d.flow.mode.label": "顯示",
   "cooling.case3d.flow.settling": "正在模擬氣流",
-  "cooling.case3d.flow.slowMo": "慢動作",
   "cooling.case3d.flow.unsupported": "目前的圖形設定無法執行氣流模擬。",
   "cooling.case3d.hint.bind": "點擊機殼中的風扇，可將其綁定到 {name} 或設定方向。",
   "cooling.case3d.hint.label": "如何使用此檢視",

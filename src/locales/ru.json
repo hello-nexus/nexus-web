@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "Корпус",
   "cooling.case3d.flow.mode.label": "Отображение",
   "cooling.case3d.flow.settling": "Моделирование воздушного потока",
-  "cooling.case3d.flow.slowMo": "Замедление",
   "cooling.case3d.flow.unsupported": "Эта графическая конфигурация не может запустить симуляцию воздушного потока.",
   "cooling.case3d.hint.bind": "Нажмите на вентилятор в корпусе, чтобы привязать его к устройству {name} или задать направление.",
   "cooling.case3d.hint.label": "Как пользоваться этим видом",

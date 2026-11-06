@@ -61,7 +61,7 @@ export const HEAT_SPAN_REPORT_K = 0.1;
 export const POWER_RESUME_DELTA_W = 15;
 /** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;
-/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed or Slow mo never shortens a particle's life or its trail. */
+/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed never shortens a particle's life or its trail. */
 export const PARTICLE_REFERENCE_SPEED = 1;
 /** Particle age, in simulation steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;

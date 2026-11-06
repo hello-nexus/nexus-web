@@ -424,7 +424,6 @@
   "cooling.case3d.flow.mode.case": "机箱",
   "cooling.case3d.flow.mode.label": "显示",
   "cooling.case3d.flow.settling": "正在模拟气流",
-  "cooling.case3d.flow.slowMo": "慢动作",
   "cooling.case3d.flow.unsupported": "当前图形配置无法运行气流模拟。",
   "cooling.case3d.hint.bind": "点击机箱中的风扇，可将其绑定到 {name} 或设置方向。",
   "cooling.case3d.hint.label": "如何使用此视图",
