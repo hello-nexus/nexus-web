@@ -941,7 +941,7 @@ describe('CoolingCase3D Build link', () => {
     expect(build.parentElement?.contains(screen.getByRole('button', { name: 'cooling.case3d.hint.label' }))).toBe(false);
   });
 
-  it('captions the view as a model, with the detail behind an info button, beside the Build button', () => {
+  it('captions the view as a simulation, with the detail behind an info button, beside the Build button', () => {
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
     render(ui());

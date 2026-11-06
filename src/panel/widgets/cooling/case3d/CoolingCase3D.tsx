@@ -475,13 +475,13 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               />
             </div>
           </div>
-          <div className={styles.buildColumn}>
-            <span className={`${styles.modelNote} ${styles.control}`}>
-              {t('cooling.case3d.model.note')}
+          <Button className={styles.control} size="sm" tone="accent" icon={<span aria-hidden="true"><BuildLogo className={styles.buildLogo} fontSize={9} /></span>} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
+          <span className={styles.modelNote}>
+            {t('cooling.case3d.model.note')}
+            <span className={styles.control}>
               <InfoTooltip side="top" ariaLabel={t('cooling.case3d.model.label')} message={t('cooling.case3d.model.detail')} />
             </span>
-            <Button className={styles.control} size="sm" tone="accent" icon={<span aria-hidden="true"><BuildLogo className={styles.buildLogo} fontSize={9} /></span>} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
-          </div>
+          </span>
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (

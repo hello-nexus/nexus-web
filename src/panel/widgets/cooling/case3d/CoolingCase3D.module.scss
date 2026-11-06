@@ -155,24 +155,20 @@
   }
 }
 
-// The model caption sits right-aligned above the Build button; the column keeps both at the strip's right edge.
-.buildColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.3rem;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 55%;
-}
-
+// The model caption floats over the canvas, right-aligned just above the bottom strip and level with the Build button. Out of flow and click-through except for its info button.
 .modelNote {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 100%;
+  margin-bottom: 0.3rem;
+  max-width: 55%;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   text-align: right;
   @include text-caption;
   color: var(--text-dim);
+  pointer-events: none;
 }
 
 // The logo takes the button's ink so it reads in the enabled, hover and disabled states.
