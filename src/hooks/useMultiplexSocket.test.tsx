@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { useMultiplexConnection } from './useMultiplexSocket';
+import { topicFrameAgeMs, useMultiplexConnection } from './useMultiplexSocket';
 import { serviceAnsweredAt } from '../lib/serviceLiveness';
 
 // isRelayActive controls the remote-origin eager-relay branch. Default false
@@ -310,6 +310,58 @@ describe('useMultiplexConnection reconnect schedule', () => {
     vi.setSystemTime(5_000_000);
     act(() => { ws.onmessage?.({ data: JSON.stringify({ t: 'monitoring', d: { cpu: 42 } }) }); });
     expect(serviceAnsweredAt()).toBe(5_000_000);
+  });
+
+  it('ages a cached frame only while the topic stayed subscribed and live', async () => {
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const ws = FakeWebSocket.instances[0];
+    act(() => { ws.triggerOpen(); });
+    const first = () => {};
+    const second = () => {};
+    act(() => { result.current?.subscribe('media', first); });
+    act(() => { ws.onmessage?.({ data: JSON.stringify({ t: 'media', d: {} }) }); });
+    act(() => { vi.advanceTimersByTime(30000); });
+    expect(topicFrameAgeMs('media')).toBeGreaterThanOrEqual(30000);
+
+    act(() => { result.current?.subscribe('media', second); });
+    expect(topicFrameAgeMs('media')).toBeGreaterThanOrEqual(30000);
+
+    act(() => {
+      result.current?.unsubscribe('media', first);
+      result.current?.unsubscribe('media', second);
+    });
+    act(() => { vi.advanceTimersByTime(600000); });
+    expect(topicFrameAgeMs('media')).toBe(0);
+
+    act(() => { result.current?.subscribe('media', first); });
+    expect(topicFrameAgeMs('media')).toBe(0);
+    act(() => { ws.onmessage?.({ data: JSON.stringify({ t: 'media', d: {} }) }); });
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(topicFrameAgeMs('media')).toBeGreaterThanOrEqual(5000);
+    expect(topicFrameAgeMs('media')).toBeLessThan(30000);
+  });
+
+  it('drops frame age when the socket closes', async () => {
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const ws = FakeWebSocket.instances[0];
+    act(() => { ws.triggerOpen(); });
+    act(() => { result.current?.subscribe('media', () => {}); });
+    act(() => { ws.onmessage?.({ data: JSON.stringify({ t: 'media', d: {} }) }); });
+    act(() => { vi.advanceTimersByTime(30000); });
+    expect(topicFrameAgeMs('media')).toBeGreaterThan(0);
+    await act(async () => {
+      ws.triggerClose(1006);
+      await flushRelayDetour();
+    });
+    expect(topicFrameAgeMs('media')).toBe(0);
   });
 
   it('reconnect() resets backoff and reconnects immediately', async () => {
