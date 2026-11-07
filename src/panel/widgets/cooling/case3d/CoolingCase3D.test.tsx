@@ -1520,6 +1520,18 @@ describe('CoolingCase3D fan product', () => {
     expect(Number(value('fan-product-current'))).toBe(Math.round(given));
   });
 
+  it('keeps showing the solver value while a small tach drift is held back from the solver', () => {
+    h.setup = { record: productRecord(), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings: [{ channelId: 'fan-a', slotKeys: [FRONT] }], tests: [] } });
+    const withRpm = (rpm: number) => <CoolingCase3D channels={channels.map(c => (c.id === 'fan-a' ? { ...c, rpm } : c))} selectedChannelId={null} onSelectChannel={vi.fn()} />;
+    const { rerender } = render(withRpm(1500));
+    pick(FRONT);
+    const given = lastState().flow.fanCfm[FRONT] as number;
+    rerender(withRpm(1400));
+    expect(lastState().flow.fanCfm[FRONT]).toBe(given);
+    expect(Number(value('fan-product-current'))).toBe(Math.round(given));
+  });
+
   it('omits a rating the catalog does not state', () => {
     mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }], { title: 'Maker Fan', airflowCfm: 60 });
     pick(FRONT);

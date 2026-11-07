@@ -13,7 +13,7 @@ export interface FanCfmPillsProps {
 }
 
 const OWNER = 'fan-cfm';
-// Roughly one pill's size on screen, so neighbours closer than this are pushed apart.
+// Roughly one pill's size on screen, so neighbors closer than this are pushed apart.
 const PILL_WIDTH_PX = 72;
 const PILL_HEIGHT_PX = 22;
 

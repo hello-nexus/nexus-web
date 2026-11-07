@@ -202,7 +202,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   }, [canvas, attempt]);
 
   // Flows that moved little keep their old values, so tach jitter never restarts the solve.
-  // The fans' own figures read from this same result, so what a popover or pill shows is what the solver is given.
   const visual = useMemo(() => (caseLayout ? visualFlow(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, speeds, directions]);
   const rawFlow = useMemo(() => {
     if (!model || !visual || Object.keys(visual.fanCfm).length === 0) return null;
@@ -374,7 +373,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const activeOwnerId = activeSlot ? channelOfSlot(bindings, activeSlot.key) : null;
   const activeSimRpm = activeSlot ? simRpm(channelOfSlot(bindings, activeSlot.key) ?? '') : null;
   const activeProduct = activeSlot ? slotProduct(activeSlot, caseLayout.fanSlots) : null;
-  const activeFanCfm = activeSlot ? Math.round(visual?.fanCfm[activeSlot.key] ?? 0) : 0;
+  const activeFanCfm = activeSlot ? Math.round(flowInput?.fanCfm[activeSlot.key] ?? 0) : 0;
   const slotPosition = (key: string) => caseLayout.fanSlots.find(s => s.key === key)?.position ?? '';
 
   // Every device of the left-hand list, by the name it shows there; one already on another fan says which, and choosing it moves it here.
@@ -411,7 +410,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
-        <FanCfmPills renderer={renderer} fans={productFans} cfm={visual?.fanCfm ?? {}} />
+        <FanCfmPills renderer={renderer} fans={productFans} cfm={flowInput?.fanCfm ?? {}} />
         <div className={styles.topStack}>
           {result && model && (
             <div className={`${styles.overlay} ${styles.overlayTop}`}>
