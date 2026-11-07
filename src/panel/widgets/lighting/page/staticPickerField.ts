@@ -55,7 +55,7 @@ export function pickerPointFor(hex: string): PickerPoint {
 
 /**
  * The segmented view samples the same field on a coarse grid - twelve hues, one
- * every 30 degrees. The rows are lightness stops, not an even split of the axis:
+ * every 30 degrees starting at pure red, so the six primaries are all on it. The rows are lightness stops, not an even split of the axis:
  * the centre stop is the pure hue (full saturation and value), three tints run
  * above it and three shades below, and the ends pull in from white and black,
  * which an LED renders as blown out and as off.
@@ -65,12 +65,14 @@ const SEGMENT_ROW_L = [0.84, 0.727, 0.613, 0.5, 0.393, 0.287, 0.18];
 export const PICKER_SEGMENT_ROWS = SEGMENT_ROW_L.length;
 
 /**
- * The cell a point falls in. Rows resolve by nearest lightness stop, not by an
- * even split of the axis: the stops are uneven, so an even split cannot reach
- * the row whose stop sits outside its own band.
+ * The cell a point falls in. Swatches sit on column starts, so the column is the
+ * nearest hue with wraparound (a hue just below 360 belongs to column 0). Rows
+ * resolve by nearest lightness stop, not by an even split of the axis: the stops
+ * are uneven, so an even split cannot reach the row whose stop sits outside its
+ * own band.
  */
 export function segmentCellFor(x: number, y: number): { col: number; row: number } {
-  const col = Math.min(PICKER_SEGMENT_COLS - 1, Math.floor(clamp01(x) * PICKER_SEGMENT_COLS));
+  const col = Math.round(clamp01(x) * PICKER_SEGMENT_COLS) % PICKER_SEGMENT_COLS;
   const l = 1 - clamp01(y);
   let row = 0;
   let best = Infinity;
@@ -98,7 +100,7 @@ export function segmentCellAt(x: number, y: number): { col: number; row: number 
 /** Snaps a point to its cell's swatch, so a segmented press lands on one. */
 export function snapToSegment(x: number, y: number): { x: number; y: number } {
   const { col, row } = segmentCellFor(x, y);
-  return { x: (col + 0.5) / PICKER_SEGMENT_COLS, y: 1 - SEGMENT_ROW_L[row] };
+  return { x: col / PICKER_SEGMENT_COLS, y: 1 - SEGMENT_ROW_L[row] };
 }
 
 /** The swatch drawn under a press at this point of the field. */
@@ -111,7 +113,7 @@ export function segmentHexAt(x: number, y: number): string {
 export const SEGMENT_SWATCHES: string[] = Array.from(
   { length: PICKER_SEGMENT_COLS * PICKER_SEGMENT_ROWS },
   (_, i) => pickerHexAt(
-    ((i % PICKER_SEGMENT_COLS) + 0.5) / PICKER_SEGMENT_COLS,
+    (i % PICKER_SEGMENT_COLS) / PICKER_SEGMENT_COLS,
     1 - SEGMENT_ROW_L[Math.floor(i / PICKER_SEGMENT_COLS)],
   ),
 );
