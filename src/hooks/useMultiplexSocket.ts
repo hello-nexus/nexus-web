@@ -507,7 +507,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         const msg = parsed as { t: string; d: unknown };
         markServiceAnswered();
         lastFrameCache.set(msg.t, msg.d);
-        lastFrameAt.set(msg.t, performance.now());
+        if (topicsRef.current.has(msg.t)) lastFrameAt.set(msg.t, performance.now());
         const entry = topicsRef.current.get(msg.t);
         if (entry) {
           for (const listener of entry.listeners) {

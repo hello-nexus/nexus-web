@@ -345,6 +345,22 @@ describe('useMultiplexConnection reconnect schedule', () => {
     expect(topicFrameAgeMs('media')).toBeLessThan(30000);
   });
 
+  it('ignores a late frame for a topic with no subscriber', async () => {
+    const { result } = renderHook(() => useMultiplexConnection(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const ws = FakeWebSocket.instances[0];
+    act(() => { ws.triggerOpen(); });
+    const only = () => {};
+    act(() => { result.current?.subscribe('media', only); });
+    act(() => { result.current?.unsubscribe('media', only); });
+    act(() => { ws.onmessage?.({ data: JSON.stringify({ t: 'media', d: {} }) }); });
+    act(() => { vi.advanceTimersByTime(600000); });
+    expect(topicFrameAgeMs('media')).toBe(0);
+  });
+
   it('drops frame age when the socket closes', async () => {
     const { result } = renderHook(() => useMultiplexConnection(true));
     await act(async () => {
