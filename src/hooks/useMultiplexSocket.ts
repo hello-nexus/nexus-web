@@ -47,6 +47,13 @@ interface TopicListener {
 // consumers ("refetch on push") would interpret a replayed stale frame
 // as a real server push and trigger unnecessary refetches.
 const lastFrameCache = new Map<string, unknown>();
+const lastFrameAt = new Map<string, number>();
+
+/** Milliseconds since the cached frame for a topic arrived; 0 when none. */
+export function topicFrameAgeMs(topic: string): number {
+  const at = lastFrameAt.get(topic);
+  return at === undefined ? 0 : performance.now() - at;
+}
 
 // Live counters read by the renderer memory probe (src/diag/memoryProbe.ts).
 // `opens` increments on every transport open, so `opens - 1` approximates the
@@ -498,6 +505,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         const msg = parsed as { t: string; d: unknown };
         markServiceAnswered();
         lastFrameCache.set(msg.t, msg.d);
+        lastFrameAt.set(msg.t, performance.now());
         const entry = topicsRef.current.get(msg.t);
         if (entry) {
           for (const listener of entry.listeners) {
