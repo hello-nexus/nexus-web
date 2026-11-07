@@ -1,0 +1,19 @@
+@use '../../../../styles/text' as *;
+
+// Same dark translucent look as the temperature labels; the renderer positions each pill, so it starts hidden and never takes a press.
+.pill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / var(--alpha-strong));
+  backdrop-filter: blur(var(--blur-backdrop));
+  color: var(--text);
+  pointer-events: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  @include text-caption;
+  font-size: var(--type-mini);
+}

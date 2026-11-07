@@ -1482,3 +1482,96 @@ describe('CoolingCase3D settling notice', () => {
     expect(screen.getByText(NOTICE)).toBeTruthy();
   });
 });
+
+describe('CoolingCase3D fan product', () => {
+  const FRONT = 'front:120:0';
+  const REAR = 'rear:120:0';
+  const product = { title: 'Maker Fan 120 Pro Edition With A Very Long Catalog Title', rpmMax: 1500, airflowCfm: 60, staticPressureMmH2O: 1.8 };
+  const ownedFan = { id: 'f', kind: 'fan', owned: true, catalog: { category: 'fan', partId: 'p', title: 'Owned fan', specs: { sizeMm: 120, airflowCfm: 99, staticPressureMmH2O: 3 } } };
+  const productRecord = (fan: Record<string, unknown> | undefined = product) => {
+    const r = record();
+    r.setup.items = [ownedFan] as never;
+    r.setup.resolved.caseLayout.fanSlots = r.setup.resolved.caseLayout.fanSlots.map(sl => (sl.key === FRONT && fan ? { ...sl, fan } : sl)) as never;
+    return r;
+  };
+  const mountWith = (bindings: CoolingLayout['bindings'] = [], fan?: Record<string, unknown>) => {
+    h.setup = { record: productRecord(fan), loaded: true };
+    setLayout({ settled: true, layout: { directions: {}, bindings, tests: [] } });
+    render(ui());
+  };
+  const pick = (key: string) => act(() => h.pick.current?.(key, 10, 10));
+  const value = (id: string) => screen.getByTestId(id).getAttribute('data-value');
+
+  it('shows the name, the rated figures and the current airflow of a slot with its own product', () => {
+    mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }]);
+    pick(FRONT);
+    expect(screen.getByTestId('fan-product-name').textContent).toBe(product.title);
+    expect(value('fan-product-rpm')).toBe('1500');
+    expect(value('fan-product-cfm')).toBe('60');
+    expect(value('fan-product-pressure')).toBe('1.8');
+    expect(screen.getByTestId('fan-product-source').textContent).toBe('Fan A');
+  });
+
+  it('shows the current airflow the solver is given for that fan', () => {
+    mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }]);
+    pick(FRONT);
+    const given = lastState().flow.fanCfm[FRONT] as number;
+    expect(given).toBeGreaterThan(0);
+    expect(Number(value('fan-product-current'))).toBe(Math.round(given));
+  });
+
+  it('omits a rating the catalog does not state', () => {
+    mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }], { title: 'Maker Fan', airflowCfm: 60 });
+    pick(FRONT);
+    expect(screen.queryByTestId('fan-product-rpm')).toBeNull();
+    expect(screen.queryByTestId('fan-product-pressure')).toBeNull();
+    expect(screen.getByTestId('fan-product-cfm')).toBeTruthy();
+  });
+
+  it('names the simulated speed of an unlinked fan, at the unassigned default', () => {
+    mountWith();
+    pick(FRONT);
+    expect(screen.getByTestId('fan-product-source').textContent).toBe('cooling.case3d.product.simulatedAt');
+    expect((screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }) as HTMLInputElement).value).toBe('500');
+    expect(Number(value('fan-product-current'))).toBeGreaterThan(0);
+  });
+
+  it('reads 0 current airflow for a fan linked to none', () => {
+    mountWith([{ channelId: 'none', slotKeys: [FRONT] }]);
+    pick(FRONT);
+    expect(value('fan-product-current')).toBe('0');
+  });
+
+  it('shows no product block for a slot with no product, even with an owned same-size fan in the setup', () => {
+    mountWith();
+    pick(REAR);
+    expect(screen.queryByTestId('fan-product')).toBeNull();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('puts a current-airflow pill on a fan with a product only', () => {
+    mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }]);
+    expect(screen.getByTestId(`fan-cfm-${FRONT}`)).toBeTruthy();
+    expect(screen.queryByTestId(`fan-cfm-${REAR}`)).toBeNull();
+    const calls = h.renderers[0].setAnchors.mock.calls.filter(c => c[2] === 'fan-cfm' && c[0].length > 0);
+    expect(calls.at(-1)![0].map((a: { key: string }) => a.key)).toEqual([FRONT]);
+  });
+
+  it('reads 0 on the pill of a fan that is not turning', () => {
+    mountWith([{ channelId: 'none', slotKeys: [FRONT] }]);
+    expect(screen.getByTestId(`fan-cfm-${FRONT}`).getAttribute('data-cfm')).toBe('0');
+  });
+
+  it('puts no pill on a fan that has ratings but no product name', () => {
+    mountWith([], { airflowCfm: 60 });
+    expect(screen.queryByTestId(`fan-cfm-${FRONT}`)).toBeNull();
+  });
+
+  it('keeps the multi-select controls free of product detail', () => {
+    mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }]);
+    pick(FRONT);
+    act(() => h.pick.current?.(REAR, 10, 10, { toggle: true, add: false }));
+    expect(screen.getByRole('dialog').textContent).toContain('cooling.case3d.multi.title');
+    expect(screen.queryByTestId('fan-product')).toBeNull();
+  });
+});

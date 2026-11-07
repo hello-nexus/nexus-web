@@ -40,6 +40,12 @@ export interface CaseSceneState {
   rotors?: ReadonlyMap<string, number>;
 }
 
+/** A point in layout mm to follow on screen. */
+export interface PointAnchor {
+  key: string;
+  at: HeatAnchor['at'];
+}
+
 /** Where an anchor lands on the canvas, CSS pixels; `visible` is false behind the camera or off the canvas. */
 export interface ProjectedAnchor {
   x: number;
@@ -51,8 +57,8 @@ export interface CaseSceneRenderer {
   setState: (state: CaseSceneState) => void;
   /** Live part temperatures: reach the particles' heat uniforms only, never the solver or the particles themselves. */
   setTemps: (temps: ComponentTemps) => void;
-  /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. */
-  setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
+  /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. Each `owner` keeps its own set, so independent overlays never replace one another. */
+  setAnchors: (anchors: readonly PointAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void, owner?: string) => void;
   /** Receives the airflow color span in degrees whenever it moves enough to change a legend; null stops it. */
   setSpanListener: (listener: ((spanK: number) => void) | null) => void;
   /** Receives true while the airflow solve is still settling (a solve in progress with the particles on), false once it is steady; null stops it. */
@@ -177,8 +183,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let flowLayer: FlowLayer | null = null;
   let flowInput: FlowInput | null = null;
   let temps: ComponentTemps = NO_TEMPS;
-  let anchors: readonly HeatAnchor[] = [];
-  let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
+  const anchorSets = new Map<string, { anchors: readonly PointAnchor[]; onProject: (positions: Record<string, ProjectedAnchor>) => void; projected: Record<string, ProjectedAnchor> }>();
   let collisionsOn = false;
   let spanListener: ((spanK: number) => void) | null = null;
   let settlingListener: ((settling: boolean) => void) | null = null;
@@ -201,23 +206,24 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let layout: CaseLayout | null = null;
   let frame = 0;
 
-  // Reused every frame: the projected positions, and the vector each anchor is projected through.
-  const projected: Record<string, ProjectedAnchor> = {};
+  // Reused every frame: the vector each anchor is projected through, and each set's own projected positions.
   const scratch = new Vector3();
   const projectAnchors = () => {
-    if (!onProject || anchors.length === 0) return;
+    if (anchorSets.size === 0) return;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    for (const a of anchors) {
-      const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
-      const x = (v.x * 0.5 + 0.5) * w;
-      const y = (-v.y * 0.5 + 0.5) * h;
-      const entry = projected[a.key] ?? (projected[a.key] = { x: 0, y: 0, visible: false });
-      entry.x = x;
-      entry.y = y;
-      entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+    for (const set of anchorSets.values()) {
+      for (const a of set.anchors) {
+        const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
+        const x = (v.x * 0.5 + 0.5) * w;
+        const y = (-v.y * 0.5 + 0.5) * h;
+        const entry = set.projected[a.key] ?? (set.projected[a.key] = { x: 0, y: 0, visible: false });
+        entry.x = x;
+        entry.y = y;
+        entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+      }
+      set.onProject(set.projected);
     }
-    onProject(projected);
   };
 
   // Once the air has settled (or no air is drawn) and the camera is still, only particles and rotors move: draw at a reduced rate; both are timed by the clock.
@@ -488,10 +494,9 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       // New labels need a projection even when nothing else moves.
       requestRender();
     },
-    setAnchors(next, cb) {
-      anchors = next;
-      onProject = cb;
-      for (const key of Object.keys(projected)) delete projected[key];
+    setAnchors(next, cb, owner = 'default') {
+      if (next.length === 0) anchorSets.delete(owner);
+      else anchorSets.set(owner, { anchors: next, onProject: cb, projected: {} });
       requestRender();
     },
     setSpanListener(listener) {

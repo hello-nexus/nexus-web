@@ -231,3 +231,42 @@
 .linkedElsewhere {
   color: var(--accent);
 }
+
+.product {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.productName {
+  @include text-caption;
+  color: var(--text);
+  // Catalog titles run long: two lines, the rest cut with an ellipsis.
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.productStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+}
+
+.productRow {
+  @include text-caption;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-dim);
+
+  dd {
+    margin: 0;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+}
