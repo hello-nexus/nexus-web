@@ -21,6 +21,7 @@
 
 .name {
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
 }
 
