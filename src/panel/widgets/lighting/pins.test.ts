@@ -5,6 +5,7 @@ import {
   tabPressChangesNothing, withPins, selectionWithoutUnpinned,
 } from './pins';
 import { defaultStateFor } from '../../../types/lighting';
+import { withStacked } from './page/deviceStacks';
 import { paletteColor, paletteKey } from '../../../types/lightingPalette';
 
 describe('withPins', () => {
@@ -231,32 +232,46 @@ describe('clearLegacyLightingKeys', () => {
 });
 
 describe('selectionWithoutUnpinned', () => {
+  const ORDER = ['a', 'b', 'c'];
+
+  it('falls back to the last remaining card in device order, not insertion order', () => {
+    const out = selectionWithoutUnpinned(new Set(['c', 'a', 'b']), 'b', ['b'], ORDER);
+    expect(out!.primary).toBe('c');
+    expect(selectionWithoutUnpinned(new Set(['c', 'a', 'b']), 'c', ['c'], ORDER)!.primary).toBe('b');
+  });
+
+  it('drops a whole stack when the caller expands the unpinned member to its stack', () => {
+    const stacks = [{ id: 's', name: '', members: ['a', 'b'] }];
+    const out = selectionWithoutUnpinned(new Set(['a', 'b', 'c']), 'a', [...withStacked(stacks, ['a'])], ORDER);
+    expect([...out!.ids]).toEqual(['c']);
+    expect(out!.primary).toBe('c');
+  });
   it('drops only the unpinned device and keeps the rest selected', () => {
-    const out = selectionWithoutUnpinned(new Set(['a', 'b', 'c']), 'a', ['a']);
+    const out = selectionWithoutUnpinned(new Set(['a', 'b', 'c']), 'a', ['a'], ORDER);
     expect([...out!.ids]).toEqual(['b', 'c']);
     expect(out!.primary).toBe('c');
   });
 
   it('keeps the primary when another device is unpinned', () => {
-    const out = selectionWithoutUnpinned(new Set(['a', 'b']), 'a', ['b']);
+    const out = selectionWithoutUnpinned(new Set(['a', 'b']), 'a', ['b'], ORDER);
     expect([...out!.ids]).toEqual(['a']);
     expect(out!.primary).toBe('a');
   });
 
   it('empties the selection with no primary when the last device is unpinned', () => {
-    const out = selectionWithoutUnpinned(new Set(['a']), 'a', ['a']);
+    const out = selectionWithoutUnpinned(new Set(['a']), 'a', ['a'], ORDER);
     expect(out!.ids.size).toBe(0);
     expect(out!.primary).toBeNull();
   });
 
   it('leaves the selection alone when no unpinned device was selected', () => {
-    expect(selectionWithoutUnpinned(new Set(['a']), 'a', ['z'])).toBeNull();
+    expect(selectionWithoutUnpinned(new Set(['a']), 'a', ['z'], ORDER)).toBeNull();
   });
 
   it('means a later effect pick does not pin the unpinned device again', () => {
     let pins = withPins({}, ['a', 'b'], animatePin('plasma'));
     pins = withPins(pins, ['a'], null);
-    const left = selectionWithoutUnpinned(new Set(['a', 'b']), 'a', ['a'])!;
+    const left = selectionWithoutUnpinned(new Set(['a', 'b']), 'a', ['a'], ORDER)!;
     pins = withPins(pins, [...left.ids], animatePin('aurora'));
     expect(pins.a).toBeUndefined();
     expect(pins.b).toEqual(animatePin('aurora'));

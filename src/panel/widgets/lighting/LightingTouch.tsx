@@ -594,7 +594,7 @@ function useImmersiveAnimateState(): {
     onSetPin: (ids, pinned) => {
       if (pinned) { if (globalPin) void applyPins(ids, globalPin.pin); return; }
       void applyPins(ids, null);
-      const left = selectionWithoutUnpinned(selectedIds, null, ids);
+      const left = selectionWithoutUnpinned(selectedIds, null, ids, devices.map(d => d.id));
       if (left) onSetSelection(left.ids, left.primary);
     },
   };

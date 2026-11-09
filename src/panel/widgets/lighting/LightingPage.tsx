@@ -2180,7 +2180,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const unpinAll = useCallback(() => {
     const ids = Object.keys(pins);
     if (ids.length > 0) void applyPins(ids, null);
-  }, [applyPins, pins]);
+    // An empty selection means all devices, so the next pick pins none of them again.
+    if (selectedDeviceIds.size > 0) { setSelectedDeviceIds(new Set()); setPrimaryDeviceId(null); }
+  }, [applyPins, pins, selectedDeviceIds, setSelectedDeviceIds, setPrimaryDeviceId]);
 
   // Over visibleDevices, which the show-uncontrolled filter does not touch, so
   // hidden uncontrolled cards count; zero-LED and device-page cards do not.
@@ -2763,12 +2765,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleSetPin = useCallback((ids: string[], pinned: boolean) => {
     if (!pinned) {
       void applyPins(ids, null);
-      const left = selectionWithoutUnpinned(selectedDeviceIds, primaryDeviceId, ids);
-      if (left) handleSetSelection(left.ids, left.primary);
+      // A stacked card moves with its stack, so the whole stack leaves the selection.
+      const left = selectionWithoutUnpinned(
+        selectedDeviceIds, primaryDeviceId, [...withStacked(deviceStacksRef.current, ids)], orderedDevices.map(d => d.id),
+      );
+      if (left) { setSelectedDeviceIds(left.ids); setPrimaryDeviceId(left.primary); }
       return;
     }
     if (globalPin) void applyPins(ids, globalPin.pin);
-  }, [applyPins, globalPin, selectedDeviceIds, primaryDeviceId, handleSetSelection]);
+  }, [applyPins, globalPin, selectedDeviceIds, primaryDeviceId, orderedDevices, setSelectedDeviceIds, setPrimaryDeviceId]);
   // A Mirror or Media pick with cards selected gives just them the shared source.
   const handleSelectionPick = useMemo(() => {
     if (selectedDeviceIds.size === 0 || (viewMode !== 'screen' && viewMode !== 'gif')) return undefined;
