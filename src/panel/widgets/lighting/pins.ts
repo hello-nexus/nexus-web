@@ -46,6 +46,25 @@ export function withPins(prev: Pins, ids: readonly string[], pin: Pin | null): P
   return next ?? prev;
 }
 
+/**
+ * The selection after `ids` are unpinned: they leave it, because a later pick
+ * lands on the selection and would pin them again. The other cards stay
+ * selected; the primary falls back to the last remaining one in `order` (device
+ * order, as the device list does). Null when none
+ * of `ids` was selected, so the caller leaves the selection alone.
+ */
+export function selectionWithoutUnpinned(
+  selected: ReadonlySet<string>,
+  primary: string | null,
+  ids: readonly string[],
+  order: readonly string[],
+): { ids: Set<string>; primary: string | null } | null {
+  if (!ids.some(id => selected.has(id))) return null;
+  const next = new Set([...selected].filter(id => !ids.includes(id)));
+  const nextPrimary = primary && next.has(primary) ? primary : ([...order].reverse().find(id => next.has(id)) ?? null);
+  return { ids: next, primary: nextPrimary };
+}
+
 /** The static pin for a pattern picked from the grid. The whole look travels, so
  *  the service renders THIS effect for the device, not the swatch color. */
 export function staticLookPin(key: string, slot: number, state: EffectState): Pin {
