@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob } from '../../../../api/service';
-import { fetchGalleryItems, updateGallerySort } from '../../../../api/gallery';
+import { fetchGalleryItems, fetchGallerySources, updateGallerySort } from '../../../../api/gallery';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
@@ -180,6 +180,34 @@ describe('GalleryPage', () => {
     expect(mockState.sort).toEqual({ by: 'added', direction: 'desc' });
     expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.added');
     expect(screen.getByRole('button', { name: 'gallery.page.sort.descending' })).toBeTruthy();
+  });
+
+  it('keeps an older read that lands after a newer read failed', async () => {
+    render(<GalleryPage />);
+    await screen.findByText('gallery.intro.title');
+    mockState.sources = [folderSource('Pictures')];
+    const items = [
+      { id: 'i1', name: 'a.png', sourceId: 'Pictures', kind: 'image' as const },
+      { id: 'i2', name: 'b.png', sourceId: 'Pictures', kind: 'image' as const },
+    ];
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    let landOlder: () => void = () => {};
+    vi.mocked(fetchGallerySources)
+      .mockImplementationOnce(() => Promise.resolve({ sources: mockState.sources }))
+      .mockImplementationOnce(() => Promise.resolve(null));
+    vi.mocked(fetchGalleryItems)
+      .mockImplementationOnce(() => new Promise(resolve => {
+        landOlder = () => resolve({ items, playlists: [] });
+      }))
+      .mockImplementationOnce(() => Promise.resolve(null));
+    const onGallery = vi.mocked(useTopicCallback).mock.calls.at(-1)![2] as () => void;
+
+    await act(async () => { onGallery(); });
+    await act(async () => { onGallery(); });
+    await act(async () => landOlder());
+
+    expect(await screen.findByText('Pictures')).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByRole('img').map(i => i.getAttribute('alt'))).toEqual(['a.png', 'b.png']));
   });
 
   it('drops a failure once a later save in the chain succeeds', async () => {

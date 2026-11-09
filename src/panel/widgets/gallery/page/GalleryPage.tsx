@@ -120,8 +120,11 @@ export function GalleryPage() {
   const pendingSortSavesRef = useRef(0);
   const sortSaveFailedRef = useRef(false);
   const sortGenerationRef = useRef(0);
-  // Latest-started read wins: an older one landing late is dropped whole.
+  // A read applies only if it started after the last read that applied, and
+  // only a read that returned data advances that mark, so a failed newer read
+  // does not block an older good one still in flight.
   const refreshSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const generation = editGenerationRef.current;
@@ -129,7 +132,8 @@ export function GalleryPage() {
     const sortSavesAtStart = pendingSortSavesRef.current;
     const seq = ++refreshSeqRef.current;
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
-    if (seq !== refreshSeqRef.current) return;
+    if (seq <= appliedSeqRef.current || (!src?.sources && !itm?.items)) return;
+    appliedSeqRef.current = seq;
     if (src?.sources) setSources(src.sources);
     if (itm?.items) {
       setItems(itm.items);
