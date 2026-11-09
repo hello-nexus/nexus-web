@@ -175,3 +175,37 @@ describe('useBrightnessSchedule sun writes', () => {
     });
   });
 });
+
+describe('useBrightnessSchedule lightingFollows', () => {
+  beforeEach(() => {
+    api.fetchBrightnessSchedule.mockReset().mockResolvedValue(state());
+    api.setBrightnessSchedule.mockReset();
+  });
+
+  it('follows until the service says otherwise', async () => {
+    const { result } = renderHook(() => useBrightnessSchedule(true));
+    expect(result.current.lightingFollows).toBe(true);
+    api.fetchBrightnessSchedule.mockResolvedValue(state({ lightingFollows: false }));
+    act(() => { topic.fire(); });
+    await waitFor(() => expect(result.current.lightingFollows).toBe(false));
+  });
+
+  it('writes the switch with the schedule it keeps', async () => {
+    const { result } = renderHook(() => useBrightnessSchedule(true));
+    await waitFor(() => expect(result.current.schedule).not.toBeNull());
+    api.setBrightnessSchedule.mockResolvedValue(state({ lightingFollows: false }));
+    await act(async () => { await result.current.saveLightingFollows(false); });
+    expect(api.setBrightnessSchedule).toHaveBeenCalledWith({
+      enabled: true, points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }], lightingFollows: false,
+    });
+    expect(result.current.lightingFollows).toBe(false);
+  });
+
+  it('leaves the field out of an ordinary schedule save, so the service keeps it', async () => {
+    const { result } = renderHook(() => useBrightnessSchedule(true));
+    await waitFor(() => expect(result.current.schedule).not.toBeNull());
+    api.setBrightnessSchedule.mockResolvedValue(state());
+    await act(async () => { await result.current.save({ enabled: false, points: [] }); });
+    expect(api.setBrightnessSchedule.mock.calls[0][0]).not.toHaveProperty('lightingFollows');
+  });
+});

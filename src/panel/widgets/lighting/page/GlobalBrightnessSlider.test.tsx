@@ -49,7 +49,7 @@ describe('GlobalBrightnessSlider schedule marker', () => {
     // Default prevented: the press leaves focus where it was.
     expect(fireEvent.mouseDown(marker)).toBe(false);
     fireEvent.click(marker);
-    expect(await screen.findByText('lighting.schedule.follow.off')).toBeInTheDocument();
+    expect(await screen.findByText('lighting.schedule.now.off')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'lighting.schedule.follow.label' })).toBeDisabled();
 
     fireEvent.click(screen.getByText('lighting.schedule.follow.edit'));
@@ -96,8 +96,13 @@ describe('GlobalBrightnessSlider schedule marker', () => {
     render(<GlobalBrightnessSlider serviceOnline />);
     const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
     await waitFor(() => expect(marker).toHaveAttribute('data-active'));
+    // The service echoes the new switch back with the full state.
+    api.setBrightnessSchedule.mockImplementationOnce(async (body: { lightingFollows?: boolean }) => (
+      { ...schedule(true, 100), lightingFollows: body.lightingFollows }
+    ));
     fireEvent.click(marker);
     fireEvent.click(await screen.findByRole('switch', { name: 'lighting.schedule.follow.label' }));
+    await waitFor(() => expect(api.setBrightnessSchedule).toHaveBeenCalledWith(expect.objectContaining({ lightingFollows: false })));
     await waitFor(() => expect(marker).not.toHaveAttribute('data-active'));
   });
 

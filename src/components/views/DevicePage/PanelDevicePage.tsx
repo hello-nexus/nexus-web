@@ -105,6 +105,7 @@ import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { rotationCrossesClass, tileTransposed } from '../../../panel/engine/tileOrientation';
 import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
+import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { BrightnessScheduleButton, type BrightnessScheduleBinding } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -542,6 +543,9 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     };
   }, [ddcDisplayId]);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
+  // The one brightness slider on this page that rides the schedule: the Y70's, or a DDC display's.
+  const scheduleKey = supportsDisplayControls || supportsAutoLaunch ? 'y70' : (ddcSupported ? ddcDisplayId : null);
+  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding(scheduleKey, true);
   // Rotation and the monitor-reserve guard exist only on hosts that
   // implement them (rotation: Windows, macOS; reserve: Windows).
   const [hostCaps, setHostCaps] = useState<{ rotation: boolean; reserve: boolean; primary: boolean } | null>(null);
@@ -1832,6 +1836,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   })()}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (
                     <MonitorSettingsPanel
+                      schedule={scheduleBinding ?? undefined}
                       brightness={ddcSupported ? (ddcBrightness ?? 50) : null}
                       onBrightness={(value) => {
                         setDdcBrightness(value);
@@ -1893,6 +1898,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   )}
                   {activeTab === 'settings' && (supportsDisplayControls || supportsAutoLaunch) && (
                     <SettingsPanel
+                      schedule={scheduleBinding ?? undefined}
                       brightness={brightness}
                       onBrightness={pushBrightness}
                       orientation={orientation}
@@ -1964,6 +1970,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                       variant={device?.firmwareType !== device?.sourceId ? device?.firmwareType : undefined}
                     />
                   )}
+                  {activeTab === 'settings' && scheduleModal}
                   {activeTab === 'settings' && glassSurface === 'q60' && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <MonitorSettingsPanel

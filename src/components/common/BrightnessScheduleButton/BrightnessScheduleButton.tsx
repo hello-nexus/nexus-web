@@ -86,7 +86,7 @@ export function BrightnessScheduleButton({ binding }: BrightnessScheduleButtonPr
         {binding.scheduleOn ? (
           binding.statusLine && <p className={styles.note}>{binding.statusLine}</p>
         ) : (
-          <p className={styles.note}>{t('lighting.schedule.follow.off')}</p>
+          <p className={styles.note}>{t('lighting.schedule.now.off')}</p>
         )}
         <div className={styles.actions}>
           {!binding.scheduleOn && (

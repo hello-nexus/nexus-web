@@ -31,8 +31,6 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
   const scheduleState = useBrightnessSchedule(serviceOnline);
   const scheduled = scheduleState.current;
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  // Preview only: the service has no per-lighting switch yet.
-  const [lightingFollows, setLightingFollows] = useState(true);
   // Null until the first fetch resolves, to avoid flashing 100% on
   // mount when the persisted value is anything else.
   const [percent, setPercent] = useState<number | null>(null);
@@ -77,8 +75,8 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
   const schedule = scheduleState.schedule;
   const binding = useScheduleBinding({
     state: scheduleState,
-    follows: lightingFollows,
-    onFollowsChange: setLightingFollows,
+    follows: scheduleState.lightingFollows,
+    onFollowsChange: next => { void scheduleState.saveLightingFollows(next); },
     onEdit: () => setScheduleOpen(true),
   });
   return (
@@ -87,7 +85,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         percent={percent}
         scheduled={scheduled}
         binding={schedule === null || !serviceOnline ? null : binding}
-        follows={lightingFollows}
+        follows={scheduleState.lightingFollows}
         onChange={handleChange}
         onCommit={handleCommit}
       />
