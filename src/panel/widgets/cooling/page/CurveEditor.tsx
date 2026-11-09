@@ -167,6 +167,8 @@ const PINNED_GRAPH_H = 190;
 // °C step for read-only curve sampling (Fixed / Linear / Mix lines).
 const SAMPLE_STEP = 2;
 const H_LINES = [0, 25, 50, 75, 100];
+// How many keyboard steps one Shift-modified arrow press takes.
+const KEY_SHIFT_MULTIPLIER = 5;
 const V_LINES: number[] = []; for (let v = 20; v <= 100; v += 10) V_LINES.push(v);
 
 /** Re-labels CurveGraph for a non-temperature x axis. Every field is optional
@@ -280,7 +282,7 @@ export function CurveGraph({
   verticalDrag?: CurveGraphVerticalDrag;
   /** A y range other than 0-100; see CurveGraphYAxis. */
   yAxis?: CurveGraphYAxis;
-  /** Makes each editable point focusable; the up and down arrows move it by this much (Shift: five times) and commit. */
+  /** Makes each editable point focusable; the up and down arrows move it by this much (Shift: several times as far) and commit. */
   keyboardStep?: number;
 }) {
   const { t } = useTranslation();
@@ -447,10 +449,13 @@ export function CurveGraph({
     if (!editable || !keyboardStep || !onChange || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
     if (verticalDrag && verticalDrag.isLocked(sorted[idx], idx)) return;
     e.preventDefault();
-    const size = keyboardStep * (e.shiftKey ? 5 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+    const size = keyboardStep * (e.shiftKey ? KEY_SHIFT_MULTIPLIER : 1) * (e.key === 'ArrowUp' ? 1 : -1);
     const value = snapY(sorted[idx].speed + size);
     if (value === sorted[idx].speed) return;
-    onChange(verticalDrag ? verticalDrag.apply(sorted, idx, value) : sorted.map((pt, i) => (i === idx ? { ...pt, speed: value } : pt)));
+    const committed = verticalDrag ? verticalDrag.apply(sorted, idx, value) : sorted.map((pt, i) => (i === idx ? { ...pt, speed: value } : pt));
+    // The cursor may rest on the dot, so its tooltip holds across the commit as it does for a drag.
+    holdHoverKeyRef.current = pointsKeyOf(committed);
+    onChange(committed);
   };
   const onHandleUp = () => {
     if (dragIdxRef.current === null) return;
@@ -545,6 +550,7 @@ export function CurveGraph({
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
                 onPointerUp={editable ? onHandleUp : undefined}
+                onPointerCancel={editable ? onHandleUp : undefined}
                 onPointerEnter={editable ? () => setHoverIdx(i) : undefined}
                 onPointerLeave={editable ? () => setHoverIdx(null) : undefined}
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined}
@@ -613,7 +619,7 @@ export function CurveGraph({
           ))}
           {hasDot && (
             <span ref={liveYRef} className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
-              {localizeNumbers(`${dotSpeed.toFixed(0)}%`, numberFormat)}
+              {formatY(dotSpeed)}
             </span>
           )}
         </div>

@@ -16,6 +16,40 @@ export function signedDb(v: number): string {
   return `${r > 0 ? '+' : ''}${r}`;
 }
 
+const PRESET_NAME_KEYS: Readonly<Record<string, string>> = {
+  'Acoustic': 'acoustic',
+  'Bass Boost': 'bassBoost',
+  'Bass Reducer': 'bassReducer',
+  'Cinematic': 'cinematic',
+  'Classical': 'classical',
+  'Communications': 'communications',
+  'Dance': 'dance',
+  'Deep': 'deep',
+  'Electronic': 'electronic',
+  'First Person Shooter (FPS)': 'fps',
+  'Flat': 'flat',
+  'Hip-Hop': 'hipHop',
+  'Jazz': 'jazz',
+  'Latin': 'latin',
+  'Loudness': 'loudness',
+  'Lounge': 'lounge',
+  'Multiplayer Online Battle Arena (MOBA)': 'moba',
+  'Piano': 'piano',
+  'Pop': 'pop',
+  'R&B': 'rnb',
+  'Rock': 'rock',
+  'Small Speakers': 'smallSpeakers',
+  'Spoken Word': 'spokenWord',
+  'Treble Booster': 'trebleBooster',
+  'Treble Reducer': 'trebleReducer',
+  'Vocal Booster': 'vocalBooster',
+};
+
+/** The locale key for a built-in preset's name, or undefined for a name the service added that this build does not know. The wire value stays the English name. */
+export function builtInPresetLabelKey(name: string): string | undefined {
+  return Object.hasOwn(PRESET_NAME_KEYS, name) ? `devices.logitechSpeaker.presetName.${PRESET_NAME_KEYS[name]}` : undefined;
+}
+
 /** A channel's VOL as G HUB shows it: its linear gain times ten. */
 export function volOf(gain: number | undefined): number {
   return Math.round((typeof gain === 'number' && Number.isFinite(gain) ? gain : 1) * 10);

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { CurveGraph } from './CurveEditor';
 
@@ -52,12 +53,56 @@ describe('CurveGraph keyboard', () => {
     expect(onChange).toHaveBeenLastCalledWith([{ temp: 0, speed: 5.5 }, { temp: 1, speed: -2.5 }]);
   });
 
+  it('steps a Shift press by the multiplier', () => {
+    const onChange = vi.fn();
+    render(<CurveGraph points={pts} {...eq} editable verticalDrag={verticalDrag} keyboardStep={0.5} onChange={onChange} />);
+    fireEvent.keyDown(screen.getByRole('slider', { name: '0Hz' }), { key: 'ArrowUp', shiftKey: true });
+    expect(onChange).toHaveBeenLastCalledWith([{ temp: 0, speed: 2.5 }, pts[1], pts[2]]);
+  });
+
+  it('keeps the value tooltip after a key step commits', () => {
+    function Host() {
+      const [p, setP] = useState(pts);
+      return <CurveGraph points={p} {...eq} editable verticalDrag={verticalDrag} keyboardStep={0.5} onChange={setP} yAxis={{ ...eq.yAxis, formatValue: v => `${v}dB` }} />;
+    }
+    render(<Host />);
+    const first = screen.getByRole('slider', { name: '0Hz' });
+    fireEvent.focus(first);
+    expect(screen.getByText('0dB')).toBeInTheDocument();
+    fireEvent.keyDown(first, { key: 'ArrowUp' });
+    expect(screen.getByText('0.5dB')).toBeInTheDocument();
+  });
+
   it('adds no focus stops without keyboardStep, or when not editable', () => {
     const a = render(<CurveGraph points={pts} {...eq} editable verticalDrag={verticalDrag} />);
     expect(screen.queryAllByRole('slider')).toHaveLength(0);
     a.unmount();
     render(<CurveGraph points={pts} {...eq} keyboardStep={0.5} />);
     expect(screen.queryAllByRole('slider')).toHaveLength(0);
+  });
+});
+
+describe('CurveGraph live readout', () => {
+  it('uses the y axis formatter when given, and percent otherwise', () => {
+    const a = render(<CurveGraph points={pts} {...eq} currentTemp={1} yAxis={{ ...eq.yAxis, formatValue: v => `${v} dB` }} />);
+    expect(labels(a.container)).toContain('0 dB');
+    a.unmount();
+    const b = render(<CurveGraph points={[{ temp: 30, speed: 20 }, { temp: 90, speed: 80 }]} currentTemp={60} />);
+    expect(labels(b.container)).toContain('50%');
+  });
+});
+
+describe('CurveGraph pointer cancel', () => {
+  it('ends a drag like a release', () => {
+    Element.prototype.setPointerCapture = vi.fn();
+    const onChange = vi.fn();
+    render(<CurveGraph points={pts} {...eq} editable verticalDrag={verticalDrag} keyboardStep={0.5} onChange={onChange} />);
+    const dot = screen.getByRole('slider', { name: '0Hz' });
+    fireEvent.pointerDown(dot, { pointerId: 1 });
+    fireEvent.pointerCancel(dot, { pointerId: 1 });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    fireEvent.pointerCancel(dot, { pointerId: 1 });
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 });
 

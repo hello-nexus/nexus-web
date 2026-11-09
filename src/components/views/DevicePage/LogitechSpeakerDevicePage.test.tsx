@@ -286,6 +286,50 @@ describe('LogitechSpeakerDevicePage', () => {
     expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -7, 0, 0, 0, 0, 0, 0, 0] });
   });
 
+  it('shows a key step at once so a second step while the service is slow builds on it', async () => {
+    await mount(state());
+    let release!: () => void;
+    api.setSpeakerEq.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve(state({ bands: [0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0] })); }));
+    await act(async () => { fireEvent.keyDown(point('125Hz'), { key: 'ArrowUp' }); await vi.advanceTimersByTimeAsync(0); });
+    expect(point('125Hz')).toHaveAttribute('aria-valuenow', '0.5');
+    await act(async () => { fireEvent.keyDown(point('125Hz'), { key: 'ArrowUp' }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenNthCalledWith(1, { bands: [0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0] });
+    expect(api.setSpeakerEq).toHaveBeenNthCalledWith(2, { bands: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0] });
+    await act(async () => { release(); });
+  });
+
+  it('commits the band that moved after a drag ends in pointercancel', async () => {
+    await mount(state());
+    const band = point('125Hz');
+    fireEvent.pointerDown(band, { pointerId: 1, clientX: 0, clientY: yOf(0) });
+    fireEvent.pointerMove(band, { pointerId: 1, clientX: 0, clientY: yOf(-7) });
+    await act(async () => { fireEvent.pointerCancel(band, { pointerId: 1 }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -7, 0, 0, 0, 0, 0, 0, 0] });
+    await act(async () => { fireEvent.keyDown(point('250Hz'), { key: 'ArrowDown' }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, 0, -0.5, 0, 0, 0, 0, 0, 0] });
+  });
+
+  it('commits the dragged band when a preset change arrives mid-drag', async () => {
+    await mount(state());
+    const preset = [4, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    api.fetchSpeaker.mockImplementation(async () => state({ bands: preset }));
+    const band = point('125Hz');
+    fireEvent.pointerDown(band, { pointerId: 1, clientX: 0, clientY: yOf(0) });
+    fireEvent.pointerMove(band, { pointerId: 1, clientX: 0, clientY: yOf(-7) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
+    await act(async () => { fireEvent.pointerUp(band, { pointerId: 1 }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [4, 3, -7, 0, 0, 0, 0, 0, 0, 0] });
+  });
+
+  it('translates only built-in preset labels and keeps the English name as the id', async () => {
+    await mount(state({ preset: 'Flat' }));
+    expect(bar().builtins).toEqual([
+      { id: 'Flat', label: 'devices.logitechSpeaker.presetName.flat' },
+      { id: 'Bass Boost', label: 'devices.logitechSpeaker.presetName.bassBoost' },
+    ]);
+    expect(bar().presets).toEqual([{ id: 'Mine', name: 'Mine' }]);
+  });
+
   it('drops a half-made band drag when the EQ is turned off', async () => {
     await mount(state());
     api.fetchSpeaker.mockImplementation(async () => state({ eqEnabled: false }));

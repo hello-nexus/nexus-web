@@ -21,7 +21,7 @@ import { Stepper } from '../../common/Stepper/Stepper';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useLogitechSpeaker } from './useLogitechSpeaker';
 import {
-  SPEAKER_FACING, SPEAKER_POS, currentPreset, dbLabel, hzLabel, isFlat, testOrder, volMax, volOf,
+  SPEAKER_FACING, SPEAKER_POS, builtInPresetLabelKey, currentPreset, dbLabel, hzLabel, isFlat, testOrder, volMax, volOf,
 } from './speakerUtils';
 import styles from './LogitechSpeakerDevicePage.module.scss';
 
@@ -59,6 +59,8 @@ function EqBands({ state, change }: TabProps) {
   // Bands being dragged, and how many commits still await an answer.
   const open = useRef(new Set<number>());
   const inflight = useRef(0);
+  // The band the graph last moved.
+  const moved = useRef<number | null>(null);
   // The latest bands this page has asked for, so a second commit keeps the first.
   const wanted = useRef(state.bands);
   const latest = useRef(state.bands);
@@ -86,6 +88,8 @@ function EqBands({ state, change }: TabProps) {
   const commit = (index: number, db: number) => {
     open.current.delete(index);
     wanted.current = wanted.current.map((b, i) => (i === index ? db : b));
+    // Shown until the service answers, so the next step starts from here and not from the old band.
+    setLive(prev => ({ ...prev, [index]: db }));
     const bands = wanted.current;
     inflight.current += 1;
     void change(() => setSpeakerEq({ bands })).finally(() => {
@@ -109,11 +113,12 @@ function EqBands({ state, change }: TabProps) {
   };
   const drag = useMemo(() => ({
     isLocked: () => !eqOn,
-    apply: (pts: CurvePoint[], index: number, value: number) => pts.map((pt, i) => (i === index ? { ...pt, speed: value } : pt)),
+    // The graph names the band it moves, drag or key, so no value comparison has to guess it.
+    apply: (pts: CurvePoint[], index: number, value: number) => {
+      moved.current = index;
+      return pts.map((pt, i) => (i === index ? { ...pt, speed: value } : pt));
+    },
   }), [eqOn]);
-
-  // The first band whose value differs from the given values.
-  const changed = (next: CurvePoint[], from: readonly number[]) => next.findIndex((pt, i) => pt.speed !== from[i]);
 
   return (
     <CurveGraph
@@ -128,16 +133,15 @@ function EqBands({ state, change }: TabProps) {
       verticalDrag={drag}
       keyboardStep={KEY_STEP_DB}
       onPreview={next => {
-        const i = changed(next, shown);
-        if (i < 0) return;
+        const i = moved.current;
+        if (i === null) return;
         open.current.add(i);
         setLive(prev => ({ ...prev, [i]: next[i].speed }));
       }}
       onChange={next => {
-        // A drag named its band while it moved; a key press changed the one that differs from what is shown.
-        const dragged = [...open.current][0];
-        const i = dragged ?? changed(next, shown);
-        if (i >= 0) commit(i, next[i].speed);
+        const i = moved.current;
+        moved.current = null;
+        if (i !== null) commit(i, next[i].speed);
       }}
     />
   );
@@ -208,6 +212,8 @@ function SpeakerPresets({ state, change, report }: TabProps) {
   const builtIns = state.presets.filter(p => p.builtIn);
   const { t } = useTranslation();
   const select = (preset: string) => { void change(() => setSpeakerEq({ preset })); };
+  // Only a built-in's label is translated; the id and the wire value stay its English name.
+  const labelOf = (name: string) => { const key = builtInPresetLabelKey(name); return key ? t(key) : name; };
 
   return (
     <PresetToolbar
@@ -217,7 +223,7 @@ function SpeakerPresets({ state, change, report }: TabProps) {
       presetCount={own.length}
       presets={own.map(p => ({ id: p.name, name: p.name }))}
       activeId={current && !current.builtIn ? current.name : null}
-      builtins={[...(manual ? [{ id: MANUAL_ID, label: t(`${P}manual`) }] : []), ...builtIns.map(p => ({ id: p.name, label: p.name }))]}
+      builtins={[...(manual ? [{ id: MANUAL_ID, label: t(`${P}manual`) }] : []), ...builtIns.map(p => ({ id: p.name, label: labelOf(p.name) }))]}
       activeBuiltinId={manual ? MANUAL_ID : current?.builtIn ? current.name : null}
       onSelectBuiltin={id => { if (id !== MANUAL_ID) select(id); }}
       presetsHeader={t(`${P}presetsCustom`)}

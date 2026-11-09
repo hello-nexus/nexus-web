@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentPreset, dbLabel, hzLabel, isFlat, signedDb, testOrder, volMax, volOf } from './speakerUtils';
+import { builtInPresetLabelKey, currentPreset, dbLabel, hzLabel, isFlat, signedDb, testOrder, volMax, volOf } from './speakerUtils';
 
 const PRESETS = [
   { name: 'Flat', bands: [0, 0], builtIn: true },
@@ -57,5 +57,14 @@ describe('presets', () => {
   it('knows a flat curve', () => {
     expect(isFlat([0, 0, 0])).toBe(true);
     expect(isFlat([0, 1])).toBe(false);
+  });
+});
+
+describe('builtInPresetLabelKey', () => {
+  it('maps the built-in names to locale keys and leaves other names alone', () => {
+    expect(builtInPresetLabelKey('Hip-Hop')).toBe('devices.logitechSpeaker.presetName.hipHop');
+    expect(builtInPresetLabelKey('Multiplayer Online Battle Arena (MOBA)')).toBe('devices.logitechSpeaker.presetName.moba');
+    expect(builtInPresetLabelKey('Mine')).toBeUndefined();
+    expect(builtInPresetLabelKey('constructor')).toBeUndefined();
   });
 });

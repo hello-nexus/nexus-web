@@ -140,6 +140,8 @@ export function Slider({
     ...(capPct != null ? { '--slider-fill-cap': onThumbPath(capPct) } : {}),
     ...(fillColor ? { '--slider-fill-color': fillColor } : {}),
   } as CSSProperties;
+  // The custom knob is wider than the native one, so the thumb path everything is placed on is sized to it.
+  const rootStyle = thumbNode != null ? ({ '--slider-thumb-size': `${KNOB_PX}px` } as CSSProperties) : undefined;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
   // The node's travel is the track minus its own width, so it stays inside the track at both ends.
@@ -309,7 +311,7 @@ export function Slider({
 
   if (orientation === 'bare') {
     return (
-      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
+      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`} style={rootStyle}>
         {/* The bare root is a row; marks stack with the track in a column of their own. */}
         <div className={styles.markedColumn}>
           {marksAbove}
@@ -328,7 +330,7 @@ export function Slider({
     return (
       // A div with a label on the name only: a wrapping label forwards a click on
       // the value or name to its first labelable descendant, a labelAction button.
-      <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`}>
+      <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`} style={rootStyle}>
         <div className={styles.head}>
           <span className={styles.label}>{label && <label htmlFor={rangeId}>{label}</label>}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>
           {valueNode}
@@ -357,7 +359,7 @@ export function Slider({
   // order (range before value) steals focus from the just-opened edit input and
   // reverts it. The range carries its own aria-label, so no label is needed.
   return (
-    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`}>
+    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`} style={rootStyle}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
       <div className={styles.inlineControl}>
         <div className={styles.track}>
