@@ -12,7 +12,6 @@ import {
   type LianLiAioScreen,
   type LianLiAioScreenPatch,
 } from '../../../api/lianli-wireless';
-import { BrightnessScheduleButton } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -125,7 +124,7 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
         editable
         trackFill
         label={t('devices.lianli-wireless.aioScreen.brightness')}
-        labelSuffix={scheduleBinding && <BrightnessScheduleButton binding={scheduleBinding} />}
+        schedule={scheduleBinding ?? undefined}
         value={screen.brightness}
         min={0}
         max={100}

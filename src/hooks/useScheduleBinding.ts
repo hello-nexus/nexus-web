@@ -39,6 +39,7 @@ export function useScheduleBinding({ state, follows, onFollowsChange, onEdit, ap
   }
   return {
     scheduleOn, follows, onFollowsChange, onEdit, statusLine,
+    capPercent: scheduleOn && follows && current !== null ? (appliedPercent ?? current) : null,
     onTurnOn: () => { if (schedule) void save({ ...schedule, enabled: true }); },
   };
 }

@@ -3700,6 +3700,7 @@
   "lighting.schedule.follow.notFollowing": "Nie stosuje harmonogramu jasności",
   "lighting.schedule.follow.turnOn": "Włącz",
   "lighting.schedule.graph.hint": "Przeciągnij punkt, aby ustawić jasność dla tej godziny. Kliknij dwukrotnie wykres, aby dodać punkt, kliknij punkt prawym przyciskiem, aby go usunąć.",
+  "lighting.schedule.marker.capped": "Ograniczone do {level}% przez harmonogram jasności",
   "lighting.schedule.marker.title": "Ustawienia jasności",
   "lighting.schedule.now.off": "Harmonogram jest wyłączony",
   "lighting.schedule.now.on": "Teraz: {level}",

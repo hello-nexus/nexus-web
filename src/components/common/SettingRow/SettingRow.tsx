@@ -1,3 +1,4 @@
+import { useScheduleSliderProps, type BrightnessScheduleBinding } from '../BrightnessScheduleButton/BrightnessScheduleButton';
 import type { ReactNode } from 'react';
 import { Badge } from '../Badge/Badge';
 import { Toggle } from '../Toggle/Toggle';
@@ -258,6 +259,7 @@ export function SettingSlider({
   mixedLabel,
   valueText,
   labelSuffix,
+  schedule,
 }: {
   label?: string;
   description?: ReactNode;
@@ -285,14 +287,17 @@ export function SettingSlider({
   mixedLabel?: string;
   valueText?: string;
   labelSuffix?: ReactNode;
+  /** Binds the slider to the brightness schedule: the sun, and a caret at the level it caps this slider at. */
+  schedule?: BrightnessScheduleBinding;
 }) {
+  const sched = useScheduleSliderProps(schedule, value);
   // Built outside the JSX: the variant id is not UI text, and the i18n literal
   // rule scans JSX only.
   const below = descriptionBelow ? 'tight' as const : undefined;
   return (
     <SettingRow
       label={label}
-      labelSuffix={labelSuffix}
+      labelSuffix={sched.sun ?? labelSuffix}
       description={description}
       descriptionBelow={below}
       icon={icon}
@@ -317,6 +322,9 @@ export function SettingSlider({
         mixed={mixed}
         mixedLabel={mixedLabel}
         valueText={valueText}
+        marker={sched.marker}
+        fillCap={sched.fillCap}
+        markerTooltip={sched.markerTooltip}
       />
     </SettingRow>
   );

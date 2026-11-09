@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "No al va daûr dal program di luminositât",
   "lighting.schedule.follow.turnOn": "Ative",
   "lighting.schedule.graph.hint": "Strissine un pont par stabilî la luminositât di chê ore. Dopli clic sul grafic par zontâ un pont, clic diestri suntun pont par gjavâlu.",
+  "lighting.schedule.marker.capped": "Limitât al {level}% dal program di luminositât",
   "lighting.schedule.marker.title": "Impostazions di lusôr",
   "lighting.schedule.now.off": "Il program al è disativât",
   "lighting.schedule.now.on": "In chest moment: {level}",

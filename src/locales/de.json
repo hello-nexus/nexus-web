@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "Folgt dem Helligkeitszeitplan nicht",
   "lighting.schedule.follow.turnOn": "Einschalten",
   "lighting.schedule.graph.hint": "Ziehe einen Punkt, um die Helligkeit für diese Stunde festzulegen. Doppelklick auf den Graphen fügt einen Punkt hinzu, Rechtsklick auf einen Punkt entfernt ihn.",
+  "lighting.schedule.marker.capped": "Durch den Helligkeitszeitplan auf {level} % begrenzt",
   "lighting.schedule.marker.title": "Helligkeitseinstellungen",
   "lighting.schedule.now.off": "Zeitplan ist aus",
   "lighting.schedule.now.on": "Gerade jetzt: {level}",

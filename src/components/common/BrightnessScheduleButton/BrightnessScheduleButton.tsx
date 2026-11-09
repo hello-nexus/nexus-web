@@ -19,6 +19,12 @@ export interface BrightnessScheduleBinding {
   onEdit: () => void;
   /** One line about the schedule right now; null while it is off. */
   statusLine: string | null;
+  /**
+   * The level the schedule caps this control at right now (its slider times the
+   * schedule's level for a device); null while the schedule is off or this
+   * control does not follow it.
+   */
+  capPercent: number | null;
 }
 
 interface BrightnessScheduleButtonProps {
@@ -99,4 +105,23 @@ export function BrightnessScheduleButton({ binding }: BrightnessScheduleButtonPr
       </Popover>
     </span>
   );
+}
+
+/**
+ * What a brightness slider shows for the schedule it follows: the sun in its
+ * label row, and a caret at the level the schedule caps it at (the fill past
+ * it dimmed when it is the lower of the two) with a hover explaining it.
+ * Spread `marker`, `fillCap` and `markerTooltip` onto the Slider and render
+ * `sun` in its label row; one implementation for every slider.
+ */
+export function useScheduleSliderProps(binding: BrightnessScheduleBinding | undefined, value: number) {
+  const { t } = useTranslation();
+  if (!binding) return { sun: null, marker: undefined, fillCap: undefined, markerTooltip: undefined };
+  const cap = binding.capPercent;
+  return {
+    sun: <BrightnessScheduleButton binding={binding} />,
+    marker: cap ?? undefined,
+    fillCap: cap !== null && cap < value ? cap : undefined,
+    markerTooltip: cap !== null ? t('lighting.schedule.marker.capped', { level: cap }) : undefined,
+  };
 }

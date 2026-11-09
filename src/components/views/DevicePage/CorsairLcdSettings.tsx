@@ -14,7 +14,6 @@ import {
   type CorsairLcdPatch,
   type CorsairLcdState,
 } from '../../../api/corsair-lcd';
-import { BrightnessScheduleButton } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -149,7 +148,7 @@ export function CorsairLcdSettings() {
           editable
           trackFill
           label={t('devices.corsair.screenBrightness')}
-          labelSuffix={scheduleBinding && <BrightnessScheduleButton binding={scheduleBinding} />}
+          schedule={scheduleBinding ?? undefined}
           value={state?.brightness ?? 0}
           min={0}
           max={100}

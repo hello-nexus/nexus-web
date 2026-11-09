@@ -218,6 +218,14 @@ $inline-gap: 0.5rem;
   filter: drop-shadow(0 0 1.5px rgb(0 0 0 / var(--alpha-strong)));
 }
 
+.markerHit {
+  pointer-events: auto;
+  display: flex;
+  // The caret keeps its own margin; the hit area only widens what hover reaches.
+  padding: 4px 6px 0;
+  margin: -4px -6px 0;
+}
+
 .markerLabel {
   pointer-events: auto;
   display: flex;

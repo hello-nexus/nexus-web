@@ -3700,6 +3700,7 @@
   "lighting.schedule.follow.notFollowing": "Не следует расписанию яркости",
   "lighting.schedule.follow.turnOn": "Включить",
   "lighting.schedule.graph.hint": "Перетащите точку, чтобы задать яркость для этого часа. Двойной щелчок по графику добавляет точку, щелчок правой кнопкой по точке удаляет её.",
+  "lighting.schedule.marker.capped": "Ограничено до {level}% расписанием яркости",
   "lighting.schedule.marker.title": "Настройки яркости",
   "lighting.schedule.now.off": "Расписание выключено",
   "lighting.schedule.now.on": "Сейчас: {level}",

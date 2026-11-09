@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
-import { BrightnessScheduleButton, type BrightnessScheduleBinding } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
+import { useScheduleSliderProps, type BrightnessScheduleBinding } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { BrightnessScheduleModal } from '../../../../components/views/SettingsView/BrightnessScheduleModal';
 import { useScheduleBinding } from '../../../../hooks/useScheduleBinding';
@@ -29,7 +29,6 @@ import styles from '../LightingPage.module.scss';
  */
 export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boolean }) {
   const scheduleState = useBrightnessSchedule(serviceOnline);
-  const scheduled = scheduleState.current;
   const [scheduleOpen, setScheduleOpen] = useState(false);
   // Null until the first fetch resolves, to avoid flashing 100% on
   // mount when the persisted value is anything else.
@@ -83,9 +82,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
     <>
       <GlobalBrightnessSliderView
         percent={percent}
-        scheduled={scheduled}
         binding={schedule === null || !serviceOnline ? null : binding}
-        follows={scheduleState.lightingFollows}
         onChange={handleChange}
         onCommit={handleCommit}
       />
@@ -99,12 +96,8 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
 interface GlobalBrightnessSliderViewProps {
   /** Null until the persisted value is known. */
   percent: number | null;
-  /** The schedule's level right now; null while it is off. */
-  scheduled: number | null;
   /** Null until the schedule has loaded: the sun then stays out. */
   binding: BrightnessScheduleBinding | null;
-  /** Whether lighting follows the schedule at all. */
-  follows: boolean;
   onChange: (value: number) => void;
   onCommit: (value: number) => void;
 }
@@ -115,17 +108,15 @@ interface GlobalBrightnessSliderViewProps {
  * while it is on and lighting follows it.
  */
 export function GlobalBrightnessSliderView({
-  percent, scheduled, binding, follows, onChange, onCommit,
+  percent, binding, onChange, onCommit,
 }: GlobalBrightnessSliderViewProps) {
   const { t } = useTranslation();
+  const sched = useScheduleSliderProps(binding ?? undefined, percent ?? 0);
   if (percent === null) {
     // Reserve the row so the OpenRGB badge doesn't shift when the
     // slider hydrates.
     return <div className={styles.globalBrightnessSlider} aria-hidden />;
   }
-
-  const applied = follows ? scheduled : null;
-  const capping = applied !== null && applied < percent;
 
   return (
     <div className={styles.globalBrightnessSlider}>
@@ -140,9 +131,10 @@ export function GlobalBrightnessSliderView({
         min={0}
         max={100}
         step={1}
-        fillCap={capping ? applied : undefined}
-        marker={applied ?? undefined}
-        labelAction={binding && <BrightnessScheduleButton binding={binding} />}
+        fillCap={sched.fillCap}
+        marker={sched.marker}
+        markerTooltip={sched.markerTooltip}
+        labelAction={sched.sun}
         onChange={onChange}
         onCommit={onCommit}
       />

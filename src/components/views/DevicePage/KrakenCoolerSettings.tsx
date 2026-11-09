@@ -16,7 +16,6 @@ import {
 } from '../../../api/nzxt-kraken';
 import type { KlipyGif } from '../../../api/klipy';
 import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
-import { BrightnessScheduleButton } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -219,7 +218,7 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
               editable
               trackFill
               label={t('devices.nzxt-kraken.screenBrightness')}
-              labelSuffix={scheduleBinding && <BrightnessScheduleButton binding={scheduleBinding} />}
+              schedule={scheduleBinding ?? undefined}
               value={state?.lcdBrightness ?? 0}
               min={0}
               max={100}

@@ -106,7 +106,7 @@ import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { rotationCrossesClass, tileTransposed } from '../../../panel/engine/tileOrientation';
 import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
-import { BrightnessScheduleButton, type BrightnessScheduleBinding } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
+import { type BrightnessScheduleBinding } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
@@ -2834,7 +2834,7 @@ export function MonitorSettingsPanel({
           editable
           trackFill
           label={t('devices.y70.brightness')}
-          labelSuffix={schedule && <BrightnessScheduleButton binding={schedule} />}
+          schedule={schedule}
           value={brightness}
           min={0}
           max={100}
@@ -2858,7 +2858,7 @@ export function MonitorSettingsPanel({
           trackFill
           label={t(labelKey)}
           // The service scales the top Brightness register, not Backlight.
-          labelSuffix={schedule && brightness === null && key === 'brightness' ? <BrightnessScheduleButton binding={schedule} /> : undefined}
+          schedule={brightness === null && key === 'brightness' ? schedule : undefined}
           value={xeneonSettings[key]}
           min={min}
           max={max}
@@ -3089,7 +3089,7 @@ export function SettingsPanel({
             editable
             trackFill
             label={t('devices.y70.brightness')}
-            labelSuffix={schedule && <BrightnessScheduleButton binding={schedule} />}
+            schedule={schedule}
             value={brightness}
             min={0}
             max={100}

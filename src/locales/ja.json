@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "輝度スケジュールに従っていません",
   "lighting.schedule.follow.turnOn": "オンにする",
   "lighting.schedule.graph.hint": "ポイントをドラッグしてその時刻の明るさを設定します。グラフをダブルクリックでポイントを追加、ポイントを右クリックで削除します。",
+  "lighting.schedule.marker.capped": "輝度スケジュールにより {level}% に制限されています",
   "lighting.schedule.marker.title": "明るさの設定",
   "lighting.schedule.now.off": "スケジュールはオフです",
   "lighting.schedule.now.on": "現在: {level}",

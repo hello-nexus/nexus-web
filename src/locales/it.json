@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "Non segue la programmazione della luminosità",
   "lighting.schedule.follow.turnOn": "Attiva",
   "lighting.schedule.graph.hint": "Trascina un punto per impostare la luminosità di quell'ora. Doppio clic sul grafico per aggiungere un punto, clic destro su un punto per rimuoverlo.",
+  "lighting.schedule.marker.capped": "Limitato al {level}% dalla programmazione della luminosità",
   "lighting.schedule.marker.title": "Impostazioni luminosità",
   "lighting.schedule.now.off": "La programmazione è disattivata",
   "lighting.schedule.now.on": "In questo momento: {level}",

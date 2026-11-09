@@ -3700,6 +3700,7 @@
   "lighting.schedule.follow.notFollowing": "Neřídí se plánem jasu",
   "lighting.schedule.follow.turnOn": "Zapnout",
   "lighting.schedule.graph.hint": "Přetažením bodu nastavíte jas pro danou hodinu. Dvojklikem na graf přidáte bod, pravým kliknutím na bod jej odeberete.",
+  "lighting.schedule.marker.capped": "Omezeno na {level} % plánem jasu",
   "lighting.schedule.marker.title": "Nastavení jasu",
   "lighting.schedule.now.off": "Plán je vypnutý",
   "lighting.schedule.now.on": "Právě teď: {level}",

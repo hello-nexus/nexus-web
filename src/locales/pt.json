@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "Não segue o horário de brilho",
   "lighting.schedule.follow.turnOn": "Ativar",
   "lighting.schedule.graph.hint": "Arraste um ponto para definir o brilho dessa hora. Faça duplo clique no gráfico para adicionar um ponto e clique com o botão direito num ponto para o remover.",
+  "lighting.schedule.marker.capped": "Limitado a {level}% pelo horário de brilho",
   "lighting.schedule.marker.title": "Definições de brilho",
   "lighting.schedule.now.off": "O horário está desativado",
   "lighting.schedule.now.on": "Agora: {level}",

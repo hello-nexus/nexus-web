@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "No sigue la programación de brillo",
   "lighting.schedule.follow.turnOn": "Activar",
   "lighting.schedule.graph.hint": "Arrastra un punto para fijar el brillo de esa hora. Haz doble clic en la gráfica para añadir un punto y clic derecho sobre un punto para quitarlo.",
+  "lighting.schedule.marker.capped": "Limitado al {level}% por la programación de brillo",
   "lighting.schedule.marker.title": "Ajustes de brillo",
   "lighting.schedule.now.off": "La programación está desactivada",
   "lighting.schedule.now.on": "Ahora mismo: {level}",

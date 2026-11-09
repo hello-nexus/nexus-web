@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "Volgt het helderheidsschema niet",
   "lighting.schedule.follow.turnOn": "Inschakelen",
   "lighting.schedule.graph.hint": "Sleep een punt om de helderheid voor dat uur in te stellen. Dubbelklik op de grafiek om een punt toe te voegen, rechtsklik op een punt om het te verwijderen.",
+  "lighting.schedule.marker.capped": "Beperkt tot {level}% door het helderheidsschema",
   "lighting.schedule.marker.title": "Helderheidsinstellingen",
   "lighting.schedule.now.off": "Schema staat uit",
   "lighting.schedule.now.on": "Nu: {level}",

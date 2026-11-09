@@ -64,4 +64,14 @@ describe('useScheduleBinding', () => {
     bind(state).onTurnOn();
     expect(state.save).toHaveBeenCalledWith({ enabled: true, points: POINTS });
   });
+
+  it('caps at the applied level, falling back to the schedule level', () => {
+    expect(bind(make(), { appliedPercent: 64 }).capPercent).toBe(64);
+    expect(bind(make()).capPercent).toBe(100);
+  });
+
+  it('has no cap while the schedule is off or the control does not follow', () => {
+    expect(bind(make({ schedule: { enabled: false, points: POINTS }, current: null })).capPercent).toBeNull();
+    expect(bind(make(), { follows: false }).capPercent).toBeNull();
+  });
 });

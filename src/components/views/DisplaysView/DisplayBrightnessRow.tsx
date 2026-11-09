@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { fetchDisplays, setDisplayBrightness } from '../../../api/displays';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useTranslation } from '../../../lib/i18n';
-import { BrightnessScheduleButton } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { SettingSlider } from '../../common/SettingRow/SettingRow';
 
 // DDC answers slowly after it is switched on, so the first read may not yet report support.
@@ -56,7 +55,7 @@ export function DisplayBrightnessRow({ displayId }: { displayId: string }) {
         editable
         trackFill
         label={t('devices.y70.brightness')}
-        labelSuffix={binding && <BrightnessScheduleButton binding={binding} />}
+        schedule={binding ?? undefined}
         value={value}
         min={0}
         max={100}

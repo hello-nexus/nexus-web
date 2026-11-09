@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "밝기 스케줄을 따르지 않음",
   "lighting.schedule.follow.turnOn": "켜기",
   "lighting.schedule.graph.hint": "지점을 드래그하여 해당 시간의 밝기를 설정합니다. 그래프를 더블 클릭하면 지점이 추가되고, 지점을 마우스 오른쪽 버튼으로 클릭하면 제거됩니다.",
+  "lighting.schedule.marker.capped": "밝기 스케줄에 의해 {level}%로 제한됨",
   "lighting.schedule.marker.title": "밝기 설정",
   "lighting.schedule.now.off": "스케줄이 꺼져 있음",
   "lighting.schedule.now.on": "지금: {level}",

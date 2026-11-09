@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "Parlaklık zamanlamasını izlemiyor",
   "lighting.schedule.follow.turnOn": "Aç",
   "lighting.schedule.graph.hint": "O saatin parlaklığını ayarlamak için bir noktayı sürükleyin. Nokta eklemek için grafiğe çift tıklayın, kaldırmak için noktaya sağ tıklayın.",
+  "lighting.schedule.marker.capped": "Parlaklık zamanlaması tarafından %{level} ile sınırlandı",
   "lighting.schedule.marker.title": "Parlaklık ayarları",
   "lighting.schedule.now.off": "Zamanlama kapalı",
   "lighting.schedule.now.on": "Şu anda: {level}",

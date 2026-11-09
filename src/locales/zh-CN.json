@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "未跟随亮度计划",
   "lighting.schedule.follow.turnOn": "开启",
   "lighting.schedule.graph.hint": "拖动点以设置该小时的亮度。双击图表可添加点，右键点击某个点可将其移除。",
+  "lighting.schedule.marker.capped": "受亮度计划限制，上限 {level}%",
   "lighting.schedule.marker.title": "亮度设置",
   "lighting.schedule.now.off": "计划已关闭",
   "lighting.schedule.now.on": "当前：{level}",

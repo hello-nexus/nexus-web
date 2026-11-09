@@ -3663,6 +3663,7 @@
   "lighting.schedule.follow.notFollowing": "Not following the brightness schedule",
   "lighting.schedule.follow.turnOn": "Turn on",
   "lighting.schedule.graph.hint": "Drag a point to set the brightness for that hour. Double-click the graph to add a point, right-click a point to remove it.",
+  "lighting.schedule.marker.capped": "Capped at {level}% by the brightness schedule",
   "lighting.schedule.marker.title": "Brightness settings",
   "lighting.schedule.now.off": "Schedule is off",
   "lighting.schedule.now.on": "Right now: {level}",

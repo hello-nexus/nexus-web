@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type CSSProperties, type PointerEventHandler, type ReactNode } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import { SliderMarks, type SliderMark } from './SliderMarks';
 import styles from './Slider.module.scss';
@@ -65,6 +66,8 @@ export interface SliderProps {
   /** Optional node stacked directly above the marker caret (e.g. an info
       affordance). Interactive; only rendered when `marker` is set. */
   markerLabel?: ReactNode;
+  /** Hover text for the marker caret; only used when `marker` is set. */
+  markerTooltip?: string;
   /** When the fill runs past this value (in [min, max]), the portion beyond it
       is painted in a dimmed accent - e.g. a master-brightness cap the device is
       set above. Requires trackFill; omit for a single-tone fill. */
@@ -102,7 +105,7 @@ export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, fillColor, thumbNode, thumbInk, marks, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
+  disabled, trackFill, marker, markerLabel, markerTooltip, band, fillCap, fillColor, thumbNode, thumbInk, marks, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
@@ -159,7 +162,13 @@ export function Slider({
   const markerNode = markerPct != null ? (
     <span className={styles.marker} style={{ left: `${markerPct}%` }}>
       {markerLabel != null && <span className={styles.markerLabel}>{markerLabel}</span>}
-      <span className={styles.markerCaret} aria-hidden />
+      {markerTooltip ? (
+        <HoverTooltip body={markerTooltip} side="top">
+          <span className={styles.markerHit}><span className={styles.markerCaret} aria-hidden /></span>
+        </HoverTooltip>
+      ) : (
+        <span className={styles.markerCaret} aria-hidden />
+      )}
     </span>
   ) : null;
 
