@@ -2,9 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
 import { useScheduleSliderProps, type BrightnessScheduleBinding } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { Slider } from '../../../../components/common/Slider/Slider';
-import { BrightnessScheduleModal } from '../../../../components/views/SettingsView/BrightnessScheduleModal';
-import { useScheduleBinding } from '../../../../hooks/useScheduleBinding';
-import { useBrightnessSchedule } from '../../../../hooks/useBrightnessSchedule';
+import { useLightingScheduleBinding } from '../../../../hooks/useLightingScheduleBinding';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../../lib/i18n';
@@ -28,8 +26,7 @@ import styles from '../LightingPage.module.scss';
  * effect dock's stack rather than a separate widget.
  */
 export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boolean }) {
-  const scheduleState = useBrightnessSchedule(serviceOnline);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const { binding, modal } = useLightingScheduleBinding(serviceOnline);
   // Null until the first fetch resolves, to avoid flashing 100% on
   // mount when the persisted value is anything else.
   const [percent, setPercent] = useState<number | null>(null);
@@ -71,24 +68,10 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
     sendValue(value);
   }, [sendValue]);
 
-  const schedule = scheduleState.schedule;
-  const binding = useScheduleBinding({
-    state: scheduleState,
-    follows: scheduleState.lightingFollows,
-    onFollowsChange: next => { void scheduleState.saveLightingFollows(next); },
-    onEdit: () => setScheduleOpen(true),
-  });
   return (
     <>
-      <GlobalBrightnessSliderView
-        percent={percent}
-        binding={schedule === null || !serviceOnline ? null : binding}
-        onChange={handleChange}
-        onCommit={handleCommit}
-      />
-      {scheduleOpen && (
-        <BrightnessScheduleModal open onClose={() => setScheduleOpen(false)} state={scheduleState} />
-      )}
+      <GlobalBrightnessSliderView percent={percent} binding={binding} onChange={handleChange} onCommit={handleCommit} />
+      {modal}
     </>
   );
 }

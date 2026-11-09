@@ -1,7 +1,7 @@
-import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SettingSlider } from '../SettingRow/SettingRow';
-import { useScheduleSliderProps, type BrightnessScheduleBinding } from './BrightnessScheduleButton';
+import { BrightnessScheduleButton, useScheduleSliderProps, type BrightnessScheduleBinding } from './BrightnessScheduleButton';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -11,7 +11,7 @@ vi.mock('../../../lib/i18n', () => ({
 
 const binding = (over: Partial<BrightnessScheduleBinding> = {}): BrightnessScheduleBinding => ({
   scheduleOn: true, follows: true, onFollowsChange: vi.fn(), onTurnOn: vi.fn(), onEdit: vi.fn(),
-  statusLine: null, capPercent: 40, ...over,
+  statusAt: () => null, capPercent: 40, ...over,
 });
 
 describe('useScheduleSliderProps', () => {
@@ -55,5 +55,22 @@ describe('SettingSlider with a schedule binding', () => {
   it('draws no caret when the device does not follow', () => {
     render(<SettingSlider label="Brightness" value={80} min={0} max={100} onChange={() => {}} schedule={binding({ capPercent: null })} />);
     expect(caret()).toBeNull();
+  });
+});
+
+describe('BrightnessScheduleButton popover', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('refreshes on open and recomputes the status line while it stays open', () => {
+    vi.useFakeTimers();
+    let level = 27;
+    const onOpen = vi.fn();
+    render(<BrightnessScheduleButton binding={binding({ onOpen, statusAt: () => `now ${level}` })} sliderValue={80} />);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.marker.title' }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('now 27')).toBeInTheDocument();
+    level = 30;
+    act(() => { vi.advanceTimersByTime(15_000); });
+    expect(screen.getByText('now 30')).toBeInTheDocument();
   });
 });

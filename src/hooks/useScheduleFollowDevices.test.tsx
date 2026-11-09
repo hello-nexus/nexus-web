@@ -76,4 +76,12 @@ describe('useScheduleFollowDevices', () => {
     expect(result.current.devices.y70.follows).toBe(false);
     await act(async () => { answer({ ...y70, follows: false }); await done; });
   });
+
+  it('exposes a refresh for the popover opening', async () => {
+    const { result } = renderHook(() => useScheduleFollowDevices(true));
+    await waitFor(() => expect(result.current.devices.y70).toBeDefined());
+    api.fetchScheduleFollowDevices.mockClear().mockResolvedValue({ devices: [{ ...y70, capPercent: 55 }] });
+    act(() => { result.current.refresh(); });
+    await waitFor(() => expect(result.current.devices.y70.capPercent).toBe(55));
+  });
 });

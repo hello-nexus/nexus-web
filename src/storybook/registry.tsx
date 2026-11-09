@@ -1488,7 +1488,7 @@ function PreviewConflictAppCard() {
 }
 
 function PreviewBrightnessScheduleButton() {
-  const sample = { scheduleOn: true, follows: true, onFollowsChange: () => {}, onTurnOn: () => {}, onEdit: () => {}, statusLine: 'Now 40%', capPercent: 40 };
+  const sample = { scheduleOn: true, follows: true, onFollowsChange: () => {}, onTurnOn: () => {}, onEdit: () => {}, statusAt: () => 'Now 40%', capPercent: 40 };
   return (
     <div className={styles.previewRow}>
       <BrightnessScheduleButton binding={{ ...sample, follows: true }} />

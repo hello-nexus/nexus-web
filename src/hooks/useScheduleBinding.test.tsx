@@ -22,41 +22,53 @@ const make = (over: Partial<BrightnessScheduleState> = {}): BrightnessScheduleSt
   ...over,
 });
 
-const bind = (state: BrightnessScheduleState, extra: { follows?: boolean; appliedPercent?: number | null } = {}) =>
+const bind = (state: BrightnessScheduleState, extra: { follows?: boolean; capsSlider?: boolean; serviceCap?: number | null } = {}) =>
   renderHook(() => useScheduleBinding({
-    state, follows: extra.follows ?? true, onFollowsChange: vi.fn(), onEdit: vi.fn(), appliedPercent: extra.appliedPercent,
+    state, follows: extra.follows ?? true, onFollowsChange: vi.fn(), onEdit: vi.fn(),
+    capsSlider: extra.capsSlider, serviceCap: extra.serviceCap,
   })).result.current;
 
 describe('useScheduleBinding', () => {
+  const AFTERNOON = 14 * 60;
+
   it('has no status line while the schedule is off', () => {
     const b = bind(make({ schedule: { enabled: false, points: POINTS }, current: null }));
     expect(b.scheduleOn).toBe(false);
-    expect(b.statusLine).toBeNull();
+    expect(b.statusAt(AFTERNOON, 80)).toBeNull();
   });
 
   it('names when the change starts, not the next point', () => {
-    const b = bind(make());
-    expect(b.statusLine).toBe('lighting.schedule.status.fallsAt:{"level":100,"time":"19:00"}');
+    expect(bind(make()).statusAt(AFTERNOON, null)).toBe('lighting.schedule.status.fallsAt:{"level":100,"time":"19:00"}');
   });
 
-  it('shows what the device actually gets when it follows', () => {
-    const b = bind(make(), { appliedPercent: 64 });
-    expect(b.statusLine).toBe('lighting.schedule.status.fallsAt:{"level":64,"time":"19:00"}');
+  it('shows a device the lower of its slider and the schedule level', () => {
+    const b = bind(make(), { capsSlider: true });
+    expect(b.statusAt(AFTERNOON, 30)).toBe('lighting.schedule.status.fallsAt:{"level":30,"time":"19:00"}');
+    expect(b.statusAt(AFTERNOON, 100)).toContain('"level":100');
   });
 
-  it('falls back to the schedule level without an applied value, or when not following', () => {
-    expect(bind(make(), { appliedPercent: null }).statusLine).toContain('"level":100');
-    expect(bind(make(), { follows: false, appliedPercent: 64 }).statusLine).toContain('"level":100');
+  it('is live: the same binding answers for a later minute', () => {
+    const b = bind(make(), { capsSlider: true });
+    // 22:00 onward the curve sits at its night level, below the slider.
+    expect(b.statusAt(23 * 60, 80)).toContain('"level":10');
+    expect(b.statusAt(AFTERNOON, 80)).toContain('"level":80');
+  });
+
+  it('shows lighting the schedule level whatever the slider says', () => {
+    expect(bind(make()).statusAt(AFTERNOON, 30)).toContain('"level":100');
+  });
+
+  it('shows the schedule level for a device that does not follow', () => {
+    expect(bind(make(), { follows: false, capsSlider: true }).statusAt(AFTERNOON, 30)).toContain('"level":100');
   });
 
   it('says the ramp end while the curve is moving', () => {
-    const b = bind(make({ minute: 8 * 60, current: 55 }));
-    expect(b.statusLine).toBe('lighting.schedule.status.rising:{"level":55,"time":"09:00"}');
+    expect(bind(make()).statusAt(8 * 60, null)).toMatch(/^lighting\.schedule\.status\.rising:\{"level":\d+,"time":"09:00"\}$/);
   });
 
   it('says steady for a flat schedule', () => {
     const b = bind(make({ schedule: { enabled: true, points: [{ hour: 0, brightness: 40 }, { hour: 12, brightness: 40 }] }, current: 40 }));
-    expect(b.statusLine).toBe('lighting.schedule.status.steady:{"level":40}');
+    expect(b.statusAt(AFTERNOON, null)).toBe('lighting.schedule.status.steady:{"level":40}');
   });
 
   it('turns the master schedule on, keeping its points', () => {
@@ -65,13 +77,14 @@ describe('useScheduleBinding', () => {
     expect(state.save).toHaveBeenCalledWith({ enabled: true, points: POINTS });
   });
 
-  it('caps at the applied level, falling back to the schedule level', () => {
-    expect(bind(make(), { appliedPercent: 64 }).capPercent).toBe(64);
+  it('caps at the service cap, falling back to the schedule level when it says nothing', () => {
+    expect(bind(make(), { serviceCap: 64 }).capPercent).toBe(64);
     expect(bind(make()).capPercent).toBe(100);
   });
 
-  it('has no cap while the schedule is off or the control does not follow', () => {
+  it('has no cap while the schedule is off, the control does not follow, or the service says null', () => {
     expect(bind(make({ schedule: { enabled: false, points: POINTS }, current: null })).capPercent).toBeNull();
     expect(bind(make(), { follows: false }).capPercent).toBeNull();
+    expect(bind(make(), { serviceCap: null }).capPercent).toBeNull();
   });
 });

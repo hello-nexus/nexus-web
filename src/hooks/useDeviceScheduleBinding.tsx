@@ -17,7 +17,7 @@ export function useDeviceScheduleBinding(
 ): { binding: BrightnessScheduleBinding | null; modal: ReactNode } {
   const active = serviceOnline && key !== null;
   const state = useBrightnessSchedule(active);
-  const { devices, setFollows } = useScheduleFollowDevices(active);
+  const { devices, setFollows, refresh } = useScheduleFollowDevices(active);
   const [editing, setEditing] = useState(false);
   const entry = key !== null ? devices[key] : undefined;
   const binding = useScheduleBinding({
@@ -26,7 +26,9 @@ export function useDeviceScheduleBinding(
     follows: entry?.follows ?? true,
     onFollowsChange: next => { if (key !== null) void setFollows(key, next); },
     onEdit: () => setEditing(true),
-    appliedPercent: entry?.appliedPercent ?? null,
+    onOpen: refresh,
+    capsSlider: true,
+    serviceCap: entry?.capPercent,
   });
   return {
     binding: active && state.schedule !== null ? binding : null,

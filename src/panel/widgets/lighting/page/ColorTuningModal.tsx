@@ -4,6 +4,9 @@ import { Button } from '../../../../components/common/Button/Button';
 import { SettingSelect } from '../../../../components/common/SettingRow/SettingRow';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
+import { useScheduleSliderProps } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
+import { useLightingScheduleBinding } from '../../../../hooks/useLightingScheduleBinding';
+import { useMasterScalesDevices } from '../../../../hooks/useMasterScalesDevices';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTranslation } from '../../../../lib/i18n';
 import {
@@ -62,6 +65,8 @@ function spread(values: number[]): Spread {
 export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningModalProps) {
   const { t } = useTranslation();
   const globalBrightness = useGlobalBrightness();
+  const { binding: scheduleBinding, modal: scheduleModal } = useLightingScheduleBinding(true);
+  const masterScales = useMasterScalesDevices(true);
 
   // Service-owned trims, seeded once and then kept in step with our own
   // writes. Sparse on the wire: an id absent from the response is neutral.
@@ -189,9 +194,19 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
 
   const master = globalBrightness == null ? 100 : Math.round(globalBrightness * 100);
   const showCap = globalBrightness != null && bright.value > master;
+  // The schedule caps master brightness, so a device's effective ceiling is the
+  // lower of the two. With the brightness multiplier on, master scales rather
+  // than caps, so there is no ceiling to mark and the schedule marker stays out.
+  const scheduleCap = masterScales.on === true ? null : scheduleBinding?.capPercent ?? null;
+  const sched = useScheduleSliderProps(
+    scheduleBinding ? { ...scheduleBinding, capPercent: scheduleCap } : undefined,
+    Math.round(bright.value),
+  );
+  const scheduleLeads = scheduleCap !== null && scheduleCap <= master;
 
   return (
     <DeviceModal open onClose={close} title={t('lighting.colorTuning.title')} medium>
+      {scheduleModal}
       <div className={styles.body}>
         {/* Read-only: the scope is whatever the device rail had selected when
             the menu was opened, so this states what is about to change rather
@@ -242,9 +257,11 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
               min={0}
               max={100}
               step={1}
-              fillCap={showCap ? master : undefined}
-              marker={showCap ? master : undefined}
-              markerLabel={showCap ? (
+              labelAction={sched.sun}
+              fillCap={scheduleLeads ? sched.fillCap : (showCap ? master : undefined)}
+              marker={scheduleLeads ? sched.marker : (showCap ? master : undefined)}
+              markerTooltip={scheduleLeads ? sched.markerTooltip : undefined}
+              markerLabel={showCap && !scheduleLeads ? (
                 <InfoTooltip
                   message={t('lighting.colorTuning.effectiveBrightnessInfo', { master })}
                   side="bottom"

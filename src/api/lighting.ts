@@ -1390,6 +1390,8 @@ export interface ScheduleFollowDevice {
   follows: boolean;
   levelPercent: number;
   appliedPercent: number | null;
+  /** The schedule level capping the device now; null when it does not follow or the schedule is off. Absent on an older service. */
+  capPercent?: number | null;
 }
 
 /** A device the list does not mention follows the schedule. */

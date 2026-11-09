@@ -1,5 +1,6 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Sun } from 'lucide-react';
+import { minuteOfDay } from '../../../lib/brightnessSchedule';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../Button/Button';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
@@ -17,8 +18,14 @@ export interface BrightnessScheduleBinding {
   onTurnOn: () => void;
   /** Opens the full schedule editor. */
   onEdit: () => void;
-  /** One line about the schedule right now; null while it is off. */
-  statusLine: string | null;
+  /**
+   * One line about the schedule at a minute of the local day; null while it is
+   * off. `sliderValue` is the control's own slider, which a device is capped
+   * under; lighting passes it too but is shown the schedule's level.
+   */
+  statusAt: (minute: number, sliderValue: number | null) => string | null;
+  /** The popover opened: a chance to refresh what it shows. */
+  onOpen?: () => void;
   /**
    * The level the schedule caps this control at right now (its slider times the
    * schedule's level for a device); null while the schedule is off or this
@@ -29,7 +36,12 @@ export interface BrightnessScheduleBinding {
 
 interface BrightnessScheduleButtonProps {
   binding: BrightnessScheduleBinding;
+  /** The slider this sun sits on, for the status line's "Now". */
+  sliderValue?: number | null;
 }
+
+// The status line is recomputed from the curve this often while the popover is open.
+const STATUS_TICK_MS = 15_000;
 
 /**
  * The sun button shared by every brightness control (master brightness, panel
@@ -41,13 +53,23 @@ interface BrightnessScheduleButtonProps {
  * A span with the button role, not a <button>, so it can sit inside a slider's
  * label row without taking the label's clicks.
  */
-export function BrightnessScheduleButton({ binding }: BrightnessScheduleButtonProps) {
+export function BrightnessScheduleButton({ binding, sliderValue = null }: BrightnessScheduleButtonProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const labelId = useId();
   const anchorRef = useRef<HTMLSpanElement>(null);
   const following = binding.scheduleOn && binding.follows;
+  const [now, setNow] = useState(() => new Date());
+  const { onOpen } = binding;
+  useEffect(() => {
+    if (!open) return undefined;
+    setNow(new Date());
+    onOpen?.();
+    const timer = window.setInterval(() => setNow(new Date()), STATUS_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, [open, onOpen]);
   const toggle = () => setOpen(o => !o);
+  const statusLine = binding.statusAt(minuteOfDay(now), sliderValue);
   return (
     <span ref={anchorRef} style={{ display: 'inline-flex' }}>
       <HoverTooltip
@@ -90,7 +112,7 @@ export function BrightnessScheduleButton({ binding }: BrightnessScheduleButtonPr
           />
         </div>
         {binding.scheduleOn ? (
-          binding.statusLine && <p className={styles.note}>{binding.statusLine}</p>
+          statusLine && <p className={styles.note}>{statusLine}</p>
         ) : (
           <p className={styles.note}>{t('lighting.schedule.now.off')}</p>
         )}
@@ -119,7 +141,7 @@ export function useScheduleSliderProps(binding: BrightnessScheduleBinding | unde
   if (!binding) return { sun: null, marker: undefined, fillCap: undefined, markerTooltip: undefined };
   const cap = binding.capPercent;
   return {
-    sun: <BrightnessScheduleButton binding={binding} />,
+    sun: <BrightnessScheduleButton binding={binding} sliderValue={value} />,
     marker: cap ?? undefined,
     fillCap: cap !== null && cap < value ? cap : undefined,
     markerTooltip: cap !== null ? t('lighting.schedule.marker.capped', { level: cap }) : undefined,

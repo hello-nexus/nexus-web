@@ -7,6 +7,8 @@ export interface ScheduleFollowDevicesState {
   devices: Record<string, ScheduleFollowDevice>;
   /** Optimistic: the entry updates before the POST answers, and the `lighting` topic re-syncs it. */
   setFollows: (key: string, follows: boolean) => Promise<void>;
+  /** Read the list again now (the popover opening). */
+  refresh: () => void;
 }
 
 /**
@@ -33,7 +35,7 @@ export function useScheduleFollowDevices(enabled: boolean): ScheduleFollowDevice
   const setFollows = useCallback(async (key: string, follows: boolean) => {
     setDevices(prev => ({
       ...prev,
-      [key]: prev[key] ? { ...prev[key], follows } : { key, follows, levelPercent: 100, appliedPercent: null },
+      [key]: prev[key] ? { ...prev[key], follows, capPercent: undefined } : { key, follows, levelPercent: 100, appliedPercent: null },
     }));
     pendingRef.current += 1;
     try {
@@ -47,5 +49,5 @@ export function useScheduleFollowDevices(enabled: boolean): ScheduleFollowDevice
     refresh();
   }, [refresh]);
 
-  return { devices, setFollows };
+  return { devices, setFollows, refresh };
 }
