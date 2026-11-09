@@ -543,9 +543,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     };
   }, [ddcDisplayId]);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
-  // The one brightness slider on this page that rides the schedule: the Y70's, or a DDC display's.
-  const scheduleKey = supportsDisplayControls || supportsAutoLaunch ? 'y70' : (ddcSupported ? ddcDisplayId : null);
-  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding(scheduleKey, true);
   // Rotation and the monitor-reserve guard exist only on hosts that
   // implement them (rotation: Windows, macOS; reserve: Windows).
   const [hostCaps, setHostCaps] = useState<{ rotation: boolean; reserve: boolean; primary: boolean } | null>(null);
@@ -590,6 +587,15 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   // same PATCH as the mounting toggles below rather than its own endpoint.
   const [recordSupportsBrightness, setRecordSupportsBrightness] = useState(false);
   const isDimmableLcdPanel = recordSupportsBrightness && !isSimulated;
+  // The one brightness slider on this page that rides the schedule: the Y70's, a
+  // DDC display's, the Xeneon Edge's top Brightness (its display id), or a
+  // dimmable streamed LCD's (its panel record id).
+  const scheduleKey = supportsDisplayControls || supportsAutoLaunch ? 'y70'
+    : ddcSupported ? ddcDisplayId
+      : isXeneonEdgePanel && device?.displayId ? device.displayId
+        : isDimmableLcdPanel && device?.panelRecordId ? `panel-lcd:${device.panelRecordId}`
+          : null;
+  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding(scheduleKey, true);
   // Streamed cooler LCDs (e.g. the Aftershock Glacier Matrix) whose driver can
   // hand the screen to Windows as a virtual monitor. While on, the service
   // streams the desktop instead of Nexus content and the Widgets/Theme/
@@ -2029,6 +2035,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   )}
                   {activeTab === 'settings' && isDimmableLcdPanel && (
                     <MonitorSettingsPanel
+                      schedule={scheduleBinding ?? undefined}
                       brightness={recordLcdBrightness}
                       onBrightnessPreview={setRecordLcdBrightness}
                       onBrightness={(value) => {
@@ -2850,6 +2857,8 @@ export function MonitorSettingsPanel({
           editable
           trackFill
           label={t(labelKey)}
+          // The service scales the top Brightness register, not Backlight.
+          labelSuffix={schedule && brightness === null && key === 'brightness' ? <BrightnessScheduleButton binding={schedule} /> : undefined}
           value={xeneonSettings[key]}
           min={min}
           max={max}
