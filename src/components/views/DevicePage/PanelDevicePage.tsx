@@ -1818,6 +1818,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                     <MonitorSettingsPanel
                       schedule={scheduleBinding ?? undefined}
                       brightness={ddcSupported ? (ddcBrightness ?? 50) : null}
+                      // A drag moves local state only; the release writes once.
+                      onBrightnessPreview={setDdcBrightness}
                       onBrightness={(value) => {
                         setDdcBrightness(value);
                         if (ddcDisplayId) void setDisplayBrightness(ddcDisplayId, value).catch(() => {});

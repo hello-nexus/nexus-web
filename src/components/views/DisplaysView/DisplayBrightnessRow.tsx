@@ -1,8 +1,11 @@
 import { setDisplayBrightness } from '../../../api/displays';
-import { useDdcBrightness } from '../../../hooks/useDdcBrightness';
+import { useDdcBrightness, type DdcProbeSchedule } from '../../../hooks/useDdcBrightness';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useTranslation } from '../../../lib/i18n';
 import { SettingSlider } from '../../common/SettingRow/SettingRow';
+
+// Switching the display's brightness control on answers within seconds, so probe briskly and give up soon.
+const DISPLAYS_TAB_PROBE: DdcProbeSchedule = { intervalMs: 1500, timeoutMs: 9000 };
 
 /**
  * The brightness row of a DDC display on the Displays tab: the same slider row
@@ -13,7 +16,7 @@ import { SettingSlider } from '../../common/SettingRow/SettingRow';
  */
 export function DisplayBrightnessRow({ displayId }: { displayId: string }) {
   const { t } = useTranslation();
-  const { value, setValue } = useDdcBrightness(displayId);
+  const { value, setValue } = useDdcBrightness(displayId, DISPLAYS_TAB_PROBE);
   const { binding, modal } = useDeviceScheduleBinding(value !== null ? displayId : null, true);
 
   if (value === null) return null;

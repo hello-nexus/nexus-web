@@ -17,18 +17,19 @@ export interface ScheduleFollowDevicesState {
  */
 export function useScheduleFollowDevices(enabled: boolean): ScheduleFollowDevicesState {
   const [devices, setDevices] = useState<Record<string, ScheduleFollowDevice>>({});
-  // The newest write's number, and the newest one that has settled. A read is
-  // current only if no write started since it was requested and the newest
-  // write has settled; a POST answer is current only if no newer write started.
-  // So a GET that overlaps a write, and an answer overtaken by a newer toggle,
-  // are dropped rather than reverting the newer state.
+  // A write bumps `genRef` and counts as in flight until it settles. A read is
+  // current only if no write started since it was requested and none is in
+  // flight now; a POST answer is current only if no newer write for the same key
+  // started. So a GET overlapping any write, and an answer overtaken by a newer
+  // toggle of its own device, are dropped rather than reverting newer state.
   const genRef = useRef(0);
-  const settledRef = useRef(0);
+  const inFlightRef = useRef(0);
+  const keyGenRef = useRef(new Map<string, number>());
 
   const refresh = useCallback(() => {
     const gen = genRef.current;
     fetchScheduleFollowDevices().then(data => {
-      if (!data || gen !== genRef.current || settledRef.current !== genRef.current) return;
+      if (!data || gen !== genRef.current || inFlightRef.current > 0) return;
       setDevices(Object.fromEntries((data.devices ?? []).map(d => [d.key, d])));
     }).catch(() => { /* best-effort */ });
   }, []);
@@ -44,14 +45,16 @@ export function useScheduleFollowDevices(enabled: boolean): ScheduleFollowDevice
       [key]: prev[key] ? { ...prev[key], follows } : { key, follows, levelPercent: 100, appliedPercent: null },
     }));
     const mine = ++genRef.current;
+    keyGenRef.current.set(key, mine);
+    inFlightRef.current += 1;
     try {
       const answer = await setScheduleFollowDevice(key, follows);
-      if (answer && 'key' in answer && mine === genRef.current) setDevices(prev => ({ ...prev, [answer.key]: answer }));
+      if (answer && 'key' in answer && keyGenRef.current.get(key) === mine) setDevices(prev => ({ ...prev, [answer.key]: answer }));
     } catch {
       // The refetch below restores whatever the service holds.
     }
-    settledRef.current = Math.max(settledRef.current, mine);
-    refresh();
+    inFlightRef.current -= 1;
+    if (inFlightRef.current === 0) refresh();
   }, [refresh]);
 
   return { devices, setFollows, refresh };

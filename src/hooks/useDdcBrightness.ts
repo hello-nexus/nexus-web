@@ -5,6 +5,16 @@ import { useTopicCallback } from './useMultiplexSocket';
 // Monitor DDC/CI can answer minutes after host boot; the host scan retries for about 15 minutes.
 export const DDC_PROBE_MS = 12_000;
 const DDC_PROBE_TIMEOUT_MS = 20 * 60_000;
+
+export interface DdcProbeSchedule {
+  /** Gap between reads while the display has not yet reported support. */
+  intervalMs: number;
+  /** Stop probing this long after mounting. */
+  timeoutMs: number;
+}
+
+/** The device page's patient schedule: DDC may answer minutes after boot. */
+export const DDC_PROBE_PATIENT: DdcProbeSchedule = { intervalMs: DDC_PROBE_MS, timeoutMs: DDC_PROBE_TIMEOUT_MS };
 // A local edit wins over a re-read for this long, so a drag is not snapped back.
 const LOCAL_EDIT_MS = 1500;
 
@@ -15,7 +25,10 @@ const LOCAL_EDIT_MS = 1500;
  * local edit. `setValue` is the local state of an edit in progress; the caller
  * writes through the display API.
  */
-export function useDdcBrightness(displayId: string | null): { value: number | null; setValue: (v: number) => void } {
+export function useDdcBrightness(
+  displayId: string | null,
+  probe: DdcProbeSchedule = DDC_PROBE_PATIENT,
+): { value: number | null; setValue: (v: number) => void } {
   const [value, setValueState] = useState<number | null>(null);
   const editUntilRef = useRef(0);
 
@@ -28,8 +41,8 @@ export function useDdcBrightness(displayId: string | null): { value: number | nu
     if (!displayId) return undefined;
     let cancelled = false;
     let timer: number | undefined;
-    const deadline = Date.now() + DDC_PROBE_TIMEOUT_MS;
-    const probe = () => {
+    const deadline = Date.now() + probe.timeoutMs;
+    const poll = () => {
       fetchDisplays().then(list => {
         if (cancelled) return;
         const display = list?.displays.find(d => d.id === displayId);
@@ -37,17 +50,17 @@ export function useDdcBrightness(displayId: string | null): { value: number | nu
           setValueState(display.brightnessControl.current ?? 50);
           return;
         }
-        if (Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
+        if (Date.now() < deadline) timer = window.setTimeout(poll, probe.intervalMs);
       }).catch(() => {
-        if (!cancelled && Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
+        if (!cancelled && Date.now() < deadline) timer = window.setTimeout(poll, probe.intervalMs);
       });
     };
-    probe();
+    poll();
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [displayId]);
+  }, [displayId, probe.intervalMs, probe.timeoutMs]);
 
   const resync = useCallback(() => {
     if (!displayId || Date.now() < editUntilRef.current) return;

@@ -102,4 +102,25 @@ describe('useScheduleFollowDevices', () => {
     await act(async () => { answers[1]({ ...y70, follows: true }); await second; });
     expect(result.current.devices.y70.follows).toBe(true);
   });
+
+  it('waits for every write before reading again, even when a later one answers first', async () => {
+    const { result } = renderHook(() => useScheduleFollowDevices(true));
+    await waitFor(() => expect(result.current.devices.y70).toBeDefined());
+    const answers: Record<string, (v: unknown) => void> = {};
+    api.setScheduleFollowDevice.mockImplementation((key: string) => new Promise(r => { answers[key] = r; }));
+    api.fetchScheduleFollowDevices.mockClear().mockResolvedValue({ devices: [y70] });
+    let a: Promise<void> = Promise.resolve();
+    let b: Promise<void> = Promise.resolve();
+    act(() => { a = result.current.setFollows('y70', false); });
+    act(() => { b = result.current.setFollows('display-1', false); });
+    // B answers first: A is still in flight, so no read may land over A's optimistic flip.
+    await act(async () => { answers['display-1']({ key: 'display-1', follows: false, levelPercent: 100, appliedPercent: null }); await b; });
+    expect(api.fetchScheduleFollowDevices).not.toHaveBeenCalled();
+    expect(result.current.devices.y70.follows).toBe(false);
+    // A's own answer is still adopted (it is the newest write for its device), then one read follows.
+    api.fetchScheduleFollowDevices.mockResolvedValue({ devices: [{ ...y70, follows: false, levelPercent: 100 }] });
+    await act(async () => { answers.y70({ ...y70, follows: false, levelPercent: 100 }); await a; });
+    expect(result.current.devices.y70.levelPercent).toBe(100);
+    expect(api.fetchScheduleFollowDevices).toHaveBeenCalledTimes(1);
+  });
 });
