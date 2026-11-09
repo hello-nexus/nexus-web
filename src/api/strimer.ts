@@ -8,6 +8,8 @@ export interface StrimerLightingMode {
   hasBrightness: boolean;
   colorsMin: number;
   colorsMax: number;
+  /** Palette the mode starts from, as #RRGGBB. Absent on an older service. */
+  defaultColors?: string[];
 }
 
 export interface StrimerLighting {
