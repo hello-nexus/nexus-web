@@ -1,0 +1,274 @@
+// Logitech speaker (G560) page: G HUB's Acoustics and Surround sound.
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.centred {
+  justify-content: center;
+}
+
+.grow {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.dim {
+  opacity: 0.5;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.presetName {
+  text-align: center;
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+// ── EQ ──────────────────────────────────────────────────────────────────────────
+
+.eqWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  overflow-x: auto;
+}
+
+.eqGraph {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-width: 46rem;
+  padding: var(--space-sm) 0;
+}
+
+.eqBand {
+  flex: 0 0 3.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.eqHz,
+.eqUnit,
+.eqUnitBottom {
+  font-size: var(--type-small);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+}
+
+.eqUnit,
+.eqUnitBottom {
+  color: var(--text-dim);
+}
+
+// The unit under the scale sits level with the band fields.
+.eqUnitBottom {
+  display: flex;
+  align-items: center;
+  height: 2rem;
+}
+
+.eqScale {
+  flex: 0 0 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.eqScaleLeft {
+  align-items: flex-end;
+}
+
+.eqScaleMarks {
+  position: relative;
+  width: 100%;
+}
+
+.eqMark {
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+
+  .eqScaleLeft & {
+    left: auto;
+    right: 0;
+  }
+}
+
+.eqSlider {
+  position: relative;
+  width: 1.5rem;
+  cursor: pointer;
+  touch-action: none;
+  border-radius: var(--radius-sm);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.eqDisabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.eqTrack,
+.eqFill {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: var(--radius-pill);
+}
+
+.eqTrack {
+  top: 0;
+  bottom: 0;
+  background: var(--border-strong);
+}
+
+.eqFill {
+  background: var(--accent-glow, var(--accent));
+}
+
+.eqThumb {
+  position: absolute;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--ease-fast) ease;
+
+  .eqSlider:hover:not(.eqDisabled) & {
+    transform: scale(1.1);
+  }
+}
+
+// ── Surround sound ─────────────────────────────────────────────────────────────
+
+// The speakers around the listener, five columns as G HUB lays them out.
+.layout {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--space-md) var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+.cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+.cross {
+  color: var(--text-dim);
+
+  > svg {
+    width: 6.875rem;
+    height: 6.875rem;
+  }
+}
+
+.spot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.spotTop {
+  flex-direction: column;
+}
+
+.speaker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: var(--radius);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.speakerIcon,
+.subIcon {
+  display: flex;
+  width: 3.5rem;
+  height: 3.5rem;
+
+  > svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.speakerName {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+// A speaker playing its test sound lights up in the accent colour.
+.playing {
+  color: var(--accent-glow, var(--accent));
+
+  .speakerName {
+    color: var(--accent-glow, var(--accent));
+  }
+}
+
+.vol {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.volLabel {
+  font-size: var(--type-mini);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+  margin-right: var(--space-xs);
+}
+
+.volInput {
+  width: 2.75rem;
+}

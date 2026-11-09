@@ -26,6 +26,7 @@ import { KrakenDevicePage } from './KrakenDevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { NollieDevicePage } from './NollieDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
+import { LogitechSpeakerDevicePage } from './LogitechSpeakerDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
 import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
@@ -317,6 +318,10 @@ function DeviceBody({ device, controlDevice, platform, onOpenFirmware, onSection
 
   if (device.curatedId === 'tryx') {
     return <TryxDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'logitech-speaker') {
+    return <LogitechSpeakerDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'streamdeck') {
