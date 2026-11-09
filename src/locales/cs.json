@@ -4199,6 +4199,7 @@
   "monitoring.settings.resetLabel": "Obnovit",
   "monitoring.settings.scaleAdaptive": "Adaptivní",
   "monitoring.settings.scaleFixed": "Pevná",
+  "monitoring.settings.scaleNumbers": "Přizpůsobit velikost čísel",
   "monitoring.settings.sensor": "Senzor",
   "monitoring.settings.sensors": "Senzory",
   "monitoring.settings.title": "Nastavení monitorování",

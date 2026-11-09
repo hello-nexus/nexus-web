@@ -4160,6 +4160,7 @@
   "monitoring.settings.resetLabel": "重置",
   "monitoring.settings.scaleAdaptive": "自适应",
   "monitoring.settings.scaleFixed": "固定",
+  "monitoring.settings.scaleNumbers": "按空间缩放数字",
   "monitoring.settings.sensor": "传感器",
   "monitoring.settings.sensors": "传感器",
   "monitoring.settings.title": "监控设置",

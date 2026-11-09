@@ -4160,6 +4160,7 @@
   "monitoring.settings.resetLabel": "초기화",
   "monitoring.settings.scaleAdaptive": "적응형",
   "monitoring.settings.scaleFixed": "고정",
+  "monitoring.settings.scaleNumbers": "숫자 크기 자동 맞춤",
   "monitoring.settings.sensor": "센서",
   "monitoring.settings.sensors": "센서",
   "monitoring.settings.title": "모니터링 설정",

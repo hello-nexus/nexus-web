@@ -4160,6 +4160,7 @@
   "monitoring.settings.resetLabel": "Sıfırla",
   "monitoring.settings.scaleAdaptive": "Uyarlanır",
   "monitoring.settings.scaleFixed": "Sabit",
+  "monitoring.settings.scaleNumbers": "Sayıları sığacak şekilde ölçekle",
   "monitoring.settings.sensor": "Sensör",
   "monitoring.settings.sensors": "Sensörler",
   "monitoring.settings.title": "İzleme ayarları",

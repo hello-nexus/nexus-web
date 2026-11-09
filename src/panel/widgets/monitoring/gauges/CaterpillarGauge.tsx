@@ -5,6 +5,8 @@ import type { GaugeProps } from './types';
 import { ArcSegments, type ArcGeometry } from './ArcSegments';
 import styles from './CaterpillarGauge.module.scss';
 
+// Share of the slot's short side the value may span: inside the ring, clear of the label.
+const VALUE_INNER_FRACTION = 0.62;
 const STROKE = RING_STROKE;
 // Centre line of a stroke whose outer edge lands on the shared figure edge.
 const RADIUS = GAUGE_FIGURE_OUTER - STROKE / 2;
@@ -36,7 +38,7 @@ export function CaterpillarGauge({ value, formatted, label, gradient }: GaugePro
         )}
       </svg>
       <div className={styles.center}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

@@ -4160,6 +4160,7 @@
   "monitoring.settings.resetLabel": "Zurücksetzen",
   "monitoring.settings.scaleAdaptive": "Adaptiv",
   "monitoring.settings.scaleFixed": "Fest",
+  "monitoring.settings.scaleNumbers": "Zahlen passend skalieren",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensoren",
   "monitoring.settings.title": "Überwachungseinstellungen",
