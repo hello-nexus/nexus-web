@@ -120,12 +120,16 @@ export function GalleryPage() {
   const pendingSortSavesRef = useRef(0);
   const sortSaveFailedRef = useRef(false);
   const sortGenerationRef = useRef(0);
+  // Latest-started read wins: an older one landing late is dropped whole.
+  const refreshSeqRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const generation = editGenerationRef.current;
     const sortGeneration = sortGenerationRef.current;
     const sortSavesAtStart = pendingSortSavesRef.current;
+    const seq = ++refreshSeqRef.current;
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
+    if (seq !== refreshSeqRef.current) return;
     if (src?.sources) setSources(src.sources);
     if (itm?.items) {
       setItems(itm.items);
@@ -317,7 +321,8 @@ export function GalleryPage() {
     sortChainRef.current = sortChainRef.current
       .then(() => updateGallerySort(next))
       .then(saved => {
-        if (!saved) sortSaveFailedRef.current = true;
+        // Only the last save's outcome matters: it is what the service keeps.
+        sortSaveFailedRef.current = !saved;
       })
       .finally(() => {
         pendingSortSavesRef.current--;
