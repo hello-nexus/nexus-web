@@ -3,7 +3,7 @@ import { fetchScheduleFollowDevices, setScheduleFollowDevice, type ScheduleFollo
 import { useTopicCallback } from './useMultiplexSocket';
 
 export interface ScheduleFollowDevicesState {
-  /** By device key; a device the service does not list follows the schedule. */
+  /** By device key; a device the service does not list does not follow the schedule. */
   devices: Record<string, ScheduleFollowDevice>;
   /** Optimistic: the entry updates before the POST answers, and the `lighting` topic re-syncs it. */
   setFollows: (key: string, follows: boolean) => Promise<void>;

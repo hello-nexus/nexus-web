@@ -22,8 +22,8 @@ export function useDeviceScheduleBinding(
   const entry = key !== null ? devices[key] : undefined;
   const binding = useScheduleBinding({
     state,
-    // A device the service does not list follows by default.
-    follows: entry?.follows ?? true,
+    // A device the service does not list does not follow: following is opt-in.
+    follows: entry?.follows ?? false,
     onFollowsChange: next => { if (key !== null) void setFollows(key, next); },
     onEdit: () => setEditing(true),
     onOpen: refresh,

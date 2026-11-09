@@ -1394,7 +1394,7 @@ export interface ScheduleFollowDevice {
   capPercent?: number | null;
 }
 
-/** A device the list does not mention follows the schedule. */
+/** A device the list does not mention does not follow the schedule. */
 export const fetchScheduleFollowDevices = () =>
   fetchService<{ devices: ScheduleFollowDevice[] }>('/lighting/brightness-schedule/devices');
 

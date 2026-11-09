@@ -50,10 +50,10 @@ describe('useDeviceScheduleBinding', () => {
     await waitFor(() => expect(result.current.binding?.follows).toBe(false));
   });
 
-  it('follows by default when the service does not list the key', async () => {
+  it('does not follow when the service does not list the key', async () => {
     const { result } = renderHook(() => useDeviceScheduleBinding('display-9', true));
     await waitFor(() => expect(result.current.binding).not.toBeNull());
-    expect(result.current.binding?.follows).toBe(true);
+    expect(result.current.binding?.follows).toBe(false);
   });
 
   it('writes the switch for its own key', async () => {

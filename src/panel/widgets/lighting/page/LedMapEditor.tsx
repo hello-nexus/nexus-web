@@ -2299,7 +2299,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           {/* Preview + selection tooling above the canvas, as two compact
               grouped sections: test pattern toggles (plus a smart light's own
               colour) on the left, select all / clear selection on the right.
-              Brightness and the colour trims live in the Color tuning modal,
+              Brightness and the colour trims live in the Brightness and color modal,
               which can act on several devices at once. */}
           <div className={styles.controlsRow}>
             <div className={styles.controlGroup}>
