@@ -93,16 +93,27 @@ describe('CurveGraph live readout', () => {
 });
 
 describe('CurveGraph pointer cancel', () => {
-  it('ends a drag like a release', () => {
+  it('drops a drag without committing and tells the owner once', () => {
+    Element.prototype.setPointerCapture = vi.fn();
+    const onChange = vi.fn();
+    const onCancel = vi.fn();
+    render(<CurveGraph points={pts} {...eq} editable verticalDrag={verticalDrag} keyboardStep={0.5} onChange={onChange} onCancel={onCancel} />);
+    const dot = screen.getByRole('slider', { name: '0Hz' });
+    fireEvent.pointerDown(dot, { pointerId: 1 });
+    fireEvent.pointerCancel(dot, { pointerId: 1 });
+    fireEvent.pointerCancel(dot, { pointerId: 1 });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a key step while a pointer drag is active', () => {
     Element.prototype.setPointerCapture = vi.fn();
     const onChange = vi.fn();
     render(<CurveGraph points={pts} {...eq} editable verticalDrag={verticalDrag} keyboardStep={0.5} onChange={onChange} />);
     const dot = screen.getByRole('slider', { name: '0Hz' });
     fireEvent.pointerDown(dot, { pointerId: 1 });
-    fireEvent.pointerCancel(dot, { pointerId: 1 });
-    expect(onChange).toHaveBeenCalledTimes(1);
-    fireEvent.pointerCancel(dot, { pointerId: 1 });
-    expect(onChange).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(dot, { key: 'ArrowUp' });
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

@@ -59,7 +59,6 @@ function EqBands({ state, change }: TabProps) {
   // Bands being dragged, and how many commits still await an answer.
   const open = useRef(new Set<number>());
   const inflight = useRef(0);
-  // The band the graph last moved.
   const moved = useRef<number | null>(null);
   // The latest bands this page has asked for, so a second commit keeps the first.
   const wanted = useRef(state.bands);
@@ -82,6 +81,7 @@ function EqBands({ state, change }: TabProps) {
   useEffect(() => {
     if (eqOn) return;
     open.current.clear();
+    moved.current = null;
     setLive({});
   }, [eqOn]);
 
@@ -137,6 +137,13 @@ function EqBands({ state, change }: TabProps) {
         if (i === null) return;
         open.current.add(i);
         setLive(prev => ({ ...prev, [i]: next[i].speed }));
+      }}
+      onCancel={() => {
+        const i = moved.current;
+        moved.current = null;
+        if (i === null) return;
+        open.current.delete(i);
+        setLive(prev => Object.fromEntries(Object.entries(prev).filter(([k]) => Number(k) !== i)));
       }}
       onChange={next => {
         const i = moved.current;

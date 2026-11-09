@@ -298,15 +298,33 @@ describe('LogitechSpeakerDevicePage', () => {
     await act(async () => { release(); });
   });
 
-  it('commits the band that moved after a drag ends in pointercancel', async () => {
+  it('reverts a drag the browser cancelled, without a write, and leaves nothing stuck', async () => {
     await mount(state());
     const band = point('125Hz');
     fireEvent.pointerDown(band, { pointerId: 1, clientX: 0, clientY: yOf(0) });
     fireEvent.pointerMove(band, { pointerId: 1, clientX: 0, clientY: yOf(-7) });
+    expect(point('125Hz')).toHaveAttribute('aria-valuenow', '-7');
     await act(async () => { fireEvent.pointerCancel(band, { pointerId: 1 }); await vi.advanceTimersByTimeAsync(0); });
-    expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, -7, 0, 0, 0, 0, 0, 0, 0] });
+    expect(api.setSpeakerEq).not.toHaveBeenCalled();
+    expect(point('125Hz')).toHaveAttribute('aria-valuenow', '0');
     await act(async () => { fireEvent.keyDown(point('250Hz'), { key: 'ArrowDown' }); await vi.advanceTimersByTimeAsync(0); });
     expect(api.setSpeakerEq).toHaveBeenLastCalledWith({ bands: [0, 0, 0, -0.5, 0, 0, 0, 0, 0, 0] });
+  });
+
+  it('does not commit a stale band on a plain click after the EQ was turned off mid-drag', async () => {
+    await mount(state());
+    let eqOn = false;
+    api.fetchSpeaker.mockImplementation(async () => state({ eqEnabled: eqOn }));
+    const band = point('125Hz');
+    fireEvent.pointerDown(band, { pointerId: 1, clientX: 0, clientY: yOf(0) });
+    fireEvent.pointerMove(band, { pointerId: 1, clientX: 0, clientY: yOf(-7) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
+    eqOn = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(3100); });
+    const again = point('125Hz');
+    fireEvent.pointerDown(again, { pointerId: 1, clientX: 0, clientY: yOf(0) });
+    await act(async () => { fireEvent.pointerUp(again, { pointerId: 1 }); await vi.advanceTimersByTimeAsync(0); });
+    expect(api.setSpeakerEq).not.toHaveBeenCalled();
   });
 
   it('commits the dragged band when a preset change arrives mid-drag', async () => {

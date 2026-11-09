@@ -258,7 +258,7 @@ function sampleCurveShape(
 // piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear', markers, readOnly = false, verticalDrag, yAxis, keyboardStep,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, onCancel, limitPercent, axis, easing = 'linear', markers, readOnly = false, verticalDrag, yAxis, keyboardStep,
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -270,6 +270,8 @@ export function CurveGraph({
   onChange?: (points: CurvePoint[]) => void;
   /** Fires continuously during a drag (live preview, before commit). */
   onPreview?: (points: CurvePoint[]) => void;
+  /** A pointer drag the browser took over (a touch turned into a pan) is dropped without committing; this lets the owner of any preview state clean up. */
+  onCancel?: () => void;
   /** Draws a dashed horizontal ceiling line at this duty %, e.g. a turbo-off cap. */
   limitPercent?: number;
   axis?: CurveGraphAxis;
@@ -447,7 +449,7 @@ export function CurveGraph({
   };
   const onHandleKey = (idx: number, e: React.KeyboardEvent) => {
     if (!editable || !keyboardStep || !onChange || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-    if (verticalDrag && verticalDrag.isLocked(sorted[idx], idx)) return;
+    if (dragIdxRef.current !== null || (verticalDrag && verticalDrag.isLocked(sorted[idx], idx))) return;
     e.preventDefault();
     const size = keyboardStep * (e.shiftKey ? KEY_SHIFT_MULTIPLIER : 1) * (e.key === 'ArrowUp' ? 1 : -1);
     const value = snapY(sorted[idx].speed + size);
@@ -456,6 +458,12 @@ export function CurveGraph({
     // The cursor may rest on the dot, so its tooltip holds across the commit as it does for a drag.
     holdHoverKeyRef.current = pointsKeyOf(committed);
     onChange(committed);
+  };
+  const onHandleCancel = () => {
+    if (dragIdxRef.current === null) return;
+    dragIdxRef.current = null;
+    setDragPoints(null);
+    onCancel?.();
   };
   const onHandleUp = () => {
     if (dragIdxRef.current === null) return;
@@ -550,7 +558,7 @@ export function CurveGraph({
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
                 onPointerUp={editable ? onHandleUp : undefined}
-                onPointerCancel={editable ? onHandleUp : undefined}
+                onPointerCancel={editable ? onHandleCancel : undefined}
                 onPointerEnter={editable ? () => setHoverIdx(i) : undefined}
                 onPointerLeave={editable ? () => setHoverIdx(null) : undefined}
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined}
