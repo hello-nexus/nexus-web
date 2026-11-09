@@ -1798,6 +1798,8 @@
   "devices.streamdeck.sleepWhenLocked": "Sleep when PC is locked",
   "devices.streamdeck.tab.customize": "Customize",
   "devices.streamdeck.tab.settings": "Settings",
+  "devices.strimer.cable24": "24-pin cable",
+  "devices.strimer.cable8": "8-pin cable",
   "devices.supported.browse": "Supported Devices",
   "devices.tabs.available": "Available",
   "devices.tabs.firmware": "Firmware Updates",
