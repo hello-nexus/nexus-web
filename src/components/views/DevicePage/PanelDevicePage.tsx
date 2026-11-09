@@ -105,6 +105,7 @@ import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { rotationCrossesClass, tileTransposed } from '../../../panel/engine/tileOrientation';
 import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
+import { BrightnessFollowToggle, BrightnessSun, type BrightnessScheduleBinding } from '../../common/BrightnessScheduleButton/BrightnessFollowToggle';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
@@ -2731,6 +2732,8 @@ function OrientationSelectRow({ value, onChange, options }: OrientationSelectRow
 // reused for the Q-series hub, which only ever supplies orientation.
 
 interface MonitorSettingsPanelProps {
+  /** Binds the brightness slider to the universal schedule; omitted hides the sun and the switch. */
+  schedule?: BrightnessScheduleBinding;
   brightness: number | null;
   onBrightness: (v: number) => void;
   // Live value during a drag. Given one, the row persists on commit only - a
@@ -2779,7 +2782,8 @@ interface MonitorSettingsPanelProps {
   onOpenTouchPermission?: () => void;
 }
 
-function MonitorSettingsPanel({
+export function MonitorSettingsPanel({
+  schedule,
   brightness, onBrightness, onBrightnessPreview,
   orientation, onOrientation, orientationOptions,
   screenOff, onScreenOffToggle,
@@ -2816,6 +2820,7 @@ function MonitorSettingsPanel({
           editable
           trackFill
           label={t('devices.y70.brightness')}
+          labelSuffix={schedule && <BrightnessSun binding={schedule} />}
           value={brightness}
           min={0}
           max={100}
@@ -2832,6 +2837,7 @@ function MonitorSettingsPanel({
           onCommit={onBrightness}
         />
       )}
+      {brightness !== null && schedule && <BrightnessFollowToggle binding={schedule} />}
       {xeneonSettings !== null && XENEON_EDGE_CONTROLS.map(({ key, labelKey, min, max }) => (
         <SettingSlider
           key={key}
@@ -2953,6 +2959,8 @@ function TroubleshootingRow({ page }: { page: 'q-series-panels' | 'y70-touch' })
 }
 
 interface SettingsPanelProps {
+  /** Binds the brightness slider to the universal schedule; omitted hides the sun and the switch. */
+  schedule?: BrightnessScheduleBinding;
   brightness: number;
   onBrightness: (v: number) => void;
   orientation: Y70Orientation;
@@ -2989,7 +2997,8 @@ interface SettingsPanelProps {
   variant?: string;
 }
 
-function SettingsPanel({
+export function SettingsPanel({
+  schedule,
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
   forceOrientation, onForceOrientationToggle,
@@ -3065,6 +3074,7 @@ function SettingsPanel({
             editable
             trackFill
             label={t('devices.y70.brightness')}
+            labelSuffix={schedule && <BrightnessSun binding={schedule} />}
             value={brightness}
             min={0}
             max={100}
@@ -3072,6 +3082,8 @@ function SettingsPanel({
             onCommit={onBrightness}
             disabled={usbDisconnected}
           />
+
+          {schedule && <BrightnessFollowToggle binding={schedule} />}
 
           <SettingToggle
             label={t('devices.y70.forceOrientation')}

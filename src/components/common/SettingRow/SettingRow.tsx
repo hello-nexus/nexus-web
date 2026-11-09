@@ -257,6 +257,7 @@ export function SettingSlider({
   mixed,
   mixedLabel,
   valueText,
+  labelSuffix,
 }: {
   label?: string;
   description?: ReactNode;
@@ -283,6 +284,7 @@ export function SettingSlider({
   mixed?: boolean;
   mixedLabel?: string;
   valueText?: string;
+  labelSuffix?: ReactNode;
 }) {
   // Built outside the JSX: the variant id is not UI text, and the i18n literal
   // rule scans JSX only.
@@ -290,6 +292,7 @@ export function SettingSlider({
   return (
     <SettingRow
       label={label}
+      labelSuffix={labelSuffix}
       description={description}
       descriptionBelow={below}
       icon={icon}

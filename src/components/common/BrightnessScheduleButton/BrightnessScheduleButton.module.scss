@@ -1,0 +1,24 @@
+@use '../../../styles/interactions' as *;
+
+// The sun beside a brightness label; opens the schedule editor. Accent-tinted
+// while the thing it sits beside follows the schedule.
+.button {
+  display: inline-flex;
+  margin-left: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  transition: color var(--ease-fast) ease, background var(--ease-fast) ease;
+
+  &:hover:not([aria-disabled]) { color: var(--accent); }
+  &[data-active] {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  &:focus-visible { @include focus-ring; }
+  &[aria-disabled] { cursor: default; }
+}

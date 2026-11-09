@@ -86,6 +86,7 @@ import { OnboardingNote } from '../components/common/OnboardingNote/OnboardingNo
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
 import { OnboardingHeader } from '../components/common/OnboardingHeader/OnboardingHeader';
 import { OnboardingFooter } from '../components/common/OnboardingFooter/OnboardingFooter';
+import { BrightnessScheduleButton } from '../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -1486,6 +1487,15 @@ function PreviewConflictAppCard() {
   );
 }
 
+function PreviewBrightnessScheduleButton() {
+  return (
+    <div className={styles.previewRow}>
+      <BrightnessScheduleButton active canOpen onOpen={() => {}} />
+      <BrightnessScheduleButton active={false} canOpen onOpen={() => {}} />
+    </div>
+  );
+}
+
 function PreviewToggleOff() {
   const [on, setOn] = useState(false);
   return <Toggle checked={on} onChange={setOn} ariaLabel="Sample toggle" />;
@@ -2787,6 +2797,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'RailSearch', category: 'inputs',
     filePath: 'src/components/common/RailSearch/RailSearch.tsx',
     description: 'Looking-glass filter for a page device rail (lighting devices, cooling fans): RailSearchButton sits in the rail header, RailSearchField opens a focused SearchInput above the list, useRailSearch holds the state. Closing (button or Escape) clears the query. Pages match with matchesAllWords and pass the active flag down to switch off rail drag while filtered.', Preview: PreviewRailSearch,
+  },
+  {
+    name: 'BrightnessScheduleButton', category: 'inputs',
+    filePath: 'src/components/common/BrightnessScheduleButton/BrightnessScheduleButton.tsx',
+    description: 'The sun button beside every brightness label (master brightness, panel and display sliders). Accented while the control follows the one universal brightness schedule; opens the shared brightness settings. Left: following. Right: not following. BrightnessFollowToggle.tsx in the same folder holds the per-device "Follow brightness schedule" row.', Preview: PreviewBrightnessScheduleButton,
   },
   {
     name: 'Toggle', category: 'inputs',
