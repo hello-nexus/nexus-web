@@ -376,3 +376,32 @@ describe('stale chunk errors', () => {
     expect(sent().flatMap((b) => b.errors)).toHaveLength(1);
   });
 });
+
+describe('non-Error reasons', () => {
+  const reportedOne = async (reason: unknown) => {
+    reportError(reason, 'unhandled-rejection');
+    await vi.advanceTimersByTimeAsync(5000);
+    return sent()[0].errors[0];
+  };
+
+  it('keeps the message and stack of an Error from another realm', async () => {
+    const foreign = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(foreign, Symbol.toStringTag, { value: 'Error' });
+    foreign.name = 'NotAllowedError';
+    foreign.message = 'denied';
+    foreign.stack = 'at x.js:1:1';
+    const r = await reportedOne(foreign);
+    expect(r.type).toBe('NotAllowedError');
+    expect(r.message).toBe('denied');
+    expect(r.stack).toBe('at x.js:1:1');
+  });
+
+  it('names non-enumerable own properties, never values', async () => {
+    function Error() {}
+    const odd = Object.create(Error.prototype) as object;
+    Object.defineProperty(odd, 'detail', { value: 'secret', enumerable: false });
+    const r = await reportedOne(odd);
+    expect(r.type).toBe('Error');
+    expect(r.message).toBe('Error{detail}');
+  });
+});
