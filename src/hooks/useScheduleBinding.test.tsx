@@ -22,10 +22,10 @@ const make = (over: Partial<BrightnessScheduleState> = {}): BrightnessScheduleSt
   ...over,
 });
 
-const bind = (state: BrightnessScheduleState, extra: { follows?: boolean; capsSlider?: boolean; serviceCap?: number | null } = {}) =>
+const bind = (state: BrightnessScheduleState, extra: { follows?: boolean; capsSlider?: boolean } = {}) =>
   renderHook(() => useScheduleBinding({
     state, follows: extra.follows ?? true, onFollowsChange: vi.fn(), onEdit: vi.fn(),
-    capsSlider: extra.capsSlider, serviceCap: extra.serviceCap,
+    capsSlider: extra.capsSlider,
   })).result.current;
 
 describe('useScheduleBinding', () => {
@@ -77,14 +77,12 @@ describe('useScheduleBinding', () => {
     expect(state.save).toHaveBeenCalledWith({ enabled: true, points: POINTS });
   });
 
-  it('caps at the service cap, falling back to the schedule level when it says nothing', () => {
-    expect(bind(make(), { serviceCap: 64 }).capPercent).toBe(64);
-    expect(bind(make()).capPercent).toBe(100);
+  it('caps at the schedule level from the local curve', () => {
+    expect(bind(make({ current: 64 })).capPercent).toBe(64);
   });
 
-  it('has no cap while the schedule is off, the control does not follow, or the service says null', () => {
+  it('has no cap while the schedule is off or the control does not follow', () => {
     expect(bind(make({ schedule: { enabled: false, points: POINTS }, current: null })).capPercent).toBeNull();
     expect(bind(make(), { follows: false }).capPercent).toBeNull();
-    expect(bind(make(), { serviceCap: null }).capPercent).toBeNull();
   });
 });

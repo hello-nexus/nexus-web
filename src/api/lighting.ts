@@ -1381,17 +1381,15 @@ export const setIdleDim = (settings: IdleDimSettings) =>
 
 /**
  * One device's place in the brightness schedule. Key is the surface's stable
- * id: "y70", "corsair-lcd", or a display id. levelPercent is the schedule
- * multiplier on the device now (100 while it does not follow); appliedPercent is
- * its slider times that, null when the slider is unknown.
+ * id: "y70", "corsair-lcd", or a display id. levelPercent is the schedule's
+ * level capping the device now (100 while it does not follow); appliedPercent is
+ * the lower of its slider and that level, null when the slider is unknown.
  */
 export interface ScheduleFollowDevice {
   key: string;
   follows: boolean;
   levelPercent: number;
   appliedPercent: number | null;
-  /** The schedule level capping the device now; null when it does not follow or the schedule is off. Absent on an older service. */
-  capPercent?: number | null;
 }
 
 /** A device the list does not mention does not follow the schedule. */

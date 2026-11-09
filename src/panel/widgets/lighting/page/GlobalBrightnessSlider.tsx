@@ -90,7 +90,7 @@ interface GlobalBrightnessSliderViewProps {
  * popover holds the lighting follow switch. The schedule only caps the slider
  * while it is on and lighting follows it.
  */
-export function GlobalBrightnessSliderView({
+function GlobalBrightnessSliderView({
   percent, binding, onChange, onCommit,
 }: GlobalBrightnessSliderViewProps) {
   const { t } = useTranslation();

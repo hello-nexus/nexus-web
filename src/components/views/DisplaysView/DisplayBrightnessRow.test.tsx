@@ -7,6 +7,7 @@ const api = vi.hoisted(() => ({
   setDisplayBrightness: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('../../../api/displays', () => api);
+vi.mock('../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: () => {} }));
 const sched = vi.hoisted(() => ({ useDeviceScheduleBinding: vi.fn() }));
 vi.mock('../../../hooks/useDeviceScheduleBinding', () => sched);
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
@@ -36,7 +37,11 @@ describe('DisplayBrightnessRow', () => {
     const slider = await screen.findByRole('slider', { name: 'devices.y70.brightness' });
     expect(slider).toHaveValue('70');
     expect(sched.useDeviceScheduleBinding).toHaveBeenLastCalledWith('DEL-A0B8', true);
+    // A drag step moves the local value only; the write is the commit's alone.
     fireEvent.change(slider, { target: { value: '40' } });
+    expect(api.setDisplayBrightness).not.toHaveBeenCalled();
+    fireEvent.pointerUp(slider);
     await waitFor(() => expect(api.setDisplayBrightness).toHaveBeenCalledWith('DEL-A0B8', 40));
+    expect(api.setDisplayBrightness).toHaveBeenCalledTimes(1);
   });
 });

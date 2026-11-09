@@ -52,7 +52,6 @@ beforeEach(() => {
     theme: buildPanelTheme(null, null),
     themeMode: 'dark',
     selectedWidgetId: null,
-    brightness: 100,
     screenOn: true,
     showPanel: true,
   });

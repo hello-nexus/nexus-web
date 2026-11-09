@@ -10,19 +10,18 @@ import type { BrightnessScheduleState } from './useBrightnessSchedule';
  * the status line for the popover, and the schedule's own on/off and editor.
  *
  * A device is capped by the schedule (it wears the lower of its slider and the
- * schedule's level): `capsSlider` makes the status line's "Now" that minimum,
- * and `serviceCap` is the cap the service reports for it (null while it does
- * not follow; undefined from a service that does not say, which falls back to
- * the schedule's level computed here). Lighting shows the schedule's level.
+ * schedule's level): `capsSlider` makes the status line's "Now" that minimum.
+ * The cap marker is the schedule's level from the local curve, which the
+ * schedule hook re-evaluates each minute; the service never broadcasts while the
+ * curve drifts, so its own reading would go stale. Lighting shows the level too.
  */
-export function useScheduleBinding({ state, follows, onFollowsChange, onEdit, onOpen, capsSlider = false, serviceCap }: {
+export function useScheduleBinding({ state, follows, onFollowsChange, onEdit, onOpen, capsSlider = false }: {
   state: BrightnessScheduleState;
   follows: boolean;
   onFollowsChange: (next: boolean) => void;
   onEdit: () => void;
   onOpen?: () => void;
   capsSlider?: boolean;
-  serviceCap?: number | null;
 }): BrightnessScheduleBinding {
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
@@ -48,7 +47,7 @@ export function useScheduleBinding({ state, follows, onFollowsChange, onEdit, on
 
   return {
     scheduleOn, follows, onFollowsChange, onEdit, onOpen, statusAt,
-    capPercent: scheduleOn && follows && current !== null ? (serviceCap !== undefined ? serviceCap : current) : null,
+    capPercent: scheduleOn && follows && current !== null ? current : null,
     onTurnOn: () => { if (schedule) void save({ ...schedule, enabled: true }); },
   };
 }

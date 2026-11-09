@@ -89,7 +89,6 @@ interface PanelEmbedFrameProps {
   transposedTile?: boolean;
   // The Large-size grid that sizes floating chrome in the preview.
   chromeGrid?: ChromeGrid;
-  brightness: number;
   screenOn: boolean;
   showPanel: boolean;
 }
@@ -239,7 +238,6 @@ export function PanelEmbedFrame({
   shortSideSlots,
   transposedTile = false,
   chromeGrid,
-  brightness,
   screenOn,
   showPanel,
   deviceId,
@@ -396,7 +394,6 @@ export function PanelEmbedFrame({
       theme,
       themeMode,
       selectedWidgetId,
-      brightness,
       screenOn,
       showPanel,
       deviceId,
@@ -471,8 +468,8 @@ export function PanelEmbedFrame({
 
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-display', brightness, screenOn, showPanel });
-  }, [childReady, brightness, screenOn, showPanel, post]);
+    post({ type: 'simulator/set-display', screenOn, showPanel });
+  }, [childReady, screenOn, showPanel, post]);
 
   // Same-origin iframe, so its document rasterizes directly. The SVG
   // foreignObject render is vector, so drawing at the native output size

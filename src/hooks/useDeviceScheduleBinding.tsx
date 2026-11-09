@@ -28,7 +28,6 @@ export function useDeviceScheduleBinding(
     onEdit: () => setEditing(true),
     onOpen: refresh,
     capsSlider: true,
-    serviceCap: entry?.capPercent,
   });
   return {
     binding: active && state.schedule !== null ? binding : null,

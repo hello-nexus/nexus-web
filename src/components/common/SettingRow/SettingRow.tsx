@@ -297,7 +297,7 @@ export function SettingSlider({
   return (
     <SettingRow
       label={label}
-      labelSuffix={sched.sun ?? labelSuffix}
+      labelSuffix={sched.sun || labelSuffix ? <>{sched.sun}{labelSuffix}</> : undefined}
       description={description}
       descriptionBelow={below}
       icon={icon}

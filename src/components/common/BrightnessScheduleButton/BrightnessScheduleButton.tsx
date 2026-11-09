@@ -27,9 +27,9 @@ export interface BrightnessScheduleBinding {
   /** The popover opened: a chance to refresh what it shows. */
   onOpen?: () => void;
   /**
-   * The level the schedule caps this control at right now (its slider times the
-   * schedule's level for a device); null while the schedule is off or this
-   * control does not follow it.
+   * The schedule's level capping this control right now (it wears the lower of
+   * its slider and this); null while the schedule is off or this control does
+   * not follow it.
    */
   capPercent: number | null;
 }
@@ -69,7 +69,7 @@ export function BrightnessScheduleButton({ binding, sliderValue = null }: Bright
     return () => window.clearInterval(timer);
   }, [open, onOpen]);
   const toggle = () => setOpen(o => !o);
-  const statusLine = binding.statusAt(minuteOfDay(now), sliderValue);
+  const statusLine = open ? binding.statusAt(minuteOfDay(now), sliderValue) : null;
   return (
     <span ref={anchorRef} style={{ display: 'inline-flex' }}>
       <HoverTooltip

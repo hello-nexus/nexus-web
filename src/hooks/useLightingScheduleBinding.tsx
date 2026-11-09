@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { BrightnessScheduleBinding } from '../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { BrightnessScheduleModal } from '../components/views/SettingsView/BrightnessScheduleModal';
-import { useBrightnessSchedule, type BrightnessScheduleState } from './useBrightnessSchedule';
+import { useBrightnessSchedule } from './useBrightnessSchedule';
 import { useScheduleBinding } from './useScheduleBinding';
 
 /**
@@ -14,7 +14,6 @@ import { useScheduleBinding } from './useScheduleBinding';
 export function useLightingScheduleBinding(serviceOnline: boolean): {
   binding: BrightnessScheduleBinding | null;
   modal: ReactNode;
-  state: BrightnessScheduleState;
 } {
   const state = useBrightnessSchedule(serviceOnline);
   const [editing, setEditing] = useState(false);
@@ -27,6 +26,5 @@ export function useLightingScheduleBinding(serviceOnline: boolean): {
   return {
     binding: serviceOnline && state.schedule !== null ? binding : null,
     modal: editing ? <BrightnessScheduleModal open onClose={() => setEditing(false)} state={state} /> : null,
-    state,
   };
 }

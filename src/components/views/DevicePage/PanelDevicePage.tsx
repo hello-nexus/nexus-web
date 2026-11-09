@@ -62,7 +62,6 @@ import { largeChromeGrid, previewChromeGrid, forcedGridOf, isSingleWidgetSurface
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
-  fetchDisplays,
   fetchDisplayTopology,
   fetchXeneonEdgeSettings,
   launchTouchSetupWizard,
@@ -105,6 +104,7 @@ import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { rotationCrossesClass, tileTransposed } from '../../../panel/engine/tileOrientation';
 import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
+import { useDdcBrightness } from '../../../hooks/useDdcBrightness';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { type BrightnessScheduleBinding } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -199,9 +199,7 @@ const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFl
 // the page can tell apart "unplugged", "enumerated but adb wedged", and
 // "Windows deferred the USB reset" without a full reload.
 const QSERIES_LINK_POLL_INTERVAL_MS = 5_000;
-// Monitor DDC/CI can answer minutes after host boot; the host scan retries for about 15 minutes.
-export const DDC_PROBE_MS = 12_000;
-const DDC_PROBE_TIMEOUT_MS = 20 * 60_000;
+export { DDC_PROBE_MS } from '../../../hooks/useDdcBrightness';
 // After a manual repair, poll faster and give up once the recovery pass has
 // had a realistic chance to bring adb back.
 const QSERIES_LINK_REPAIR_POLL_INTERVAL_MS = 3_000;
@@ -516,32 +514,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   }, [glassSurface, device?.family, device?.previewSize, device?.previewDpi, device?.previewDpr]);
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
-  const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);
   const ddcDisplayId = device?.displayId ?? null;
-  useEffect(() => {
-    if (!ddcDisplayId) return;
-    let cancelled = false;
-    let timer: number | undefined;
-    const deadline = Date.now() + DDC_PROBE_TIMEOUT_MS;
-    const probe = () => {
-      fetchDisplays().then(list => {
-        if (cancelled) return;
-        const display = list?.displays.find(d => d.id === ddcDisplayId);
-        if (display?.brightnessControl.supported) {
-          setDdcBrightness(display.brightnessControl.current ?? 50);
-          return;
-        }
-        if (Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
-      }).catch(() => {
-        if (!cancelled && Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
-      });
-    };
-    probe();
-    return () => {
-      cancelled = true;
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
-  }, [ddcDisplayId]);
+  const { value: ddcBrightness, setValue: setDdcBrightness } = useDdcBrightness(ddcDisplayId);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
   // Rotation and the monitor-reserve guard exist only on hosts that
   // implement them (rotation: Windows, macOS; reserve: Windows).
@@ -2337,7 +2311,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                 // the record fetch fills liveCanvas.
                 canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
                 gridDpi={previewGridDpi}
-                brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
@@ -2796,7 +2769,7 @@ interface MonitorSettingsPanelProps {
   onOpenTouchPermission?: () => void;
 }
 
-export function MonitorSettingsPanel({
+function MonitorSettingsPanel({
   schedule,
   brightness, onBrightness, onBrightnessPreview,
   orientation, onOrientation, orientationOptions,
@@ -3012,7 +2985,7 @@ interface SettingsPanelProps {
   variant?: string;
 }
 
-export function SettingsPanel({
+function SettingsPanel({
   schedule,
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,

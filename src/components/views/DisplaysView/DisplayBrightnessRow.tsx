@@ -1,50 +1,23 @@
-import { useEffect, useState } from 'react';
-import { fetchDisplays, setDisplayBrightness } from '../../../api/displays';
+import { setDisplayBrightness } from '../../../api/displays';
+import { useDdcBrightness } from '../../../hooks/useDdcBrightness';
 import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useTranslation } from '../../../lib/i18n';
 import { SettingSlider } from '../../common/SettingRow/SettingRow';
-
-// DDC answers slowly after it is switched on, so the first read may not yet report support.
-const PROBE_MS = 1500;
-const PROBE_TRIES = 6;
 
 /**
  * The brightness row of a DDC display on the Displays tab: the same slider row
  * as the device pages, with the schedule sun keyed by the display id (the key
  * the service uses for DDC monitors). Renders nothing until the display
- * reports DDC brightness.
+ * reports DDC brightness. A drag only moves the local value; the release
+ * writes once.
  */
 export function DisplayBrightnessRow({ displayId }: { displayId: string }) {
   const { t } = useTranslation();
-  const [value, setValue] = useState<number | null>(null);
+  const { value, setValue } = useDdcBrightness(displayId);
   const { binding, modal } = useDeviceScheduleBinding(value !== null ? displayId : null, true);
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: number | undefined;
-    let tries = 0;
-    const probe = () => {
-      fetchDisplays().then(list => {
-        if (cancelled) return;
-        const display = list?.displays.find(d => d.id === displayId);
-        if (display?.brightnessControl.supported) {
-          setValue(display.brightnessControl.current ?? 50);
-          return;
-        }
-        if (++tries < PROBE_TRIES) timer = window.setTimeout(probe, PROBE_MS);
-      }).catch(() => {
-        if (!cancelled && ++tries < PROBE_TRIES) timer = window.setTimeout(probe, PROBE_MS);
-      });
-    };
-    probe();
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [displayId]);
-
   if (value === null) return null;
-  const write = (v: number) => {
+  const commit = (v: number) => {
     setValue(v);
     void setDisplayBrightness(displayId, v).catch(() => {});
   };
@@ -59,8 +32,8 @@ export function DisplayBrightnessRow({ displayId }: { displayId: string }) {
         value={value}
         min={0}
         max={100}
-        onChange={write}
-        onCommit={write}
+        onChange={setValue}
+        onCommit={commit}
       />
     </>
   );

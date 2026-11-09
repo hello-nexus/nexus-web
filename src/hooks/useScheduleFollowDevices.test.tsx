@@ -80,8 +80,26 @@ describe('useScheduleFollowDevices', () => {
   it('exposes a refresh for the popover opening', async () => {
     const { result } = renderHook(() => useScheduleFollowDevices(true));
     await waitFor(() => expect(result.current.devices.y70).toBeDefined());
-    api.fetchScheduleFollowDevices.mockClear().mockResolvedValue({ devices: [{ ...y70, capPercent: 55 }] });
+    api.fetchScheduleFollowDevices.mockClear().mockResolvedValue({ devices: [{ ...y70, levelPercent: 55 }] });
     act(() => { result.current.refresh(); });
-    await waitFor(() => expect(result.current.devices.y70.capPercent).toBe(55));
+    await waitFor(() => expect(result.current.devices.y70.levelPercent).toBe(55));
+  });
+
+  it('keeps the newest toggle when an older write answers late', async () => {
+    const { result } = renderHook(() => useScheduleFollowDevices(true));
+    await waitFor(() => expect(result.current.devices.y70).toBeDefined());
+    const answers: Array<(v: unknown) => void> = [];
+    api.setScheduleFollowDevice.mockImplementation(() => new Promise(r => { answers.push(r); }));
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    act(() => { first = result.current.setFollows('y70', false); });
+    act(() => { second = result.current.setFollows('y70', true); });
+    expect(result.current.devices.y70.follows).toBe(true);
+    // The first toggle answers after the second was sent: its state must not win.
+    api.fetchScheduleFollowDevices.mockResolvedValue({ devices: [y70] });
+    await act(async () => { answers[0]({ ...y70, follows: false }); await first; });
+    expect(result.current.devices.y70.follows).toBe(true);
+    await act(async () => { answers[1]({ ...y70, follows: true }); await second; });
+    expect(result.current.devices.y70.follows).toBe(true);
   });
 });

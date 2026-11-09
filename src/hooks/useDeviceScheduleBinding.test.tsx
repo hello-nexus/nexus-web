@@ -1,4 +1,4 @@
-import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDeviceScheduleBinding } from './useDeviceScheduleBinding';
 
@@ -38,9 +38,11 @@ describe('useDeviceScheduleBinding', () => {
   it('gives no binding without a key or while the service is offline', async () => {
     const noKey = renderHook(() => useDeviceScheduleBinding(null, true));
     const offline = renderHook(() => useDeviceScheduleBinding('y70', false));
-    await new Promise(r => setTimeout(r, 20));
+    // Flush the effects and any request they would have made.
+    await act(async () => { await Promise.resolve(); });
     expect(noKey.result.current.binding).toBeNull();
     expect(offline.result.current.binding).toBeNull();
+    expect(api.fetchBrightnessSchedule).not.toHaveBeenCalled();
     expect(api.fetchScheduleFollowDevices).not.toHaveBeenCalled();
   });
 

@@ -24,7 +24,7 @@ const schedule = vi.hoisted(() => ({
   multiplier: false,
 }));
 vi.mock('../../../../hooks/useLightingScheduleBinding', () => ({
-  useLightingScheduleBinding: () => ({ binding: schedule.binding, modal: null, state: {} }),
+  useLightingScheduleBinding: () => ({ binding: schedule.binding, modal: null }),
 }));
 vi.mock('../../../../hooks/useMasterScalesDevices', () => ({
   useMasterScalesDevices: () => ({ on: schedule.multiplier, save: vi.fn() }),
