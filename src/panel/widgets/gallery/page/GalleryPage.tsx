@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, ListPlus, ListVideo, Pencil, Play, Plus, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, ListPlus, ListVideo, Pencil, Play, Plus, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
@@ -11,6 +11,8 @@ import { EmptyState } from '../../../../components/common/EmptyState/EmptyState'
 import { Notice } from '../../../../components/common/Notice/Notice';
 import { Pager } from '../../../../components/common/Pager/Pager';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
+import { Select } from '../../../../components/common/Select/Select';
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -20,6 +22,7 @@ import { postGalleryDrop, subscribeGalleryDropPaths } from '../../../../app/wind
 import {
   addGallerySource,
   createGalleryPlaylist,
+  DEFAULT_GALLERY_SORT,
   GALLERY_ERROR_DUPLICATE,
   GALLERY_ERROR_LIMIT,
   GALLERY_PLAYLIST_NAME_MAX,
@@ -38,10 +41,13 @@ import {
   toggleGalleryPlaylistItem,
   toggleGalleryPlaylistSource,
   updateGalleryPlaylist,
+  updateGallerySort,
   type GalleryItem,
   type GalleryPlaylist,
   type GalleryPlaylistMutation,
   type GalleryPlaylistUse,
+  type GallerySort,
+  type GallerySortKey,
   type GallerySource,
 } from '../../../../api/gallery';
 import { clampGalleryPage, galleryKeepIds, galleryPageCount, galleryPageSlice } from './galleryPaging';
@@ -106,14 +112,20 @@ export function GalleryPage() {
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const pendingSavesRef = useRef(0);
   const editGenerationRef = useRef(0);
+  const [sort, setSort] = useState<GallerySort>(DEFAULT_GALLERY_SORT);
+  // Same guard as playlists: a read that went out before the latest sort
+  // change must not put the old choice back on screen.
+  const sortGenerationRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const generation = editGenerationRef.current;
+    const sortGeneration = sortGenerationRef.current;
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
     if (src?.sources) setSources(src.sources);
     if (itm?.items) {
       setItems(itm.items);
       setTruncated(itm.truncated === true);
+      if (itm.sort && sortGeneration === sortGenerationRef.current) setSort(itm.sort);
     }
     if (itm?.items && pendingSavesRef.current === 0 && generation === editGenerationRef.current) {
       setPlaylists(itm.playlists ?? []);
@@ -288,6 +300,20 @@ export function GalleryPage() {
       setPicking(null);
     }
   };
+
+  const changeSort = async (next: GallerySort) => {
+    sortGenerationRef.current++;
+    setSort(next);
+    if (!(await updateGallerySort(next))) setActionError(t('gallery.page.sort.saveFailed'));
+    await refresh();
+  };
+
+  const sortOptions: { value: GallerySortKey; label: string }[] = [
+    { value: 'name', label: t('gallery.page.sort.name') },
+    { value: 'modified', label: t('gallery.page.sort.modified') },
+    { value: 'added', label: t('gallery.page.sort.added') },
+  ];
+  const directionLabel = sort.direction === 'asc' ? t('gallery.page.sort.ascending') : t('gallery.page.sort.descending');
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -469,7 +495,29 @@ export function GalleryPage() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <ViewHeader title={t('panel.widget.gallery')} />
+      <ViewHeader
+        title={t('panel.widget.gallery')}
+        tabActions={(
+          <>
+            <Select
+              value={sort.by}
+              options={sortOptions}
+              ariaLabel={t('gallery.page.sort.label')}
+              onChange={by => { void changeSort({ ...sort, by: by as GallerySortKey }); }}
+            />
+            <HoverTooltip body={directionLabel}>
+              <Button
+                size="sm"
+                tone="ghost"
+                icon={sort.direction === 'asc' ? <ArrowUpNarrowWide size={16} /> : <ArrowDownWideNarrow size={16} />}
+                aria-label={directionLabel}
+                onClick={() => { void changeSort({ ...sort, direction: sort.direction === 'asc' ? 'desc' : 'asc' }); }}
+              />
+            </HoverTooltip>
+            <InfoTooltip message={t('gallery.page.sort.info')} />
+          </>
+        )}
+      />
       <div className={`${styles.body} pageBody`}>
         {/* Static-width sources column (300px, matching the Lighting /
             Cooling device-column width); the library fills the rest. No

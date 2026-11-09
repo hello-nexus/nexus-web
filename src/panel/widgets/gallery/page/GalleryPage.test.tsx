@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob } from '../../../../api/service';
+import { updateGallerySort } from '../../../../api/gallery';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
@@ -11,13 +12,18 @@ const mockState = vi.hoisted(() => ({
   uses: [] as { surface: 'dashboard' | 'panel'; name: string; count: number }[] | null,
   bridgeAvailable: false,
   truncated: false,
+  sort: undefined as { by: 'name' | 'modified' | 'added'; direction: 'asc' | 'desc' } | undefined,
 }));
 
 vi.mock('../../../../api/gallery', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../api/gallery')>()),
   GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
-  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists, truncated: mockState.truncated })),
+  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists, truncated: mockState.truncated, sort: mockState.sort })),
+  updateGallerySort: vi.fn((sort: typeof mockState.sort) => {
+    mockState.sort = sort;
+    return Promise.resolve(true);
+  }),
   createGalleryPlaylist: vi.fn((name: string) => {
     const playlist = { id: 'pl-new', name, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [] };
     mockState.playlists = [...mockState.playlists, playlist];
@@ -79,6 +85,7 @@ beforeEach(() => {
   mockState.uses = [];
   mockState.bridgeAvailable = false;
   mockState.truncated = false;
+  mockState.sort = undefined;
   vi.clearAllMocks();
   vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(null));
   let n = 0;
@@ -92,6 +99,51 @@ afterEach(() => {
 });
 
 describe('GalleryPage', () => {
+  it('shows the sort the service applies', async () => {
+    mockState.sort = { by: 'modified', direction: 'desc' };
+    render(<GalleryPage />);
+
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.descending' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.modified');
+  });
+
+  it('defaults to name ascending against a service without the setting', async () => {
+    render(<GalleryPage />);
+
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.name');
+  });
+
+  it('saves a new sort key, keeping the direction', async () => {
+    mockState.sort = { by: 'name', direction: 'desc' };
+    render(<GalleryPage />);
+    await screen.findByRole('button', { name: 'gallery.page.sort.descending' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.sort.label' }));
+    fireEvent.click(screen.getByRole('option', { name: 'gallery.page.sort.added' }));
+
+    await waitFor(() => expect(updateGallerySort).toHaveBeenCalledWith({ by: 'added', direction: 'desc' }));
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.added');
+  });
+
+  it('flips the direction on its own button', async () => {
+    mockState.sort = { by: 'added', direction: 'asc' };
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' }));
+
+    await waitFor(() => expect(updateGallerySort).toHaveBeenCalledWith({ by: 'added', direction: 'desc' }));
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.descending' })).toBeTruthy();
+  });
+
+  it('explains that the sort also orders widgets and slideshows', async () => {
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'infoTooltip.ariaLabel' }));
+
+    expect(screen.getByRole('tooltip').textContent).toBe('gallery.page.sort.info');
+  });
+
   it('shows the feature intro when there are no sources', async () => {
     render(<GalleryPage />);
 
