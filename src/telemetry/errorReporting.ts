@@ -104,13 +104,22 @@ function describeCauses(error: Error): { message: string; stack: string } {
 
 // An Error from another realm (iframe, injected script) fails instanceof but still carries the Error tag.
 function isForeignError(error: object): boolean {
-  const tag = Object.prototype.toString.call(error);
+  let tag = '';
+  try {
+    tag = Object.prototype.toString.call(error);
+  } catch {
+    return false;
+  }
   return tag === '[object Error]' || tag === '[object DOMException]';
 }
 
 function stringField(error: object, field: string): string {
-  const value: unknown = (error as Record<string, unknown>)[field];
-  return typeof value === 'string' ? value : '';
+  try {
+    const value: unknown = (error as Record<string, unknown>)[field];
+    return typeof value === 'string' ? value : '';
+  } catch {
+    return '';
+  }
 }
 
 function describe(error: unknown): { type: string; message: string; own: string; stack: string } {
@@ -133,7 +142,12 @@ function describe(error: unknown): { type: string; message: string; own: string;
     if (isForeignError(error)) {
       const name = stringField(error, 'name');
       const message = stringField(error, 'message');
-      return { type: name === '' ? 'Error' : name, message, own: message, stack: stringField(error, 'stack') };
+      return {
+        type: name === '' ? 'Error' : cap(name, CAPS.type),
+        message: cap(message, CAPS.message),
+        own: message,
+        stack: cap(stringField(error, 'stack'), CAPS.stack),
+      };
     }
     const ctor: unknown = Object.getPrototypeOf(error)?.constructor?.name;
     const type = typeof ctor === 'string' && ctor !== '' ? ctor : 'object';
