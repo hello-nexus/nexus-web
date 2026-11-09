@@ -103,6 +103,7 @@ import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { createUuid } from '../../../lib/uuid';
 import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { rotationCrossesClass, tileTransposed } from '../../../panel/engine/tileOrientation';
 import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -468,6 +469,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const canvasDpr = glassSurface === 'q60' ? 1 : ((liveCanvas ? liveDpr : device?.previewDpr) || 1);
   // Same canvas, ratio and density the editor's monitor grid uses (monitorGridCapacity).
   const editorCanvas = liveCanvas ?? device?.previewSize;
+  // A quarter-turn render swaps the single tile's axes to follow the effective size.
+  const transposedTile = tileTransposed(surface, recordRotation, editorCanvas);
   const densitySlots = editorCanvas
     ? densityShortSideSlots(editorCanvas.width, editorCanvas.height, canvasDpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor)
     : undefined;
@@ -501,6 +504,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       : undefined;
     return {
       surface: laidOut,
+      transposedTile: tileTransposed(laidOut, resolveRecordRotation(record), canvas),
       touch: record?.displayId ? true : laidOut === glassSurface ? touch : surfaceSupportsTouch(glassSurface, touch),
       forcedGrid: forcedGridOf(
         panelShortSideSlots(glassSurface, family, sizeOf, canvasDensitySlots),
@@ -768,7 +772,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setRecordTouch(match?.capabilities?.touch);
       const loaded = layoutSurfaceOf(match, match?.capabilities?.touch ?? device?.capabilities.touch);
       const savedLayout = match?.layout ?? defaultLayoutForSurface(loaded.surface);
-      setLayout(normalizePanelLayout(savedLayout, loaded.surface, loaded.touch, loaded.forcedGrid, !!match?.displayId));
+      setLayout(normalizePanelLayout(savedLayout, loaded.surface, loaded.touch, loaded.forcedGrid, !!match?.displayId, loaded.transposedTile));
       if (prefs) {
         setAutoLaunch(prefs.panel?.autoLaunch ?? true);
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
@@ -821,7 +825,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     // its one tile; the multi-page fallback below would offer canvas that does
     // not exist and let the editor place widgets the device cannot show. Same
     // span the runtime derives its grid from, so the two cannot diverge.
-    const singleSize = singleWidgetSurfaceSize(surface);
+    const singleSize = singleWidgetSurfaceSize(surface, transposedTile);
     if (singleSize) {
       const span = sizeToSpan(singleSize);
       return { gridCols: span.cols, pageRows: span.rows };
@@ -875,7 +879,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       );
     }
     return { gridCols: 4, pageRows: 16 };
-  }, [surface, shortSideSlots, liveCanvas, liveDpr, canvasDpr, liveDpi, layoutDpi, device?.previewSize, device?.previewDpi, device?.previewDpr, theme.widgetPadding]);
+  }, [surface, transposedTile, shortSideSlots, liveCanvas, liveDpr, canvasDpr, liveDpi, layoutDpi, device?.previewSize, device?.previewDpi, device?.previewDpr, theme.widgetPadding]);
 
   // True when editorCapacity reflects the device's real grid rather than a
   // fallback guess. Single-widget and y70 fixed grids ARE the runtime grid; monitor is
@@ -936,7 +940,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       // Widget size is written with the layout, so it goes stale the same way.
       setRecordWidgetSize(recordWidgetSizeOf(record, glassSurface) ?? null);
       const synced = layoutSurfaceOf(record, record.capabilities?.touch ?? glassTouch);
-      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid, !!record.displayId));
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(synced.surface), synced.surface, synced.touch, synced.forcedGrid, !!record.displayId, synced.transposedTile));
     }).catch(() => {});
   }, [editingDeviceId, glassSurface, glassTouch, layoutSurfaceOf]);
 
@@ -1010,8 +1014,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     // fallback guess: the bytes stay un-conformed and every render path
     // re-fits them at its own capacity.
     const normalized = editorCapacityDerived
-      ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel), editorCapacity)
-      : normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel);
+      ? repaginatePanelLayout(normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel, transposedTile), editorCapacity)
+      : normalizePanelLayout(next, surface, registryTouch, forcedGrid, isMonitorPanel, transposedTile);
     // Held pages ride along untouched; only the active page is pinned to the first.
     const stored = genericOnePage && normalized.pages[0] && normalized.activePageId !== normalized.pages[0].id
       ? { ...normalized, activePageId: normalized.pages[0].id }
@@ -1035,7 +1039,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
         return persist(record.id);
       }
     }).finally(() => { allocatingRef.current = false; });
-  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, isMonitorPanel, editorCapacity, editorCapacityDerived, genericOnePage, writeRecordPatch]);
+  }, [editingDeviceId, simulatorId, surface, glassSurface, registryTouch, forcedGrid, transposedTile, isMonitorPanel, editorCapacity, editorCapacityDerived, genericOnePage, writeRecordPatch]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -1113,8 +1117,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const [previewPlaylist, setPreviewPlaylist] = useState<{ type: string | null; at: number }>({ type: null, at: 0 });
   const handlePlaylistShown = useCallback((type: string | null) => setPreviewPlaylist({ type, at: Date.now() }), []);
   const playingTypes = useMemo(
-    () => (playlistMode ? playingPlaylistTypes(layout, surface, registryTouch) ?? [] : []),
-    [registryTouch, layout, playlistMode, surface],
+    () => (playlistMode ? playingPlaylistTypes(layout, surface, registryTouch, transposedTile) ?? [] : []),
+    [registryTouch, layout, playlistMode, surface, transposedTile],
   );
   const stepPlaylist = useCallback((delta: 1 | -1) => {
     // A jump the preview has not reported yet is the newer position.
@@ -1133,12 +1137,12 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
       setConfiguringWidgetId(current.id);
       return;
     }
-    const size = singleWidgetSurfaceSize(surface);
+    const size = singleWidgetSurfaceSize(surface, transposedTile);
     if (!size) return;
     const next: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
     updateLayout(swapSingleWidget(layout, next));
     setConfiguringWidgetId(next.id);
-  }, [layout, surface, updateLayout]);
+  }, [layout, surface, transposedTile, updateLayout]);
 
   // Returns the id of the widget that landed so the catalog can offer
   // "click to edit" on the card that was just clicked.
@@ -1288,7 +1292,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     const target = widgetSizeOptions.layoutSurface[mode] ?? glassSurface;
     const targetTouch = isMonitorPanel ? true : target === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
     const targetSlots = widgetSizeShortSideSlots(widgetSizeOptions, mode, densitySlots);
-    const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)), isMonitorPanel);
+    const normalized = normalizePanelLayout(layout, target, targetTouch, forcedGridOf(targetSlots, isLandscapeCanvas(liveCanvas ?? device?.previewSize)), isMonitorPanel, tileTransposed(target, recordRotation, liveCanvas ?? device?.previewSize));
     const kept = new Set(normalized.pages.flatMap(p => p.widgets.map(w => w.id)));
     const removed = layout.pages.flatMap(p => p.widgets).filter(w => !kept.has(w.id));
     // A size can leave widgets without room, forced grid or not (Large returns to the fixed grid):
@@ -1302,7 +1306,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     const fitMode = surfaceAllowsPages(target, targetTouch, isMonitorPanel, genericDisplay) && !genericSinglePage(genericDisplay, glassSurface, glassTouch) ? 'pages' : 'single';
     const fit = fitLayoutForWidgetSize(normalized, capacity, fitMode, MAX_PANEL_PAGES);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, theme.widgetPadding, widgetSizeOptions]);
+  }, [canvasDpr, densitySlots, device?.previewDpi, device?.previewSize, glassSurface, glassTouch, genericDisplay, isMonitorPanel, layout, layoutDpi, liveCanvas, liveDpi, recordRotation, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -1657,6 +1661,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                 surface={surface}
                 deviceTouch={registryTouch}
                 forcedGrid={forcedGrid}
+                transposedTile={transposedTile}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
                 docked={dockPreview}
@@ -1705,6 +1710,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                           displayBound={isMonitorPanel}
                           genericDisplay={genericDisplay}
                           forcedGrid={forcedGrid}
+                          transposedTile={transposedTile}
                           glassAspect={editorCanvas ? editorCanvas.width / editorCanvas.height : undefined}
                           onAdd={handleAddWidget}
                           canAddSize={canAddSize}
@@ -2077,17 +2083,21 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                               const next = normalizeRotation(Number(v));
                               if (next === undefined) return;
                               const seq = ++rotationSeqRef.current;
+                              const previous = confirmedRotationRef.current;
                               setRecordRotation(next);
                               const id = device?.panelRecordId;
                               if (!id) return;
                               void patchPanelDevice(id, { rotation: next })
                                 .then(r => {
-                                  if (r) confirmedRotationRef.current = next;
-                                  else if (seq === rotationSeqRef.current) setRecordRotation(confirmedRotationRef.current);
+                                  if (r) {
+                                    confirmedRotationRef.current = next;
+                                    // The service keeps a layout per orientation class, so crossing one reads the other slot and the new render size.
+                                    if (rotationCrossesClass(previous, next)) refetchDeviceRecord();
+                                  } else if (seq === rotationSeqRef.current) setRecordRotation(confirmedRotationRef.current);
                                 })
                                 .catch(() => { if (seq === rotationSeqRef.current) setRecordRotation(confirmedRotationRef.current); });
                             }}
-                            options={rotationOptions(recordSupportedRotations, glassSurface, t)}
+                            options={rotationOptions(recordSupportedRotations)}
                           />
                         )}
                         <SettingToggle
@@ -2318,6 +2328,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
                 shortSideSlots={shortSideSlots}
+                transposedTile={transposedTile}
                 chromeGrid={previewChrome}
                 displayBound={!!device?.displayId}
                 genericDisplay={genericDisplay}
@@ -2471,6 +2482,7 @@ interface InlineWidgetSettingsProps {
   surface: PanelSurface;
   deviceTouch?: boolean;
   forcedGrid?: ForcedGrid;
+  transposedTile?: boolean;
   themeMode?: 'dark' | 'light';
   // Panel accent vars injected onto the preview root so the widget preview
   // highlights in the panel's accent, not the desktop chrome's.
@@ -2491,11 +2503,11 @@ interface InlineWidgetSettingsProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, initialDeckKey, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, transposedTile = false, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, initialDeckKey, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
-  const sizes = def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid) : [];
+  const sizes = def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid, transposedTile) : [];
   const Settings = def?.Settings;
   const isMonitoringWidget = widget.type === 'monitoring';
   // Slot selection (clicking a sub-cell in the live preview to edit it) is a

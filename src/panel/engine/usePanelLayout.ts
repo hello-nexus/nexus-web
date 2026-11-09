@@ -72,6 +72,7 @@ function reconcileAppsAgainstRegistry(
   deviceTouch?: boolean,
   forcedGrid?: ForcedGrid,
   displayBound = false,
+  transposedTile = false,
 ): PanelWidget[] {
   return widgets.flatMap((rawWidget): PanelWidget[] => {
     // A pre-v11 service (my.hellonexus.com against an older LAN box) still
@@ -110,9 +111,9 @@ function reconcileAppsAgainstRegistry(
       }
       return [];
     }
-    if (!appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid, displayBound })) return [];
-    const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface);
-    const allowed = sizesForSurface(def.meta, surface, deviceTouch, forcedGrid);
+    if (!appAvailableForSurface(def.meta, surface, { deviceTouch, forcedGrid, displayBound, transposedTile })) return [];
+    const surfaceSize = normalizePanelWidgetSizeForSurface(widget.size, surface, transposedTile);
+    const allowed = sizesForSurface(def.meta, surface, deviceTouch, forcedGrid, transposedTile);
     // A freeform widget keeps any span it was resized to; the grid clamps it per device.
     const finalSize = def.meta.freeform && isFreeformWidgetSize(surfaceSize) && allowed.length > 0
       ? surfaceSize
@@ -152,7 +153,7 @@ interface UsePanelLayoutResult {
 // render path runs against the real grid capacity - repairs it there. Keeping
 // normalize geometry-neutral gives the normalize/repaginate composition a
 // fixed point at any capacity (see panelEditorLayoutSync.test.ts).
-export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid, displayBound = false): PanelLayout {
+export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid, displayBound = false, transposedTile = false): PanelLayout {
   const reconciledPages = layout.pages.map(page => ({
     ...page,
     widgets: reconcileAppsAgainstRegistry(
@@ -161,6 +162,7 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
       deviceTouch,
       forcedGrid,
       displayBound,
+      transposedTile,
     ),
   }));
 
@@ -239,6 +241,7 @@ export function usePanelLayout(
   surface: PanelSurface,
   deviceTouch?: boolean,
   forcedGrid?: ForcedGrid,
+  transposedTile = false,
 ): UsePanelLayoutResult {
   const { record, loaded, missing, refetch } = recordState;
   const displayBound = !!record?.displayId;
@@ -268,8 +271,8 @@ export function usePanelLayout(
   // normalization, then a key-sorted serialization that drops null/undefined,
   // so key order and omitted-vs-null fields from the service never matter.
   const canonKey = useCallback((l: PanelLayout | null) => canonicalJson(
-    normalizePanelLayout(l ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid, displayBound)),
-  [surface, deviceTouch, forcedGrid, displayBound]);
+    normalizePanelLayout(l ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid, displayBound, transposedTile)),
+  [surface, deviceTouch, forcedGrid, displayBound, transposedTile]);
 
   useEffect(() => {
     const incoming = canonKey(storedLayout);
@@ -287,12 +290,12 @@ export function usePanelLayout(
       // while a newer edit is queued, since a duplicate echo can still land.
       ownWritesRef.current = at === own.length - 1 && !writeTimer.current ? [] : own.slice(at);
     }
-    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid, displayBound));
+    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid, displayBound, transposedTile));
     setHydrated(storedLayout !== null);
-  }, [storedLayout, surface, deviceTouch, forcedGrid, displayBound, canonKey]);
+  }, [storedLayout, surface, deviceTouch, forcedGrid, displayBound, transposedTile, canonKey]);
 
   const setLayout = useCallback((next: PanelLayout) => {
-    const normalized = normalizePanelLayout(next, surface, deviceTouch, forcedGrid, displayBound);
+    const normalized = normalizePanelLayout(next, surface, deviceTouch, forcedGrid, displayBound, transposedTile);
     setLayoutState(normalized);
     if (!writableRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -312,11 +315,11 @@ export function usePanelLayout(
           // stored copy so the refused edit stops re-patching.
           setSaveForbidden(true);
           setLayoutState(normalizePanelLayout(
-            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid, displayBound));
+            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch, forcedGrid, displayBound, transposedTile));
         }
       });
     }, 250);
-  }, [deviceId, surface, deviceTouch, forcedGrid, displayBound, refetch, canonKey]);
+  }, [deviceId, surface, deviceTouch, forcedGrid, displayBound, transposedTile, refetch, canonKey]);
 
   useEffect(() => {
     if (!saveForbidden) return undefined;

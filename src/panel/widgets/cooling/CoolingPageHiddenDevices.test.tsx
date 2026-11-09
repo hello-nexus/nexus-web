@@ -64,7 +64,7 @@ describe('CoolingPage hides fans without Nexus Control', () => {
     // Eye open is the default, so nothing is hidden yet.
     expect(screen.getByText('Vendor Fan')).toBeInTheDocument();
     expect(screen.getByText('Dead Fan')).toBeInTheDocument();
-    expect(screen.getByText('cooling.fan.unresponsive')).toBeInTheDocument();
+    expect(screen.getByLabelText('cooling.fan.unresponsive')).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('devices.hidden.hide'));
 

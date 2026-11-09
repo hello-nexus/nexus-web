@@ -21,6 +21,7 @@ import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { DevSimEventsCard } from './DevSimEventsCard';
 import { AstralSimCard } from './AstralSimCard';
+import { SpeakerSimCard } from './SpeakerSimCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { DEV_TOOLS } from '../../lib/devTools';
@@ -68,6 +69,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <PanelSimulatorCard />
             {DEV_TOOLS && <DevSimEventsCard />}
             {DEV_TOOLS && <AstralSimCard />}
+            {DEV_TOOLS && <SpeakerSimCard />}
             <HelloGreetingCard />
           </div>
         </div>

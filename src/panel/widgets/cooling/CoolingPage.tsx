@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power, Unplug } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -1748,6 +1748,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   <span className={styles.calFanId}>{channels.find(c => c.id === r.fanId)?.name ?? r.fanId}</span>
                   {r.classification === 'Unresponsive' ? (
                     <span className={`${styles.calBadge} ${styles.calUnresponsive}`}>
+                      <Unplug size={12} aria-hidden="true" />
                       {t('cooling.calibrate.class.unresponsive')}
                     </span>
                   ) : (

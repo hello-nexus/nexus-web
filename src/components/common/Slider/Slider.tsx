@@ -90,6 +90,9 @@ export interface SliderProps {
   valueText?: string;
 }
 
+/** A value at `pct` (0..100) of the range, placed on the thumb's path: its centre stops half a thumb short of each end, so the two only agree at 50%. */
+const onThumbPath = (pct: number) => `calc(var(--slider-thumb-size) / 2 + (100% - var(--slider-thumb-size)) * ${pct / 100})`;
+
 // Diameter of the custom knob (thumbNode); mirrors .thumbNode in Slider.module.scss.
 const KNOB_PX = 24;
 // The native knob's width; mirrors the thumb rule in global.scss.
@@ -129,12 +132,16 @@ export function Slider({
   }
   // Never past the fill end, or the gradient stops would decrease and mispaint.
   const capPct = fillCap != null ? Math.min(clamp(((fillCap - min) / (max - min)) * 100), fillEndPct) : null;
+  // A level fill starts at the track's own end; every other stop sits on the thumb's path, so
+  // the fill ends under the thumb and a centre-out fill starts where the thumb is at 0.
   const trackStyle = {
-    '--slider-fill-start': mixed ? '0%' : `${fillStartPct}%`,
-    '--slider-fill-end': mixed ? '0%' : `${fillEndPct}%`,
-    ...(capPct != null ? { '--slider-fill-cap': `${capPct}%` } : {}),
+    '--slider-fill-start': mixed || !isBipolar ? '0%' : onThumbPath(fillStartPct),
+    '--slider-fill-end': mixed ? '0%' : onThumbPath(fillEndPct),
+    ...(capPct != null ? { '--slider-fill-cap': onThumbPath(capPct) } : {}),
     ...(fillColor ? { '--slider-fill-color': fillColor } : {}),
   } as CSSProperties;
+  // The custom knob is wider than the native one, so the thumb path everything is placed on is sized to it.
+  const rootStyle = thumbNode != null ? ({ '--slider-thumb-size': `${KNOB_PX}px` } as CSSProperties) : undefined;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
   // The node's travel is the track minus its own width, so it stays inside the track at both ends.
@@ -153,6 +160,15 @@ export function Slider({
     <span className={styles.marker} style={{ left: `${markerPct}%` }}>
       {markerLabel != null && <span className={styles.markerLabel}>{markerLabel}</span>}
       <span className={styles.markerCaret} aria-hidden />
+    </span>
+  ) : null;
+
+  // The zero tick, band and marker share the thumb's path, so each lines up with the thumb at its value.
+  const scaleNode = showZero || bandNode || markerNode ? (
+    <span className={styles.scale}>
+      {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+      {bandNode}
+      {markerNode}
     </span>
   ) : null;
 
@@ -295,15 +311,13 @@ export function Slider({
 
   if (orientation === 'bare') {
     return (
-      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
+      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`} style={rootStyle}>
         {/* The bare root is a row; marks stack with the track in a column of their own. */}
         <div className={styles.markedColumn}>
           {marksAbove}
           <div className={styles.track}>
             {range}
-            {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-            {bandNode}
-            {markerNode}
+            {scaleNode}
             {thumbNodeEl}
           </div>
           {marksBelow}
@@ -316,7 +330,7 @@ export function Slider({
     return (
       // A div with a label on the name only: a wrapping label forwards a click on
       // the value or name to its first labelable descendant, a labelAction button.
-      <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`}>
+      <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`} style={rootStyle}>
         <div className={styles.head}>
           <span className={styles.label}>{label && <label htmlFor={rangeId}>{label}</label>}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>
           {valueNode}
@@ -324,9 +338,7 @@ export function Slider({
         {marksAbove}
         <div className={styles.track}>
           {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+          {scaleNode}
           {thumbNodeEl}
         </div>
         {marksBelow}
@@ -347,14 +359,12 @@ export function Slider({
   // order (range before value) steals focus from the just-opened edit input and
   // reverts it. The range carries its own aria-label, so no label is needed.
   return (
-    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`}>
+    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`} style={rootStyle}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
       <div className={styles.inlineControl}>
         <div className={styles.track}>
           {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+          {scaleNode}
           {thumbNodeEl}
         </div>
         {inlineValueNode}

@@ -66,7 +66,7 @@ type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 // bypass the curation so every installed widget is browseable for testing.
 export function catalogEntriesFor(
   surface: PanelSurface,
-  opts: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean } = {},
+  opts: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean; transposedTile?: boolean } = {},
 ): CatalogEntry[] {
   return getCatalogEntries().filter(([, def]) => {
     if (!appAvailableForSurface(def.meta, surface, opts)) return false;
@@ -134,6 +134,8 @@ export interface PanelWidgetCatalogProps {
   genericDisplay?: boolean;
   // Forced short-axis slot count of the target grid, which narrows the offered sizes.
   forcedGrid?: ForcedGrid;
+  // The single-widget tile has its axes swapped (a quarter-turn render).
+  transposedTile?: boolean;
   // Target glass width / height. A single-widget surface's tile takes this
   // shape instead of the grid's square cells.
   glassAspect?: number;
@@ -157,6 +159,7 @@ export function PanelWidgetCatalog({
   displayBound,
   genericDisplay,
   forcedGrid,
+  transposedTile = false,
   glassAspect,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
@@ -193,7 +196,7 @@ export function PanelWidgetCatalog({
 
   // Already-placed instances always render via lookupApp; listed apps
   // co-mingle in one grid - no separate section.
-  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, forcedGrid, displayBound, genericDisplay });
+  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch, forcedGrid, displayBound, genericDisplay, transposedTile });
   const playlistOrder = playlist
     ? playlistDisplayOrder(playlist.order, catalogEntries.map(([type]) => type))
     : null;
@@ -248,7 +251,7 @@ export function PanelWidgetCatalog({
   // browse tiles size for reading rather than matching the target surface.
   // Always set (cols/cellSize fall back before the first measure) so
   // `--panel-columns` is never undefined, which would collapse the grid.
-  const rowSize = catalogRowSizeForGlass(surface, glassAspect, cellSize, gap) ?? cellSize;
+  const rowSize = catalogRowSizeForGlass(surface, glassAspect, cellSize, gap, transposedTile) ?? cellSize;
   const nonSquareTile = Math.abs(rowSize - cellSize) > 0.5;
   const panelGridVars: CSSProperties = {
     '--panel-columns': cols,
@@ -272,10 +275,10 @@ export function PanelWidgetCatalog({
   // widget supports it on this surface, else the widget's own picker size
   // (sole-size widgets and single-widget surfaces keep their shape).
   const pickSize = (meta: CatalogEntry[1]['meta']): PanelWidgetSize => {
-    if (sizesForSurface(meta, surface, deviceTouch, forcedGrid).includes(preferredSize)) {
+    if (sizesForSurface(meta, surface, deviceTouch, forcedGrid, transposedTile).includes(preferredSize)) {
       return preferredSize;
     }
-    return pickerSizeFor(meta, surface, deviceTouch, forcedGrid);
+    return pickerSizeFor(meta, surface, deviceTouch, forcedGrid, transposedTile);
   };
 
   const packEntries = (items: CatalogEntry[]): PanelWidget[] => {

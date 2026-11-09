@@ -26,6 +26,7 @@ export interface SimulatorRuntimeState {
   dpi: number | undefined;
   // Forced short-axis slot count (see SimulatorInitMessage.shortSideSlots).
   shortSideSlots: number | undefined;
+  transposedTile: boolean;
   chromeGrid: ChromeGrid | undefined;
   // Parent's iframe fit scale; overlays drawn for the desktop operator divide
   // it out so they do not shrink with the preview.
@@ -78,6 +79,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [deviceTouch, setDeviceTouch] = useState<boolean | undefined>(undefined);
   const [dpi, setDpi] = useState<number | undefined>(undefined);
   const [shortSideSlots, setShortSideSlots] = useState<number | undefined>(undefined);
+  const [transposedTile, setTransposedTile] = useState(false);
   const [chromeGrid, setChromeGrid] = useState<ChromeGrid | undefined>(undefined);
   const [previewScale, setPreviewScale] = useState(1);
   const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
@@ -103,6 +105,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setDeviceTouch(data.deviceTouch);
           setDpi(data.dpi);
           setShortSideSlots(data.shortSideSlots);
+          setTransposedTile(data.transposedTile === true);
           setChromeGrid(data.chromeGrid);
           setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           setDisplayBound(data.displayBound);
@@ -125,6 +128,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         case 'simulator/set-grid': {
           setDpi(data.dpi);
           setShortSideSlots(data.shortSideSlots);
+          setTransposedTile(data.transposedTile === true);
           setChromeGrid(data.chromeGrid);
           break;
         }
@@ -208,6 +212,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     deviceTouch,
     dpi,
     shortSideSlots,
+    transposedTile,
     chromeGrid,
     previewScale,
     displayBound,

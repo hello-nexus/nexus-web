@@ -127,8 +127,19 @@ export function surfaceDisplayShape(surface: PanelSurface): 'rect' | 'round' {
   return size ? widgetDisplayShape(size) : 'rect';
 }
 
-export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize | undefined {
-  return SINGLE_WIDGET_SURFACE_SIZE[surface];
+/** A '<cols>x<rows>' size with its axes swapped; a square or named (round) size is returned as is. */
+export function transposeWidgetSize(size: PanelWidgetSize): PanelWidgetSize {
+  const span = parseWidgetSizeSpan(size);
+  return span && span.cols !== span.rows ? `${span.rows}x${span.cols}` as PanelWidgetSize : size;
+}
+
+/**
+ * The one tile a single-widget surface hosts. `transposed` swaps its axes for a
+ * panel rendering rotated a quarter turn; see tileTransposed for when that holds.
+ */
+export function singleWidgetSurfaceSize(surface: PanelSurface, transposed = false): PanelWidgetSize | undefined {
+  const size = SINGLE_WIDGET_SURFACE_SIZE[surface];
+  return size && transposed ? transposeWidgetSize(size) : size;
 }
 
 // The size a widget should lay out and theme for. The round tile is a 2x2 cell
@@ -484,9 +495,10 @@ export function normalizePanelWidgetSize(size: string | null | undefined): Panel
 export function normalizePanelWidgetSizeForSurface(
   size: string | null | undefined,
   surface: PanelSurface,
+  transposedTile = false,
 ): PanelWidgetSize {
   const normalized = normalizePanelWidgetSize(size);
-  const single = singleWidgetSurfaceSize(surface);
+  const single = singleWidgetSurfaceSize(surface, transposedTile);
   if (single !== undefined) return single;
   return normalized;
 }

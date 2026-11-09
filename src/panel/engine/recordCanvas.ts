@@ -7,13 +7,17 @@ export interface RecordCanvas { width: number; height: number; dpr: number }
 
 /** The CSS-px canvas a record's panel lays out on: the size its kiosk window reported, else the display's capabilities. */
 export function recordCanvasOf(
-  record: Pick<PanelDeviceRecord, 'kioskViewport' | 'capabilities'> | null | undefined,
+  record: (Pick<PanelDeviceRecord, 'kioskViewport' | 'capabilities'> & Partial<Pick<PanelDeviceRecord, 'renderWidth' | 'renderHeight'>>) | null | undefined,
 ): RecordCanvas | null {
   const viewport = record?.kioskViewport;
   if (viewport?.cssWidth && viewport.cssHeight) {
     return { width: viewport.cssWidth, height: viewport.cssHeight, dpr: viewport.dpr || 1 };
   }
   const caps = record?.capabilities;
+  // A rotated pushed-frame panel renders at the swapped size, which the service states; an older service sends none.
+  if (record?.renderWidth && record.renderHeight) {
+    return { width: record.renderWidth, height: record.renderHeight, dpr: caps?.dpr || 1 };
+  }
   return caps?.cssWidth && caps.cssHeight ? { width: caps.cssWidth, height: caps.cssHeight, dpr: caps.dpr || 1 } : null;
 }
 

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveRecordRotation, resolveSupportedRotations, rotationOptions } from './panelRotation';
 
-const t = (k: string) => k;
-
 describe('resolveRecordRotation', () => {
   it('reads rotation when present', () => {
     expect(resolveRecordRotation({ rotation: 270, flip180: true })).toBe(270);
@@ -31,17 +29,13 @@ describe('resolveSupportedRotations', () => {
 });
 
 describe('rotationOptions', () => {
-  it('uses Y70 wording on rectangular glass', () => {
-    expect(rotationOptions([0, 90, 180, 270], 'lcd-wide', t)).toEqual([
-      { value: '0', label: 'devices.y70.orientation.Landscape' },
-      { value: '90', label: 'devices.y70.orientation.Portrait' },
-      { value: '180', label: 'devices.y70.orientation.LandscapeFlipped' },
-      { value: '270', label: 'devices.y70.orientation.PortraitFlipped' },
+  it('labels every rotation in degrees, whatever the glass', () => {
+    expect(rotationOptions([0, 90, 180, 270])).toEqual([
+      { value: '0', label: '0°' },
+      { value: '90', label: '90°' },
+      { value: '180', label: '180°' },
+      { value: '270', label: '270°' },
     ]);
-    expect(rotationOptions([0], 'monitor', t)[0].label).toBe('devices.y70.orientation.Landscape');
-  });
-  it('uses degree labels on square and round glass', () => {
-    expect(rotationOptions([0, 180], 'lcd-round', t).map(o => o.label)).toEqual(['0°', '180°']);
-    expect(rotationOptions([90], 'lcd-square', t)[0].label).toBe('90°');
+    expect(rotationOptions([0, 180]).map(o => o.label)).toEqual(['0°', '180°']);
   });
 });

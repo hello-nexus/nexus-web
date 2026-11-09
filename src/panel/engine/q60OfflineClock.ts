@@ -9,14 +9,14 @@ import { singleWidgetSurfaceSize, type PanelPage, type PanelSurface, type PanelW
  * grid, the widest tile), not the configured widget, so it fills the panel. A panel with no widget keeps its pages:
  * the user chose an unobstructed background.
  */
-export function q60OfflineClockPages(pages: PanelPage[], surface: PanelSurface, playlistEnabled = false): PanelPage[] {
+export function q60OfflineClockPages(pages: PanelPage[], surface: PanelSurface, playlistEnabled = false, transposedTile = false): PanelPage[] {
   // An empty base slot is a chosen background only without a playlist; with one, the slot is filled by the playlist's widgets.
   if (!playlistEnabled && pages.every(p => p.widgets.length === 0)) return pages;
   const configuredClock = pages.flatMap(p => p.widgets).find(w => w.type === 'clock');
   const clock: PanelWidget = {
     id: 'q60-offline-clock',
     type: 'clock',
-    size: singleWidgetSurfaceSize(surface) ?? '4x4',
+    size: singleWidgetSurfaceSize(surface, transposedTile) ?? '4x4',
     col: 0,
     row: 0,
     config: configuredClock?.config,

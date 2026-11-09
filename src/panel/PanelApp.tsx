@@ -131,6 +131,8 @@ import { kioskViewportReporter } from './engine/kioskViewportReport';
 import { largeChromeGrid, isSingleWidgetSurface, surfaceDisplayShape, cellInputOf, widgetInputOf, panelCanvasEditable, panelLayoutDpi, forcedGridOf, panelLayoutSurface, panelShortSideSlots, surfaceAllowsPages, surfaceSupportsTouch, isGenericDisplayPanel, genericSinglePage } from './types';
 import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
+import { tileTransposed } from './engine/tileOrientation';
+import { resolveRecordRotation } from '../components/views/DevicePage/panelRotation';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { isLocalPanelClient } from './background/panelAudio';
 import { panelSystemFontsAvailable } from './theme/panelFont';
@@ -294,13 +296,14 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   const viewportDpr = record?.kioskViewport?.dpr;
   const resolved = useMemo(() => {
     const kioskViewport = viewportWidth && viewportHeight ? { cssWidth: viewportWidth, cssHeight: viewportHeight, dpr: viewportDpr ?? 1 } : undefined;
-    const canvas = recordCanvasOf({ kioskViewport, capabilities: { cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr } });
+    const canvas = recordCanvasOf({ kioskViewport, renderWidth: record?.renderWidth, renderHeight: record?.renderHeight, capabilities: { cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr } });
     const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
     const widgetSize = recordWidgetSizeOf(
       { widgetSize: record?.widgetSize, gridSlots: record?.gridSlots, displayId: record?.displayId, kioskViewport, capabilities: { family: caps?.family, cssWidth: caps?.cssWidth, cssHeight: caps?.cssHeight, dpr: caps?.dpr, dpi: caps?.dpi } },
       glassSurface,
     );
     const surface = panelLayoutSurface(glassSurface, caps?.family, widgetSize);
+    const rotation = resolveRecordRotation({ rotation: record?.rotation, flip180: record?.flip180, portrait: record?.portrait });
     const relaid = surface !== glassSurface;
     const dpi = panelLayoutDpi(glassSurface, caps?.family, widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI);
     // A kiosk fills its monitor, so the record's size is the canvas the runtime grid
@@ -308,9 +311,12 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     const densitySlots = canvas
       ? densityShortSideSlots(canvas.width, canvas.height, canvas.dpr, dpi ?? estimateRuntimePanelDpi(surface))
       : runtimeDensityShortSideSlots(surface, dpi);
+    // A quarter-turn render swaps the single tile's axes to follow the effective size.
+    const transposedTile = tileTransposed(surface, rotation, canvas);
     return {
       surface,
       glassSurface,
+      transposedTile,
       // Touch and density belong to the glass, whichever surface it lays out as.
       touch: relaid ? surfaceSupportsTouch(glassSurface, caps?.touch) : caps?.touch,
       dpi,
@@ -320,7 +326,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       widgetSize,
       displayBound: !!record?.displayId,
     };
-  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, viewportWidth, viewportHeight, viewportDpr, record?.widgetSize, record?.gridSlots, record?.displayId]);
+  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, caps?.cssWidth, caps?.cssHeight, caps?.dpr, viewportWidth, viewportHeight, viewportDpr, record?.widgetSize, record?.gridSlots, record?.displayId, record?.rotation, record?.flip180, record?.portrait, record?.renderWidth, record?.renderHeight]);
   // The size a retired grid density stood for is written once; the stored density is left in place.
   const migratedSizeRef = useRef('');
   const migrateId = record?.id;
@@ -428,6 +434,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       deviceTouch={resolved.touch}
       deviceDpi={resolved.dpi}
       shortSideSlots={resolved.shortSideSlots}
+      transposedTile={resolved.transposedTile}
       chromeGrid={resolved.chromeGrid}
       displayBound={resolved.displayBound}
     />
@@ -459,10 +466,10 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
   );
 }
 
-function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, chromeGrid, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; chromeGrid?: ChromeGrid; displayBound?: boolean }) {
+function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, shortSideSlots, transposedTile, chromeGrid, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; shortSideSlots?: number; transposedTile?: boolean; chromeGrid?: ChromeGrid; displayBound?: boolean }) {
   const landscape = useViewportLandscape();
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, landscape), [shortSideSlots, landscape]);
-  const layoutState = usePanelLayout(recordState, deviceId, surface, widgetInputOf(deviceTouch, !!displayBound), forcedGrid);
+  const layoutState = usePanelLayout(recordState, deviceId, surface, widgetInputOf(deviceTouch, !!displayBound), forcedGrid, transposedTile);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -471,7 +478,7 @@ function PanelKioskContent({ recordState, deviceId, surface, glassSurface, devic
       <PanelDeviceIdProvider value={deviceId}>
       <PanelDisplayBoundProvider value={!!displayBound}>
         <PanelGlassSurfaceProvider value={glassSurface}>
-          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} chromeGrid={chromeGrid} displayBound={displayBound} layoutState={layoutState} />
+          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} shortSideSlots={shortSideSlots} transposedTile={transposedTile} chromeGrid={chromeGrid} displayBound={displayBound} layoutState={layoutState} />
         </PanelGlassSurfaceProvider>
       </PanelDisplayBoundProvider>
       </PanelDeviceIdProvider>
@@ -487,6 +494,7 @@ export function PanelContent({
   deviceTouch,
   deviceDpi,
   shortSideSlots,
+  transposedTile = false,
   chromeGrid,
   displayBound = false,
   genericDisplayOverride,
@@ -520,6 +528,8 @@ export function PanelContent({
   deviceDpi?: number;
   // Short-axis slot count Widget size forces on the grid.
   shortSideSlots?: number;
+  // The single-widget tile has its axes swapped (a quarter-turn render).
+  transposedTile?: boolean;
   // The Large-size grid that sizes floating chrome; absent = the grid in use.
   chromeGrid?: ChromeGrid;
   // True when the record is display-bound (promoted OS monitor, displayId
@@ -739,9 +749,9 @@ export function PanelContent({
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
-  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots);
+  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio, shortSideSlots, transposedTile);
   // Floating chrome (menus, sheets, tray) sizes from the Large grid, so a finer Widget size never shrinks it.
-  const chromeRuntimeGrid = useRuntimePanelGrid(chromeGrid?.surface ?? surface, rootRef, simulator, chromeGrid ? chromeGrid.dpi : deviceDpi, widgetPaddingRatio, chromeGrid ? chromeGrid.shortSideSlots : shortSideSlots);
+  const chromeRuntimeGrid = useRuntimePanelGrid(chromeGrid?.surface ?? surface, rootRef, simulator, chromeGrid ? chromeGrid.dpi : deviceDpi, widgetPaddingRatio, chromeGrid ? chromeGrid.shortSideSlots : shortSideSlots, transposedTile);
   // The runtime grid already follows the canvas, so its shape gives the forced axis.
   const runtimeLandscape = runtimeGrid.columns > runtimeGrid.rows;
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, runtimeLandscape), [shortSideSlots, runtimeLandscape]);
@@ -1223,8 +1233,8 @@ export function PanelContent({
   // one selected, so its settings preview what they change.
   const widgetPlaylist = widgetPlaylistOf(layout);
   const playlistTypes = useMemo(
-    () => playingPlaylistTypes(layout, surface, deviceTouch),
-    [layout, surface, deviceTouch],
+    () => playingPlaylistTypes(layout, surface, deviceTouch, transposedTile),
+    [layout, surface, deviceTouch, transposedTile],
   );
   const playlistType = useWidgetPlaylistRotation(
     playlistTypes,
@@ -1238,8 +1248,8 @@ export function PanelContent({
     if (simulator) onSimulatorPlaylistShown?.(playlistType);
   }, [simulator, playlistType, onSimulatorPlaylistShown]);
   const shownPlaylistWidget = useMemo(
-    () => (playlistType ? playlistWidget(dragLayout, playlistType, surface, deviceId) : undefined),
-    [dragLayout, playlistType, surface, deviceId],
+    () => (playlistType ? playlistWidget(dragLayout, playlistType, surface, deviceId, transposedTile) : undefined),
+    [dragLayout, playlistType, surface, deviceId, transposedTile],
   );
 
   // Render-only trailing blank page to swipe onto and add a widget on; never
@@ -1263,7 +1273,7 @@ export function PanelContent({
     // Render-only - paginatedLayout (persistence) is untouched, so the real
     // widgets return on reconnect.
     if (glassSurface === 'q60' && isOffline) {
-      return q60OfflineClockPages(dragLayout.pages, surface, playlistEnabled);
+      return q60OfflineClockPages(dragLayout.pages, surface, playlistEnabled, transposedTile);
     }
     const pages = shownPlaylistWidget
       ? [{ id: dragLayout.pages[0]?.id ?? '', widgets: [shownPlaylistWidget] }]
@@ -1281,7 +1291,7 @@ export function PanelContent({
           const def = lookupApp(w.type);
           if (!def) return true;
           // genericDisplay stays out: a stored portrait-only game keeps its tile (shown as unavailable) so it can be removed.
-          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound });
+          return appAvailableForSurface(def.meta, surface, { deviceTouch: widgetTouch, forcedGrid, displayBound, transposedTile });
         })
         .slice()
         // Row-major (col, row) sort so the focus walk and DOM order match the
@@ -1297,7 +1307,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, isOffline, playlistEnabled, shownPlaylistWidget, blankPageEligible, blankPageId, restricted]);
+  }, [dragLayout.pages, capacity.gridCols, capacity.pageRows, surface, glassSurface, widgetTouch, displayBound, forcedGrid, transposedTile, isOffline, playlistEnabled, shownPlaylistWidget, blankPageEligible, blankPageId, restricted]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -2741,7 +2751,7 @@ export function PanelContent({
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
-            sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid)}
+            sizes={sizesForSurface(def.meta, surface, widgetTouch, forcedGrid, transposedTile)}
             hasConfig
             title={t(def.meta.i18nKey) || ctxWidget.type}
             surface={surface}
@@ -2833,6 +2843,7 @@ export function PanelContent({
           displayBound={displayBound}
           genericDisplay={genericDisplay}
           forcedGrid={forcedGrid}
+          transposedTile={transposedTile}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}

@@ -111,7 +111,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
-  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean },
+  opts?: { remote?: boolean; deviceTouch?: boolean; forcedGrid?: ForcedGrid; displayBound?: boolean; genericDisplay?: boolean; transposedTile?: boolean },
 ): boolean {
   if (meta.portraitOnly && opts?.genericDisplay) return false;
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
@@ -131,7 +131,7 @@ export function appAvailableForSurface(
   // Panel-only widgets (games) are driven entirely from their fullscreen Touch
   // view, which the desktop surface never opens - see meta.panelOnly.
   if (meta.panelOnly && surface === 'desktop') return false;
-  const single = singleWidgetSurfaceSize(surface);
+  const single = singleWidgetSurfaceSize(surface, opts?.transposedTile);
   if (single !== undefined) {
     return meta.sizes.includes(single);
   }
@@ -273,11 +273,11 @@ export function makeMarketplaceAppManifest(
 // offer only an app's grid sizes when it declares them.
 // The reconciler snaps existing widgets at a hidden size to the nearest
 // non-reserved size on load.
-export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelWidgetSize[] {
+export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid, transposedTile = false): PanelWidgetSize[] {
   if (!surface) return [...meta.sizes];
   if (meta.touch && !surfaceSupportsTouch(surface, deviceTouch)) return [];
   if (meta.panelOnly && surface === 'desktop') return [];
-  const single = singleWidgetSurfaceSize(surface);
+  const single = singleWidgetSurfaceSize(surface, transposedTile);
   if (single !== undefined) {
     return meta.sizes.includes(single) ? [single] : [];
   }
@@ -301,8 +301,8 @@ function sizesForSlots(meta: AppManifest['meta'], { slots, landscape }: ForcedGr
 // back to a widget's sole supported size (4x4 / 2x2 / 1x1). Single-widget
 // surfaces (Q60, locked to 2x4) short-circuit: `sizesForSurface` already
 // collapsed to the one allowed size.
-export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelWidgetSize {
-  const sizes = sizesForSurface(meta, surface, deviceTouch, forcedGrid);
+export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid, transposedTile = false): PanelWidgetSize {
+  const sizes = sizesForSurface(meta, surface, deviceTouch, forcedGrid, transposedTile);
   if (surface && singleWidgetSurfaceSize(surface) && sizes.length > 0) {
     return sizes[0];
   }
