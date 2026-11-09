@@ -741,6 +741,9 @@ export const CurveCard = memo(function CurveCard({
       </span>
       <Select className={styles.sourceSelect} value={curve.sourceId}
         onChange={v => set({ sourceId: v })} ariaLabel={t('cooling.curve.source')}>
+        {curve.sourceId && !sources.some(s => s.id === curve.sourceId) && (
+          <option key={curve.sourceId} value={curve.sourceId}>{t('lighting.sensor.unavailable')}</option>
+        )}
         {sources.map(s => (<option key={s.id} value={s.id}>{sourceCategoryLabel(s, gpus)} - {s.name} ({localizeNumbers(s.value.toFixed(1), numberFormat)}°C)</option>))}
       </Select>
     </label>

@@ -281,3 +281,19 @@ describe('cooling curve temperature bands', () => {
     expect([next.auto.idleTemp, next.auto.loadTemp]).toEqual([45, 47]);
   });
 });
+
+describe('curve source whose sensor is not listed', () => {
+  it('keeps the saved id selected as Not available instead of showing another sensor', async () => {
+    const onChange = vi.fn();
+    const curve: CurveDef = { ...newCurve('curve-test'), sourceId: 'corsair:ch1:temp' };
+    const { findByText, queryByText } = render(
+      <I18nProvider>
+        <CurveCard curve={curve} allCurves={[curve]} sources={[{ id: 'cpu', name: 'CPU Package', category: 'CPU', value: 50 }]}
+          onChange={onChange} onDelete={() => {}} />
+      </I18nProvider>,
+    );
+    await findByText('Not available');
+    expect(queryByText(/CPU Package/)).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
