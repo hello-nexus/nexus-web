@@ -82,7 +82,7 @@ import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersis
 import {
   staticLookPin, colorPin, animatePin, MIRROR_PIN, MEDIA_PIN, pinGridKey, pinHex, pinSignature, type Pins,
   pickerMarks, pinMode, pinnedNamesByEffect, pinModeTargetLabel, pinTargetLabel, pressReach, engineReaches, selectAllEligible, tabPressChangesNothing, clearLegacyLightingKeys,
-  SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
+  SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY, selectionWithoutUnpinned,
 } from './pins';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
@@ -2761,9 +2761,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return body && tabs ? new DOMRect(body.left, tabs.bottom, body.width, body.bottom - tabs.bottom) : null;
   }, []);
   const handleSetPin = useCallback((ids: string[], pinned: boolean) => {
-    if (!pinned) { void applyPins(ids, null); return; }
+    if (!pinned) {
+      void applyPins(ids, null);
+      const left = selectionWithoutUnpinned(selectedDeviceIds, primaryDeviceId, ids);
+      if (left) handleSetSelection(left.ids, left.primary);
+      return;
+    }
     if (globalPin) void applyPins(ids, globalPin.pin);
-  }, [applyPins, globalPin]);
+  }, [applyPins, globalPin, selectedDeviceIds, primaryDeviceId, handleSetSelection]);
   // A Mirror or Media pick with cards selected gives just them the shared source.
   const handleSelectionPick = useMemo(() => {
     if (selectedDeviceIds.size === 0 || (viewMode !== 'screen' && viewMode !== 'gif')) return undefined;

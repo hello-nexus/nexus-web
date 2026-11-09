@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   animatePin, colorPin, MIRROR_PIN, paletteColorPin, pickerMarks, pinGridKey, pinHex, pinnedNamesByEffect,
   clearLegacyLightingKeys, pinModeTargetLabel, pinSignature, pinStripPick, pinTargetLabel, pressReach, isPickTarget, selectAllEligible, selectionPin, staticLookPin,
-  tabPressChangesNothing, withPins,
+  tabPressChangesNothing, withPins, selectionWithoutUnpinned,
 } from './pins';
 import { defaultStateFor } from '../../../types/lighting';
 import { paletteColor, paletteKey } from '../../../types/lightingPalette';
@@ -227,5 +227,38 @@ describe('clearLegacyLightingKeys', () => {
     expect(localStorage.getItem('nexus.lighting.selectedDevices')).toBeNull();
     expect(localStorage.getItem('nexus.lighting.pinSelection')).toBe('1');
     expect(localStorage.getItem('nexus.lighting.customColor')).toBe('"#fff"');
+  });
+});
+
+describe('selectionWithoutUnpinned', () => {
+  it('drops only the unpinned device and keeps the rest selected', () => {
+    const out = selectionWithoutUnpinned(new Set(['a', 'b', 'c']), 'a', ['a']);
+    expect([...out!.ids]).toEqual(['b', 'c']);
+    expect(out!.primary).toBe('c');
+  });
+
+  it('keeps the primary when another device is unpinned', () => {
+    const out = selectionWithoutUnpinned(new Set(['a', 'b']), 'a', ['b']);
+    expect([...out!.ids]).toEqual(['a']);
+    expect(out!.primary).toBe('a');
+  });
+
+  it('empties the selection with no primary when the last device is unpinned', () => {
+    const out = selectionWithoutUnpinned(new Set(['a']), 'a', ['a']);
+    expect(out!.ids.size).toBe(0);
+    expect(out!.primary).toBeNull();
+  });
+
+  it('leaves the selection alone when no unpinned device was selected', () => {
+    expect(selectionWithoutUnpinned(new Set(['a']), 'a', ['z'])).toBeNull();
+  });
+
+  it('means a later effect pick does not pin the unpinned device again', () => {
+    let pins = withPins({}, ['a', 'b'], animatePin('plasma'));
+    pins = withPins(pins, ['a'], null);
+    const left = selectionWithoutUnpinned(new Set(['a', 'b']), 'a', ['a'])!;
+    pins = withPins(pins, [...left.ids], animatePin('aurora'));
+    expect(pins.a).toBeUndefined();
+    expect(pins.b).toEqual(animatePin('aurora'));
   });
 });
