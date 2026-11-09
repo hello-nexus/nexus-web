@@ -1735,6 +1735,8 @@
   "devices.streamdeck.sleepWhenLocked": "PC가 잠겨 있을 때 절전",
   "devices.streamdeck.tab.customize": "사용자 지정",
   "devices.streamdeck.tab.settings": "설정",
+  "devices.strimer.cable24": "24핀 케이블",
+  "devices.strimer.cable8": "8핀 케이블",
   "devices.supported.browse": "지원 장치",
   "devices.tabs.available": "사용 가능",
   "devices.tabs.firmware": "펌웨어 업데이트",

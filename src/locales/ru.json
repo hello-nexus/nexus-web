@@ -1744,6 +1744,8 @@
   "devices.streamdeck.sleepWhenLocked": "Переходить в спящий режим, когда ПК заблокирован",
   "devices.streamdeck.tab.customize": "Персонализация",
   "devices.streamdeck.tab.settings": "Настройки",
+  "devices.strimer.cable24": "Кабель 24 pin",
+  "devices.strimer.cable8": "Кабель 8 pin",
   "devices.supported.browse": "Поддерживаемые устройства",
   "devices.tabs.available": "Доступные",
   "devices.tabs.firmware": "Обновления прошивки",
