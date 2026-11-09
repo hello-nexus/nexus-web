@@ -9,6 +9,7 @@ import {
   MICRO_WIDE_COUNTS,
   defaultSlotCountForSize,
   defaultSlotDesign,
+  newWidgetSlotDesigns,
   isExtrasBackedDevice,
   isMicroLayout,
   isTwoColumnMicro,
@@ -403,6 +404,27 @@ describe('perfSlots', () => {
     it('leaves an allowed design alone', () => {
       expect(resolveSlotDesign('4x4', { count: 4, hero: false }, 0, 'sparkline')).toBe('sparkline');
       expect(resolveSlotDesign('2x2round', { count: 1, hero: false }, 0, 'caterpillar')).toBe('caterpillar');
+    });
+  });
+
+  describe('newWidgetSlotDesigns', () => {
+    it('stamps Backdrop on the CPU slots and Ring on memory for a new widget', () => {
+      expect(newWidgetSlotDesigns('4x4')).toEqual({ slot0_design: 'backdrop', slot1_design: 'caterpillar', slot2_design: 'backdrop' });
+      expect(newWidgetSlotDesigns('2x2')).toEqual({ slot0_design: 'backdrop' });
+    });
+
+    it('leaves the round glass on its own default', () => {
+      expect(newWidgetSlotDesigns('2x2round')).toEqual({});
+    });
+
+    it('does not change what a saved config without a design renders', () => {
+      expect(defaultSlotDesign('4x4', 0)).toBe('sparkline');
+      expect(defaultSlotDesign('4x4', 1)).toBe('halfgauge');
+      expect(defaultSlotDesign('4x4', 2)).toBe('sparkline');
+    });
+
+    it('never turns adaptive numbers on', () => {
+      expect(newWidgetSlotDesigns('4x4')).not.toHaveProperty('adaptiveNumbers');
     });
   });
 

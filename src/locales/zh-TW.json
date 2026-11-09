@@ -4083,6 +4083,7 @@
   "monitoring.settings.resetLabel": "重設",
   "monitoring.settings.scaleAdaptive": "自適應",
   "monitoring.settings.scaleFixed": "固定",
+  "monitoring.settings.scaleNumbers": "依空間縮放數字",
   "monitoring.settings.sensor": "感測器",
   "monitoring.settings.sensors": "感測器",
   "monitoring.settings.title": "監控設定",

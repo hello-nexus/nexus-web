@@ -4122,6 +4122,7 @@
   "monitoring.settings.resetLabel": "Resetuj",
   "monitoring.settings.scaleAdaptive": "Adaptacyjny",
   "monitoring.settings.scaleFixed": "Stały",
+  "monitoring.settings.scaleNumbers": "Dopasuj rozmiar liczb",
   "monitoring.settings.sensor": "Czujnik",
   "monitoring.settings.sensors": "Czujniki",
   "monitoring.settings.title": "Ustawienia monitorowania",

@@ -176,7 +176,7 @@ export interface AppMetadata {
   // Initial config a freshly-added widget is seeded with (e.g. the deck's
   // starter actions). Called once at insert time; returns a fresh object so two
   // widgets never share mutable config. Absent → the widget starts config-less.
-  defaultConfig?: () => Record<string, PanelConfigValue>;
+  defaultConfig?: (size: PanelWidgetSize) => Record<string, PanelConfigValue>;
   // Whether the live tile writes its own config (the gallery's picked image).
   // PanelApp passes onUpdate on every surface when set - unlike
   // usesSlotSelection, which only wires it while its edit sheet is open,

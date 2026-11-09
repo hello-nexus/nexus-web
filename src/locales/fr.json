@@ -4083,6 +4083,7 @@
   "monitoring.settings.resetLabel": "Réinitialiser",
   "monitoring.settings.scaleAdaptive": "Adaptatif",
   "monitoring.settings.scaleFixed": "Fixe",
+  "monitoring.settings.scaleNumbers": "Adapter la taille des chiffres",
   "monitoring.settings.sensor": "Capteur",
   "monitoring.settings.sensors": "Capteurs",
   "monitoring.settings.title": "Paramètres de surveillance",

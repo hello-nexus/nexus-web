@@ -3,6 +3,9 @@ import type { GaugeProps } from './types';
 import { ArcSegments, type ArcGeometry } from './ArcSegments';
 import styles from './HalfGaugeGauge.module.scss';
 
+// Share of the slot's short side the value may span inside the ring.
+const VALUE_INNER_FRACTION = 0.62;
+
 const RADIUS = 40;
 const CX = 50;
 const CY = 50;
@@ -38,7 +41,7 @@ export function HalfGaugeGauge({ value, formatted, label, gradient }: GaugeProps
         </svg>
       </div>
       <div className={styles.info}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

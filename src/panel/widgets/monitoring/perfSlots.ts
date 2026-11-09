@@ -106,6 +106,28 @@ export function defaultSlotDesign(size: PanelWidgetSize, slotIndex: number, layo
   return DEFAULT_SLOTS[slotIndex]?.design ?? DEFAULT_DESIGN;
 }
 
+// Designs stamped into a NEWLY created monitoring widget. DEFAULT_SLOTS stays
+// the render-time fallback for configs with no stored design, so widgets saved
+// before this change keep the look they already have.
+const NEW_WIDGET_DESIGNS: Record<number, GaugeDesignKey> = {
+  0: 'backdrop', // CPU usage
+  1: 'caterpillar', // memory usage
+  2: 'backdrop', // CPU temperature
+  6: 'backdrop', // CPU clock
+};
+
+// Initial slot designs for a widget added at `size`. The round glass keeps its
+// own ring default, and each slot is limited to the slots the size starts with.
+export function newWidgetSlotDesigns(size: PanelWidgetSize): Record<string, PanelConfigValue> {
+  if (size === '2x2round') return {};
+  const config: Record<string, PanelConfigValue> = {};
+  const count = defaultSlotCountForSize(size);
+  for (const [slot, design] of Object.entries(NEW_WIDGET_DESIGNS)) {
+    if (Number(slot) < count) config[`slot${slot}_design`] = design;
+  }
+  return config;
+}
+
 // Default slot count for a freshly-resized widget when no explicit count is
 // persisted. Always a multi-sensor count, never the Micro count - existing
 // widgets without a configured count keep their pre-Micro behavior.

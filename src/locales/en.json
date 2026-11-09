@@ -4083,6 +4083,7 @@
   "monitoring.settings.resetLabel": "Reset",
   "monitoring.settings.scaleAdaptive": "Adaptive",
   "monitoring.settings.scaleFixed": "Fixed",
+  "monitoring.settings.scaleNumbers": "Scale numbers to fit",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensors",
   "monitoring.settings.title": "Monitoring settings",

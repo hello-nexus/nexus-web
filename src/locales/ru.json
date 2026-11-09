@@ -4122,6 +4122,7 @@
   "monitoring.settings.resetLabel": "Сброс",
   "monitoring.settings.scaleAdaptive": "Адаптивный",
   "monitoring.settings.scaleFixed": "Фиксированный",
+  "monitoring.settings.scaleNumbers": "Подгонять размер чисел",
   "monitoring.settings.sensor": "Датчик",
   "monitoring.settings.sensors": "Датчики",
   "monitoring.settings.title": "Настройки мониторинга",

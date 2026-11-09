@@ -4083,6 +4083,7 @@
   "monitoring.settings.resetLabel": "Herstellen",
   "monitoring.settings.scaleAdaptive": "Adaptief",
   "monitoring.settings.scaleFixed": "Vast",
+  "monitoring.settings.scaleNumbers": "Cijfers schalen naar beschikbare ruimte",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensoren",
   "monitoring.settings.title": "Monitoring-instellingen",

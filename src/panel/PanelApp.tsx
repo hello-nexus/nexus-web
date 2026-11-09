@@ -1815,7 +1815,7 @@ export function PanelContent({
   }, [pendingScrollId, sheetMode, allFiltered, activePageIndex, setActivePageIndex]);
 
   const addWidget = useCallback((type: string, size: PanelWidgetSize) => {
-    const defaultConfig = lookupApp(type)?.meta.defaultConfig?.();
+    const defaultConfig = lookupApp(type)?.meta.defaultConfig?.(size);
     const next: PanelWidget = {
       id: createUuid(),
       type,
