@@ -160,3 +160,9 @@
     box-shadow: 0 0 4px var(--panel-accent-shadow);
   }
 }
+
+// Stream pages: a CSS transition free-runs the host's compositor, so the state change snaps.
+:global([data-stream]) {
+  .segment,
+  .colonDot { transition: none; }
+}

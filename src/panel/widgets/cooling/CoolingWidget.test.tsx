@@ -7,8 +7,8 @@ import { CoolingWidget } from './CoolingWidget';
 
 const sensorFixture = vi.hoisted(() => {
   const build = () => ({
-    cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 58, units: 'C', formatted: '58 C', parent: { id: 'cpu', name: 'CPU' } }],
-    gpu: [{ id: 'gpu-temp', name: 'GPU Core', type: 'Temperature', value: 46, units: 'C', formatted: '46 C', parent: { id: 'gpu', name: 'GPU' } }],
+    cpu: [{ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 58.4, units: 'C', formatted: '58 C', parent: { id: 'cpu', name: 'CPU' } }],
+    gpu: [{ id: 'gpu-temp', name: 'GPU Core', type: 'Temperature', value: 45.5, units: 'C', formatted: '46 C', parent: { id: 'gpu', name: 'GPU' } }],
     memory: [],
     storage: [],
     storageComponents: {},
@@ -55,6 +55,7 @@ const mockUiSettings = vi.hoisted(() => ({
   preferredGpuTempSensorId: '',
   widgetAdvancedMode: true,
 }));
+const mockWhole = vi.hoisted(() => ({ value: false }));
 const mockFlags = vi.hoisted(() => ({ lighting: true, cooling: true, monitoring: true, diagnostics: true }));
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
@@ -63,7 +64,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
     reload: vi.fn(),
   }),
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
-  useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
+  useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system', monitoringWholeNumbers: mockWhole.value }),
   useFeatureFlags: () => mockFlags,
 }));
 
@@ -116,13 +117,27 @@ describe('CoolingWidget', () => {
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.getByText('GPU')).toBeInTheDocument();
     expect(screen.getByText('FAN')).toBeInTheDocument();
-    expect(gaugeReadings()).toContain('58°C');
-    expect(gaugeReadings()).toContain('46°C');
+    expect(gaugeReadings()).toContain('58.4 °C');
+    expect(gaugeReadings()).toContain('45.5 °C');
 
     // FAN reads duty % once fan channels load (mock: avg of 40 + 60 = 50).
     await waitFor(() => {
-      expect(gaugeReadings()).toContain('50%');
+      expect(gaugeReadings()).toContain('50.0%');
     });
+  });
+
+  it('rounds temps and duty to whole numbers when the monitoring setting is on', async () => {
+    mockWhole.value = true;
+    try {
+      render(<CoolingWidget widget={coolingWidget('2x2')} />);
+      expect(gaugeReadings()).toContain('58 °C');
+      expect(gaugeReadings()).toContain('46 °C');
+      await waitFor(() => {
+        expect(gaugeReadings()).toContain('50%');
+      });
+    } finally {
+      mockWhole.value = false;
+    }
   });
 
   it('renders 4x2 with response chart fan readout + all five icon preset buttons', async () => {

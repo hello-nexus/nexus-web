@@ -1,17 +1,26 @@
+@use '../ConfirmModal/narrowDialog' as *;
+
+.backdrop {
+  @include narrow-gutter;
+}
+
 .modal {
   background: var(--backdrop-base);
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  width: min(480px, 100%);
+  @include dialog-width(480px);
   padding: 1.5rem 1.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   box-shadow: var(--shadow-xl);
+
+  @include narrow-card;
 }
 
 .title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: var(--type-heading);
   color: var(--text);
   line-height: 1.25;
@@ -19,6 +28,7 @@
 
 .message {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--text-dim);
   font-size: var(--type-body);
   line-height: 1.5;
@@ -64,6 +74,7 @@
 
 .error {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--bad);
   font-size: var(--type-small);
   line-height: 1.4;
@@ -71,8 +82,22 @@
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 0.55rem;
   margin-top: 0.25rem;
+
+  @include footer-row('.actionsEnd');
+}
+
+.stacked {
+  @include footer-stacked('.actionsEnd');
+}
+
+.actionsEnd {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-left: auto;
 }
 

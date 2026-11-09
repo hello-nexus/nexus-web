@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { DeviceModal } from '../../../common/DeviceModal/DeviceModal';
@@ -27,6 +27,7 @@ interface ManualDeviceModalProps {
 // survive between an add and an edit.
 export function ManualDeviceModal({ open, onClose, device, upsertDevice, onSaved, prefillSpecs }: ManualDeviceModalProps) {
   const { t } = useTranslation();
+  const formId = useId();
   const [hostname, setHostname] = useState('');
   const [specs, setSpecs] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -78,8 +79,13 @@ export function ManualDeviceModal({ open, onClose, device, upsertDevice, onSaved
   };
 
   return (
-    <DeviceModal open={open} onClose={onClose} title={device ? t('account.devices.modal.editTitle') : t('account.devices.modal.addTitle')}>
-      <form className={styles.form} onSubmit={handleSubmit}>
+    <DeviceModal open={open} onClose={onClose} title={device ? t('account.devices.modal.editTitle') : t('account.devices.modal.addTitle')}
+      footer={(
+        <Button type="submit" form={formId} tone="accent" size="md" loading={saving} disabled={saving}>
+          {t('account.save')}
+        </Button>
+      )}>
+      <form id={formId} className={styles.form} onSubmit={handleSubmit}>
         <label className={styles.field}>
           <span className={styles.fieldLabel}>{t('account.devices.modal.nameLabel')}</span>
           <TextInput
@@ -108,9 +114,6 @@ export function ManualDeviceModal({ open, onClose, device, upsertDevice, onSaved
         ))}
 
         {error && <p className={styles.error} role="alert">{error}</p>}
-        <Button type="submit" tone="accent" loading={saving} disabled={saving}>
-          {t('account.save')}
-        </Button>
       </form>
     </DeviceModal>
   );

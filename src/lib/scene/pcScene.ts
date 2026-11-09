@@ -52,6 +52,8 @@ export interface SceneFanRing {
   sizes?: number[];
   faces?: ('cooler' | 'backplate')[];
   source?: string;
+  /** The end of the card's length axis that carries the I/O bracket; absent means the max end of the longer face edge. */
+  bracket?: { axis: 'x' | 'y' | 'z'; side: 'min' | 'max' };
 }
 
 /** What the scene reads of one box. Build's PcBox and the setup record's CaseBox both satisfy it. */
@@ -342,8 +344,10 @@ function chamferedGeometry(size: Vec3, chamfers: SceneChamfer[]): ConvexGeometry
 function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial): Object3D[] {
   const axisIndex = { x: 0, y: 1, z: 2 }[ring.axis];
   const inPlane = [0, 1, 2].filter((i) => i !== axisIndex);
-  // Fans line up along the face's longer edge.
-  const along = box.size[inPlane[0]] >= box.size[inPlane[1]] ? inPlane[0] : inPlane[1];
+  // Fans line up along the bracket's axis when the layout states it, else along the face's longer edge.
+  const stated = ring.bracket && ring.bracket.axis !== ring.axis ? { x: 0, y: 1, z: 2 }[ring.bracket.axis] : null;
+  const along = stated ?? (box.size[inPlane[0]] >= box.size[inPlane[1]] ? inPlane[0] : inPlane[1]);
+  const fromMax = (ring.bracket?.side ?? 'max') === 'max';
   const across = along === inPlane[0] ? inPlane[1] : inPlane[0];
   const out: Object3D[] = [];
   const faces = ring.bothSides ? ['min', 'max'] : [ring.side];
@@ -356,8 +360,8 @@ function fanRings(box: SceneBox, ring: SceneFanRing, material: LineMaterial): Ob
     const opposite = ring.faces?.[i] === 'backplate';
     const face = faces[Math.floor(k / count)];
     center[axisIndex] = box.min[axisIndex] + ((face === 'max') !== opposite ? box.size[axisIndex] : 0);
-    // Card fans count from the bracket end, the max end along the card.
-    center[along] = offsets ? box.min[along] + box.size[along] - offsets[i] : box.min[along] + (box.size[along] * (i + 0.5)) / count;
+    // Sized card fans pack from the bracket end; unsized ones share the length evenly from the min end.
+    center[along] = !offsets ? box.min[along] + (box.size[along] * (i + 0.5)) / count : fromMax ? box.min[along] + box.size[along] - offsets[i] : box.min[along] + offsets[i];
     center[across] = box.min[across] + box.size[across] / 2;
     const spokes = new LineSegmentsGeometry().setPositions(Array.from({ length: 5 }, (_, k) => {
       const a = (k * 2 * Math.PI) / 5;
@@ -390,7 +394,7 @@ export function boxShape(box: SceneBox): BufferGeometry {
   return box.plate ? plateGeometry(box) : box.faces ? solidGeometry(box) : box.rings ? loftGeometry(box) : box.chamfers ? chamferedGeometry(box.size, box.chamfers) : new BoxGeometry(...box.size);
 }
 
-export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, solidLines = false): Group {
+export function buildCase(layout: SceneLayout, palette: Palette, materials: LineMaterial[], pickables: Mesh[], dimmables: Dimmable[], staticView: boolean, withGrid: boolean, insidePickable = true, omitFans = false, solidLines = false, dim = 1): Group {
   const group = new Group();
   const [D, W, H] = layout.size;
   group.position.set(-D / 2, -H / 2, -W / 2);
@@ -400,7 +404,9 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     // The cooling view draws its own fan rings, interactive and colored by direction, in place of the case's.
     if (omitFans && box.slot === 'fan') continue;
     // A snapshot draws estimated parts solid too: dashes read as noise at a small size.
-    const style = solidLines ? { ...styleFor(box, palette), dashed: false } : styleFor(box, palette);
+    const base = solidLines ? { ...styleFor(box, palette), dashed: false } : styleFor(box, palette);
+    // `dim` takes the whole drawing back by one factor, for a view where something else (the airflow) is the subject.
+    const style = dim === 1 ? base : { ...base, opacity: base.opacity * dim, face: base.face * dim };
     const id = box.select ?? box.slot;
     const dimmable: Dimmable | null = !box.conflict && (box.role === 'part' || box.role === 'detail') ? { id, materials: [], base: [] } : null;
     // Each box is built around its own centre, so a turned box turns in place.
@@ -483,7 +489,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     if (line.ribbon && line.points.length >= 2) {
       const { width, thickness, across } = line.ribbon;
       const data = ribbonData(line.points, across, width, thickness);
-      const base = 0.55;
+      const base = 0.55 * dim;
       const material = new MeshBasicMaterial({ color: palette.part, transparent: true, opacity: base, depthWrite: false, side: DoubleSide });
       dimmables.push({ id: line.slot, materials: [material], base: [base] });
       const geometry = new BufferGeometry();
@@ -492,8 +498,8 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       const band = new Mesh(geometry, material);
       band.renderOrder = 1;
       group.add(band);
-      const edgeMaterial = lineMaterial({ color: palette.part, width: 1, opacity: 0.8, dashed: false, face: 0 }, materials);
-      dimmables.push({ id: line.slot, materials: [edgeMaterial], base: [0.8] });
+      const edgeMaterial = lineMaterial({ color: palette.part, width: 1, opacity: 0.8 * dim, dashed: false, face: 0 }, materials);
+      dimmables.push({ id: line.slot, materials: [edgeMaterial], base: [0.8 * dim] });
       for (const edge of data.edges) {
         const rim = new Line2(new LineGeometry().setPositions(edge.flat()), edgeMaterial);
         rim.renderOrder = 1;
@@ -504,7 +510,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
     const curve = line.points.length > 2 ? new CatmullRomCurve3(line.points.map((p) => new Vector3(...p))) : null;
     if (line.radius && curve) {
       // A hose: a solid tube in scene mm, in the part's face tint.
-      const base = 0.55;
+      const base = 0.55 * dim;
       const material = new MeshBasicMaterial({ color: palette.part, transparent: true, opacity: base, depthWrite: false });
       dimmables.push({ id: line.slot, materials: [material], base: [base] });
       const tube = new Mesh(new TubeGeometry(curve, 200, line.radius, 12), material);
@@ -512,7 +518,7 @@ export function buildCase(layout: SceneLayout, palette: Palette, materials: Line
       group.add(tube);
       continue;
     }
-    const opacity = detail ? 0.4 : 0.8;
+    const opacity = (detail ? 0.4 : 0.8) * dim;
     const material = lineMaterial({ color: palette.part, width: detail ? 1 : 1.4, opacity, dashed: false, face: 0 }, materials);
     dimmables.push({ id: line.slot, materials: [material], base: [opacity] });
     const points = curve ? curve.getPoints(32) : line.points.map((p) => new Vector3(...p));

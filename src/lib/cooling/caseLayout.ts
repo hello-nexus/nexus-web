@@ -3,6 +3,7 @@ import type { FanDirection } from './pressureModel';
 import { SIM_PREFIX } from './fanSpeed';
 import { coolerFanSlots } from './coolerFans';
 import { gpuFanSlots } from './gpuFans';
+import { psuFanSlots } from './psuFans';
 import { radiatorFanSlots } from './radiatorFans';
 
 /** Read-only view of the PcLayout nexus-build writes as `resolved.caseLayout`. Millimeters; x front to rear, y up, z from the window side. */
@@ -33,6 +34,15 @@ export interface CasePlate {
   onShell?: boolean;
 }
 
+/** How much of a graphics card's heat leaves through the vents of its I/O bracket: all of it, some of it, or none (the rest goes into the case). */
+export type BracketExhaust = 'blower' | 'partial' | 'none';
+
+/** Which end of a graphics card carries its I/O bracket: the layout axis the card's length runs along and the end of it, as Build placed the card. */
+export interface BracketEnd {
+  axis: 'x' | 'y' | 'z';
+  side: 'min' | 'max';
+}
+
 export interface CaseBox {
   slot: string;
   role: string;
@@ -46,7 +56,7 @@ export interface CaseBox {
   cadSolid?: boolean;
   /** A part that collides with another, drawn in the warning color. */
   conflict?: boolean;
-  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number };
+  fans?: { axis: 'x' | 'y' | 'z'; diameter: number; count?: number; side?: 'min' | 'max'; bothSides?: boolean; sizes?: number[]; faces?: ('cooler' | 'backplate')[]; source?: string; stack?: number; airflowCfm?: number; flowThrough?: number[]; bracketExhaust?: BracketExhaust; bracket?: BracketEnd; exhaust?: BracketEnd; draws?: 'outside'; compartment?: boolean };
   chamfers?: CaseChamfer[];
   rings?: CaseRing[];
   /** A closed solid: planar polygons of [x, y, z] points. */
@@ -79,6 +89,14 @@ export interface CaseFanSlot {
   box?: { min: Vec3; size: Vec3; rotationY?: number };
   /** Unit vector into the case: intake moves air along it, exhaust against it. */
   axis?: Vec3;
+  /** The card a graphics card fan belongs to: the card box's `select` key, empty for the first card. */
+  card?: string;
+  /** A graphics card fan that blows straight through the card, over a cut-out board or open back plate. */
+  flowThrough?: boolean;
+  /** A power supply fan that draws room air through a case vent under it, not air from the case. */
+  ventFed?: boolean;
+  /** A power supply fan whose PSU sits in a compartment of its own (under a shroud, in a rear chamber): it does not draw from the main chamber. */
+  compartment?: boolean;
   fan?: SlotFanSpec;
   radiator?: SlotRadiatorSpec;
 }
@@ -166,6 +184,22 @@ function ringLists(fans: Record<string, unknown>): { sizes?: number[]; faces?: (
   return { ...(sizes ? { sizes } : {}), ...(faces ? { faces } : {}) };
 }
 
+/** The end of a box a valid `{ axis, side }` names, when it is not the fans' own axis. */
+function boxEnd(raw: unknown, fanAxis: unknown): BracketEnd | undefined {
+  const end = raw as Record<string, unknown> | undefined;
+  return end && typeof end === 'object' && (end.axis === 'x' || end.axis === 'y' || end.axis === 'z') && (end.side === 'min' || end.side === 'max') && end.axis !== fanAxis ? { axis: end.axis, side: end.side } : undefined;
+}
+
+/** Card airflow properties; each is kept only when valid. `flowThrough` lists fan indices counted from the bracket end; `bracket` is where the I/O bracket sits on the card. A power supply carries `exhaust`, the end of its box with the rear grille, `draws`, whether its fan takes room air through a case vent, and `compartment`, whether it sits in a compartment of its own. */
+function airflowProps(fans: Record<string, unknown>): Pick<NonNullable<CaseBox['fans']>, 'flowThrough' | 'bracketExhaust' | 'bracket' | 'exhaust' | 'draws' | 'compartment'> {
+  const count = finite(fans.count) ? fans.count : 0;
+  const through = Array.isArray(fans.flowThrough) && fans.flowThrough.every(i => finite(i) && Number.isInteger(i) && i >= 0 && i < count) ? [...new Set(fans.flowThrough as number[])].sort((a, b) => a - b) : [];
+  const exhaust = fans.bracketExhaust === 'blower' || fans.bracketExhaust === 'partial' || fans.bracketExhaust === 'none' ? fans.bracketExhaust : undefined;
+  const bracket = boxEnd(fans.bracket, fans.axis);
+  const grille = boxEnd(fans.exhaust, fans.axis);
+  return { ...(through.length > 0 ? { flowThrough: through } : {}), ...(exhaust ? { bracketExhaust: exhaust } : {}), ...(bracket ? { bracket } : {}), ...(grille ? { exhaust: grille } : {}), ...(fans.draws === 'outside' ? { draws: 'outside' as const } : {}), ...(fans.compartment === true ? { compartment: true } : {}) };
+}
+
 function parseShapes(b: Record<string, unknown>, box: CaseBox) {
   if (Array.isArray(b.chamfers)) {
     const cuts: CaseChamfer[] = [];
@@ -219,7 +253,7 @@ function parseBox(raw: unknown): CaseBox | null {
   if (finite(b.rotationY)) box.rotationY = b.rotationY;
   const fans = b.fans as Record<string, unknown> | undefined;
   if (fans && (fans.axis === 'x' || fans.axis === 'y' || fans.axis === 'z') && finite(fans.diameter) && fans.diameter > 0) {
-    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(finite(fans.stack) && Number.isInteger(fans.stack) && fans.stack > 1 && fans.stack <= 4 ? { stack: fans.stack } : {}), ...(positiveNum(fans.airflowCfm) !== undefined ? { airflowCfm: positiveNum(fans.airflowCfm) } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans) };
+    box.fans = { axis: fans.axis, diameter: fans.diameter, ...(finite(fans.count) && Number.isInteger(fans.count) && fans.count > 0 && fans.count <= 8 ? { count: fans.count } : {}), ...(fans.side === 'min' || fans.side === 'max' ? { side: fans.side } : {}), ...(fans.bothSides === true ? { bothSides: true } : {}), ...(finite(fans.stack) && Number.isInteger(fans.stack) && fans.stack > 1 && fans.stack <= 4 ? { stack: fans.stack } : {}), ...(positiveNum(fans.airflowCfm) !== undefined ? { airflowCfm: positiveNum(fans.airflowCfm) } : {}), ...(typeof fans.source === 'string' && fans.source.length <= 32 ? { source: fans.source } : {}), ...ringLists(fans), ...airflowProps(fans) };
   }
   parseShapes(b, box);
   return box;
@@ -351,7 +385,7 @@ export function parseCaseLayout(raw: unknown, choice?: string | null): CaseLayou
     boxes,
     ...(tubes.length > 0 ? { tubes } : {}),
     ...(lines.length > 0 ? { lines } : {}),
-    fanSlots: [...slots, ...gpuFanSlots(boxes), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
+    fanSlots: [...slots, ...gpuFanSlots(boxes), ...psuFanSlots(boxes, size), ...coolerFanSlots(boxes), ...radiatorFanSlots(boxes, size, slots, mount)],
     ...(mount ? { radiatorMount: mount } : {}),
     ...(options.length >= 2 ? { radiatorOptions: options } : {}),
     ...(radiatorMove ? { radiatorMove } : {}),
@@ -468,6 +502,9 @@ function planeOverlap(a: CaseFanSlot, b: CaseFanSlot): number {
 /** Face-plane overlap up to this many mm counts as touching, not overlapping; box coordinates carry rounding. */
 const TOUCH_MM = 0.05;
 
+/** The size a mount draws by default when it supports it and nothing installed or bound picks another. */
+const DEFAULT_FAN_MM = 120;
+
 export interface MountCollapse {
   layout: CaseLayout;
   /** The shown slot standing for `key`: the key itself, or the shown slot it overlaps most. */
@@ -475,7 +512,7 @@ export interface MountCollapse {
 }
 
 /**
- * One drawn slot per physical mount, chosen greedily: installed first, then bound, then the larger size, then slot order.
+ * One drawn slot per physical mount, chosen greedily: installed first, then bound, then (for an empty mount) the size its face already holds, else the default size, then the larger size, then slot order.
  * Radiator (`rad:`), graphics card (`gpu:`) and air cooler (`cpu:`) fan slots always stand alone: each is a real fan, never an alternative mount, and a card's neighbors can overlap by the frame padding. A slot is drawn only when it overlaps no slot already drawn on its face; each hidden slot stands for the drawn slot it overlaps most.
  * Drawn slots that hold a bound device count as installed fans. Hidden slots are dropped from the layout.
  */
@@ -483,8 +520,18 @@ export function collapseMounts(layout: CaseLayout, boundKeys: readonly string[])
   const slots = layout.fanSlots;
   const bound = new Set(boundKeys);
   const rank = (s: CaseFanSlot) => (s.taken !== null ? 2 : bound.has(s.key) ? 1 : 0);
-  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:');
-  const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || slots[y].size - slots[x].size || x - y);
+  const own = (s: CaseFanSlot) => s.key.startsWith('rad:') || s.key.startsWith('gpu:') || s.key.startsWith('cpu:') || s.key.startsWith('psu:');
+  const faceSize = new Map<string, number>();
+  for (const tier of [1, 2]) {
+    for (const s of slots) {
+      if (own(s) || rank(s) !== tier) continue;
+      const prev = faceSize.get(`${tier}:${s.position}`) ?? 0;
+      faceSize.set(`${tier}:${s.position}`, Math.max(prev, s.size));
+    }
+  }
+  const chosenSize = (position: string) => faceSize.get(`2:${position}`) ?? faceSize.get(`1:${position}`) ?? DEFAULT_FAN_MM;
+  const prefers = (s: CaseFanSlot) => Number(rank(s) === 0 && s.size === chosenSize(s.position));
+  const order = slots.map((_, i) => i).filter(i => !own(slots[i])).sort((x, y) => rank(slots[y]) - rank(slots[x]) || prefers(slots[y]) - prefers(slots[x]) || slots[y].size - slots[x].size || x - y);
   const chosen: number[] = [];
   for (const i of order) if (chosen.every(j => planeOverlap(slots[i], slots[j]) === 0)) chosen.push(i);
   const shown = new Set([...chosen, ...slots.flatMap((s, i) => (own(s) ? [i] : []))]);

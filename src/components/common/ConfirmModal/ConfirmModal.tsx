@@ -3,6 +3,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { Notice } from '../Notice/Notice';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { useStackOnOverflow } from './useStackOnOverflow';
 import styles from './ConfirmModal.module.scss';
 
 interface ConfirmModalProps {
@@ -15,7 +17,7 @@ interface ConfirmModalProps {
   /** Optional bulleted list rendered below the message (e.g. items affected). */
   bullets?: string[];
   /** Modal width: wide fits a line of prose or a list of sentences; default suits a short question. */
-  size?: 'default' | 'wide';
+  size?: 'default' | 'wide' | 'wider';
   /** 'warning' colours the bullet markers in the warning tone, for a list of hazards. */
   bulletTone?: 'default' | 'warning';
   /** Optional secondary line, shown as a Notice of level `noteTone` below the main message. */
@@ -38,7 +40,9 @@ interface ConfirmModalProps {
    * rather than abandoning it: "you have unsaved edits" offers Save here and
    * keeps Discard as the confirm.
    */
-  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean };
+  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean; disabledReason?: string };
+  /** Enter triggers the highlighted primaryAction instead of confirm. */
+  enterOnPrimary?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   /** Esc or a backdrop click, when it should differ from the Cancel button; defaults to onCancel. */
@@ -50,6 +54,7 @@ interface ConfirmModalProps {
  * elevated surface + accent token for the primary button). Used instead of
  * window.confirm so the UI is themed and can carry multi-line context.
  *
+ * Footer: Cancel on the left, the submit buttons on the right, no header X.
  * Esc cancels, Enter confirms, click outside cancels. Autofocuses Cancel so
  * destructive actions require an explicit user intent.
  */
@@ -70,12 +75,15 @@ export function ConfirmModal({
   confirmDisabled = false,
   hideConfirm = false,
   primaryAction,
+  enterOnPrimary = false,
   onConfirm,
   onCancel,
   onDismiss,
 }: ConfirmModalProps) {
   const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  useStackOnOverflow(actionsRef, styles.stacked, open);
 
   useEffect(() => {
     if (open) cancelRef.current?.focus();
@@ -83,11 +91,16 @@ export function ConfirmModal({
 
   if (!open) return null;
 
+  const enterHandler = enterOnPrimary && primaryAction
+    ? (primaryAction.disabled ? undefined : primaryAction.onSelect)
+    : (confirmDisabled || hideConfirm ? undefined : onConfirm);
+
   const paragraphs = message.split(/\n+/).filter(p => p.length > 0);
 
   return (
-    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={confirmDisabled || hideConfirm ? undefined : onConfirm}
-      className={size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
+    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={enterHandler}
+      backdropClassName={styles.backdrop}
+      className={size === 'wider' ? `${styles.modal} ${styles.wider}` : size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
       {icon ? (
         <div className={styles.titleRow}>
           <span className={styles.icon}>{icon}</span>
@@ -104,10 +117,11 @@ export function ConfirmModal({
         {note && <div className={styles.note}><Notice tone={noteTone} role="status">{note}</Notice></div>}
         {children}
       </div>
-      <div className={styles.actions}>
+      <div ref={actionsRef} className={styles.actions}>
         <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
         </Button>
+        <div className={styles.actionsEnd}>
         {!hideConfirm && (
           <Button
             // With a primary action present, confirm is the other way out and
@@ -119,15 +133,21 @@ export function ConfirmModal({
             {confirmLabel ?? t('confirm.ok')}
           </Button>
         )}
-        {primaryAction && (
-          <Button
-            tone="accent"
-            size="md"
-            onClick={primaryAction.onSelect}
-            disabled={primaryAction.disabled}>
-            {primaryAction.label}
-          </Button>
-        )}
+        {primaryAction && (() => {
+          const btn = (
+            <Button
+              tone="accent"
+              size="md"
+              onClick={primaryAction.onSelect}
+              disabled={primaryAction.disabled}>
+              {primaryAction.label}
+            </Button>
+          );
+          return primaryAction.disabled && primaryAction.disabledReason
+            ? <HoverTooltip body={primaryAction.disabledReason} side="top">{btn}</HoverTooltip>
+            : btn;
+        })()}
+        </div>
       </div>
     </Overlay>
   );

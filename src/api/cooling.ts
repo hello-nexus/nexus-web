@@ -55,13 +55,12 @@ export interface FanChannel {
 }
 
 /**
- * A fan counts as disconnected only when calibration marked it Unresponsive
- * AND it is not currently spinning. Live RPM is ground truth: a fan reporting
- * RPM is physically connected, so a stale Unresponsive label (e.g. from a
- * calibration run while the fan was stopped) must not hide it. Re-calibration
- * refreshes the label; until then this recovers it immediately.
+ * Calibration read no tach signal on this fan at any duty, and it reports no
+ * RPM now. That proves nothing about control (a splitter or a tach-less fan
+ * still obeys PWM), so it labels the readout and nothing else. Live RPM wins
+ * over a stale classification.
  */
-export const isFanDisconnected = (c: FanChannel): boolean =>
+export const isFanUnresponsive = (c: FanChannel): boolean =>
   c.classification === 'Unresponsive' && (c.rpm ?? 0) <= 0;
 
 export interface FanCalibrationPoint {
@@ -272,9 +271,9 @@ export const fetchCoolingPresets = () =>
   fetchService<CoolingPresetsResponse>('/cooling/presets');
 
 /** `preset` is null on the error paths (blank name, cap reached). */
-export const createCoolingPreset = (name: string) =>
+export const createCoolingPreset = (name: string, fresh?: boolean) =>
   postService<{ preset: CoolingPreset | null; activeId: string | null; error: boolean; msg: string }>(
-    '/cooling/presets', { name });
+    '/cooling/presets', fresh ? { name, fresh: true } : { name });
 
 /** saveCurrent re-captures the live configuration into the preset. */
 export const updateCoolingPreset = (id: string, body: { name?: string; saveCurrent?: boolean }) =>

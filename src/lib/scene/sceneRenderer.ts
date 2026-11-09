@@ -34,6 +34,7 @@ import { buildCase, type Dimmable, type Palette, type SceneLayout } from './pcSc
 import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
+import { liveContactButtons } from '../../panel/engine/touchViaPointer';
 import { curveRadius } from './curvedPanel';
 import { applyHighlight, buildDeskBoxes } from './deskNodes';
 import { deskLegBoxes, deskSlabBoxes, lDeskRect, placedItemBoxes, type DeskBox, type DeskKind as ItemKind, type DeskRect, type Rect } from './deskScene';
@@ -660,7 +661,7 @@ export class SceneRenderer {
       }
       return;
     }
-    if (e.buttons !== 0) {
+    if (liveContactButtons(e, this.down !== null) !== 0) {
       this.callbacks.onHover?.(null, e.clientX, e.clientY, []);
       return;
     }

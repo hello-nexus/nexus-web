@@ -290,8 +290,8 @@ export function InstallPlacementModal({ app, iconSrc, devices, dashboardColumns,
       </div>
 
       <footer className={styles.footer}>
-        <span className={styles.count}>{t('store.place.selected', { selected: selected.size, total: plans.length })}</span>
         <Button tone="neutral" size="lg" onClick={skip} disabled={committing}>{t('store.place.skip')}</Button>
+        <span className={styles.count}>{t('store.place.selected', { selected: selected.size, total: plans.length })}</span>
         <Button
           tone="accent"
           size="lg"

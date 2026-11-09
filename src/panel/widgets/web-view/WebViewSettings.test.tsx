@@ -53,3 +53,24 @@ describe('WebViewSettings touch the page', () => {
     expect(screen.getByRole('switch', { name: /web-view\.settings\.interactive/ }).getAttribute('aria-checked')).toBe('false');
   });
 });
+
+describe('WebViewSettings allow microphone and camera', () => {
+  it('is off for an instance with no stored value and saves on when switched', () => {
+    const onUpdate = vi.fn();
+    render(<WebViewSettings {...base} onUpdate={onUpdate} surface="phone" />);
+    const toggle = screen.getByRole('switch', { name: /web-view\.settings\.media/ });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(toggle);
+    expect(onUpdate).toHaveBeenCalledWith({ allowMedia: true });
+  });
+
+  it('reads on from the stored value and saves off when switched', () => {
+    const onUpdate = vi.fn();
+    const on = { ...widget, config: { url: 'https://example.com/', allowMedia: true } } as PanelWidget;
+    render(<WebViewSettings {...base} widget={on} onUpdate={onUpdate} surface="phone" />);
+    const toggle = screen.getByRole('switch', { name: /web-view\.settings\.media/ });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle);
+    expect(onUpdate).toHaveBeenCalledWith({ allowMedia: false });
+  });
+});

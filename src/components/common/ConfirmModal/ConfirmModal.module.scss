@@ -1,23 +1,36 @@
 @use '../../../panel/styles/flexGap' as *;
+@use 'narrowDialog' as *;
+
+.backdrop {
+  @include narrow-gutter;
+}
 
 .modal {
   background: var(--backdrop-base);
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  width: min(420px, 100%);
+  @include dialog-width(420px);
   padding: 1.25rem 1.35rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   box-shadow: var(--shadow-xl);
+  position: relative;
+
+  @include narrow-card;
 }
 
 .wide {
-  width: min(600px, 100%);
+  min-width: min(600px, 100%);
+}
+
+.wider {
+  min-width: min(760px, 100%);
 }
 
 .title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: var(--type-heading);
   color: var(--text);
 }
@@ -41,6 +54,7 @@
 
 .text {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-size: var(--type-body);
   line-height: 1.45;
@@ -80,8 +94,23 @@
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.35rem;
+
+  @include footer-row('.actionsEnd');
+}
+
+.stacked {
+  @include footer-stacked('.actionsEnd');
+}
+
+.actionsEnd {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 

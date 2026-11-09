@@ -123,10 +123,10 @@ export function PublishEffectModal({ open, initialName, recipe, link, save, onVi
             <p className={promptStyles.message}>{t('lighting.studio.publish.doneBody', { name: published.name, author: published.author })}</p>
             {typeof published.version === 'number' && <p className={promptStyles.message}>{t('lighting.studio.publish.doneVersion', { version: published.version })}</p>}
             <div className={promptStyles.actions}>
+              <Button tone="neutral" onClick={onClose}>{t('lighting.studio.done')}</Button>
               {onViewListing && (
-                <Button tone="neutral" onClick={() => onViewListing(published.id)}>{t('lighting.studio.publish.view')}</Button>
+                <Button tone="accent" onClick={() => onViewListing(published.id)}>{t('lighting.studio.publish.view')}</Button>
               )}
-              <Button tone="accent" onClick={onClose}>{t('lighting.studio.done')}</Button>
             </div>
           </>
         ) : (

@@ -419,12 +419,21 @@ describe('useDeckInstance - mode and preset management', () => {
     getDeckPresetMock.mockResolvedValue(CREATED);
 
     let outcome: { error: boolean } | undefined;
-    await act(async () => { outcome = await result.current.createPreset('New preset'); });
+    await act(async () => { outcome = await result.current.createPreset('New preset', undefined, { fresh: true }); });
 
-    expect(createDeckPresetMock).toHaveBeenCalledWith({ name: 'New preset', cols: 5, rows: 3 });
+    expect(createDeckPresetMock).toHaveBeenCalledWith({ name: 'New preset', cols: 5, rows: 3, fresh: true });
     expect(outcome).toEqual({ error: false });
     expect(result.current.presets.some(p => p.id === 'p3')).toBe(true);
     expect(result.current.preset?.id).toBe('p3');
+  });
+
+  it('createPreset sends copyOfPresetId when duplicating, fresh otherwise', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 5, rows: 3 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    const CREATED: DeckPresetFull = { id: 'p3', name: 'Copy', cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [] }] } };
+    createDeckPresetMock.mockResolvedValue(CREATED);
+    await act(async () => { await result.current.createPreset('Copy', vi.fn(), { copyOfPresetId: 'p1' }); });
+    expect(createDeckPresetMock).toHaveBeenCalledWith({ name: 'Copy', cols: 5, rows: 3, copyOfPresetId: 'p1' });
   });
 
   it('createPreset routes activation through a custom activatePreset override instead of its own activate', async () => {
@@ -436,7 +445,7 @@ describe('useDeckInstance - mode and preset management', () => {
     const activatePreset = vi.fn();
 
     let outcome: { error: boolean } | undefined;
-    await act(async () => { outcome = await result.current.createPreset('New preset', activatePreset); });
+    await act(async () => { outcome = await result.current.createPreset('New preset', activatePreset, { fresh: true }); });
 
     expect(outcome).toEqual({ error: false });
     expect(activatePreset).toHaveBeenCalledWith('p3');
@@ -449,7 +458,7 @@ describe('useDeckInstance - mode and preset management', () => {
 
     createDeckPresetMock.mockResolvedValue(null);
     let outcome: { error: boolean } | undefined;
-    await act(async () => { outcome = await result.current.createPreset('Blocked'); });
+    await act(async () => { outcome = await result.current.createPreset('Blocked', undefined, { fresh: true }); });
 
     expect(outcome).toEqual({ error: true });
     expect(updateDeckInstanceMock).not.toHaveBeenCalled();

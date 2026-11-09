@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UNKNOWN_SPEC_RPM_MAX, scaledSpec, settleFlows, speedFraction, FLOW_CHANGE_FLOOR_CFM } from './fanSpeed';
+import { UNKNOWN_SPEC_RPM_MAX, easeFlows, scaledSpec, settleFlows, speedFraction, FLOW_CHANGE_FLOOR_CFM } from './fanSpeed';
 import { slotModelFans } from './fanSpecs';
 import { solveCasePressure } from './pressureModel';
 import type { CaseFanSlot } from './caseLayout';
@@ -127,5 +127,24 @@ describe('a fan curve easing the rpm', () => {
     }
     expect(changes).toBe(0);
     expect(settleFlows(settled, { a: cfmAt(1163) })).not.toBe(settled);
+  });
+});
+
+describe('easeFlows', () => {
+  it('moves part of the way toward a new flow, then lands on it', () => {
+    const target = { a: 0, '#vent': 0 };
+    let shown: Readonly<Record<string, number>> = { a: 30, '#vent': 5 };
+    const first = easeFlows(shown, target);
+    expect(first.a).toBeGreaterThan(5);
+    expect(first.a).toBeLessThan(30);
+    let steps = 0;
+    while (shown !== target && steps < 20) { shown = easeFlows(shown, target); steps++; }
+    expect(shown).toBe(target);
+    expect(steps).toBeGreaterThan(2);
+  });
+
+  it('takes a changed set of fans at once', () => {
+    const target = { a: 10, b: 10 };
+    expect(easeFlows({ a: 10 }, target)).toBe(target);
   });
 });

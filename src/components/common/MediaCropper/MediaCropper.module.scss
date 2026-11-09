@@ -81,19 +81,6 @@
   pointer-events: none;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 0 0;
-}
-
-// Splits the row: reset sits alone at the leading edge, cancel/confirm trail.
-.resetBtn {
-  margin-right: auto;
-}
-
 .toolbar {
   display: flex;
   align-items: center;

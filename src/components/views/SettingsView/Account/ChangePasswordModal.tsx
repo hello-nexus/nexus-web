@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { DeviceModal } from '../../../common/DeviceModal/DeviceModal';
@@ -23,6 +23,7 @@ interface ChangePasswordModalProps {
 // after the modal closed cannot leave its notice for the next open.
 export function ChangePasswordModal({ open, onClose, recoveryFresh, onRecoveryFreshConsumed, changePassword }: ChangePasswordModalProps) {
   const { t } = useTranslation();
+  const formId = useId();
   const { push } = useToast();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -65,14 +66,19 @@ export function ChangePasswordModal({ open, onClose, recoveryFresh, onRecoveryFr
   };
 
   return (
-    <DeviceModal open={open} onClose={onClose} title={t('account.password.change')}>
+    <DeviceModal open={open} onClose={onClose} title={t('account.password.change')}
+      cancelLabel={sent ? t('confirm.ok') : undefined}
+      footer={sent ? undefined : (
+        <Button type="submit" form={formId} tone="accent" size="md" loading={saving} disabled={!canSubmit || saving}>
+          {t('account.save')}
+        </Button>
+      )}>
       {sent ? (
         <div className={styles.form}>
           <p className={styles.notice} role="status">{t('account.password.confirmSent')}</p>
-          <Button type="button" tone="accent" onClick={onClose}>{t('confirm.ok')}</Button>
         </div>
       ) : (
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <form id={formId} className={styles.form} onSubmit={handleSubmit}>
           {!recoveryFresh && <p className={styles.hint}>{t('account.password.confirmHint')}</p>}
           <label className={styles.field}>
             <span className={styles.fieldLabel}>{t('account.password.new')}</span>
@@ -102,9 +108,6 @@ export function ChangePasswordModal({ open, onClose, recoveryFresh, onRecoveryFr
             <p className={styles.hint}>{t('account.create.passwordHint')}</p>
           )}
           {error && <p className={styles.error} role="alert">{error}</p>}
-          <Button type="submit" tone="accent" loading={saving} disabled={!canSubmit || saving}>
-            {t('account.save')}
-          </Button>
         </form>
       )}
     </DeviceModal>

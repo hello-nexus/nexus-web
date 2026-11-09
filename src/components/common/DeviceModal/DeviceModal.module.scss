@@ -1,6 +1,7 @@
 @use '../../../styles/scrollbar' as *;
 @use '../../../styles/text' as *;
 @use '../../../styles/interactions' as *;
+@use '../../../panel/styles/flexGap' as *;
 
 .modal {
   background: var(--backdrop-base);
@@ -147,6 +148,23 @@
   transition: background var(--ease-fast);
 
   &:hover { background: var(--bg-card-hover); }
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  background: var(--backdrop-base);
+  flex-shrink: 0;
+}
+
+.footerEnd {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+
+  @include hgap(0.5rem);
 }
 
 .body {

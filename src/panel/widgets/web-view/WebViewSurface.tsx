@@ -6,7 +6,7 @@ import { webViewHost } from '../../webview/webViewHost';
 import { isLivePanelPage } from '../../webview/webViewProtocol';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { WidgetProps } from '../types';
-import { resolveInteractive, resolveRefreshMinutes, resolveZoom } from './webViewConfig';
+import { resolveAllowMedia, resolveInteractive, resolveRefreshMinutes, resolveZoom } from './webViewConfig';
 import { normalizeWebViewUrl, webViewHostName, webViewSiteName } from './webViewUrl';
 import { useWebViewClaim } from './useWebViewClaim';
 import styles from './WebViewWidget.module.scss';
@@ -29,6 +29,7 @@ export function WebViewSurface({ widget, surface, editorPreview, immersive }: We
   const { ref, snapshot } = useWebViewClaim({ id: widget.id, url, immersive, enabled: native,
     zoom: resolveZoom(widget.config?.zoom), refreshMinutes: resolveRefreshMinutes(widget.config?.refreshMinutes),
     touchPage: !immersive && resolveInteractive(widget.config?.interactive),
+    media: resolveAllowMedia(widget.config?.allowMedia),
   });
 
   const view = snapshot.views[widget.id];

@@ -1,0 +1,61 @@
+// Alert dialog sizing. The card is as wide as its size floor or its one-row
+// footer, whichever is larger (width: min-content over a nowrap footer), capped
+// at the viewport. Labels never wrap. When even the capped card cannot hold the
+// row, useStackOnOverflow adds the stacked class and the footer becomes a column.
+$narrow: 800px;
+
+@mixin dialog-width($floor) {
+  width: min-content;
+  min-width: min(#{$floor}, 100%);
+  max-width: 100%;
+}
+
+@mixin narrow-gutter {
+  @media (max-width: #{$narrow}) {
+    // div.x outranks the Overlay's single-class padding whichever sheet loads last.
+    @at-root div#{&} { padding: 1rem; }
+  }
+}
+
+@mixin narrow-card {
+  @media (max-width: #{$narrow}) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@mixin footer-row($actions-end) {
+  flex-wrap: nowrap;
+
+  button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  #{$actions-end} {
+    flex-wrap: nowrap;
+  }
+
+  @media (max-width: #{$narrow}) {
+    button {
+      padding: 0 var(--space-md);
+    }
+  }
+}
+
+// Primary action on top, dismiss last: column-reverse flips the DOM order
+// (Cancel, then the actions) and the actions' own order.
+@mixin footer-stacked($actions-end) {
+  flex-direction: column-reverse;
+  align-items: stretch;
+
+  button {
+    width: 100%;
+  }
+
+  #{$actions-end} {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    margin-left: 0;
+  }
+}

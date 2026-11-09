@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CalendarDays, Clock, Hash } from 'lucide-react';
-import { SettingRow } from '../../common/SettingRow/SettingRow';
+import { CalendarDays, Clock, Hash, Thermometer } from 'lucide-react';
+import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Select } from '../../common/Select/Select';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ThemeTab } from './ThemeTab';
@@ -9,7 +9,7 @@ import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
 import {
   DATE_FORMATS, DEFAULT_CUSTOM_DATE_FORMAT, formatDate,
-  type TimeFormat, type NumberFormat, type DateFormat,
+  type TimeFormat, type NumberFormat, type TempUnit, type DateFormat,
 } from '../../../lib/units';
 import styles from './SettingsView.module.scss';
 
@@ -94,6 +94,37 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
             </div>
           )}
         </div>
+      </SettingsSection>
+
+      <SettingsSection title={t('settings.units.monitoring.title')}>
+        <SettingRow
+          label={t('settings.units.temperature.label')}
+          icon={<Thermometer />}
+          iconLeading="subtle"
+          anchorId="set-temp-unit"
+          description={t('settings.units.temperature.description')}
+        >
+          <ChipGroup
+            ariaLabel={t('settings.units.temperature.label')}
+            activeKey={settings.general.monitoringTempUnit}
+            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
+              { key: 'c', label: t('settings.units.temperature.celsius') },
+              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
+              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
+            ]}
+          />
+        </SettingRow>
+        <SettingToggle
+          label={t('settings.units.monitoringWholeNumbers.label')}
+          anchorId="set-monitoring-whole-numbers"
+          description={t('settings.units.monitoringWholeNumbers.description')}
+          icon={<Hash />}
+          iconLeading="subtle"
+          checked={settings.general.monitoringWholeNumbers}
+          onChange={checked => updateGeneral({ monitoringWholeNumbers: checked })}
+        />
       </SettingsSection>
     </div>
   );

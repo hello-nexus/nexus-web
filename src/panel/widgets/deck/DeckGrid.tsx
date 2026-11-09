@@ -157,7 +157,7 @@ function StaticCell({ slot, index, selectable, selected, onClick, onCellContextM
       style={{ '--deck-accent': accent } as CSSProperties}
       aria-pressed={selectable ? selected : undefined}
       onClick={e => { e.stopPropagation(); onClick(); }}
-      onPointerDown={e => e.stopPropagation()}
+      onPointerDown={e => { if (selectable) e.stopPropagation(); }}
       onContextMenu={e => { if (selectable) e.stopPropagation(); if (!slot.auto) onCellContextMenu?.(e, index, empty); }}
     >
       {content}

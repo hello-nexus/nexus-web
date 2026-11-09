@@ -40,9 +40,9 @@ export function DashboardPresetToolbar({ layoutState }: DashboardPresetToolbarPr
       activeId={state?.activeId ?? null}
       presetCount={presets.length}
       onLoad={id => { void replaceFromService(() => activateDashboardPreset(id)).then(apply); }}
-      onCreate={async name => {
+      onCreate={async (name, { fresh }) => {
         await flush();
-        const res = await createDashboardPreset(name);
+        const res = await createDashboardPreset(name, fresh);
         if (!res) return { error: true };
         setState(res);
         return { error: false };

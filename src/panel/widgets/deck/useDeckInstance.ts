@@ -31,6 +31,9 @@ function normalizeInstance(instance: DeckInstance): DeckInstance {
   return mode === 'fixed' || mode === 'appAware' ? { ...instance, mode: 'custom' } : instance;
 }
 
+/** Where a new deck preset starts: the stock deck, or a copy of an existing preset. */
+export type DeckPresetSource = { fresh: true } | { copyOfPresetId: string };
+
 export interface UseDeckInstanceResult {
   instance: DeckInstance | null;
   /** The active preset's full record (summary fields + live deck). */
@@ -50,8 +53,10 @@ export interface UseDeckInstanceResult {
    * own `onLoad` also resets page/folder/selection (StreamDeckDevicePage)
    * passes that instead, so a preset created from the toolbar resets the
    * same way loading one does.
+   * `source` is required: `{ fresh: true }` starts from the stock deck,
+   * `{ copyOfPresetId }` duplicates that preset.
    */
-  createPreset: (name: string, activatePreset?: (id: string) => void | Promise<void>) => Promise<{ error: boolean; msg?: string }>;
+  createPreset: (name: string, activatePreset: ((id: string) => void | Promise<void>) | undefined, source: DeckPresetSource) => Promise<{ error: boolean; msg?: string }>;
   renamePreset: (id: string, name: string) => Promise<void>;
   deletePreset: (id: string) => Promise<void>;
   canUndo: boolean;
@@ -314,8 +319,9 @@ function useOwnDeckInstance(
   const createPreset = useCallback(async (
     name: string,
     activatePreset: (id: string) => void | Promise<void> = activate,
+    source: DeckPresetSource,
   ): Promise<{ error: boolean; msg?: string }> => {
-    const created = await createDeckPreset({ name, cols: instanceGrid.cols, rows: instanceGrid.rows });
+    const created = await createDeckPreset({ name, cols: instanceGrid.cols, rows: instanceGrid.rows, ...source });
     if (!created) return { error: true };
     setPresets(prev => [...prev, {
       id: created.id, name: created.name, cols: created.cols, rows: created.rows,

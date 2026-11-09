@@ -210,6 +210,7 @@ export interface UnitsPrefs {
   monitoringTempUnit?: TempUnit;
   timeFormat?: TimeFormat;
   numberFormat?: NumberFormat;
+  monitoringWholeNumbers?: boolean;
   dateFormat?: DateFormat;
 }
 

@@ -4,10 +4,11 @@
 // no tile; build's tile is an APP_REGISTRY entry with no Page, so this entry owns
 // its sidebar row.
 //
-// Only the store is pinned by default (see sidebarAppKeys); the rest are
-// reachable from the sidebar's Show more list and global search until pinned.
+// None is pinned by default (see sidebarAppKeys); each is reachable from the
+// sidebar's Show more list and global search until pinned.
 
-import { Film, Hammer, Settings, Store } from 'lucide-react';
+import { Film, Settings, Store } from 'lucide-react';
+import { BUILD_ICON } from './buildEntry';
 import type { AppIcon } from '../panel/widgets/types';
 
 export interface PageOnlyApp {
@@ -21,7 +22,7 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   frames: { i18nKey: 'panel.widget.frames', icon: Film },
   store: { i18nKey: 'apps.tabs.store', icon: Store },
   settings: { i18nKey: 'settings.title', icon: Settings },
-  build: { i18nKey: 'panel.widget.build', icon: Hammer },
+  build: { i18nKey: 'panel.widget.build', icon: BUILD_ICON },
 };
 
 export function isPageOnlyAppKey(key: string): boolean {

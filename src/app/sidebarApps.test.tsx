@@ -89,9 +89,13 @@ describe('page-only apps (Store)', () => {
     expect(sanitizePinnedTail(['store'])).toEqual(['store']);
   });
 
-  it('is the bottom row of a fresh profile, below the curated tail', () => {
-    expect(DEFAULT_PINNED_TAIL).not.toContain('store');
-    expect(sanitizePinnedTail(undefined)).toEqual([...DEFAULT_PINNED_TAIL, 'store']);
+  it('is not in a fresh profile: defaults are the four feature pillars only', () => {
+    expect(DEFAULT_PINNED_TAIL).toEqual(['monitoring', 'lighting', 'cooling', 'diagnostics']);
+    expect(sanitizePinnedTail(undefined)).toEqual(DEFAULT_PINNED_TAIL);
+  });
+
+  it('keeps a stored store pin exactly as stored', () => {
+    expect(sanitizePinnedTail(['store', 'monitoring'])).toEqual(['store', 'monitoring']);
   });
 });
 
@@ -171,5 +175,18 @@ describe('listSidebarAppKeys', () => {
     const keys = listSidebarAppKeys();
     expect(keys).toContain(typeForMarketplace('com.hellonexus.weather'));
     expect(keys).not.toContain(typeForMarketplace('com.hellonexus.tile'));
+  });
+});
+
+describe('Build in the sidebar', () => {
+  it('is pinnable and listed, but not in a fresh profile', () => {
+    expect(isPinnableAppKey('build')).toBe(true);
+    expect(listSidebarAppKeys()).toContain('build');
+    expect(DEFAULT_PINNED_TAIL).not.toContain('build');
+    expect(sanitizePinnedTail(undefined)).not.toContain('build');
+  });
+
+  it('keeps a stored build pin at its stored position', () => {
+    expect(sanitizePinnedTail(['monitoring', 'build', 'lighting'])).toEqual(['monitoring', 'build', 'lighting']);
   });
 });

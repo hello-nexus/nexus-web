@@ -10,7 +10,7 @@ import { buildCollisionShapes, obstacleGeometry } from './collisionShapes';
 import { CpuFlow } from './cpuSolver';
 import { CpuParticles } from './cpuParticles';
 import { buildFlowScene } from './gridScene';
-import { EMITTER_STRIDE, OUTSIDE_REACH_MM, ROOM_TEMP_C, VMAX_CELLS } from './flowParams';
+import { EMITTER_STRIDE, MIN_FAN_HALF_THICKNESS_CELLS, OUTSIDE_REACH_MM, ROOM_TEMP_C, VMAX_CELLS } from './flowParams';
 import { hullCuts } from './hull';
 import { obstaclesOf } from './obstacles';
 
@@ -87,7 +87,16 @@ describe.each(FIXTURES)('$name', ({ name, file, dual }) => {
     // Each emitter entry sits at the center of a fanned slot, in cell coordinates; a fan on a case face starts its particles out past that face; a card, radiator or shroud-mounted fan does not.
     const e = run.scene.emitters;
     const cell = run.scene.cellMm;
-    const centers = new Map(fanned.map(s => [s.key, [0, 1, 2].map(a => (centerOf(s)[a] + run.scene.origin[a]) / cell - 0.5)]));
+    // A card's fans push on the fan side of the cooler: their entry sits the forcing layer's half thickness in from that face.
+    const inset = cell * MIN_FAN_HALF_THICKNESS_CELLS;
+    const entryOf = (s: (typeof fanned)[number]) => {
+      const c = [...centerOf(s)];
+      if (s.position !== 'gpu') return c;
+      const k = s.axis!.findIndex(v => Math.abs(v) > 0.5);
+      c[k] = s.axis![k] > 0 ? s.box!.min[k] + inset : s.box!.min[k] + s.box!.size[k] - inset;
+      return c;
+    };
+    const centers = new Map(fanned.map(s => [s.key, [0, 1, 2].map(a => (entryOf(s)[a] + run.scene.origin[a]) / cell - 0.5)]));
     for (let o = 0; o < e.length; o += EMITTER_STRIDE) {
       const hit = [...centers.entries()].find(([, c]) => [0, 1, 2].every(a => Math.abs(c[a] - e[o + a]) < 1e-3));
       expect(hit, 'emitter on a fan center').toBeDefined();

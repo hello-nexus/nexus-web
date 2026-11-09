@@ -36,7 +36,7 @@ const target = (over: Partial<ChannelTarget> = {}): ChannelTarget => ({
 });
 
 const idle = { active: false, phase: 'idle' as const, percent: 0, message: '', version: '', success: false, error: '' };
-const CLOSE_X = 'app.window.close';
+const CLOSE_X = 'update.modal.close';
 const flush = async (ms = 0) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
 
 let targetReply: () => ChannelTarget | null;

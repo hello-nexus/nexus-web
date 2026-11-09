@@ -65,6 +65,14 @@ describe('createDeckPreset', () => {
   });
 });
 
+describe('createDeckPreset fresh', () => {
+  it('passes fresh through in the body', async () => {
+    vi.mocked(postService).mockResolvedValue({ preset: PRESET });
+    await createDeckPreset({ name: 'Streaming', cols: 5, rows: 3, fresh: true });
+    expect(postService).toHaveBeenCalledWith('/deck/presets', { name: 'Streaming', cols: 5, rows: 3, fresh: true });
+  });
+});
+
 describe('updateDeckPreset', () => {
   it('PUTs the patch and returns the full preset', async () => {
     vi.mocked(putService).mockResolvedValue({ preset: PRESET });

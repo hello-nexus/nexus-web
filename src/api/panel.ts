@@ -52,10 +52,8 @@ export interface PanelDeviceCapabilitiesDto {
   // This panel's driver can drive it as a Windows secondary monitor.
   // Absent/false hides the setting entirely.
   supportsSecondaryMonitor?: boolean;
-  // The glass mounts either way up; the record's portrait picks the render shape.
+  // The glass mounts either way up; the record's rotation picks the render shape.
   supportsPortrait?: boolean;
-  // The stream can render below native and scale up; the record's highResolution applies.
-  supportsRenderScale?: boolean;
 }
 
 export interface PanelGaugeGradientStopDto {
@@ -175,14 +173,17 @@ export interface PanelDeviceRecord {
   autoOrient?: boolean;
   // Pushed-frame cooler LCDs: how the glass is mounted. Applied to the bytes in
   // the service transport, so everything else renders upright. Absent/null = off.
+  // Legacy: older services send these instead of rotation.
   flip180?: boolean;
-  mirror?: boolean;
-  // Panels whose capabilities carry supportsPortrait: mounted on the short side,
-  // so the panel renders tall. Absent/null = landscape.
   portrait?: boolean | null;
-  // Panels whose capabilities carry supportsRenderScale: render at native resolution
-  // instead of a lower one. Absent/null = lower (high performance).
-  highResolution?: boolean | null;
+  // Clockwise degrees the glass is mounted at. Absent/null = 0.
+  rotation?: 0 | 90 | 180 | 270 | null;
+  // The rotations this glass accepts, computed by the service.
+  supportedRotations?: number[];
+  // The size the panel renders at after rotation (width and height swap at a quarter turn). Absent on a service that predates it.
+  renderWidth?: number | null;
+  renderHeight?: number | null;
+  mirror?: boolean;
   // Frame rate cap in fps for this device (streamed session rate, secondary-monitor pacing, or
   // how often a display-bound panel page draws). Absent/null = the device's own rate.
   fpsCap?: number | null;
@@ -278,18 +279,14 @@ export interface PanelDevicePatch {
   // Display-bound records with a physical orientation sensor only; ignored
   // for other panels.
   autoOrient?: boolean;
-  // Pushed-frame cooler LCDs only; ignored for other panels.
-  flip180?: boolean;
+  // Pushed-frame cooler LCDs and portrait-capable glass only; ignored for other panels.
+  rotation?: 0 | 90 | 180 | 270;
   mirror?: boolean;
   // Dimmable cooler LCDs only; ignored for other panels.
   lcdBrightness?: number;
   sleepWhenLocked?: boolean;
   // Streamed panels whose driver supports it only; ignored for other panels.
   secondaryMonitor?: boolean;
-  // Panels whose capabilities carry supportsPortrait only; ignored for other panels.
-  portrait?: boolean;
-  // Panels whose capabilities carry supportsRenderScale only; ignored for other panels.
-  highResolution?: boolean;
   // Frame rate cap in fps; 0 clears it (the device's own rate). The service clamps it.
   fpsCap?: number;
   widgetSize?: PanelWidgetSizeMode;
@@ -392,8 +389,8 @@ const panelPresetsPath = (id: string) => `/panel/devices/${encodeURIComponent(id
 export const fetchPanelPresets = (id: string) =>
   fetchService<PanelPresetsResponse>(panelPresetsPath(id));
 
-export const createPanelPreset = (id: string, name: string) =>
-  postService<PanelPresetsResponse>(panelPresetsPath(id), { name });
+export const createPanelPreset = (id: string, name: string, fresh?: boolean) =>
+  postService<PanelPresetsResponse>(panelPresetsPath(id), fresh ? { name, fresh: true } : { name });
 
 export const renamePanelPreset = (id: string, presetId: string, name: string) =>
   putService<PanelPresetsResponse>(`${panelPresetsPath(id)}/${encodeURIComponent(presetId)}`, { name });
@@ -540,6 +537,27 @@ export interface PanelPhoneClaimResponse {
   token: string;
   machineName?: string;
   error: string;
+  /** True when the host must approve this device; the claim carries the SAS instead of a token. */
+  needsApproval?: boolean;
+  requestId?: string | null;
+  sas?: string | null;
+  /** Unix-ms expiry of the pending approval request. */
+  expiresAt?: number;
+}
+
+export type PanelPhonePairCodeConfirmStatus =
+  | 'waiting-host'
+  | 'approved'
+  | 'denied'
+  | 'expired'
+  | 'unknown'
+  | 'https-required';
+
+export interface PanelPhonePairCodeConfirmResponse {
+  status: PanelPhonePairCodeConfirmStatus;
+  token?: string;
+  machineName?: string;
+  spkiFingerprint?: string;
 }
 
 export interface PanelPhoneSession {
@@ -732,7 +750,7 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel() }),
+      body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
     if (!res.ok) {
@@ -740,6 +758,25 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
       catch { return null; }
     }
     return (await res.json()) as PanelPhoneClaimResponse;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One poll of the pending QR-claim approval. Same-origin like the claim, so the
+ * session cookie the service sets on approval lands on this origin. Null on a
+ * transport failure so the caller keeps polling until the request's deadline.
+ */
+export async function confirmPanelPhonePairing(requestId: string, approved = true): Promise<PanelPhonePairCodeConfirmResponse | null> {
+  if (isRemoteOrigin) return null;
+  try {
+    const res = await fetch(resolveHttp('/panel/phone/pair-code/confirm'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, approved }),
+    });
+    return (await res.json()) as PanelPhonePairCodeConfirmResponse;
   } catch {
     return null;
   }
@@ -761,8 +798,9 @@ export async function claimPanelPhonePairingLan(
   try {
     const res = await fetch(`http://${host}:${httpPort}/panel/phone/claim`, {
       method: 'POST',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel() }),
+      body: JSON.stringify({ pairToken, deviceName: deriveDeviceLabel(), supportsSasApproval: true }),
       signal,
     });
     if (!res.ok) {
@@ -772,6 +810,34 @@ export async function claimPanelPhonePairingLan(
     return (await res.json()) as PanelPhoneClaimResponse;
   } catch {
     // Aborted (timeout) or unreachable host both land here ⇒ LAN unavailable.
+    return null;
+  }
+}
+
+/**
+ * One poll of a pending LAN claim approval, against the same QR-derived
+ * `host`:`httpPort` as {@link claimPanelPhonePairingLan}. Null on a transport
+ * failure so the caller keeps polling until the request's deadline.
+ */
+export async function confirmPanelPhonePairingLan(
+  host: string,
+  httpPort: string,
+  requestId: string,
+  approved = true,
+  signal?: AbortSignal,
+): Promise<PanelPhonePairCodeConfirmResponse | null> {
+  try {
+    // A cross-origin request to the QR's host: no credentials, so nothing this
+    // browser holds for another PC can ride along.
+    const res = await fetch(`http://${host}:${httpPort}/panel/phone/pair-code/confirm`, {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, approved }),
+      signal,
+    });
+    return (await res.json()) as PanelPhonePairCodeConfirmResponse;
+  } catch {
     return null;
   }
 }

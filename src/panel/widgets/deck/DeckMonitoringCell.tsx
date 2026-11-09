@@ -78,7 +78,7 @@ export interface DeckMonitoringCellProps {
 
 export function DeckMonitoringCell({ action, title }: DeckMonitoringCellProps) {
   const preview = usePanelPreview();
-  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const sensors = useSensors(!preview);
   // Gated per category, not per mount: the "extras" topic makes the service
   // gather DIMM/battery/PSU/NIC sensors, and the "fps" topic starts ETW
@@ -101,7 +101,7 @@ export function DeckMonitoringCell({ action, title }: DeckMonitoringCellProps) {
   const name = action.labelText || (preview ? PREVIEW_SENSOR_NAME : labelForDevice(action.category, sensor?.name ?? ''));
   const formatted = preview
     ? PREVIEW_FORMATTED
-    : sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '--';
+    : sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat, sensor.type, monitoringWholeNumbers) : '--';
   const showName = action.showName ?? true;
   const accent = action.color || DECK_MONITORING_DEFAULT_COLOR;
   const titleStyle = resolveDeckTitleStyle(title);

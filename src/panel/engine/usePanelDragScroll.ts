@@ -3,6 +3,7 @@ import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from './gestureThresholds';
 import { claimGestureAxis, resetGestureAxis } from './gestureAxisLock';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS } from './usePanelTouchMode';
 import { findScroller } from './scrollers';
+import { primaryReleasedDuringMove } from './touchViaPointer';
 
 // Momentum after release: per-frame velocity retention and the speed below
 // which the glide stops.
@@ -102,7 +103,7 @@ export function usePanelDragScroll(enabled: boolean): void {
 
     const onPointerMove = (e: PointerEvent) => {
       if ((!scrollerY && !scrollerX) || e.pointerType !== 'mouse') return;
-      if ((e.buttons & 1) === 0) { finish(); return; }
+      if (primaryReleasedDuringMove(e)) { finish(); return; }
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       if (!engaged) {

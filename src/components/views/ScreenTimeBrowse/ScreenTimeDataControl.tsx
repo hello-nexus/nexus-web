@@ -1,3 +1,4 @@
+import { Button } from '../../common/Button/Button';
 import { useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -73,7 +74,12 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
 
   return (
     <>
-      <DeviceModal open={open} onClose={handleClose} title={t('settings.screentime.title')}>
+      <DeviceModal open={open} onClose={handleClose} title={t('settings.screentime.title')}
+        footer={(
+          <Button tone="danger-solid" size="md" onClick={requestClear} disabled={busy}>
+            {t('settings.screentime.clearButton')}
+          </Button>
+        )}>
         <div className={styles.content}>
           <div className={styles.section}>
             <div className={styles.sectionTitle}>{t('settings.screentime.clearTitle')}</div>
@@ -96,16 +102,6 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
           </div>
 
           {resultMsg && <Notice tone="info" role="status">{resultMsg}</Notice>}
-
-          <div className={styles.actions}>
-            <button type="button" className={styles.cancelBtn} onClick={handleClose}>
-              {t('confirm.cancel')}
-            </button>
-            <button type="button" className={styles.clearBtn}
-              onClick={requestClear} disabled={busy}>
-              {t('settings.screentime.clearButton')}
-            </button>
-          </div>
         </div>
       </DeviceModal>
 

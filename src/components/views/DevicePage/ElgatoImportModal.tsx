@@ -88,7 +88,13 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
   };
 
   return (
-    <DeviceModal open={open} onClose={onClose} title={t('devices.streamdeck.import.title')} medium>
+    <DeviceModal open={open} onClose={onClose} title={t('devices.streamdeck.import.title')} medium
+      cancelLabel={result ? t('devices.streamdeck.import.done') : t('confirm.cancel')}
+      footer={status === 'list' && !result && profiles.length > 0 ? (
+        <Button type="button" tone="accent" size="md" loading={importing} disabled={!selectedId || atCap} onClick={handleImport}>
+          {t('devices.streamdeck.import.import')}
+        </Button>
+      ) : undefined}>
       <div className={styles.body}>
         {status === 'loading' && (
           <div className={styles.loadingRow}>
@@ -147,12 +153,9 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
 
             {importError && <p className={styles.error}>{importError}</p>}
 
-            {profiles.length > 0 && (
+            {profiles.length > 0 && atCap && (
               <div className={styles.footer}>
-                {atCap && <span className={styles.capNote}>{t('lighting.layoutPresets.capReached', { max: DECK_PRESET_CAP })}</span>}
-                <Button type="button" tone="accent" loading={importing} disabled={!selectedId || atCap} onClick={handleImport}>
-                  {t('devices.streamdeck.import.import')}
-                </Button>
+                <span className={styles.capNote}>{t('lighting.layoutPresets.capReached', { max: DECK_PRESET_CAP })}</span>
               </div>
             )}
           </>
@@ -190,10 +193,6 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
                 </ul>
               </div>
             )}
-
-            <div className={styles.footer}>
-              <Button type="button" tone="accent" onClick={onClose}>{t('devices.streamdeck.import.done')}</Button>
-            </div>
           </div>
         )}
       </div>

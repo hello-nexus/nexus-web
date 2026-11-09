@@ -10,6 +10,7 @@ import type {
   CanvasPointerEvent, FramePacing, HostToRenderer, RendererSize, RendererToHost,
 } from '../../../sdk/runtime/rendererCore';
 import { pageFrameCap, panelDisplayHz, subscribePanelFpsCap } from '../../lib/framePacer';
+import { liveContactButtons } from '../../panel/engine/touchViaPointer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
@@ -499,7 +500,7 @@ export class CanvasSession {
     else if (tracked) this.forwarded.set(e.pointerId, { pointerType: e.pointerType, x, y });
     this.send({
       type: 'pointer',
-      event: { type, pointerId: e.pointerId, pointerType: e.pointerType, x, y, buttons: e.buttons },
+      event: { type, pointerId: e.pointerId, pointerType: e.pointerType, x, y, buttons: liveContactButtons(e, type === 'down' || (tracked && type === 'move')) },
     });
   };
 

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
+import { useStackOnOverflow } from '../ConfirmModal/useStackOnOverflow';
 import styles from './PromptModal.module.scss';
 
 interface PromptModalProps {
@@ -71,6 +72,8 @@ export function PromptModal({
   // Bumped on every open-transition so a still-pending onConfirm from a
   // cancelled-then-reopened cycle can't land its error on the new session.
   const attemptRef = useRef(0);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  useStackOnOverflow(actionsRef, styles.stacked, open);
 
   useEffect(() => {
     if (!open) return;
@@ -137,7 +140,7 @@ export function PromptModal({
 
   return (
     <Overlay open={open} onClose={onCancel} variant="alert" onEnter={() => submit()}
-      className={styles.modal} ariaLabel={title}>
+      backdropClassName={styles.backdrop} className={styles.modal} ariaLabel={title}>
       <h2 id={inputId + '-title'} className={styles.title}>{title}</h2>
       <div className={styles.fieldWrap}>
         {message && <label htmlFor={inputId} className={styles.message}>{message}</label>}
@@ -157,10 +160,11 @@ export function PromptModal({
         />
         {isInvalid && <p id={errorId} className={styles.error} role="alert">{error}</p>}
       </div>
-      <div className={styles.actions}>
+      <div ref={actionsRef} className={styles.actions}>
         <Button tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
         </Button>
+        <div className={styles.actionsEnd}>
         {secondary && (
           <Button tone="neutral" size="md" onClick={() => submit(secondary.onClick)}
             disabled={submitDisabled || !!secondary.disabled?.(value)}>
@@ -170,6 +174,7 @@ export function PromptModal({
         <Button tone="accent" size="md" onClick={() => submit()} disabled={submitDisabled}>
           {confirmLabel ?? t('confirm.ok')}
         </Button>
+        </div>
       </div>
     </Overlay>
   );

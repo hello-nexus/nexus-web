@@ -344,7 +344,7 @@ function useImmersiveAnimateState(): {
   const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
   // The exact flat color the global Static look is, from the service; '' when it is an effect.
   const [globalColor, setGlobalColor, readGlobalColor] = useGlobalColor();
-  const { recordColor } = useLightingRecents();
+  const { recordColor, recordAnimation } = useLightingRecents();
 
   const selectionIds = useMemo(() => [...selectedIds], [selectedIds]);
   const selection = useMemo(() => selectionPin(pins, selectionIds), [pins, selectionIds]);
@@ -474,6 +474,7 @@ function useImmersiveAnimateState(): {
     const b = templates[key];
     const s = b?.slots[b.selected] ?? defaultStateFor(key);
     const slot = b?.selected ?? 0;
+    if (mode === 'animate') recordAnimation(key, slot);
     if (selectionIds.length > 0) {
       void applyPins(selectionIds, mode === 'static' ? staticLookPin(key, slot, s) : animatePin(key));
       return;
@@ -482,7 +483,7 @@ function useImmersiveAnimateState(): {
     stagedRef.current = null;
     force(n => n + 1);
     applyLook(key, s, slot);
-  }, [applyLook, applyPins, mode, selectionIds, templates]);
+  }, [applyLook, applyPins, mode, recordAnimation, selectionIds, templates]);
 
   const onSelectCustom = useCallback((hex: string) => {
     setCustomStaticColor(hex);
@@ -537,6 +538,8 @@ function useImmersiveAnimateState(): {
   const onTemplateSelect = useCallback((idx: number) => {
     if (!bundle) return;
     const clamped = Math.min(Math.max(idx, 0), bundle.slots.length - 1);
+    // Like the page: a static pin's preset is not an animation pick, and re-picking the selected preset is no new pick.
+    if (mode === 'animate' && pinnedSlot === null && clamped !== bundle.selected) recordAnimation(shown, clamped);
     // A static pin repoints only its devices; the effect's shared pointer stays.
     const nextBundle: EffectTemplateBundle = pinnedSlot === null ? { ...bundle, selected: clamped } : bundle;
     const nextTemplates = { ...templates, [shown]: nextBundle };
@@ -547,7 +550,7 @@ function useImmersiveAnimateState(): {
     if (next) {
       applyLook(shown, next, clamped);
     }
-  }, [applyLook, bundle, pinnedSlot, shown, templates]);
+  }, [applyLook, bundle, mode, pinnedSlot, recordAnimation, shown, templates]);
 
   const onReset = useCallback(() => {
     stagedRef.current = null;

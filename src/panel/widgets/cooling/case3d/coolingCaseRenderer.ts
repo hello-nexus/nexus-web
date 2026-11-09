@@ -1,5 +1,5 @@
 import {
-  ArrowHelper, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
+  ArrowHelper, BoxGeometry, BufferGeometry, Color, DoubleSide, PlaneGeometry, ShaderMaterial, Float32BufferAttribute, Group, LineBasicMaterial, LineDashedMaterial, LineLoop,
   Material, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
@@ -7,7 +7,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
+import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
+import { advanceRotor, ROTOR_BLADES, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
+import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
@@ -26,9 +29,21 @@ export interface CaseSceneState {
   simulated: ReadonlySet<string>;
   /** The slot whose direction control is open. */
   active: string | null;
+  /** True while devices are selected in the list, even when none is bound to a fan: unhighlighted fans then dim. */
+  filtering?: boolean;
+  /** Every selected fan: each one is emphasised and shows its direction arrow. */
+  selected?: ReadonlySet<string>;
   /** Airflow simulation input; null leaves the flow layer empty. */
   flow: FlowInput | null;
   flowOptions: FlowOptions;
+  /** Fans that get a spinning rotor, by slot key, with the rpm to spin at. */
+  rotors?: ReadonlyMap<string, number>;
+}
+
+/** A point in layout mm to follow on screen. */
+export interface PointAnchor {
+  key: string;
+  at: HeatAnchor['at'];
 }
 
 /** Where an anchor lands on the canvas, CSS pixels; `visible` is false behind the camera or off the canvas. */
@@ -42,10 +57,12 @@ export interface CaseSceneRenderer {
   setState: (state: CaseSceneState) => void;
   /** Live part temperatures: reach the particles' heat uniforms only, never the solver or the particles themselves. */
   setTemps: (temps: ComponentTemps) => void;
-  /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. */
-  setAnchors: (anchors: readonly HeatAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void) => void;
+  /** Points to follow on screen; `onProject` runs after each drawn frame with their canvas positions by key. Each `owner` keeps its own set, so independent overlays never replace one another. */
+  setAnchors: (anchors: readonly PointAnchor[], onProject: (positions: Record<string, ProjectedAnchor>) => void, owner?: string) => void;
   /** Receives the airflow color span in degrees whenever it moves enough to change a legend; null stops it. */
   setSpanListener: (listener: ((spanK: number) => void) | null) => void;
+  /** Receives true while the airflow solve is still settling (a solve in progress with the particles on), false once it is steady; null stops it. */
+  setSettlingListener: (listener: ((settling: boolean) => void) | null) => void;
   resize: () => void;
   dispose: () => void;
   /** False once a layer has found no float render target: the airflow layer cannot run here. */
@@ -55,9 +72,13 @@ export interface CaseSceneRenderer {
 }
 
 /** A click that lands on a fan slot or on nothing; x and y are CSS pixels inside the canvas. */
-export type PickHandler = (slotKey: string | null, x: number, y: number) => void;
+export type PickHandler = (slotKey: string | null, x: number, y: number, mods?: PickModifiers) => void;
 
 const CLICK_SLOP_PX = 4;
+/** How far the case and its parts are drawn back while the airflow runs, so the fans and the air read first. */
+export const AIRFLOW_DIM = 0.2;
+/** The case drawn on its own: still drawn back, but brighter than behind the airflow. */
+export const CASE_ONLY_DIM = 0.6;
 /** A still camera for this long, and a settled flow, lets the view draw at a reduced rate. */
 const IDLE_MS = 400;
 const CALM_FRAME_MS = 1000 / 30;
@@ -114,7 +135,41 @@ function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
   return x <= y && x <= z ? 'x' : y <= z ? 'y' : 'z';
 }
 
-export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler): CaseSceneRenderer {
+const ROTOR_DOTS = 12;
+const ROTOR_VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+// A flat rotor drawn per pixel: swept blades that start just outside the hub circle, a centre dot on a chosen fan, and blades that melt into a soft disc at speed.
+const ROTOR_FRAGMENT = /* glsl */ `
+uniform vec3 uColor; uniform float uSelected; uniform float uAngle; uniform float uBlur; uniform float uOpacity; uniform float uDotted;
+varying vec2 vUv;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  float r = length(p);
+  if (r > 1.0) discard;
+  float f = fract((atan(p.y, p.x) - uAngle) * ${ROTOR_BLADES}.0 / 6.2831853 - r * 0.9);
+  float blade = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.59, 0.64, f));
+  blade = mix(blade, 0.4, uBlur) * smoothstep(0.41, 0.44, r) * (1.0 - smoothstep(0.93, 1.0, r));
+  blade *= mix(1.0, smoothstep(0.3, 0.4, fract(r * ${ROTOR_DOTS}.0)) * (1.0 - smoothstep(0.7, 0.8, fract(r * ${ROTOR_DOTS}.0))), uDotted);
+  float centre = 1.0 - smoothstep(0.09, 0.11, r);
+  gl_FragColor = vec4(uColor, max(blade, uSelected * centre) * uOpacity);
+  gl_FragColor = linearToOutputTexel(gl_FragColor);
+}`;
+const ROTOR_OPACITY = 0.4;
+/** The rotor shader material; a simulated fan's blades are dotted along their length. */
+export function rotorMaterial(color: Color, chosen: boolean, rpm: number, dotted: boolean): ShaderMaterial {
+  return new ShaderMaterial({
+    vertexShader: ROTOR_VERTEX, fragmentShader: ROTOR_FRAGMENT, transparent: true, depthWrite: false, side: DoubleSide,
+    uniforms: { uColor: { value: color.clone() }, uSelected: { value: chosen ? 1 : 0 }, uAngle: { value: 0 }, uBlur: { value: rotorBlur(rpm) }, uOpacity: { value: ROTOR_OPACITY }, uDotted: { value: dotted ? 1 : 0 } },
+  });
+}
+/** Visual turns a second for a fan at `rpm`: it rises with the speed but levels off, so a fast fan does not strobe at the display rate. */
+export const rotorTurnsPerSecond = (rpm: number): number => 1.4 * (1 - Math.exp(-Math.max(0, rpm) / 1200));
+/** How much the blades melt into a disc: none for slow fans, most for the fastest. */
+export const rotorBlur = (rpm: number): number => 0.4 * Math.min(1, Math.max(0, (rpm - 2200) / 1400));
+
+/** `onDrag` runs when a press ends after the pointer moved past a click's slop: an orbit or pan, which moves the picture under any open controls. */
+export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandler, onDrag?: () => void): CaseSceneRenderer {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const scene = new Scene();
@@ -128,11 +183,13 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let flowLayer: FlowLayer | null = null;
   let flowInput: FlowInput | null = null;
   let temps: ComponentTemps = NO_TEMPS;
-  let anchors: readonly HeatAnchor[] = [];
-  let onProject: ((positions: Record<string, ProjectedAnchor>) => void) | null = null;
+  const anchorSets = new Map<string, { anchors: readonly PointAnchor[]; onProject: (positions: Record<string, ProjectedAnchor>) => void; projected: Record<string, ProjectedAnchor> }>();
   let collisionsOn = false;
   let spanListener: ((spanK: number) => void) | null = null;
+  let settlingListener: ((settling: boolean) => void) | null = null;
   let showCase = true;
+  // The case and parts are always drawn back: further while the particles run.
+  let caseDim = AIRFLOW_DIM;
   // The collision view stands in for the case; Airflow hides the case and the fans.
   const applyVisibility = () => {
     staticGroup.visible = showCase && !collisionsOn;
@@ -142,41 +199,53 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const fanDisposables: { dispose: () => void }[] = [];
   const raycaster = new Raycaster();
   let hitMeshes: Mesh[] = [];
+  // Spinning rotors: the material, its rpm and the sign of the spin, advanced each frame. Each fan's angle and turn rate live on in `spins` when the scene is rebuilt, so a change of rpm or selection never restarts a rotor.
+  const rotors: { key: string; material: ShaderMaterial; rpm: number; sign: number }[] = [];
+  const spins = new Map<string, RotorSpin>();
+  let lastSpin = 0;
   let layout: CaseLayout | null = null;
   let frame = 0;
 
-  // Reused every frame: the projected positions, and the vector each anchor is projected through.
-  const projected: Record<string, ProjectedAnchor> = {};
+  // Reused every frame: the vector each anchor is projected through, and each set's own projected positions.
   const scratch = new Vector3();
   const projectAnchors = () => {
-    if (!onProject || anchors.length === 0) return;
+    if (anchorSets.size === 0) return;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    for (const a of anchors) {
-      const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
-      const x = (v.x * 0.5 + 0.5) * w;
-      const y = (-v.y * 0.5 + 0.5) * h;
-      const entry = projected[a.key] ?? (projected[a.key] = { x: 0, y: 0, visible: false });
-      entry.x = x;
-      entry.y = y;
-      entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+    for (const set of anchorSets.values()) {
+      for (const a of set.anchors) {
+        const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
+        const x = (v.x * 0.5 + 0.5) * w;
+        const y = (-v.y * 0.5 + 0.5) * h;
+        const entry = set.projected[a.key] ?? (set.projected[a.key] = { x: 0, y: 0, visible: false });
+        entry.x = x;
+        entry.y = y;
+        entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+      }
+      set.onProject(set.projected);
     }
-    onProject(projected);
   };
 
-  // Once the air has settled and the camera is still, only the particles move: draw at a reduced rate; the particle clock keeps their speed.
+  // Once the air has settled (or no air is drawn) and the camera is still, only particles and rotors move: draw at a reduced rate; both are timed by the clock.
   let lastDraw = 0;
   let lastInteraction = 0;
   const render = (now: number) => {
     frame = 0;
-    const calm = !!flowLayer?.settled && now - lastInteraction > IDLE_MS;
+    const calm = (flowLayer ? flowLayer.settled || !flowLayer.active : true) && now - lastInteraction > IDLE_MS;
     if (calm && now - lastDraw < CALM_FRAME_MS - FRAME_SLACK_MS) { requestRender(); return; }
     lastDraw = now;
+    const spinDt = lastSpin ? Math.min(100, now - lastSpin) : 0;
+    lastSpin = now;
+    for (const r of rotors) {
+      const spin = advanceRotor(spins.get(r.key), spinDt / 1000, rotorTurnsPerSecond(r.rpm), r.sign);
+      spins.set(r.key, spin);
+      r.material.uniforms.uAngle.value = spin.angle;
+    }
     flowLayer?.frame(now, camera, canvas.clientHeight);
     renderer.render(scene, camera);
     projectAnchors();
     // Particles keep moving after the solver settles; the loop runs only while the tab is visible.
-    if (flowLayer?.active && !document.hidden && onScreen) requestRender();
+    if ((flowLayer?.active || rotors.some(r => r.rpm > 0)) && !document.hidden && onScreen) requestRender();
   };
   const requestRender = () => {
     if (!frame) frame = requestAnimationFrame(render);
@@ -203,6 +272,15 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   };
 
   const lineMaterials: LineMaterial[] = [];
+  // Dev tools: what the case drawing is made of, for reading from a live page.
+  const caseDebug = () => {
+    const faces: number[] = [];
+    staticGroup.traverse(o => { const m = (o as Mesh).material as Material | undefined; if (m && !Array.isArray(m) && (m as MeshBasicMaterial).colorWrite !== false && m.transparent) faces.push(m.opacity); });
+    const mean = (a: number[]) => (a.length ? +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(3) : 0);
+    const lines = lineMaterials.map(m => m.opacity);
+    return { dim: caseDim, lineCount: lines.length, lineOpacityMean: mean(lines), lineOpacityMax: lines.length ? Math.max(...lines) : 0, lineWidthMean: mean(lineMaterials.map(m => m.linewidth)), faceCount: faces.length, faceOpacityMean: mean(faces) };
+  };
+  if (DEV_TOOLS) (globalThis as { __nexusCaseDebug?: unknown }).__nexusCaseDebug = caseDebug;
   const clearCase = () => {
     staticGroup.children.forEach(child => disposeGroup(child as Group));
     staticGroup.clear();
@@ -219,7 +297,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     clearCase();
     const palette: Palette = coolingPalette(canvas);
     const [D, W, H] = l.size;
-    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true);
+    const group = buildCase(sceneLayout(l), palette, lineMaterials, [], [], true, false, true, true, true, caseDim);
     // Build centers the case on the origin; this view keeps the layout's own corner at the origin, where the fans and the solver are.
     const holder = new Group();
     holder.position.set(D / 2, H / 2, W / 2);
@@ -232,17 +310,19 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   const buildFans = (state: CaseSceneState) => {
     clear(fanGroup, fanDisposables);
     hitMeshes = [];
+    rotors.length = 0;
     const l = state.layout;
     const [ex, ey, ez] = caseExtents(l);
     const caseCenter = new Vector3(ex / 2, ey / 2, ez / 2);
     const intake = token(canvas, '--airflow-cool', '#38bdf8');
     const exhaust = token(canvas, '--bad', '#ef4444');
-    const picking = state.highlighted.size > 0 || state.active !== null;
+    const picking = state.filtering === true || state.highlighted.size > 0 || state.active !== null || (state.selected?.size ?? 0) > 0;
     for (const { slot, box } of fanGeometries(l)) {
       const occupied = slot.taken === 'fan';
       const dir = state.directions[slot.key] ?? 'intake';
       const color = dir === 'intake' ? intake : exhaust;
-      const emphasised = state.highlighted.has(slot.key) || state.active === slot.key;
+      const chosen = state.active === slot.key || !!state.selected?.has(slot.key);
+      const emphasised = state.highlighted.has(slot.key) || chosen;
       const center = new Vector3(box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2);
       const given = slot.axis ? new Vector3(...slot.axis) : null;
       const localGiven = given?.clone().applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
@@ -259,7 +339,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const radii = fanRadii(frameMm);
       const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
       // Tip ring and hub ring: the air moves through the open ring between them.
-      for (const r of [radii.tip, radii.hub]) {
+      // The tip and hub rings are the fan's own lines, as ever; a chosen fan adds the centre dot and the arrow.
+      for (const r of [radii.tip, radii.hub * 0.85]) {
         const geo = ringGeometry(r, axis);
         fanDisposables.push(geo);
         const mat = ringMaterial(color, emphasised ? 1 : opacity * (picking ? DIMMED : 1), r, state.simulated.has(slot.key));
@@ -270,29 +351,47 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
         if (mat instanceof LineDashedMaterial) ring.computeLineDistances();
         group.add(ring);
       }
+      const rpm = state.rotors?.get(slot.key);
+      if (rpm !== undefined) {
+        const material = rotorMaterial(color, chosen, rpm, state.simulated.has(slot.key));
+        const geometry = new PlaneGeometry(2, 2);
+        const blades = new Mesh(geometry, material);
+        blades.scale.set(radii.tip * 0.96, radii.tip * 0.96, 1);
+        // The plane lies across the fan's axis, with its normal along it.
+        if (axis === 'x') blades.rotation.y = Math.PI / 2; else if (axis === 'y') blades.rotation.x = -Math.PI / 2;
+        blades.position[axis] = faceShift;
+        blades.renderOrder = 3;
+        fanDisposables.push(geometry, material);
+        group.add(blades);
+        // The rotor turns the way that drives the air along the flow.
+        const flowLocal = (given ?? AXES[axis]).clone().multiplyScalar(dir === 'intake' ? 1 : -1).applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
+        const held = spins.get(slot.key);
+        material.uniforms.uAngle.value = held?.angle ?? 0;
+        rotors.push({ key: slot.key, material, rpm, sign: Math.sign(flowLocal[axis]) || 1 });
+      }
       fanGroup.add(group);
 
-      const world = AXES[axis].clone().applyAxisAngle(AXES.y, box.rotationY ?? 0);
-      const inward = given ?? world.clone().multiplyScalar(caseCenter.clone().sub(center).dot(world) >= 0 ? 1 : -1);
-      const flow = inward.clone().multiplyScalar(dir === 'intake' ? 1 : -1);
-      const length = diameter * 0.9;
-      const arrow = new ArrowHelper(flow, center.clone().addScaledVector(flow, -length / 2), length, color.getHex(), length * 0.3, length * 0.18);
-      for (const m of [arrow.line.material, arrow.cone.material] as Material[]) {
-        m.transparent = true;
-        m.opacity = occupied ? 0.95 : 0.35;
-        m.depthWrite = false;
-        fanDisposables.push(m);
+      // Only a chosen fan shows its direction arrow, drawn over every part so no component hides it.
+      if (chosen) {
+        const world = AXES[axis].clone().applyAxisAngle(AXES.y, box.rotationY ?? 0);
+        const inward = given ?? world.clone().multiplyScalar(caseCenter.clone().sub(center).dot(world) >= 0 ? 1 : -1);
+        const flow = inward.clone().multiplyScalar(dir === 'intake' ? 1 : -1);
+        const length = diameter * 0.9;
+        const arrow = new ArrowHelper(flow, center.clone().addScaledVector(flow, -length / 2), length, color.getHex(), length * 0.3, length * 0.18);
+        for (const m of [arrow.line.material, arrow.cone.material] as Material[]) {
+          m.transparent = true;
+          m.opacity = occupied ? 0.95 : 0.35;
+          m.depthWrite = false;
+          m.depthTest = false;
+          fanDisposables.push(m);
+        }
+        arrow.line.renderOrder = 10;
+        arrow.cone.renderOrder = 10;
+        fanDisposables.push(arrow.line.geometry, arrow.cone.geometry);
+        fanGroup.add(arrow);
       }
-      fanDisposables.push(arrow.line.geometry, arrow.cone.geometry);
-      fanGroup.add(arrow);
 
-      if (state.bound.has(slot.key) && !emphasised) {
-        const mark = new Mesh(new BoxGeometry(...box.size), new MeshBasicMaterial({ color, transparent: true, opacity: 0.12, depthWrite: false }));
-        mark.position.copy(center);
-        mark.rotation.y = box.rotationY ?? 0;
-        fanDisposables.push(mark.geometry, mark.material);
-        fanGroup.add(mark);
-      }
+      // The fan's body is not drawn: the rotor and rings are the fan. Its pick box below stays, invisible but hit by the raycaster.
 
       const hit = new Mesh(
         new BoxGeometry(...box.size),
@@ -321,7 +420,11 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
   let down: { x: number; y: number } | null = null;
   const onDown = (e: PointerEvent) => { down = { x: e.clientX, y: e.clientY }; };
   const onUp = (e: PointerEvent) => {
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) { down = null; return; }
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) {
+      if (down) onDrag?.();
+      down = null;
+      return;
+    }
     down = null;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -330,7 +433,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     // A fan wins over the radiator box it sits against.
     const hits = showCase ? raycaster.intersectObjects(hitMeshes, false) : [];
     const hit = hits.find(h => h.object.userData.slotKey !== RADIATOR_PICK_KEY) ?? hits[0];
-    onPick(typeof hit?.object.userData.slotKey === 'string' ? hit.object.userData.slotKey : null, x, y);
+    onPick(typeof hit?.object.userData.slotKey === 'string' ? hit.object.userData.slotKey : null, x, y, { toggle: e.ctrlKey || e.metaKey, add: e.shiftKey });
   };
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointerup', onUp);
@@ -348,6 +451,10 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
 
   return {
     setState(state) {
+      const dimNow = state.flowOptions.particles ? AIRFLOW_DIM : CASE_ONLY_DIM;
+      const dimChanged = dimNow !== caseDim;
+      caseDim = dimNow;
+      if (state.layout === layout && dimChanged && layout) buildStatic(layout, false);
       if (state.layout !== layout) {
         const previous = layout;
         layout = state.layout;
@@ -366,6 +473,7 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
           };
           flowLayer = new FlowLayer(renderer, flowGroup, new Vector3(ex, ey, ez), colors);
           flowLayer.onSpan = spanListener;
+          flowLayer.setSettlingListener(settlingListener);
           flowLayer.setTemps(temps);
         }
       }
@@ -386,15 +494,19 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       // New labels need a projection even when nothing else moves.
       requestRender();
     },
-    setAnchors(next, cb) {
-      anchors = next;
-      onProject = cb;
-      for (const key of Object.keys(projected)) delete projected[key];
+    setAnchors(next, cb, owner = 'default') {
+      if (next.length === 0) anchorSets.delete(owner);
+      else anchorSets.set(owner, { anchors: next, onProject: cb, projected: {} });
       requestRender();
     },
     setSpanListener(listener) {
       spanListener = listener;
       if (flowLayer) flowLayer.onSpan = listener;
+    },
+    setSettlingListener(listener) {
+      settlingListener = listener;
+      if (flowLayer) flowLayer.setSettlingListener(listener);
+      else listener?.(false);
     },
     camera,
     get flowSupported() {
@@ -407,6 +519,10 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       canvas.removeEventListener('pointerup', onUp);
       document.removeEventListener('visibilitychange', onVisibility);
       viewObserver?.disconnect();
+      if (DEV_TOOLS) {
+        const globals = globalThis as { __nexusCaseDebug?: unknown };
+        if (globals.__nexusCaseDebug === caseDebug) delete globals.__nexusCaseDebug;
+      }
       flowLayer?.dispose();
       flowLayer = null;
       controls.dispose();

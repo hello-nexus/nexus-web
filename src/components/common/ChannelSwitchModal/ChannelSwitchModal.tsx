@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
@@ -74,8 +74,32 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
     if (target) window.open(manualDownloadUrl(target), '_blank', 'noopener,noreferrer');
   };
 
+  let footer: ReactNode;
+  let cancelLabel = t('confirm.cancel');
+  if (state === 'failed') {
+    cancelLabel = t('update.modal.close');
+    footer = <Button tone="accent" size="md" onClick={() => setAttempt(a => a + 1)}>{t('update.switch.tryAgain')}</Button>;
+  } else if (state === 'noRelease') {
+    cancelLabel = t('update.modal.close');
+  } else if (state === 'alreadyOn' && target) {
+    footer = (
+      <Button tone="accent" size="md" loading={saving} onClick={() => void followChannel()}>
+        {t('update.switch.useChannel', { channel: channelLabel })}
+      </Button>
+    );
+  } else if (state === 'manual' && target) {
+    cancelLabel = t('update.modal.close');
+    footer = <Button tone="accent" size="md" onClick={openDownload}>{t('update.modal.download')}</Button>;
+  } else if (state === 'ready' && target) {
+    footer = (
+      <Button tone="accent" size="md" onClick={() => setRunning(true)}>
+        {t('update.switch.install', { version: target.version })}
+      </Button>
+    );
+  }
+
   return (
-    <DeviceModal open={open} onClose={onClose} title={title} icon={<RefreshCw size={18} />} fit>
+    <DeviceModal open={open} onClose={onClose} title={title} icon={<RefreshCw size={18} />} fit footer={footer} cancelLabel={cancelLabel}>
       <div className={styles.modal}>
         {state === 'loading' && (
           <div className={styles.centered} role="status">
@@ -87,19 +111,12 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
         {state === 'failed' && (
           <>
             <p className={styles.error}>{t('update.switch.loadFailed', { channel: channelLabel })}</p>
-            <div className={styles.buttons}>
-              <Button tone="neutral" size="md" onClick={onClose}>{t('update.modal.close')}</Button>
-              <Button tone="accent" size="md" onClick={() => setAttempt(a => a + 1)}>{t('update.switch.tryAgain')}</Button>
-            </div>
           </>
         )}
 
         {state === 'noRelease' && (
           <>
             <p className={styles.text}>{t('update.switch.noRelease', { channel: channelLabel })}</p>
-            <div className={styles.buttons}>
-              <Button tone="neutral" size="md" onClick={onClose}>{t('update.modal.close')}</Button>
-            </div>
           </>
         )}
 
@@ -107,22 +124,12 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
           <>
             <p className={styles.text}>{t('update.switch.alreadyOn', { version: target.version, channel: channelLabel })}</p>
             {saveFailed && <p className={styles.error}>{t('update.switch.saveFailed')}</p>}
-            <div className={styles.buttons}>
-              <Button tone="neutral" size="md" onClick={onClose}>{t('confirm.cancel')}</Button>
-              <Button tone="accent" size="md" loading={saving} onClick={() => void followChannel()}>
-                {t('update.switch.useChannel', { channel: channelLabel })}
-              </Button>
-            </div>
           </>
         )}
 
         {state === 'manual' && target && (
           <>
             <p className={styles.text}>{t('update.switch.manual', { version: target.version })}</p>
-            <div className={styles.buttons}>
-              <Button tone="neutral" size="md" onClick={onClose}>{t('update.modal.close')}</Button>
-              <Button tone="accent" size="md" onClick={openDownload}>{t('update.modal.download')}</Button>
-            </div>
           </>
         )}
 
@@ -130,12 +137,6 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
           <>
             <p className={styles.text}>{t('update.switch.body', { version: target.version })}</p>
             <p className={styles.note}>{t(channel === 'beta' ? 'update.switch.noteBeta' : 'update.switch.noteProduction')}</p>
-            <div className={styles.buttons}>
-              <Button tone="neutral" size="md" onClick={onClose}>{t('confirm.cancel')}</Button>
-              <Button tone="accent" size="md" onClick={() => setRunning(true)}>
-                {t('update.switch.install', { version: target.version })}
-              </Button>
-            </div>
           </>
         )}
       </div>

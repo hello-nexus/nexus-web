@@ -12,11 +12,12 @@ import { catalogEntriesFor } from '../panel/editor/PanelWidgetCatalog';
 import { listSidebarAppKeys } from './sidebarApps';
 
 describe('page-only apps without dev tools', () => {
-  it('registers the store and pins it as the bottom default row: it ships on release builds', () => {
+  it('registers the store and lets it be pinned, but not by default: it ships on release builds', () => {
     expect(isPageOnlyAppKey('store')).toBe(true);
     expect(isPinnableAppKey('store')).toBe(true);
     expect(sanitizePinnedTail(['store'])).toEqual(['store']);
-    expect(sanitizePinnedTail(undefined).at(-1)).toBe('store');
+    expect(sanitizePinnedTail(undefined)).not.toContain('store');
+    expect(sanitizePinnedTail(undefined)).not.toContain('build');
   });
 
   it('registers build and lets it be pinned: the page and the widget tile both ship on release builds', () => {

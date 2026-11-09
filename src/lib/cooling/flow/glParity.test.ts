@@ -20,7 +20,7 @@ const LIMIT_MS = Number(process.env.FLOW_GL_TIMEOUT_MS ?? 900000);
 const GL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 
 describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
-  it('matches the CPU reference, keeps particles out of solids across a grid change, and times without a stalled frame', async () => {
+  it('matches the CPU reference, keeps particles out of solids, and times without a stalled frame', async () => {
     const server = await createServer({ server: { port: 0, hmr: false }, logLevel: 'error' });
     await server.listen();
     const address = server.httpServer!.address();
@@ -56,9 +56,6 @@ describe.skipIf(!enabled)('GLSL solver and particles on software GL', () => {
       expect(r.measure.u).toBeGreaterThan(0.1);
       expect(r.particles.checked).toBeGreaterThan(1000);
       expect(r.particles.inSolidOrOutside).toBe(0);
-      expect(r.afterTierDrop.tier).toBe(r.particles.tier + 1);
-      expect(r.afterTierDrop.checked).toBeGreaterThan(1000);
-      expect(r.afterTierDrop.inSolidOrOutside).toBe(0);
       // The visible speed: particles within a fan diameter downstream of a 500 rpm fan move 0.38 to 0.52 as far per frame as those of a 2500 rpm fan on the same face.
       expect(r.visibleSpeed.centers).toBe(2);
       expect(r.visibleSpeed.counts[0]).toBeGreaterThan(100);

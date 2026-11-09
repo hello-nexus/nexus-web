@@ -132,3 +132,5 @@
     box-shadow: 0 0 4px var(--panel-accent-shadow);
   }
 }
+
+:global([data-stream]) .dot { transition: none; }
