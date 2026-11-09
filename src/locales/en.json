@@ -3660,8 +3660,6 @@
   "lighting.schedule.follow.edit": "Edit schedule…",
   "lighting.schedule.follow.following": "Following the brightness schedule",
   "lighting.schedule.follow.label": "Follow brightness schedule",
-  "lighting.schedule.follow.lightingDescription": "Limits master brightness to the schedule's level. Turn off to keep lighting at the slider's level at all times.",
-  "lighting.schedule.follow.lightingLabel": "Lighting follows the schedule",
   "lighting.schedule.follow.notFollowing": "Not following the brightness schedule",
   "lighting.schedule.follow.off": "Schedule is off",
   "lighting.schedule.follow.turnOn": "Turn on",

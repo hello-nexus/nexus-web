@@ -92,12 +92,7 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         onCommit={handleCommit}
       />
       {scheduleOpen && (
-        <BrightnessScheduleModal
-          open
-          onClose={() => setScheduleOpen(false)}
-          state={scheduleState}
-          lightingFollows={{ value: lightingFollows, onChange: setLightingFollows }}
-        />
+        <BrightnessScheduleModal open onClose={() => setScheduleOpen(false)} state={scheduleState} />
       )}
     </>
   );

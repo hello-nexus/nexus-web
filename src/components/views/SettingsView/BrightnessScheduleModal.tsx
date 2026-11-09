@@ -31,8 +31,6 @@ interface BrightnessScheduleModalProps {
   open: boolean;
   onClose: () => void;
   state: BrightnessScheduleState;
-  /** Whether lighting follows the schedule; omitted where the host has no such switch. */
-  lightingFollows?: { value: boolean; onChange: (next: boolean) => void };
 }
 
 /**
@@ -43,7 +41,7 @@ interface BrightnessScheduleModalProps {
  * with its night and day levels draggable. Every edit saves straight through, so the LEDs follow the
  * drag on the next push.
  */
-export function BrightnessScheduleModal({ open, onClose, state, lightingFollows }: BrightnessScheduleModalProps) {
+export function BrightnessScheduleModal({ open, onClose, state }: BrightnessScheduleModalProps) {
   const { t, language } = useTranslation();
   // The modal mounts only while open, so this fetches on open.
   const idleDim = useIdleDim(true);
@@ -194,18 +192,6 @@ export function BrightnessScheduleModal({ open, onClose, state, lightingFollows 
           onChange={enabled => { if (schedule) void save({ ...schedule, enabled }); }}
           stackOnNarrow
         />
-
-        {/* Inert while the schedule is off: nothing follows a schedule that is not running. */}
-        {lightingFollows && (
-          <SettingToggle
-            label={t('lighting.schedule.follow.lightingLabel')}
-            description={t('lighting.schedule.follow.lightingDescription')}
-            checked={scheduleOn && lightingFollows.value}
-            disabled={!scheduleOn}
-            onChange={lightingFollows.onChange}
-            stackOnNarrow
-          />
-        )}
 
         {/* Off dims the whole schedule, never hides it, so the modal keeps its size. */}
         <div className={styles.body} data-off={scheduleOn ? undefined : ''}>

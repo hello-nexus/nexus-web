@@ -68,12 +68,7 @@ function MasterFrame({ title, scheduleOn, follows }: { title: string; scheduleOn
         />
       </div>
       {open && (
-        <BrightnessScheduleModal
-          open
-          onClose={() => setOpen(false)}
-          state={state}
-          lightingFollows={{ value: lightingFollows, onChange: setLightingFollows }}
-        />
+        <BrightnessScheduleModal open onClose={() => setOpen(false)} state={state} />
       )}
     </div>
   );
@@ -93,8 +88,6 @@ function PreviewB() {
   const off = useMockSchedule(false);
   const on = useMockSchedule(true);
   const [which, setWhich] = useState<'off' | 'on' | null>(null);
-  const [offFollows, setOffFollows] = useState(true);
-  const [onFollows, setOnFollows] = useState(true);
   return (
     <div style={row}>
       <Button type="button" onClick={() => setWhich('off')}>Open: schedule off</Button>
@@ -104,9 +97,6 @@ function PreviewB() {
           open
           onClose={() => setWhich(null)}
           state={which === 'off' ? off : on}
-          lightingFollows={which === 'off'
-            ? { value: offFollows, onChange: setOffFollows }
-            : { value: onFollows, onChange: setOnFollows }}
         />
       )}
     </div>
@@ -123,7 +113,6 @@ function DevicePair({ title, scheduleOn, follows, kind }: {
   const [deviceFollows, setDeviceFollows] = useState(follows);
   const [brightness, setBrightness] = useState(60);
   const [open, setOpen] = useState(false);
-  const [lightingFollows, setLightingFollows] = useState(true);
   const binding = useScheduleBinding({ state, follows: deviceFollows, onFollowsChange: setDeviceFollows, onEdit: () => setOpen(true) });
   return (
     <div style={{ width: 520 }}>
@@ -149,12 +138,7 @@ function DevicePair({ title, scheduleOn, follows, kind }: {
         />
       )}
       {open && (
-        <BrightnessScheduleModal
-          open
-          onClose={() => setOpen(false)}
-          state={state}
-          lightingFollows={{ value: lightingFollows, onChange: setLightingFollows }}
-        />
+        <BrightnessScheduleModal open onClose={() => setOpen(false)} state={state} />
       )}
     </div>
   );
