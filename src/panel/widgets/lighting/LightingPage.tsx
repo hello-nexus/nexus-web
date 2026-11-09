@@ -2181,8 +2181,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = Object.keys(pins);
     if (ids.length > 0) void applyPins(ids, null);
     // An empty selection means all devices, so the next pick pins none of them again.
-    if (selectedDeviceIds.size > 0) { setSelectedDeviceIds(new Set()); setPrimaryDeviceId(null); }
-  }, [applyPins, pins, selectedDeviceIds, setSelectedDeviceIds, setPrimaryDeviceId]);
+    setSelectedDeviceIds(new Set());
+    setPrimaryDeviceId(null);
+    setCanvasFocus(null);
+  }, [applyPins, pins, setSelectedDeviceIds, setPrimaryDeviceId, setCanvasFocus]);
 
   // Over visibleDevices, which the show-uncontrolled filter does not touch, so
   // hidden uncontrolled cards count; zero-LED and device-page cards do not.
@@ -2769,11 +2771,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       const left = selectionWithoutUnpinned(
         selectedDeviceIds, primaryDeviceId, [...withStacked(deviceStacksRef.current, ids)], orderedDevices.map(d => d.id),
       );
-      if (left) { setSelectedDeviceIds(left.ids); setPrimaryDeviceId(left.primary); }
+      if (left) {
+        setSelectedDeviceIds(left.ids);
+        setPrimaryDeviceId(left.primary);
+        // An explicit canvas focus drops the devices that left the selection; null follows the selection.
+        setCanvasFocus(prev => {
+          const kept = prev && new Set([...prev].filter(id => left.ids.has(id)));
+          return kept && kept.size > 0 ? kept : null;
+        });
+      }
       return;
     }
     if (globalPin) void applyPins(ids, globalPin.pin);
-  }, [applyPins, globalPin, selectedDeviceIds, primaryDeviceId, orderedDevices, setSelectedDeviceIds, setPrimaryDeviceId]);
+  }, [applyPins, globalPin, selectedDeviceIds, primaryDeviceId, orderedDevices, setSelectedDeviceIds, setPrimaryDeviceId, setCanvasFocus]);
   // A Mirror or Media pick with cards selected gives just them the shared source.
   const handleSelectionPick = useMemo(() => {
     if (selectedDeviceIds.size === 0 || (viewMode !== 'screen' && viewMode !== 'gif')) return undefined;
