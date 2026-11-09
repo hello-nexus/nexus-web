@@ -77,3 +77,19 @@ export function scheduledBrightness(points: BrightnessSchedulePoint[], minute: n
   );
   return Math.max(0, Math.min(100, level));
 }
+
+/**
+ * The next scheduled level different from the current one: the first point
+ * after `minute` (wrapping past midnight) whose brightness is not the current
+ * rounded level. Null for an empty or flat schedule.
+ */
+export function nextScheduleChange(
+  points: BrightnessSchedulePoint[], minute: number,
+): { level: number; hour: number; rising: boolean } | null {
+  if (points.length === 0) return null;
+  const now = Math.round(scheduledBrightness(points, minute));
+  const sorted = [...points].sort((a, b) => a.hour - b.hour);
+  const ahead = [...sorted.filter(p => p.hour * 60 > minute), ...sorted.filter(p => p.hour * 60 <= minute)];
+  const next = ahead.find(p => Math.round(p.brightness) !== now);
+  return next ? { level: Math.round(next.brightness), hour: next.hour, rising: next.brightness > now } : null;
+}

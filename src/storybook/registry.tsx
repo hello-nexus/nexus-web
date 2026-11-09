@@ -1488,10 +1488,11 @@ function PreviewConflictAppCard() {
 }
 
 function PreviewBrightnessScheduleButton() {
+  const sample = { scheduleOn: true, follows: true, onFollowsChange: () => {}, onTurnOn: () => {}, onEdit: () => {}, statusLine: 'Now 40%' };
   return (
     <div className={styles.previewRow}>
-      <BrightnessScheduleButton active canOpen onOpen={() => {}} />
-      <BrightnessScheduleButton active={false} canOpen onOpen={() => {}} />
+      <BrightnessScheduleButton binding={{ ...sample, follows: true }} />
+      <BrightnessScheduleButton binding={{ ...sample, follows: false }} />
     </div>
   );
 }
@@ -2801,7 +2802,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'BrightnessScheduleButton', category: 'inputs',
     filePath: 'src/components/common/BrightnessScheduleButton/BrightnessScheduleButton.tsx',
-    description: 'The sun button beside every brightness label (master brightness, panel and display sliders). Accented while the control follows the one universal brightness schedule; opens the shared brightness settings. Left: following. Right: not following. BrightnessFollowToggle.tsx in the same folder holds the per-device "Follow brightness schedule" row.', Preview: PreviewBrightnessScheduleButton,
+    description: 'The sun button beside every brightness label (master brightness, panel and display sliders). Accented while the control follows the one universal brightness schedule; opens the shared brightness settings. Left: following. Right: not following. Click opens a popover with the follow switch for the control it sits on, the schedule status and an Edit schedule action.', Preview: PreviewBrightnessScheduleButton,
   },
   {
     name: 'Toggle', category: 'inputs',

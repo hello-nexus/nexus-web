@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
-import { BrightnessScheduleButton } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
-import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { BrightnessScheduleButton, type BrightnessScheduleBinding } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { Slider } from '../../../../components/common/Slider/Slider';
-import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { BrightnessScheduleModal } from '../../../../components/views/SettingsView/BrightnessScheduleModal';
+import { useScheduleBinding } from '../../../../hooks/useScheduleBinding';
 import { useBrightnessSchedule } from '../../../../hooks/useBrightnessSchedule';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
@@ -75,20 +74,22 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
     sendValue(value);
   }, [sendValue]);
 
-  const scheduleLoaded = scheduleState.schedule !== null;
+  const schedule = scheduleState.schedule;
+  const binding = useScheduleBinding({
+    state: scheduleState,
+    follows: lightingFollows,
+    onFollowsChange: setLightingFollows,
+    onEdit: () => setScheduleOpen(true),
+  });
   return (
     <>
       <GlobalBrightnessSliderView
         percent={percent}
-        scheduleOn={scheduled !== null}
         scheduled={scheduled}
-        scheduleLoaded={scheduleLoaded}
-        canOpenSchedule={serviceOnline && scheduleLoaded}
+        binding={schedule === null || !serviceOnline ? null : binding}
         follows={lightingFollows}
-        onFollowsChange={setLightingFollows}
         onChange={handleChange}
         onCommit={handleCommit}
-        onOpenSchedule={() => setScheduleOpen(true)}
       />
       {scheduleOpen && (
         <BrightnessScheduleModal
@@ -105,27 +106,23 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
 interface GlobalBrightnessSliderViewProps {
   /** Null until the persisted value is known. */
   percent: number | null;
-  scheduleOn: boolean;
   /** The schedule's level right now; null while it is off. */
   scheduled: number | null;
-  scheduleLoaded: boolean;
-  canOpenSchedule: boolean;
+  /** Null until the schedule has loaded: the sun then stays out. */
+  binding: BrightnessScheduleBinding | null;
   /** Whether lighting follows the schedule at all. */
   follows: boolean;
-  onFollowsChange: (next: boolean) => void;
   onChange: (value: number) => void;
   onCommit: (value: number) => void;
-  onOpenSchedule: () => void;
 }
 
 /**
- * The master brightness row: stacked slider, the shared sun button, and a
- * compact switch for whether lighting follows the schedule. The schedule only
- * caps the slider while it is on and lighting follows it.
+ * The master brightness row: stacked slider plus the shared sun button, whose
+ * popover holds the lighting follow switch. The schedule only caps the slider
+ * while it is on and lighting follows it.
  */
 export function GlobalBrightnessSliderView({
-  percent, scheduleOn, scheduled, scheduleLoaded, canOpenSchedule, follows,
-  onFollowsChange, onChange, onCommit, onOpenSchedule,
+  percent, scheduled, binding, follows, onChange, onCommit,
 }: GlobalBrightnessSliderViewProps) {
   const { t } = useTranslation();
   if (percent === null) {
@@ -136,37 +133,6 @@ export function GlobalBrightnessSliderView({
 
   const applied = follows ? scheduled : null;
   const capping = applied !== null && applied < percent;
-  // Until the schedule loads, only its name: on or off is not known yet.
-  const scheduleStatus = !scheduleLoaded ? undefined
-    : !scheduleOn ? t('lighting.schedule.now.off')
-      : !follows ? t('lighting.schedule.marker.notFollowing')
-        : capping ? t('lighting.schedule.marker.capping', { level: applied })
-          : t('lighting.schedule.marker.allowing', { level: applied ?? 0 });
-
-  const labelAction = (
-    <>
-      <BrightnessScheduleButton
-        active={scheduleOn && follows}
-        canOpen={canOpenSchedule}
-        onOpen={onOpenSchedule}
-        status={scheduleStatus}
-      />
-      <HoverTooltip
-        body={scheduleOn ? t('lighting.schedule.follow.lightingToggle') : t('lighting.schedule.follow.needsSchedule')}
-        side="top"
-      >
-        <span className={styles.followToggle}>
-          <Toggle
-            size="sm"
-            checked={scheduleOn && follows}
-            disabled={!scheduleOn}
-            ariaLabel={t('lighting.schedule.follow.lightingLabel')}
-            onChange={onFollowsChange}
-          />
-        </span>
-      </HoverTooltip>
-    </>
-  );
 
   return (
     <div className={styles.globalBrightnessSlider}>
@@ -183,7 +149,7 @@ export function GlobalBrightnessSliderView({
         step={1}
         fillCap={capping ? applied : undefined}
         marker={applied ?? undefined}
-        labelAction={labelAction}
+        labelAction={binding && <BrightnessScheduleButton binding={binding} />}
         onChange={onChange}
         onCommit={onCommit}
       />

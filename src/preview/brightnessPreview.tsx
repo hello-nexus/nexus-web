@@ -11,7 +11,7 @@ import { ToastProvider } from '../components/common/Toast/Toast';
 import { BrightnessScheduleModal } from '../components/views/SettingsView/BrightnessScheduleModal';
 import { MonitorSettingsPanel, SettingsPanel } from '../components/views/DevicePage/PanelDevicePage';
 import { GlobalBrightnessSliderView } from '../panel/widgets/lighting/page/GlobalBrightnessSlider';
-import type { BrightnessScheduleBinding } from '../components/common/BrightnessScheduleButton/BrightnessFollowToggle';
+import { useScheduleBinding } from '../hooks/useScheduleBinding';
 import type { BrightnessScheduleState } from '../hooks/useBrightnessSchedule';
 import { scheduledBrightness, SUN_DEFAULT_DAY, SUN_DEFAULT_NIGHT } from '../lib/brightnessSchedule';
 import type { BrightnessSchedule } from '../api/lighting';
@@ -53,21 +53,18 @@ function MasterFrame({ title, scheduleOn, follows }: { title: string; scheduleOn
   const [lightingFollows, setLightingFollows] = useState(follows);
   const [percent, setPercent] = useState(80);
   const [open, setOpen] = useState(false);
+  const binding = useScheduleBinding({ state, follows: lightingFollows, onFollowsChange: setLightingFollows, onEdit: () => setOpen(true) });
   return (
     <div>
       <div style={cap}>{title}</div>
       <div style={frame}>
         <GlobalBrightnessSliderView
           percent={percent}
-          scheduleOn={state.current !== null}
           scheduled={state.current}
-          scheduleLoaded
-          canOpenSchedule
+          binding={binding}
           follows={lightingFollows}
-          onFollowsChange={setLightingFollows}
           onChange={setPercent}
           onCommit={setPercent}
-          onOpenSchedule={() => setOpen(true)}
         />
       </div>
       {open && (
@@ -127,9 +124,7 @@ function DevicePair({ title, scheduleOn, follows, kind }: {
   const [brightness, setBrightness] = useState(60);
   const [open, setOpen] = useState(false);
   const [lightingFollows, setLightingFollows] = useState(true);
-  const binding: BrightnessScheduleBinding = {
-    scheduleOn: state.current !== null, follows: deviceFollows, onFollowsChange: setDeviceFollows, onOpen: () => setOpen(true),
-  };
+  const binding = useScheduleBinding({ state, follows: deviceFollows, onFollowsChange: setDeviceFollows, onEdit: () => setOpen(true) });
   return (
     <div style={{ width: 520 }}>
       <div style={cap}>{title}</div>

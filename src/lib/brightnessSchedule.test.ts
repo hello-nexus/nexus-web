@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import vectors from './sunsetShiftVectors.json';
-import { dragSunLevels, localDateKey, minuteOfDay, scheduledBrightness, sunCurve, sunRole, sunRoleLevel } from './brightnessSchedule';
+import { dragSunLevels, localDateKey, minuteOfDay, nextScheduleChange, scheduledBrightness, sunCurve, sunRole, sunRoleLevel } from './brightnessSchedule';
 
 // Vectors shared with nexus-service's MasterBrightnessTests: both sides
 // evaluate the same rule, so the slider's readout and the LEDs never
@@ -133,5 +133,24 @@ describe('sun curve vectors shared with the service', () => {
       sunPoints: v.expected, resolvedLocation: null, autoLocation: null,
     })!;
     for (const s of v.evalAt) expect(scheduledBrightness(curve, s.minute)).toBeCloseTo(s.expectedBrightness, 3);
+  });
+});
+
+describe('nextScheduleChange', () => {
+  const pts = [
+    { hour: 0, brightness: 10 }, { hour: 7, brightness: 10 }, { hour: 9, brightness: 100 }, { hour: 22, brightness: 10 },
+  ];
+  it('finds the next different level, rising', () => {
+    expect(nextScheduleChange(pts, 5 * 60)).toEqual({ level: 100, hour: 9, rising: true });
+  });
+  it('finds the next different level, falling', () => {
+    expect(nextScheduleChange(pts, 14 * 60)).toEqual({ level: 10, hour: 22, rising: false });
+  });
+  it('wraps past midnight', () => {
+    expect(nextScheduleChange(pts, 23 * 60)).toEqual({ level: 100, hour: 9, rising: true });
+  });
+  it('is null for a flat or empty schedule', () => {
+    expect(nextScheduleChange([{ hour: 0, brightness: 50 }, { hour: 12, brightness: 50 }], 600)).toBeNull();
+    expect(nextScheduleChange([], 600)).toBeNull();
   });
 });
