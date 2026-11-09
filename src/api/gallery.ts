@@ -133,9 +133,16 @@ export interface GallerySort {
 
 export const DEFAULT_GALLERY_SORT: GallerySort = { by: 'name', direction: 'asc' };
 
+export interface GallerySortMutation {
+  sort: GallerySort | null;
+  error?: boolean;
+  msg?: string;
+}
+
 export async function updateGallerySort(sort: GallerySort): Promise<boolean> {
   try {
-    return (await putService<GallerySort>('/gallery/sort', sort)) !== null;
+    const res = await putService<GallerySortMutation>('/gallery/sort', sort);
+    return !!res && res.error !== true;
   } catch {
     return false;
   }

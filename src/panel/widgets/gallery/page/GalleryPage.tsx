@@ -113,19 +113,26 @@ export function GalleryPage() {
   const pendingSavesRef = useRef(0);
   const editGenerationRef = useRef(0);
   const [sort, setSort] = useState<GallerySort>(DEFAULT_GALLERY_SORT);
-  // Same guard as playlists: a read that went out before the latest sort
-  // change must not put the old choice back on screen.
+  // Sort saves run one after another so the last click is also the one
+  // stored. A read's sort is taken only when no save was in flight from
+  // before it went out until it landed, and no change began meanwhile.
+  const sortChainRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSortSavesRef = useRef(0);
+  const sortSaveFailedRef = useRef(false);
   const sortGenerationRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const generation = editGenerationRef.current;
     const sortGeneration = sortGenerationRef.current;
+    const sortSavesAtStart = pendingSortSavesRef.current;
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
     if (src?.sources) setSources(src.sources);
     if (itm?.items) {
       setItems(itm.items);
       setTruncated(itm.truncated === true);
-      if (itm.sort && sortGeneration === sortGenerationRef.current) setSort(itm.sort);
+      if (itm.sort && sortSavesAtStart === 0 && pendingSortSavesRef.current === 0 && sortGeneration === sortGenerationRef.current) {
+        setSort(itm.sort);
+      }
     }
     if (itm?.items && pendingSavesRef.current === 0 && generation === editGenerationRef.current) {
       setPlaylists(itm.playlists ?? []);
@@ -301,11 +308,25 @@ export function GalleryPage() {
     }
   };
 
-  const changeSort = async (next: GallerySort) => {
+  // A saved sort comes back through the service's 'gallery' broadcast, which
+  // refetches; only a failed save, which broadcasts nothing, reads back here.
+  const changeSort = (next: GallerySort) => {
     sortGenerationRef.current++;
+    pendingSortSavesRef.current++;
     setSort(next);
-    if (!(await updateGallerySort(next))) setActionError(t('gallery.page.sort.saveFailed'));
-    await refresh();
+    sortChainRef.current = sortChainRef.current
+      .then(() => updateGallerySort(next))
+      .then(saved => {
+        if (!saved) sortSaveFailedRef.current = true;
+      })
+      .finally(() => {
+        pendingSortSavesRef.current--;
+        if (pendingSortSavesRef.current === 0 && sortSaveFailedRef.current) {
+          sortSaveFailedRef.current = false;
+          setActionError(t('gallery.page.sort.saveFailed'));
+          void refresh();
+        }
+      });
   };
 
   const sortOptions: { value: GallerySortKey; label: string }[] = [
@@ -503,7 +524,7 @@ export function GalleryPage() {
               value={sort.by}
               options={sortOptions}
               ariaLabel={t('gallery.page.sort.label')}
-              onChange={by => { void changeSort({ ...sort, by: by as GallerySortKey }); }}
+              onChange={by => changeSort({ ...sort, by: by as GallerySortKey })}
             />
             <HoverTooltip body={directionLabel}>
               <Button
@@ -511,7 +532,7 @@ export function GalleryPage() {
                 tone="ghost"
                 icon={sort.direction === 'asc' ? <ArrowUpNarrowWide size={16} /> : <ArrowDownWideNarrow size={16} />}
                 aria-label={directionLabel}
-                onClick={() => { void changeSort({ ...sort, direction: sort.direction === 'asc' ? 'desc' : 'asc' }); }}
+                onClick={() => changeSort({ ...sort, direction: sort.direction === 'asc' ? 'desc' : 'asc' })}
               />
             </HoverTooltip>
             <InfoTooltip message={t('gallery.page.sort.info')} />
