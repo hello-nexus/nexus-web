@@ -691,6 +691,44 @@ describe('UiSettingsProvider - readRamTemperatures', () => {
   });
 });
 
+describe('UiSettingsProvider - powerMonitorsEnabled', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const base = { theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' }, ui: {} };
+  const mount = async () => {
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+  };
+
+  it('defaults to true when the service omits the field', async () => {
+    h.fetchPreferences.mockResolvedValue(base);
+    await mount();
+    expect(captured.ctx!.settings.powerMonitorsEnabled).toBe(true);
+  });
+
+  it('hydrates false from the root preferences field', async () => {
+    h.fetchPreferences.mockResolvedValue({ ...base, powerMonitorsEnabled: false });
+    await mount();
+    expect(captured.ctx!.settings.powerMonitorsEnabled).toBe(false);
+  });
+
+  it('posts the change as a root field', async () => {
+    h.fetchPreferences.mockResolvedValue(base);
+    h.savePreferences.mockResolvedValue(undefined);
+    await mount();
+    vi.useFakeTimers();
+    await act(async () => { captured.ctx!.update({ powerMonitorsEnabled: false }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(h.savePreferences).toHaveBeenCalledTimes(1);
+    expect(h.savePreferences).toHaveBeenCalledWith({ powerMonitorsEnabled: false });
+  });
+});
+
 describe('UiSettingsProvider - amdGpuLighting', () => {
   const flush = () => act(async () => { await Promise.resolve(); });
   const mount = async () => {

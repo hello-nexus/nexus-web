@@ -44,6 +44,8 @@ interface TempSensorPrefs {
  * to the global preferred-temp-sensor setting; an explicit named sensor (e.g.
  * "CPU Package", "GPU Hot Spot") is used as-is.
  */
+const POWER_MONITOR_ID_PREFIX = '/gpu-powermonitor/';
+
 export function resolveSensor(
   sensors: ReturnType<typeof useSensors>,
   fpsSensors: HardwareSensor[],
@@ -117,12 +119,19 @@ export function resolveSensor(
     case 'memoryModule':
     case 'battery':
     case 'cooler':
-    case 'psu':
     case 'embeddedController': {
       const list = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
       return sensorKey
         ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey) ?? list[0]
         : list[0];
+    }
+    case 'psu': {
+      // Power-monitor meters share the psu extras but are not a PSU, so only an exact id pick reaches them.
+      const all = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
+      const real = all.filter(s => !s.id.startsWith(POWER_MONITOR_ID_PREFIX));
+      return sensorKey
+        ? all.find(s => s.id === sensorKey) ?? real.find(s => s.name === sensorKey) ?? real[0]
+        : real[0];
     }
     case 'network':
       return sensorKey
