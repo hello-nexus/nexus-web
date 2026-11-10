@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
+import { NATIVE_KNOB_PX } from './Slider';
 import { SliderMarks } from './SliderMarks';
 import styles from './RangeSlider.module.scss';
 
@@ -70,8 +71,6 @@ export interface RangeSliderProps {
   softBounds?: boolean;
 }
 
-// Native range knob width; mirrors the thumb rule in global.scss and Slider.
-const KNOB_PX = 14;
 
 // Default knob separation as a share of the track span.
 const DEFAULT_GAP_FRACTION = 1 / 40;
@@ -262,16 +261,20 @@ export function RangeSlider({
   );
 
   const markNode = marker ? (
-    <SliderMarks marks={[{ value: marker.value, label: marker.label }]} min={min} max={max} knobPx={KNOB_PX} side="below" />
+    <SliderMarks marks={[{ value: marker.value, label: marker.label }]} min={min} max={max} knobPx={NATIVE_KNOB_PX} side="below" />
   ) : null;
 
   if (orientation === 'bare') {
     return (
       <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
-        <div className={styles.markedColumn}>
+        {markNode ? (
+          <div className={styles.markedColumn}>
+            <div className={styles.track}>{trackInner}</div>
+            {markNode}
+          </div>
+        ) : (
           <div className={styles.track}>{trackInner}</div>
-          {markNode}
-        </div>
+        )}
       </div>
     );
   }

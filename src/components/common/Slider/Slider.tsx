@@ -99,7 +99,7 @@ const onThumbPath = (pct: number) => `calc(var(--slider-thumb-size) / 2 + (100% 
 // Diameter of the custom knob (thumbNode); mirrors .thumbNode in Slider.module.scss.
 const KNOB_PX = 24;
 // The native knob's width; mirrors the thumb rule in global.scss.
-const NATIVE_KNOB_PX = 14;
+export const NATIVE_KNOB_PX = 14;
 
 export function Slider({
   label = '', info, value, min, max, step = 1,

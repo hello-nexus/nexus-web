@@ -50,14 +50,14 @@ describe('ActiveAlertsNoticeView', () => {
   it('words a below alert with the lower limit and the reading', () => {
     const alerts = [{ rule: rule('b', { low: 30, high: null }), state: state('b', { direction: 'below', value: 25 }) }];
     render(<ActiveAlertsNoticeView alerts={alerts} onAcknowledge={() => {}} onOpenSettings={() => {}} />);
-    expect(screen.getByText('diagnostics.alerts.notice.below(name=Sensor b,limit=30°C,value=25°C)')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.notice.below(name=CPU Sensor b,limit=30°C,value=25°C)')).toBeInTheDocument();
   });
 
   it('shows temperatures in Fahrenheit for a Fahrenheit user', () => {
     unit.temp = 'f';
     const alerts = [{ rule: rule('w'), state: state('w') }];
     render(<ActiveAlertsNoticeView alerts={alerts} onAcknowledge={() => {}} onOpenSettings={() => {}} />);
-    expect(screen.getByText('diagnostics.alerts.notice.above(name=Sensor w,limit=194°F,value=203°F)')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.notice.above(name=CPU Sensor w,limit=194°F,value=203°F)')).toBeInTheDocument();
     unit.temp = 'c';
   });
 
@@ -66,7 +66,7 @@ describe('ActiveAlertsNoticeView', () => {
     const onOpenSettings = vi.fn();
     const alerts = [{ rule: rule('w'), state: state('w') }, { rule: rule('x'), state: state('x') }];
     render(<ActiveAlertsNoticeView alerts={alerts} onAcknowledge={onAcknowledge} onOpenSettings={onOpenSettings} />);
-    fireEvent.click(screen.getAllByRole('button', { name: 'diagnostics.alerts.acknowledge' })[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.acknowledgeFor(name=CPU Sensor x)' }));
     expect(onAcknowledge).toHaveBeenCalledWith('x');
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.notice.openSettings' }));
     expect(onOpenSettings).toHaveBeenCalledTimes(1);

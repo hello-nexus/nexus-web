@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { MAX_SENSOR_ALERT_RULES } from '../../../api/diagnosticsAlerts';
@@ -9,6 +9,8 @@ import { useToast } from '../../common/Toast/Toast';
 import { useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
 import { sensorsForDevice } from '../../../panel/widgets/monitoring/sensorPicker';
 import type { DeckMonitoringCategory } from '../../../panel/widgets/deck/types';
+import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
+import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertRuleCard } from './SensorAlertRuleCard';
 import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, sensorRefOf } from './sensorAlertHelpers';
 import styles from './SensorAlertsSection.module.scss';
@@ -41,10 +43,12 @@ export function SensorAlertsSection() {
     return next;
   });
 
+  const addingRef = useRef(false);
   const onAdd = async () => {
-    if (!firstSensor || alerts.atLimit) return;
+    if (!firstSensor || alerts.atLimit || !alerts.loaded || addingRef.current) return;
+    addingRef.current = true;
     const { category, sensor } = firstSensor;
-    const { result, rule } = await alerts.add(defaultRule(sensorRefOf(category, sensor), sensor.value));
+    const { result, rule } = await alerts.add(defaultRule(sensorRefOf(category, sensor), sensor.value)).finally(() => { addingRef.current = false; });
     if (rule) setOpenIds(prev => new Set(prev).add(rule.id));
     else if (result === 'error') push({ title: t('diagnostics.alerts.addFailed') });
   };
@@ -52,7 +56,7 @@ export function SensorAlertsSection() {
   const stateOf = (id: string) => alerts.states.find(s => s.ruleId === id);
   const note = alerts.atLimit
     ? t('diagnostics.alerts.limitNote', { max: MAX_SENSOR_ALERT_RULES })
-    : !firstSensor && alerts.rules.length === 0 ? t('diagnostics.alerts.noSensors') : null;
+    : alerts.loaded && !firstSensor && alerts.rules.length === 0 ? t('diagnostics.alerts.noSensors') : null;
 
   return (
     <SettingsSection
@@ -62,7 +66,7 @@ export function SensorAlertsSection() {
         <div className={styles.addRow}>
           <Button
             type="button" tone="neutral" size="sm" icon={<Plus size={14} aria-hidden />}
-            disabled={alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
+            disabled={!alerts.loaded || alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
           >
             {t('diagnostics.alerts.add')}
           </Button>
@@ -70,6 +74,9 @@ export function SensorAlertsSection() {
         </div>
       )}
     >
+      {!alerts.loaded && (alerts.error
+        ? <SectionLoadError onRetry={alerts.refresh} loading={alerts.loading} />
+        : <GenericSkeleton />)}
       {alerts.rules.map(rule => (
         <SensorAlertRuleCard
           key={rule.id}

@@ -25,6 +25,8 @@ import {
   formatAlertValue,
   fromDisplay,
   seedBound,
+  snapDisplay,
+  sensorLabel,
   sensorRefOf,
   stepFor,
   toDisplay,
@@ -60,13 +62,13 @@ interface SensorAlertRuleCardProps {
 
 export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, onPreview, onSave, onDelete }: SensorAlertRuleCardProps) {
   const { t } = useTranslation();
-  const { monitoringTempUnit: tempUnit, numberFormat } = useUnitPrefs();
+  const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
   // The last limit of a side switched off, so switching it back on restores it.
   const [hidden, setHidden] = useState<{ low: number | null; high: number | null }>({ low: null, high: null });
 
   const type = rule.sensor.type;
-  const live = lookup.resolve(rule.sensor.category, rule.sensor.id)?.value ?? state?.value ?? null;
+  const live = lookup.resolve(rule.sensor.category, rule.sensor.id)?.value ?? null;
 
   // Track extent in the stored unit. It only grows once chosen, so the knobs do not move under a
   // drag as the reading wanders.
@@ -79,7 +81,7 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
   const highOn = rule.high !== null;
   const lowNative = rule.low ?? hidden.low ?? seedBound('low', type, live, bounds, rule.high);
   const highNative = rule.high ?? hidden.high ?? seedBound('high', type, live, bounds, rule.low);
-  const fmt = (v: number) => formatAlertValue(fromDisplay(v, type, tempUnit), type, tempUnit, numberFormat);
+  const fmt = (v: number) => formatAlertValue(fromDisplay(v, type, tempUnit), type, tempUnit, numberFormat, monitoringWholeNumbers);
 
   const edit = (patch: Partial<SensorAlertRule>, write: boolean) => {
     const next = { ...rule, ...patch };
@@ -122,7 +124,7 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
   return (
     <>
       <CollapsibleSection
-        title={rule.sensor.name}
+        title={sensorLabel(rule.sensor)}
         titleAfter={chip && <Badge label={t(`diagnostics.alerts.state.${chip}`)} color={CHIP_COLOR[chip](rule)} />}
         open={open}
         onToggle={onToggleOpen}
@@ -130,9 +132,9 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
         right={(
           <span className={styles.headRight}>
             <span className={styles.liveValue}>
-              {live !== null ? formatAlertValue(live, type, tempUnit, numberFormat) : t('diagnostics.alerts.noReading')}
+              {live !== null ? formatAlertValue(live, type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading')}
             </span>
-            <Toggle checked={rule.enabled} onChange={enabled => edit({ enabled }, true)} ariaLabel={t('diagnostics.alerts.enabled')} />
+            <Toggle checked={rule.enabled} onChange={enabled => edit({ enabled }, true)} ariaLabel={t('diagnostics.alerts.enabledFor', { name: sensorLabel(rule.sensor) })} />
           </span>
         )}
       >
@@ -176,14 +178,14 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
             editable
             softBounds
             label={t('diagnostics.alerts.validRange')}
-            value={[toDisplay(lowNative, type, tempUnit), toDisplay(highNative, type, tempUnit)]}
+            value={[snapDisplay(toDisplay(lowNative, type, tempUnit), type), snapDisplay(toDisplay(highNative, type, tempUnit), type)]}
             min={shown.min}
             max={shown.max}
             step={stepFor(type)}
             lowEnabled={lowOn}
             highEnabled={highOn}
             outsideTone={outsideTone}
-            marker={live !== null ? { value: toDisplay(live, type, tempUnit), label: formatAlertValue(live, type, tempUnit, numberFormat) } : undefined}
+            marker={live !== null ? { value: toDisplay(live, type, tempUnit), label: formatAlertValue(live, type, tempUnit, numberFormat, monitoringWholeNumbers) } : undefined}
             formatValue={fmt}
             ariaLabelMin={t('diagnostics.alerts.lowKnob')}
             ariaLabelMax={t('diagnostics.alerts.highKnob')}
@@ -254,7 +256,7 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
       <ConfirmModal
         open={confirmOpen}
         title={t('common.delete')}
-        message={t('diagnostics.alerts.deleteConfirm', { name: rule.sensor.name })}
+        message={t('diagnostics.alerts.deleteConfirm', { name: sensorLabel(rule.sensor) })}
         confirmLabel={t('common.delete')}
         onConfirm={() => { setConfirmOpen(false); onDelete(); }}
         onCancel={() => setConfirmOpen(false)}

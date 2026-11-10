@@ -1,6 +1,8 @@
 import type { NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { convertTemperature, formatNumber, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../lib/units';
 
+export interface AlertUnitPrefs { monitoringTempUnit: TempUnit; numberFormat: NumberFormat; monitoringWholeNumbers: boolean }
+
 /** Sensor types a threshold makes sense for, in picker order. */
 export const ALERT_SENSOR_TYPES = ['Temperature', 'Current', 'Power', 'Voltage', 'Fan', 'Load', 'Clock', 'Control', 'Level'] as const;
 
@@ -21,7 +23,7 @@ interface TypeSpec {
   decimals: number;
   /** Slider step in the displayed unit. */
   step: number;
-  /** Threshold seed when the sensor has no usable reading. */
+  /** Upper limit seed when the sensor has no usable reading. */
   fallbackHigh: number;
 }
 
@@ -61,23 +63,33 @@ export function toDisplay(value: number, type: string, tempUnit: TempUnit): numb
   return type === 'Temperature' ? roundTo(convertTemperature(value, tempUnit), 1) : value;
 }
 
-/** A value the user typed or dragged to, back in the stored unit; temperatures go to Celsius rounded to 0.1. */
+/** A value the user typed or dragged to, back in the stored unit; temperatures go to Celsius rounded to one decimal. */
 export function fromDisplay(value: number, type: string, tempUnit: TempUnit): number {
   if (type === 'Temperature') return roundTo(tempUnit === 'f' ? (value - 32) * 5 / 9 : value, 1);
   return roundTo(value, specOf(type).decimals + 1);
 }
 
-/** "62.4°C", "9.5 A", "1200 RPM", with the user's number format. */
-export function formatAlertValue(value: number, type: string, tempUnit: TempUnit, numberFormat: NumberFormat): string {
+/** A displayed value snapped to the slider step, so a converted Fahrenheit value sits on the grid. */
+export function snapDisplay(value: number, type: string): number {
+  const step = stepFor(type);
+  return roundTo(Math.round(value / step) * step, step < 1 ? 2 : 0);
+}
+
+// Types the whole-numbers monitoring setting rounds to an integer.
+const WHOLE_NUMBER_TYPES = new Set(['Temperature', 'Power', 'Load', 'Control', 'Level']);
+
+/** A value with its unit, in the user's temperature unit and number format; whole-number types drop decimals when asked. */
+export function formatAlertValue(value: number, type: string, tempUnit: TempUnit, numberFormat: NumberFormat, wholeNumbers = false): string {
   const shown = toDisplay(value, type, tempUnit);
   const spec = specOf(type);
-  const text = formatNumber(shown, numberFormat, { maximumFractionDigits: spec.decimals });
+  const decimals = wholeNumbers && WHOLE_NUMBER_TYPES.has(type) ? 0 : spec.decimals;
+  const text = formatNumber(shown, numberFormat, { maximumFractionDigits: decimals });
   const unit = unitSuffix(type, tempUnit);
   if (!unit) return text;
   return type === 'Temperature' || unit === '%' ? `${text}${unit}` : `${text} ${unit}`;
 }
 
-/** Native slider bounds for a sensor type given its observed reading, before widening for set limits. */
+/** Native slider bounds for a sensor type given its observed reading, widened to include the set limits. */
 export function baseBounds(type: string, observed: number | null, low: number | null, high: number | null): Bounds {
   const seen = observed !== null && Number.isFinite(observed) ? observed : null;
   let bounds: Bounds;
@@ -126,7 +138,7 @@ export function displayBounds(bounds: Bounds, type: string, tempUnit: TempUnit):
   };
 }
 
-/** The upper limit a new rule starts with: the reading times 1.2, rounded to the sensor's precision. */
+/** The upper limit a new rule starts with: a fifth above the reading, rounded to the sensor's precision. */
 export function defaultHigh(type: string, observed: number | null): number {
   const spec = specOf(type);
   if (observed === null || !Number.isFinite(observed) || observed <= 0) return spec.fallbackHigh;
@@ -139,7 +151,7 @@ export function sensorRefOf(category: string, sensor: { id: string; name: string
   return { category, id: sensor.id, name: sensor.name, type: sensor.type, parentName: sensor.parent.name };
 }
 
-/** A new rule: upper limit on at reading x 1.2, lower limit off. */
+/** A new rule: upper limit on a fifth above the reading, lower limit off. */
 export function defaultRule(sensor: SensorRef, observed: number | null): NewSensorAlertRule {
   return {
     enabled: true,
@@ -155,7 +167,7 @@ export function defaultRule(sensor: SensorRef, observed: number | null): NewSens
   };
 }
 
-/** The limit a freshly enabled side starts at: 20 percent beyond the reading, kept clear of the other limit. */
+/** The limit a freshly enabled side starts at: a fifth beyond the reading, kept a gap clear of the other limit. Not clamped to the bounds, since the track widens to it. */
 export function seedBound(
   side: 'low' | 'high',
   type: string,
@@ -169,7 +181,7 @@ export function seedBound(
   const around = observed !== null && Number.isFinite(observed) ? observed : (bounds.min + bounds.max) / 2;
   let v = side === 'high' ? around * 1.2 : around * 0.8;
   if (other !== null) v = side === 'high' ? Math.max(v, other + gap) : Math.min(v, other - gap);
-  return roundTo(Math.min(bounds.max, Math.max(bounds.min, v)), decimals);
+  return roundTo(v, decimals);
 }
 
 export type AlertChipState = 'ok' | 'pending' | 'active' | 'unavailable';
@@ -189,4 +201,26 @@ export function activeAlerts(rules: SensorAlertRule[], states: SensorAlertState[
     if (rule && rule.enabled) out.push({ rule, state });
   }
   return out.sort((a, b) => Number(b.rule.severity === 'act') - Number(a.rule.severity === 'act'));
+}
+
+/** A sensor's card and notice label: the parent device unless the name already carries it. */
+export function sensorLabel(sensor: SensorRef): string {
+  const { name, parentName } = sensor;
+  if (!parentName || name.toLowerCase().includes(parentName.toLowerCase())) return name;
+  return `${parentName} ${name}`;
+}
+
+/** The one-line text of an active alert: the sensor, its limit and the current reading, in the user's units. */
+export function alertLine(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  rule: SensorAlertRule,
+  state: SensorAlertState,
+  prefs: AlertUnitPrefs,
+): string {
+  const type = rule.sensor.type;
+  const below = state.direction === 'below';
+  const fmt = (v: number | null | undefined) => (v == null ? '-' : formatAlertValue(v, type, prefs.monitoringTempUnit, prefs.numberFormat, prefs.monitoringWholeNumbers));
+  return t(below ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
+    name: sensorLabel(rule.sensor), limit: fmt(below ? rule.low : rule.high), value: fmt(state.value ?? state.extreme),
+  });
 }

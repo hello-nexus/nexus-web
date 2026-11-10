@@ -6,6 +6,7 @@ import { SensorAlertsSection } from './SensorAlertsSection';
 const h = vi.hoisted(() => ({
   tempUnit: 'c' as 'c' | 'f',
   frame: null as null | ((data: unknown) => void),
+  connected: true,
   push: vi.fn(),
   fetchSensorAlerts: vi.fn(),
   createSensorAlert: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock('../../../api/diagnosticsAlerts', async importOriginal => ({
 }));
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useMultiplex: () => ({ connected: h.connected }),
   useTopicCallback: (topic: string, enabled: boolean, cb: (data: unknown) => void) => {
     if (topic === 'diagnostics/alerts' && enabled) h.frame = cb;
   },
@@ -88,7 +90,9 @@ const okState = (ruleId: string, over: Partial<SensorAlertState> = {}): SensorAl
 async function renderSection(rules: SensorAlertRule[], states: SensorAlertState[] = []) {
   h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules, states, history: [] } });
   h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ({ ok: true, status: 200, data: r }));
-  await act(async () => { render(<SensorAlertsSection />); });
+  let utils!: ReturnType<typeof render>;
+  await act(async () => { utils = render(<SensorAlertsSection />); });
+  return utils;
 }
 
 const openFirst = () => fireEvent.click(screen.getAllByRole('button', { name: /CPU Package/ })[0]);
@@ -97,6 +101,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   h.tempUnit = 'c';
   h.frame = null;
+  h.connected = true;
 });
 
 describe('SensorAlertsSection', () => {
@@ -156,7 +161,7 @@ describe('SensorAlertsSection', () => {
 
   it('writes the severity and the enabled switch', async () => {
     await renderSection([rule('r1')]);
-    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabled' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=CPU Package)' }));
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', enabled: false })));
     openFirst();
     fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
@@ -212,5 +217,126 @@ describe('SensorAlertsSection', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledWith(expect.objectContaining({ high: 150 })));
     expect(screen.getByRole('slider', { name: 'diagnostics.alerts.highKnob' })).toHaveAttribute('max', '150');
+  });
+
+  describe('loading and resync', () => {
+    it('shows an error with retry until the list loads, and keeps Add disabled', async () => {
+      h.fetchSensorAlerts.mockResolvedValue({ ok: false, status: 500, data: null });
+      await act(async () => { render(<SensorAlertsSection />); });
+      expect(screen.getByText('diagnostics.loadFailed')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeDisabled();
+      h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [] } });
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'diagnostics.retry' })); });
+      expect(screen.getByText('CPU Package')).toBeInTheDocument();
+      expect(screen.queryByText('diagnostics.loadFailed')).toBeNull();
+      expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeEnabled();
+    });
+
+    it('keeps Add disabled while the first fetch is pending', async () => {
+      h.fetchSensorAlerts.mockReturnValue(new Promise(() => {}));
+      await act(async () => { render(<SensorAlertsSection />); });
+      expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeDisabled();
+    });
+
+    it('refetches after the socket reconnects, so a stale active state clears', async () => {
+      h.connected = false;
+      const utils = await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above' })]);
+      expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
+      h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [okState('r1')] } });
+      h.connected = true;
+      await act(async () => { utils.rerender(<SensorAlertsSection />); });
+      expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('diagnostics.alerts.state.ok')).toBeInTheDocument();
+    });
+
+    it('refetches when the window regains focus', async () => {
+      await renderSection([rule('r1')]);
+      await act(async () => { window.dispatchEvent(new Event('focus')); });
+      expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('write queue', () => {
+    function deferred() {
+      let resolve!: (v: { ok: boolean; status: number; data: SensorAlertRule | null }) => void;
+      const promise = new Promise<{ ok: boolean; status: number; data: SensorAlertRule | null }>(r => { resolve = r; });
+      return { promise, resolve };
+    }
+    const ok = (r: SensorAlertRule) => ({ ok: true, status: 200, data: r });
+
+    it('coalesces edits made while a write is in flight into one newest write', async () => {
+      await renderSection([rule('r1')]);
+      const first = deferred();
+      h.updateSensorAlert.mockReset();
+      h.updateSensorAlert.mockReturnValueOnce(first.promise);
+      h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
+      openFirst();
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.showInHealth' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
+      expect(h.updateSensorAlert).toHaveBeenCalledTimes(1);
+      await act(async () => { first.resolve(ok(rule('r1'))); });
+      await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ notifyDesktop: false, showInHealth: false, severity: 'act' });
+    });
+
+    it('sends the newest edit after a refused write instead of dropping it', async () => {
+      await renderSection([rule('r1')]);
+      const first = deferred();
+      h.updateSensorAlert.mockReset();
+      h.updateSensorAlert.mockReturnValueOnce(first.promise);
+      h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
+      openFirst();
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.showInHealth' }));
+      await act(async () => { first.resolve({ ok: false, status: 400, data: null }); });
+      await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ showInHealth: false });
+      expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' });
+      expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends a queued edit even when the page is left mid-write', async () => {
+      const utils = await renderSection([rule('r1')]);
+      const first = deferred();
+      h.updateSensorAlert.mockReset();
+      h.updateSensorAlert.mockReturnValueOnce(first.promise);
+      h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
+      openFirst();
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.showInHealth' }));
+      utils.unmount();
+      await act(async () => { first.resolve(ok(rule('r1'))); });
+      await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ showInHealth: false });
+    });
+
+    it('waits for a write in flight before deleting, with no failure toast', async () => {
+      await renderSection([rule('r1')]);
+      const first = deferred();
+      h.updateSensorAlert.mockReset();
+      h.updateSensorAlert.mockReturnValueOnce(first.promise);
+      h.deleteSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
+      openFirst();
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
+      fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
+      fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'common.delete' }));
+      await act(async () => {});
+      expect(h.deleteSensorAlert).not.toHaveBeenCalled();
+      await act(async () => { first.resolve({ ok: false, status: 404, data: null }); });
+      await waitFor(() => expect(h.deleteSensorAlert).toHaveBeenCalledWith('r1'));
+      expect(h.push).not.toHaveBeenCalled();
+    });
+
+    it('sends one create for a double click on Add', async () => {
+      await renderSection([]);
+      const pending = deferred();
+      h.createSensorAlert.mockReturnValue(pending.promise);
+      const add = screen.getByRole('button', { name: 'diagnostics.alerts.add' });
+      fireEvent.click(add);
+      fireEvent.click(add);
+      expect(h.createSensorAlert).toHaveBeenCalledTimes(1);
+      await act(async () => { pending.resolve({ ok: false, status: 500, data: null }); });
+    });
   });
 });

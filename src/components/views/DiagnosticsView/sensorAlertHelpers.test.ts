@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  activeAlerts, baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, seedBound, toDisplay, widenBounds,
+  activeAlerts, alertLine, baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, seedBound, sensorLabel, snapDisplay, toDisplay, widenBounds,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -94,6 +94,14 @@ describe('new rule defaults', () => {
     expect(seedBound('low', 'Temperature', 50, bounds, 45)).toBeLessThan(45);
     expect(seedBound('high', 'Temperature', 50, bounds, 70)).toBeGreaterThan(70);
   });
+
+  it('never seeds a limit onto the other one at the track edge, so the rule stays valid', () => {
+    const bounds = { min: 0, max: 120 };
+    const low = seedBound('low', 'Temperature', 0, bounds, 1);
+    expect(low).toBeLessThan(1);
+    const high = seedBound('high', 'Temperature', 200, bounds, 119);
+    expect(high).toBeGreaterThan(119);
+  });
 });
 
 describe('alert state helpers', () => {
@@ -110,5 +118,29 @@ describe('alert state helpers', () => {
       state({ ruleId: 'x' }),
     ];
     expect(activeAlerts(rules, states).map(a => a.rule.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('display helpers', () => {
+  it('snaps a converted Fahrenheit value to the slider step', () => {
+    expect(snapDisplay(toDisplay(37.5, 'Temperature', 'f'), 'Temperature')).toBe(100);
+    expect(snapDisplay(9.54, 'Current')).toBe(9.5);
+  });
+
+  it('drops decimals for whole-number types when asked, and keeps them for the rest', () => {
+    expect(formatAlertValue(62.4, 'Temperature', 'c', 'dot', true)).toBe('62°C');
+    expect(formatAlertValue(62.4, 'Temperature', 'c', 'dot', false)).toBe('62.4°C');
+    expect(formatAlertValue(9.5, 'Current', 'c', 'dot', true)).toBe('9.5 A');
+  });
+
+  it('labels a sensor with its parent unless the name already carries it', () => {
+    expect(sensorLabel({ ...rule().sensor, name: 'Pin 3 Current', parentName: 'PSU' })).toBe('PSU Pin 3 Current');
+    expect(sensorLabel(rule().sensor)).toBe('CPU Package');
+  });
+
+  it('words an alert line from the rule and state, falling back to the extreme', () => {
+    const t = (k: string, v?: Record<string, string | number>) => `${k}:${v?.name}:${v?.limit}:${v?.value}`;
+    const prefs = { monitoringTempUnit: 'c' as const, numberFormat: 'dot' as const, monitoringWholeNumbers: false };
+    expect(alertLine(t, rule(), state({ value: undefined, extreme: 91 }), prefs)).toBe('diagnostics.alerts.notice.above:CPU Package:80°C:91°C');
   });
 });

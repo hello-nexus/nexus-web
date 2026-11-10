@@ -702,7 +702,7 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: null, onTabChange });
 
     expect(screen.getByText('diagnostics.alerts.notice.above')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.acknowledge' }));
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.acknowledgeFor' }));
     expect(mockAlerts.acknowledge).toHaveBeenCalledWith('r1');
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.notice.openSettings' }));
     expect(onTabChange).toHaveBeenCalledWith('settings');

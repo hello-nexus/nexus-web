@@ -107,6 +107,11 @@ describe('RangeSlider', () => {
       expect(container.querySelector('[data-outside]')).toBeNull();
     });
 
+    it('keeps the bare layout free of the marker column without a marker', () => {
+      const { container } = renderStacked({ orientation: 'bare' });
+      expect(container.querySelector('[class*="markedColumn"]')).toBeNull();
+    });
+
     it('draws the live marker caption under the track', () => {
       renderStacked({ marker: { value: 50, label: '50 C' } });
       expect(screen.getByText('50 C')).toBeInTheDocument();

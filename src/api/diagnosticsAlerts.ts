@@ -1,4 +1,4 @@
-// Sensor alert rules client: /diagnostics/alerts (contract: plans sensor-alerts).
+// Sensor alert rules client for the service's /diagnostics/alerts routes.
 // Values low/high are in the sensor's native unit (temperature always Celsius).
 
 import { authFetchWithStatus } from './service';
@@ -7,7 +7,6 @@ export const MAX_SENSOR_ALERT_RULES = 10;
 
 export type SensorAlertSeverity = 'watch' | 'act';
 export type SensorAlertStateKind = 'ok' | 'pending' | 'active' | 'unavailable';
-export type SensorAlertRepeatMinutes = 0 | 5 | 15 | 60;
 
 export interface SensorRef {
   category: string;
@@ -36,27 +35,16 @@ export type NewSensorAlertRule = Omit<SensorAlertRule, 'id'>;
 export interface SensorAlertState {
   ruleId: string;
   state: SensorAlertStateKind;
-  value: number | null;
-  since: string | null;
-  extreme: number | null;
-  direction: 'above' | 'below' | null;
+  value?: number | null;
+  since?: string | null;
+  extreme?: number | null;
+  direction?: 'above' | 'below' | null;
   acknowledged: boolean;
-}
-
-export interface SensorAlertHistoryEntry {
-  ruleId: string;
-  sensorName: string;
-  direction: 'above' | 'below';
-  startedUtc: string;
-  endedUtc: string | null;
-  extreme: number;
-  threshold: number;
 }
 
 export interface SensorAlertsResponse {
   rules: SensorAlertRule[];
   states: SensorAlertState[];
-  history: SensorAlertHistoryEntry[];
 }
 
 /** The `diagnostics/alerts` websocket frame. */
@@ -89,4 +77,3 @@ export const createSensorAlert = (rule: NewSensorAlertRule) => call<SensorAlertR
 export const updateSensorAlert = (rule: SensorAlertRule) => call<SensorAlertRule>(`${BASE}/${encodeURIComponent(rule.id)}`, 'PUT', rule);
 export const deleteSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}`, 'DELETE');
 export const acknowledgeSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}/acknowledge`, 'POST', {});
-export const clearSensorAlertHistory = () => call<null>(`${BASE}/history/clear`, 'POST', {});
