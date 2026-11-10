@@ -124,3 +124,37 @@
   font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
 }
+
+// Shading outside the band (outsideTone): same 6px bar as the underlay, tinted
+// by tone. Solid color plus opacity, since color-mix is unavailable on Chromium 83.
+.outside {
+  position: absolute;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.warn { background: var(--warn); }
+.bad { background: var(--bad); }
+
+// A one-sided band is not draggable as a unit.
+.bandStatic {
+  cursor: default;
+  pointer-events: none;
+}
+
+// A disabled side keeps its input mounted (stable DOM) but shows and takes nothing.
+.knobOff {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.markedColumn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}

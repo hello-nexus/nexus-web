@@ -13,6 +13,9 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
   };
 });
 
+// The alerts section has its own suite and reads sensors and the service.
+vi.mock('./SensorAlertsSection', () => ({ SensorAlertsSection: () => <div data-testid="sensor-alerts" /> }));
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, string | number>) => (
@@ -56,6 +59,7 @@ describe('SettingsTab', () => {
     expect(screen.getByText('diagnostics.settings.linger.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.notifications.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.components.title')).toBeInTheDocument();
+    expect(screen.getByTestId('sensor-alerts')).toBeInTheDocument();
     expect(screen.getByRole('slider', { name: /benchmark\.phase\.cpu/ })).toHaveValue('90');
     expect(screen.getByRole('slider', { name: /benchmark\.phase\.gpu/ })).toHaveValue('85');
     expect(screen.getByRole('slider', { name: /benchmark\.phase\.storage/ })).toHaveValue('70');

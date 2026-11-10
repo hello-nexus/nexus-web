@@ -7,6 +7,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SensorAlertsSection } from './SensorAlertsSection';
 
 // 0 = "clears immediately"; the rest step through the shared minutes/hours
 // duration templates (diagnostics.duration.minutes / .hours).
@@ -184,6 +185,8 @@ export function SettingsTab() {
           />
         </SettingRow>
       </SettingsSection>
+
+      <SensorAlertsSection />
 
       <SettingsSection
         title={t('diagnostics.settings.components.title')}

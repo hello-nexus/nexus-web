@@ -1,0 +1,92 @@
+// Sensor alert rules client: /diagnostics/alerts (contract: plans sensor-alerts).
+// Values low/high are in the sensor's native unit (temperature always Celsius).
+
+import { authFetchWithStatus } from './service';
+
+export const MAX_SENSOR_ALERT_RULES = 10;
+
+export type SensorAlertSeverity = 'watch' | 'act';
+export type SensorAlertStateKind = 'ok' | 'pending' | 'active' | 'unavailable';
+export type SensorAlertRepeatMinutes = 0 | 5 | 15 | 60;
+
+export interface SensorRef {
+  category: string;
+  id: string;
+  name: string;
+  type: string;
+  parentName: string;
+}
+
+export interface SensorAlertRule {
+  id: string;
+  enabled: boolean;
+  sensor: SensorRef;
+  low: number | null;
+  high: number | null;
+  raiseAfterSeconds: number;
+  clearAfterSeconds: number;
+  severity: SensorAlertSeverity;
+  notifyDesktop: boolean;
+  showInHealth: boolean;
+  repeatMinutes: number;
+}
+
+export type NewSensorAlertRule = Omit<SensorAlertRule, 'id'>;
+
+export interface SensorAlertState {
+  ruleId: string;
+  state: SensorAlertStateKind;
+  value: number | null;
+  since: string | null;
+  extreme: number | null;
+  direction: 'above' | 'below' | null;
+  acknowledged: boolean;
+}
+
+export interface SensorAlertHistoryEntry {
+  ruleId: string;
+  sensorName: string;
+  direction: 'above' | 'below';
+  startedUtc: string;
+  endedUtc: string | null;
+  extreme: number;
+  threshold: number;
+}
+
+export interface SensorAlertsResponse {
+  rules: SensorAlertRule[];
+  states: SensorAlertState[];
+  history: SensorAlertHistoryEntry[];
+}
+
+/** The `diagnostics/alerts` websocket frame. */
+export interface SensorAlertsFrame {
+  states: SensorAlertState[];
+}
+
+/** ok is false for a transport failure or any non-2xx; status 409 on create means the rule limit is reached. */
+export interface SensorAlertResult<T> {
+  ok: boolean;
+  status: number;
+  data: T | null;
+}
+
+async function call<T>(path: string, method: string, body?: unknown): Promise<SensorAlertResult<T>> {
+  const { response, status } = await authFetchWithStatus(path, { method, body, cache: method === 'GET' ? 'no-store' : undefined });
+  if (!response || !response.ok) return { ok: false, status, data: null };
+  if (status === 204) return { ok: true, status, data: null };
+  try {
+    return { ok: true, status, data: (await response.json()) as T };
+  } catch {
+    return { ok: true, status, data: null };
+  }
+}
+
+const BASE = '/diagnostics/alerts';
+
+export const fetchSensorAlerts = () => call<SensorAlertsResponse>(BASE, 'GET');
+export const createSensorAlert = (rule: NewSensorAlertRule) => call<SensorAlertRule>(BASE, 'POST', rule);
+export const updateSensorAlert = (rule: SensorAlertRule) => call<SensorAlertRule>(`${BASE}/${encodeURIComponent(rule.id)}`, 'PUT', rule);
+export const deleteSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}`, 'DELETE');
+export const acknowledgeSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}/acknowledge`, 'POST', {});
+export const clearSensorAlertHistory = () => call<null>(`${BASE}/history/clear`, 'POST', {});

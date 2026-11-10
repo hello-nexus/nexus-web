@@ -1326,6 +1326,30 @@ function PreviewRangeSliderSpeed() {
   );
 }
 
+function PreviewRangeSliderAlert() {
+  const [v, setV] = useState<[number, number]>([20, 85]);
+  const [lowOn, setLowOn] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setLowOn(on => !on)}>{lowOn ? 'Low bound on' : 'Low bound off'}</button>
+      <RangeSlider
+        orientation="stacked"
+        editable
+        softBounds
+        label="Temperature"
+        value={v}
+        min={0}
+        max={120}
+        lowEnabled={lowOn}
+        outsideTone="bad"
+        marker={{ value: 62, label: '62°C' }}
+        formatValue={x => `${x}°C`}
+        onChange={setV}
+      />
+    </>
+  );
+}
+
 function PreviewColorPickerWithPresets() {
   const [color, setColor] = useState<string>(PRESET_ACCENTS[0]);
   const [custom, setCustom] = useState('');
@@ -2788,6 +2812,12 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'RangeSlider (speed)', category: 'inputs',
     filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'Same RangeSlider primitive with a percent formatter. Used in the cooling fan-curve linear band for speed.', Preview: PreviewRangeSliderSpeed,
+  },
+  {
+    name: 'RangeSlider (one-sided, live marker)', category: 'inputs',
+    filePath: 'src/components/common/Slider/RangeSlider.tsx',
+    description: 'RangeSlider with lowEnabled / highEnabled (a disabled side hides its knob and the band runs to that edge), outsideTone (shades the track outside the band), marker (a live reading pointed at under the track) and softBounds (a typed value may widen the track). Used for sensor alert bounds.', Preview: PreviewRangeSliderAlert,
+    notes: 'All four props are optional and leave the dual-knob behavior unchanged. A one-sided band cannot be dragged as a unit.',
   },
   {
     name: 'SearchInput', category: 'inputs',

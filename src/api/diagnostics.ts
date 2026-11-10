@@ -9,7 +9,7 @@
 import { authFetchWithStatus, fetchServiceBlobWithHeaders } from './service';
 
 export type DiagnosticsStatus = 'ok' | 'watch' | 'act' | 'unknown';
-export type DiagnosticsKind = 'storage' | 'memory' | 'gpu' | 'cooling' | 'system';
+export type DiagnosticsKind = 'storage' | 'memory' | 'gpu' | 'cooling' | 'system' | 'alerts';
 
 export interface DiagnosticsReason {
   code: string;

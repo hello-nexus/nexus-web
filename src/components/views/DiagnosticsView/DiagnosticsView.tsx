@@ -188,6 +188,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
           anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
           onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
+          onOpenSettings={() => onTabChange('settings')}
           downloading={downloading} downloadingReport={downloadingReport}
           onDownload={() => void handleDownload()} onDownloadReport={() => void handleDownloadReport()}
         />

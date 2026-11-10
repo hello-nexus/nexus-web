@@ -1,0 +1,52 @@
+@use '../../../styles/text' as *;
+
+.headRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.liveValue {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Sliders sit between rows, so they take a row's vertical rhythm.
+.sliderBlock {
+  padding: 0.5rem 0;
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.note {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+// Active-alert notice on the Summary tab.
+.noticeStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.alertRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.alertText {
+  @include text-body;
+  min-width: 0;
+}
