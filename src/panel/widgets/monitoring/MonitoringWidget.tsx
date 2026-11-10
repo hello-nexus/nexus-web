@@ -36,6 +36,8 @@ interface TempSensorPrefs {
   gpuId: string;
 }
 
+const POWER_MONITOR_ID_PREFIX = '/gpu-powermonitor/';
+
 /**
  * Resolve a sensor given a device category and sensor name. For fan with no
  * sensor name, picks the first fan sensor.
@@ -44,8 +46,6 @@ interface TempSensorPrefs {
  * to the global preferred-temp-sensor setting; an explicit named sensor (e.g.
  * "CPU Package", "GPU Hot Spot") is used as-is.
  */
-const POWER_MONITOR_ID_PREFIX = '/gpu-powermonitor/';
-
 export function resolveSensor(
   sensors: ReturnType<typeof useSensors>,
   fpsSensors: HardwareSensor[],
