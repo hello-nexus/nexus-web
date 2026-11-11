@@ -172,13 +172,11 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
         <SettingToggle
           label={t('diagnostics.alerts.below')}
           checked={lowOn}
-          disabled={lowOn && !highOn}
           onChange={on => toggleSide('low', on)}
         />
         <SettingToggle
           label={t('diagnostics.alerts.above')}
           checked={highOn}
-          disabled={highOn && !lowOn}
           onChange={on => toggleSide('high', on)}
         />
         <div className={styles.sliderBlock}>

@@ -174,10 +174,13 @@ describe('SensorAlertsSection', () => {
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', severity: 'act' })));
   });
 
-  it('will not switch off the last remaining limit', async () => {
+  it('lets the last remaining limit be switched off, making the sensor track-only', async () => {
     await renderSection([rule('r1')]);
     openFirst();
-    expect(screen.getByRole('switch', { name: 'diagnostics.alerts.above' })).toBeDisabled();
+    const above = screen.getByRole('switch', { name: 'diagnostics.alerts.above' });
+    expect(above).toBeEnabled();
+    fireEvent.click(above);
+    await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', low: null, high: null })));
   });
 
   it('reverts to the service list when a write is refused', async () => {

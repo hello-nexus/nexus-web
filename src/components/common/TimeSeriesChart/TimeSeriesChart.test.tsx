@@ -45,6 +45,15 @@ const baseProps = {
 };
 
 describe('TimeSeriesChart', () => {
+  it('draws a dashed line per threshold inside the value range and skips one outside it', () => {
+    const { container } = render(
+      <TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} thresholds={[{ value: 80, color: 'var(--bad)' }, { value: 500 }]} />,
+    );
+    const lines = [...container.querySelectorAll('line[stroke-dasharray]')];
+    expect(lines).toHaveLength(1);
+    expect(lines[0].getAttribute('stroke')).toBe('var(--bad)');
+  });
+
   it('renders one line path per series', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(1);

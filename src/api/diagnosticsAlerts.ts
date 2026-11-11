@@ -2,6 +2,8 @@
 // Values low/high are in the sensor's native unit (temperature always Celsius).
 
 import { authFetchWithStatus } from './service';
+import { requestJson } from './fetchOutcome';
+import { buildQuery, type MetricHistoryFetchResult, type MetricHistoryQuery, type MetricHistoryResponse } from './monitoringHistory';
 
 export const MAX_SENSOR_ALERT_RULES = 10;
 
@@ -77,3 +79,9 @@ export const createSensorAlert = (rule: NewSensorAlertRule) => call<SensorAlertR
 export const updateSensorAlert = (rule: SensorAlertRule) => call<SensorAlertRule>(`${BASE}/${encodeURIComponent(rule.id)}`, 'PUT', rule);
 export const deleteSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}`, 'DELETE');
 export const acknowledgeSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}/acknowledge`, 'POST', {});
+
+/** Recorded values of the tracked sensors (every enabled rule), in the same shape as the monitoring history; no dev mock. */
+export async function fetchSensorAlertHistory(query: MetricHistoryQuery): Promise<MetricHistoryFetchResult> {
+  const { data, status } = await requestJson<MetricHistoryResponse>(`${BASE}/history-series?${buildQuery({ ...query, series: undefined })}`);
+  return { data, mocked: false, unsupported: data === null && status === 404 };
+}

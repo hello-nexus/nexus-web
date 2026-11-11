@@ -712,7 +712,7 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByTestId('settings-tab')).toBeInTheDocument();
   });
 
-  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Settings tab', () => {
+  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Sensors tab', () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
@@ -726,7 +726,7 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /acknowledge/ })).toBeNull();
     fireEvent.click(row);
-    expect(onTabChange).toHaveBeenCalledWith('settings');
+    expect(onTabChange).toHaveBeenCalledWith('sensors');
     mockAlerts.rules = [];
     mockAlerts.states = [];
   });
@@ -789,7 +789,7 @@ describe('DiagnosticsView tabs', () => {
     for (const platform of ['windows', '']) {
       const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
       expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-        'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
+        'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
         'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
       ]);
       unmount();
@@ -800,16 +800,16 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'linux' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.storage',
+      'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.storage',
       'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
     ]);
   });
 
-  it('keeps only Summary/Cooling/Settings on macos', () => {
+  it('keeps only Summary/Sensors/Cooling/Settings on macos', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'macos' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.settings',
+      'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.cooling', 'diagnostics.tab.settings',
     ]);
   });
 

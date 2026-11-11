@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ClipboardList, Fan, HardDrive, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { ChartLine, ClipboardList, Fan, HardDrive, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -27,6 +27,9 @@ import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
 import { SettingsTab } from './SettingsTab';
+import { SensorsTab } from './SensorsTab';
+import { SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
+import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
 import { DEFAULT_INCIDENT_RANGE_HOURS, type IncidentRangeHours } from './incidentTimelineHelpers';
 import { type DiagnosticsTab, visibleDiagnosticsTabs } from './diagnosticsHelpers';
@@ -57,6 +60,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
 
   const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
+    { key: 'sensors', label: t('diagnostics.tab.sensors'), icon: <ChartLine size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
     { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
@@ -87,6 +91,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   const [now, setNow] = useState(() => Date.now());
   // The sensor alert a Summary row asked to edit; the Settings tab opens and shines its card, then clears this.
   const [focusAlertId, setFocusAlertId] = useState<string | null>(null);
+  // The sensor card a Summary row asked to show; the Sensors tab scrolls to and shines it, then clears this.
+  const [focusSensorId, setFocusSensorId] = useState<string | null>(null);
   useEffect(() => { setNow(Date.now()); }, [health]);
 
   const smart = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSmart);
@@ -107,6 +113,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // live-tail poll runs every second, wasteful to keep running on every other
   // tab), but the hook instance lives here (not in CoolingTab) so its
   // viewport/cache survive switching away from and back to the tab.
+  const isSensorsTab = tab === 'sensors';
+  const sensorHistory = useMetricHistory(serviceOnline && isSensorsTab, isSensorsTab ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory);
   const isCoolingTab = tab === 'cooling';
   const coolingHistory = useMetricHistory(serviceOnline && isCoolingTab, isCoolingTab ? COOLING_HISTORY_SERIES_QUERY : '');
 
@@ -190,9 +198,18 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
           anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
           onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
-          onOpenAlert={id => { setFocusAlertId(id); onTabChange('settings'); }}
+          onOpenAlert={id => { setFocusSensorId(id); onTabChange('sensors'); }}
           downloading={downloading} downloadingReport={downloadingReport}
           onDownload={() => void handleDownload()} onDownloadReport={() => void handleDownloadReport()}
+        />
+      );
+      case 'sensors': return (
+        <SensorsTab
+          history={sensorHistory}
+          focusRuleId={focusSensorId}
+          onFocused={() => setFocusSensorId(null)}
+          onEditRule={id => { setFocusAlertId(id); onTabChange('settings'); }}
+          onOpenSettings={() => onTabChange('settings')}
         />
       );
       case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;
