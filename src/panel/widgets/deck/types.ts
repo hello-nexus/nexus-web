@@ -78,7 +78,7 @@ export interface DeckPageAction {
 export type DeckMonitoringCategory =
   | 'quick' | 'cpu' | 'gpu' | 'memory' | 'memoryModule' | 'motherboard'
   | 'storage' | 'smart' | 'network' | 'fps'
-  | 'battery' | 'cooler' | 'psu' | 'embeddedController';
+  | 'battery' | 'cooler' | 'fanSensors' | 'psu' | 'embeddedController';
 export type DeckMonitoringStyle = 'line' | 'segments' | 'backdrop' | 'number';
 export type DeckMonitoringPress = 'none' | 'taskManager' | 'monitoringPage';
 

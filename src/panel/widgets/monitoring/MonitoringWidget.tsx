@@ -11,6 +11,7 @@ import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import { useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useTranslation } from '../../../lib/i18n';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
@@ -20,7 +21,7 @@ import type { GaugeDesignKey, GaugeProps } from './gauges';
 import { DEFAULT_SLOTS, defaultSlotDesign, heroSpecForSize, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorCaptionName, smartStorageSensors } from './sensorCategories';
+import { currentFanProbeName, extrasSensorsForDevice, fanProbeAlias, gpu2Sensors, igpuSensors, sensorCaptionName, smartStorageSensors } from './sensorCategories';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
@@ -37,6 +38,20 @@ interface TempSensorPrefs {
 }
 
 const POWER_MONITOR_ID_PREFIX = '/gpu-powermonitor/';
+
+/**
+ * True when a slot is bound to an extras-topic sensor that is no longer listed (a fan unplugged).
+ * Never true before the first extras frame (`extras` is the shared empty placeholder or absent), so
+ * a cold load does not flash "Sensor missing" over a sensor that is about to appear.
+ */
+export function isSavedSensorMissing(
+  device: DeviceKey,
+  sensorKey: string,
+  sensor: HardwareSensor | undefined,
+  extras?: SensorExtras,
+): boolean {
+  return !sensor && !!sensorKey && isExtrasBackedDevice(device) && !!extras && extras !== EMPTY_SENSOR_EXTRAS;
+}
 
 /**
  * Resolve a sensor given a device category and sensor name. For fan with no
@@ -119,18 +134,24 @@ export function resolveSensor(
     case 'memoryModule':
     case 'battery':
     case 'cooler':
+    case 'fanSensors':
     case 'embeddedController': {
-      const list = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
+      const source = extras ?? EMPTY_SENSOR_EXTRAS;
+      const read = fanProbeAlias(device, sensorKey, source);
+      const list = extrasSensorsForDevice(read, source);
+      const name = read === device ? sensorKey : currentFanProbeName(sensorKey);
+      // A saved sensor that is no longer listed (a fan unplugged) resolves to nothing, never to another sensor.
       return sensorKey
-        ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey) ?? list[0]
+        ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === name)
         : list[0];
     }
     case 'psu': {
       // Power-monitor meters share the psu extras but are not a PSU, so only an exact id pick reaches them.
+      // A saved PSU sensor that is no longer listed resolves to nothing, like the other extras.
       const all = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
       const real = all.filter(s => !s.id.startsWith(POWER_MONITOR_ID_PREFIX));
       return sensorKey
-        ? all.find(s => s.id === sensorKey) ?? real.find(s => s.name === sensorKey) ?? real[0]
+        ? all.find(s => s.id === sensorKey) ?? real.find(s => s.name === sensorKey)
         : real[0];
     }
     case 'network':
@@ -162,6 +183,7 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
     case 'memoryModule': return 'DIMM';
     case 'battery': return 'BATT';
     case 'cooler': return 'COOL';
+    case 'fanSensors': return 'FANS';
     case 'psu': return 'PSU';
     case 'embeddedController': return 'EC';
     case 'network': return 'Network';
@@ -327,14 +349,16 @@ interface PerfSlotProps {
 }
 
 export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, valueColor = false, valueColorReverse, gaugeGradient, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+  const { t } = useTranslation();
   const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
+  const sensorMissing = isSavedSensorMissing(device, effectiveSensorName, sensor, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat, sensor.type, monitoringWholeNumbers) : '-';
   // Auto / hide / custom caption; the stored custom text survives sensor
   // changes and mode switches. The a11y name stays meaningful even when hidden.
-  const autoLabel = labelForDevice(device, sensorCaptionName(device, sensors, sensor) ?? effectiveSensorName);
+  const autoLabel = sensorMissing ? t('monitoring.sensorMissing') : labelForDevice(device, sensorCaptionName(device, sensors, sensor) ?? effectiveSensorName);
   const label = displayLabel(labelMode, labelOverride, autoLabel);
   const resolvedLabel = labelMode === 'custom' ? (labelOverride?.trim() || autoLabel) : autoLabel;
   // Shared key so the tile + immersive instance for the same sensor share one

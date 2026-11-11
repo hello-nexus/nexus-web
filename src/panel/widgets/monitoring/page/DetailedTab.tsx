@@ -72,6 +72,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   pushExtras('battery', t('monitoring.detailed.battery'), extras.batteries);
   pushExtras('psu', t('monitoring.detailed.psu'), extras.psus);
   pushExtras('cooler', t('monitoring.detailed.cooler'), extras.coolers);
+  pushExtras('fanSensors', t('monitoring.detailed.fanSensors'), extras.fanSensors);
   pushExtras('ec', t('monitoring.detailed.ec'), extras.embeddedControllers);
 
   // Single gate for every section: a header never renders over an empty body.
