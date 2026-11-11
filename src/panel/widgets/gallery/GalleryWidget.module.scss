@@ -65,19 +65,15 @@ video.image {
   background: #000;
 }
 
-// Chromium holds a display+system "Video Wake Lock" for any playing <video>
-// whose border box is more than 75% on screen, so a looping gallery clip
-// kept the host PC from ever sleeping (WebView2 kiosks and streamed panels).
-// Transparent side padding keeps the border box under that threshold while
-// the content box object-fit paints into, and the native video compositing,
-// are unchanged. The panel screenshot zeroes it for the rasterize
-// (PanelEmbedFrame unpadVideosForCapture, keyed on data-wakelock-pad).
+// Wake-lock side padding, see .backgroundMediaVideo in PanelApp.module.scss.
+// flex-shrink 0 stops .viewer's flex layout from shrinking the padded box.
 // background-clip keeps the clip's letterbox black off the padding. No
-// negative margin here: .viewer centers its flex item, which already puts the
-// content box where the unpadded clip sat.
+// negative margin: .viewer centers its flex item, which puts the content box
+// where the unpadded clip sat.
 .videoWakeLockPad {
   box-sizing: content-box;
   padding: 0 100%;
+  flex-shrink: 0;
   background-clip: content-box;
 }
 
