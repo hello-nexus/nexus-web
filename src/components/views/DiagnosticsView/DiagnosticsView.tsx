@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChartLine, ClipboardList, Fan, HardDrive, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { ClipboardList, Eye, Fan, HardDrive, MemoryStick, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -26,7 +26,7 @@ import { MemorySection } from './MemorySection';
 import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
-import { SettingsTab } from './SettingsTab';
+import { DiagnosticsTabSettings } from './DiagnosticsTabSettings';
 import { SensorsTab } from './SensorsTab';
 import { SENSOR_HISTORY_OPTIONS, SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
 import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
@@ -64,8 +64,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
     { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
-    { key: 'sensors', label: t('diagnostics.tab.sensors'), icon: <ChartLine size={14} /> },
-    { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
+    { key: 'sensors', label: t('diagnostics.tab.sensors'), icon: <Eye size={14} /> },
   ] as const;
 
   const visibleKeys = visibleDiagnosticsTabs(platform);
@@ -73,7 +72,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
 
   // GPU is no longer its own tab (folded into Cooling); an old ?tab=gpu deep
   // link lands on Cooling, where GPU health now lives.
-  const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab;
+  // The Settings tab is gone (its switches live on each tab and in Nexus Settings > Monitoring);
+  // an old ?tab=settings link lands on Summary.
+  const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab === 'settings' ? 'summary' : urlTab;
   // A tab key can be real but hidden on this platform (e.g. Memory on Linux):
   // that case corrects the route to Summary, unlike a plain unrecognized key
   // (typo'd url), which stays render-only and never writes history.
@@ -82,8 +83,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   const tab: DiagnosticsTab = isVisibleTab ? requestedTab as DiagnosticsTab : 'summary';
 
   useEffect(() => {
-    if (isRecognizedTab && !isVisibleTab) onTabChange('summary');
-  }, [isRecognizedTab, isVisibleTab, onTabChange]);
+    if ((isRecognizedTab && !isVisibleTab) || urlTab === 'settings') onTabChange('summary');
+  }, [isRecognizedTab, isVisibleTab, urlTab, onTabChange]);
 
   const { health, loading: healthLoading, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
@@ -233,7 +234,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           onIncidentHoursChange={handleIncidentHoursChange} onIncidentDateChange={setIncidentDate}
         />
       );
-      case 'settings': return <SettingsTab />;
     }
   };
 
@@ -241,6 +241,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     <div className={styles.diagnostics}>
       <ViewHeader title={t('diagnostics.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
       <div className={`${styles.tabContent} pageBody`}>
+        <DiagnosticsTabSettings tab={tab} />
         {renderTab()}
       </div>
     </div>

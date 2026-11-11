@@ -56,9 +56,8 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ SensorPicker: () => null, useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
 
-// The Settings tab needs the UI settings provider; the deep link test only checks that it is the tab shown.
-vi.mock('./SensorNotificationSettings', () => ({ SensorNotificationSettings: () => null }));
-vi.mock('./SettingsTab', () => ({ SettingsTab: () => <div data-testid="settings-tab" /> }));
+// The per-tab switches need the UI settings provider and have their own suite.
+vi.mock('./DiagnosticsTabSettings', () => ({ DiagnosticsTabSettings: ({ tab }: { tab: string }) => <div data-testid={`tab-settings-${tab}`} /> }));
 
 vi.mock('../../../hooks/useThermalGuard', () => ({
   useThermalGuard: () => ({
@@ -707,11 +706,21 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).not.toHaveBeenCalled();
   });
 
-  it('opens the Settings tab', () => {
-    renderDiagnosticsView({ tab: 'settings', onTabChange: vi.fn() });
+  it('redirects a legacy settings url to the Summary tab and corrects the url', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: 'settings', onTabChange });
 
-    expect(screen.getByRole('tab', { name: /diagnostics.tab.settings/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('settings-tab')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.summary/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tab', { name: /diagnostics.tab.settings/ })).not.toBeInTheDocument();
+    expect(onTabChange).toHaveBeenCalledWith('summary');
+  });
+
+  it('shows the monitoring and notification switches at the top of the Storage, Memory, Cooling and System tabs', () => {
+    for (const tab of ['storage', 'memory', 'cooling', 'system']) {
+      const { unmount } = renderDiagnosticsView({ tab, onTabChange: vi.fn() });
+      expect(screen.getByTestId(`tab-settings-${tab}`)).toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Sensors tab', () => {
@@ -809,7 +818,7 @@ describe('DiagnosticsView tabs', () => {
       const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
       expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
         'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
-        'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors', 'diagnostics.tab.settings',
+        'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors',
       ]);
       unmount();
     }
@@ -820,15 +829,15 @@ describe('DiagnosticsView tabs', () => {
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
       'diagnostics.tab.summary', 'diagnostics.kind.storage',
-      'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors', 'diagnostics.tab.settings',
+      'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors',
     ]);
   });
 
-  it('keeps only Summary/Cooling/Sensors/Settings on macos', () => {
+  it('keeps only Summary/Cooling/Sensors on macos', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'macos' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.sensors', 'diagnostics.tab.settings',
+      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.sensors',
     ]);
   });
 

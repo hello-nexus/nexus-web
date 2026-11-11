@@ -41,7 +41,7 @@ export function SummaryTab({
 
   return (
     <>
-      <Card>
+      <Card className={styles.summaryStrip}>
         <div className={styles.actionBarRow}>
           <div className={styles.actionBarStatus}>
             {health && (

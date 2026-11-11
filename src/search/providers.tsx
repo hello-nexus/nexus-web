@@ -131,7 +131,6 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
   { view: 'diagnostics', sub: 'memory',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.memory',  keywords: ['ram', 'memory', 'memtest', 'memory test', 'health'] },
   { view: 'diagnostics', sub: 'cooling', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.cooling', keywords: ['thermals', 'temperature', 'throttle', 'health'] },
   { view: 'diagnostics', sub: 'system',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.system',  keywords: ['drivers', 'devices', 'events', 'health'] },
-  { view: 'diagnostics', sub: 'settings', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.tab.settings', keywords: ['thresholds', 'notifications', 'alerts'] },
 ];
 const navSubtabs: SearchSource = (ctx) =>
   SUBTABS.filter((s) => !s.official || OFFICIAL_BUILD).map((s) => go(`nav:${s.view}/${s.sub}`, {

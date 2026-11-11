@@ -103,7 +103,17 @@
   flex-wrap: wrap;
 }
 
+// The on/off switches at the top of a tab keep a gap to the content below.
+.tabSettings {
+  margin-bottom: var(--space-lg);
+}
+
 // ── Component health grid ──
+
+// The status strip sits above the tile grid with the grid's own gap between them.
+.summaryStrip {
+  margin-bottom: 0.75rem;
+}
 
 // Fixed 2x2 of large domain tiles (Storage / Memory / Cooling / System). Two
 // columns on any comfortable width, collapsing to a single column when the
