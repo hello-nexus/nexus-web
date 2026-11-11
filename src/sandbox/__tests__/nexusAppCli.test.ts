@@ -20,7 +20,9 @@ let app = '';
 
 const run = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
 
-describe.skipIf(!canRun)('nexus-app build with a renderer', () => {
+// Each test spawns a real esbuild CLI build, which outlasts the default test
+// timeout when the whole suite runs in parallel.
+describe.skipIf(!canRun)('nexus-app build with a renderer', { timeout: 60_000 }, () => {
   beforeAll(() => {
     root = mkdtempSync(join(tmpdir(), 'nexus-cli-'));
     app = join(root, 'app');
