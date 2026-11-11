@@ -6,10 +6,12 @@ export interface OverflowEdges {
 
 export const SCROLL_STEP = 0.75;
 
-// One pixel of slack absorbs sub-pixel scroll positions.
-export function computeEdges(scrollLeft: number, scrollWidth: number, clientWidth: number): OverflowEdges {
+// One pixel of slack absorbs sub-pixel scroll positions. Overflow is judged
+// against the full host width, not the scroller (which the arrows shrink), so
+// the arrows leave as soon as the tabs alone would fit.
+export function computeEdges(scrollLeft: number, scrollWidth: number, clientWidth: number, hostWidth: number = clientWidth): OverflowEdges {
   const max = scrollWidth - clientWidth;
-  return { overflow: max > 1, atStart: scrollLeft <= 1, atEnd: scrollLeft >= max - 1 };
+  return { overflow: scrollWidth - hostWidth > 1, atStart: scrollLeft <= 1, atEnd: scrollLeft >= max - 1 };
 }
 
 // New scrollLeft that brings a tab fully into view, or the current one when it already is.

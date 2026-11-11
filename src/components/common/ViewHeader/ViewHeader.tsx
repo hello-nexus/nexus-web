@@ -33,7 +33,7 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, onTabHover, ta
   return (
     <header className={styles.header}>
       {hasTabRow && (
-        <div className={styles.tabsRow}>
+        <div className={styles.tabsRow} data-testid="view-header-tab-row">
           {hasTabs && (
             <Tabs
               tabs={tabs}

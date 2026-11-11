@@ -67,6 +67,7 @@ function withTooltip(tab: TabDef, button: ReactElement): ReactElement {
  */
 export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, fullWidth = false, onHover }: TabsProps) {
   const { t } = useTranslation();
+  const hostRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState<OverflowEdges>({ overflow: false, atStart: true, atEnd: true });
   const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth);
@@ -74,11 +75,10 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
   const measure = useCallback(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const next = computeEdges(el.scrollLeft, el.scrollWidth, el.clientWidth);
+    const next = computeEdges(el.scrollLeft, el.scrollWidth, el.clientWidth, hostRef.current?.clientWidth);
     setEdges(prev => (prev.overflow === next.overflow && prev.atStart === next.atStart && prev.atEnd === next.atEnd ? prev : next));
   }, []);
 
-  // Re-runs on resize: the first pass can precede final layout (sidebar, fonts).
   const revealActive = useCallback(() => {
     const el = scrollerRef.current;
     const tab = el?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
@@ -88,12 +88,16 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
     el.scrollLeft = revealOffset(el.scrollLeft, el.clientWidth, target.offsetLeft, target.offsetWidth);
   }, []);
 
-  useLayoutEffect(() => { measure(); });
+  // Reveal runs only when the active tab changes (and on mount), so a resize
+  // never discards the user's manual scroll. Layout effect: no first-frame jump.
+  useLayoutEffect(() => { revealActive(); }, [revealActive, activeKey, tabs.length]);
+
+  useLayoutEffect(() => { measure(); }, [measure, tabs, activeKey]);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const onResize = () => { revealActive(); measure(); };
+    const onResize = () => measure();
     window.addEventListener('resize', onResize);
     if (typeof ResizeObserver === 'undefined') {
       return () => window.removeEventListener('resize', onResize);
@@ -101,10 +105,9 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
     const ro = new ResizeObserver(onResize);
     ro.observe(el);
     if (el.firstElementChild) ro.observe(el.firstElementChild);
+    if (hostRef.current) ro.observe(hostRef.current);
     return () => { ro.disconnect(); window.removeEventListener('resize', onResize); };
-  }, [measure, revealActive]);
-
-  useEffect(() => { revealActive(); }, [revealActive, activeKey, tabs.length]);
+  }, [measure]);
 
   const scrollBy = (dir: 1 | -1) => {
     const el = scrollerRef.current;
@@ -118,7 +121,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
     onPointerLeave: (e: ReactPointerEvent) => { if (e.pointerType === 'mouse') onHover(null); },
   } : {};
   return (
-    <div className={classNames(styles.host, fullWidth && styles.hostFull, className)}>
+    <div ref={hostRef} className={classNames(styles.host, fullWidth && styles.hostFull, className)}>
       <div ref={scrollerRef} className={styles.scroller} onScroll={measure}>
     <nav className={navClass} role="tablist" aria-label={ariaLabel}>
       {tabs.map(tab => {

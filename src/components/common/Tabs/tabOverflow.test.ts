@@ -15,6 +15,15 @@ describe('computeEdges', () => {
   });
 });
 
+describe('computeEdges host width', () => {
+  it('reports no overflow when tabs fit the host but not the arrow-reduced scroller', () => {
+    expect(computeEdges(0, 280, 250, 300).overflow).toBe(false);
+  });
+  it('reports overflow when tabs exceed the host', () => {
+    expect(computeEdges(0, 350, 250, 300).overflow).toBe(true);
+  });
+});
+
 describe('revealOffset', () => {
   it('keeps the offset when the tab is visible', () => {
     expect(revealOffset(100, 300, 150, 80)).toBe(100);

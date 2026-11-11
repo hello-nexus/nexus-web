@@ -1,4 +1,5 @@
 @use '../../../styles/scrollbar' as *;
+@use '../../../styles/interactions' as *;
 
 // Outer host: the scrolling strip plus the overflow arrows, which appear only
 // while the tabs exceed the available width.
@@ -82,6 +83,9 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  // Inset: the scroller's overflow would clip an outer ring.
+  &:focus-visible { @include focus-ring-inset; }
 }
 
 .active {

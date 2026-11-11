@@ -125,15 +125,17 @@ describe('Tabs overflow arrows', () => {
   let metrics: { scrollWidth: number; clientWidth: number };
   let scrollTo: ReturnType<typeof vi.fn>;
   const observers: Array<() => void> = [];
+  const disconnect = vi.fn();
 
   beforeEach(() => {
     metrics = { scrollWidth: 300, clientWidth: 300 };
     observers.length = 0;
+    disconnect.mockClear();
     scrollTo = vi.fn(function (this: HTMLElement, opts: ScrollToOptions) { this.scrollLeft = opts.left ?? 0; });
     vi.stubGlobal('ResizeObserver', class {
       constructor(cb: () => void) { observers.push(cb); }
       observe() {}
-      disconnect() {}
+      disconnect() { disconnect(); }
     });
     vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(() => metrics.scrollWidth);
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => metrics.clientWidth);
@@ -190,7 +192,7 @@ describe('Tabs overflow arrows', () => {
     expect(scroller.scrollLeft).toBeLessThan(300);
   });
 
-  it('scrolls the active tab into view on load and again when the strip resizes', () => {
+  it('scrolls the active tab into view on load but keeps a manual scroll across resizes', () => {
     metrics = { scrollWidth: 600, clientWidth: 300 };
     vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockReturnValue(450);
     vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(100);
@@ -199,6 +201,44 @@ describe('Tabs overflow arrows', () => {
     expect(scroller.scrollLeft).toBe(250);
     scroller.scrollLeft = 0;
     act(() => observers.forEach(cb => cb()));
+    expect(scroller.scrollLeft).toBe(0);
+  });
+
+  it('reveals the new active tab when activeKey changes', () => {
+    metrics = { scrollWidth: 600, clientWidth: 300 };
+    vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockReturnValue(450);
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(100);
+    const { rerender } = render(<Tabs tabs={tabs} activeKey="one" onChange={() => {}} />);
+    const scroller = screen.getByRole('tablist').parentElement as HTMLElement;
+    scroller.scrollLeft = 0;
+    rerender(<Tabs tabs={tabs} activeKey="two" onChange={() => {}} />);
     expect(scroller.scrollLeft).toBe(250);
+  });
+
+  it('removes the resize listener and disconnects the observer on unmount', () => {
+    const add = vi.spyOn(window, 'addEventListener');
+    const remove = vi.spyOn(window, 'removeEventListener');
+    const { unmount } = render(<Tabs tabs={tabs} activeKey="one" onChange={() => {}} />);
+    const added = add.mock.calls.find(c => c[0] === 'resize');
+    expect(added).toBeDefined();
+    unmount();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(remove.mock.calls.some(c => c[0] === 'resize' && c[1] === added![1])).toBe(true);
+  });
+});
+
+describe('Tabs fullWidth', () => {
+  it('marks both the host and the strip as full width', () => {
+    render(<Tabs tabs={tabs} activeKey="one" onChange={() => {}} fullWidth />);
+    const nav = screen.getByRole('tablist');
+    const host = nav.parentElement!.parentElement as HTMLElement;
+    expect(nav.className).toMatch(/fullWidth/);
+    expect(host.className).toMatch(/hostFull/);
+  });
+
+  it('leaves the host at natural width by default', () => {
+    render(<Tabs tabs={tabs} activeKey="one" onChange={() => {}} />);
+    const host = screen.getByRole('tablist').parentElement!.parentElement as HTMLElement;
+    expect(host.className).not.toMatch(/hostFull/);
   });
 });
