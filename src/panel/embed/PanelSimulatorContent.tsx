@@ -7,17 +7,12 @@ import { PanelContent } from '../PanelApp';
 import { useTranslation } from '../../lib/i18n';
 import { useSimulatorLayoutState } from './useSimulatorLayoutState';
 
-// Brightness maps to a capped dim overlay so changes show without fully
-// hiding content (a dim screen is still readable). Screen-off is fully opaque.
-const MAX_BRIGHTNESS_DIM = 0.6;
-
 export function PanelSimulatorContent() {
   const { t } = useTranslation();
   const sim = useSimulatorLayoutState();
   if (!sim.ready || !sim.theme) return null;
-  const dimOpacity = sim.screenOn
-    ? Math.max(0, Math.min(MAX_BRIGHTNESS_DIM, ((100 - sim.brightness) / 100) * MAX_BRIGHTNESS_DIM))
-    : 1;
+  // Hardware brightness never dims the preview; only screen-off blanks it.
+  const dimOpacity = sim.screenOn ? 0 : 1;
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -30,6 +25,7 @@ export function PanelSimulatorContent() {
           deviceTouch={sim.deviceTouch}
           deviceDpi={sim.dpi}
           shortSideSlots={sim.shortSideSlots}
+          transposedTile={sim.transposedTile}
           chromeGrid={sim.chromeGrid}
           simulatorPreviewScale={sim.previewScale}
           displayBound={sim.displayBound}

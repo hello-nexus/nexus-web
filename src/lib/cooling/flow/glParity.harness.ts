@@ -7,7 +7,7 @@ import { GlFlow, PassRunner, floatSupport, pass, target } from './glFlow';
 import { STREAK_PARITY } from './shaders';
 import { stepDisplacement, streakOf } from './streak';
 import { buildFlowScene } from './gridScene';
-import { EMITTER_STRIDE } from './flowParams';
+import { EMITTER_STRIDE, GRID_LOW_CELLS } from './flowParams';
 
 declare global { interface Window { __flowGl: Record<string, unknown> } }
 
@@ -136,18 +136,8 @@ async function main() {
     if (f % 25 === 24) { const r = bad(layer); worst += r.badCount; checked += r.checked; }
     if (f % 50 === 0) await new Promise(r => setTimeout(r, 0));
   }
-  out.particles = { checked, inSolidOrOutside: worst, tier: layer.currentTier, timing: layer.timingMode };
+  out.particles = { checked, inSolidOrOutside: worst, timing: layer.timingMode };
 
-  layer.dropTier();
-  let afterWorst = 0;
-  let afterChecked = 0;
-  for (let f = 0; f < 120; f++) {
-    layer.frame(nowMs(), cam, 240);
-    renderer.render(sc, cam);
-    if (f % 20 === 19) { const r = bad(layer); afterWorst += r.badCount; afterChecked += r.checked; }
-  }
-  out.afterTierDrop = { checked: afterChecked, inSolidOrOutside: afterWorst, tier: layer.currentTier, dims: layer.scene!.dims };
-  err('after tier drop');
   layer.dispose();
   err('layer dispose');
 
@@ -157,24 +147,27 @@ async function main() {
     const hostP = new Group();
     const scP = new Scene();
     scP.add(hostP);
-    const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
-      cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
-    }, PARITY_LOOK);
-    // The coarsest tier keeps the software renderer quick; particles start once the first solve settles.
-    l.dropTier();
-    l.dropTier();
-    l.setTemps({ gpu, cpu: null });
-    l.setInput(stillInput);
-    l.setOptions({ particles: true, collisions: false, speed: 1.5 });
-    let frames = 0;
-    while (!l.settled && frames < 3000) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
-    for (let f = 0; f < 150; f++) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); }
-    const { pos, heat } = l.readParticles();
-    let alive = 0;
-    let warm = 0;
-    for (let i = 0; i < pos.length / 4; i++) if (pos[i * 4] > -1e5 && pos[i * 4 + 3] > 0) { alive++; if (heat[i * 4] > 2) warm++; }
-    l.dispose();
-    return { alive, warm, frames };
+    // A coarse grid keeps the software renderer quick; the dev-tools density override sets it, and particles start once the first solve settles.
+    localStorage.setItem('nexus.dev.flowCells', String(GRID_LOW_CELLS));
+    try {
+      const l = new FlowLayer(renderer, hostP, new Vector3(480, 440, 360), {
+        cool: new Color('#38bdf8'), purple: new Color('#a53cff'), hot: new Color('#ef4444'), collision: new Color('#ef4444'), porous: new Color('#38bdf8'),
+      }, PARITY_LOOK);
+      l.setTemps({ gpu, cpu: null });
+      l.setInput(stillInput);
+      l.setOptions({ particles: true, collisions: false, speed: 1.5 });
+      let frames = 0;
+      while (!l.settled && frames < 3000) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); if (++frames % 40 === 0) await new Promise(r => setTimeout(r, 0)); }
+      for (let f = 0; f < 150; f++) { l.frame(nowMs(), cam, 240); renderer.render(scP, cam); }
+      const { pos, heat } = l.readParticles();
+      let alive = 0;
+      let warm = 0;
+      for (let i = 0; i < pos.length / 4; i++) if (pos[i * 4] > -1e5 && pos[i * 4 + 3] > 0) { alive++; if (heat[i * 4] > 2) warm++; }
+      l.dispose();
+      return { alive, warm, frames };
+    } finally {
+      localStorage.removeItem('nexus.dev.flowCells');
+    }
   };
   out.plume = { hot: await plumeAt(75), cold: await plumeAt(22) };
   err('plume');
@@ -229,7 +222,7 @@ async function main() {
     }
     prev = pos;
   }
-  out.visibleSpeed = { centers: centers.length, means: sums.map((s, n) => (counts[n] ? s / counts[n] : 0)), counts, tier: slowFast.currentTier, framesToSteady, settled: slowFast.settled };
+  out.visibleSpeed = { centers: centers.length, means: sums.map((s, n) => (counts[n] ? s / counts[n] : 0)), counts, framesToSteady, settled: slowFast.settled };
   err('slowFast measure');
   slowFast.dispose();
   out.glError = renderer.getContext().getError();

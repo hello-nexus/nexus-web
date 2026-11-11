@@ -12,6 +12,8 @@ import { ensureSimulatedPanelRecord, getPanelGridSizingSettings } from '../../..
 import { createUuid } from '../../../lib/uuid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { defaultLayoutForDashboard, defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
+import { tileTransposed } from '../../../panel/engine/tileOrientation';
+import { resolveRecordRotation } from '../DevicePage/panelRotation';
 import {
   PANEL_GRID_COLS, PANEL_WIDGET_PADDING_DEFAULT_PERCENT, PANEL_Y70_LONG_AXIS_CELLS,
   panelGridCapacityForCanvas, panelWidgetPaddingRatio, sizeToSpan,
@@ -103,10 +105,10 @@ export function dashboardColumnsForWidth(width: number): number {
   return desktopAutoArrangeColumns(width, panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT) * DESKTOP_GRID_REFERENCE_CELL);
 }
 
-export function placementSize(meta: AppMeta, surface: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid): PanelWidgetSize | null {
-  const sizes = sizesForSurface(meta, surface, deviceTouch, forcedGrid);
+export function placementSize(meta: AppMeta, surface: PanelSurface, deviceTouch?: boolean, forcedGrid?: ForcedGrid, transposedTile = false): PanelWidgetSize | null {
+  const sizes = sizesForSurface(meta, surface, deviceTouch, forcedGrid, transposedTile);
   if (sizes.length === 0) return null;
-  return sizes.includes(meta.defaultSize) ? meta.defaultSize : pickerSizeFor(meta, surface, deviceTouch, forcedGrid);
+  return sizes.includes(meta.defaultSize) ? meta.defaultSize : pickerSizeFor(meta, surface, deviceTouch, forcedGrid, transposedTile);
 }
 
 function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boolean | undefined {
@@ -114,7 +116,7 @@ function deviceTouchOf(target: PlacementTarget, record?: PanelDeviceRecord): boo
 }
 
 // The surface the panel lays out as once its record is known, with the glass's own input.
-function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number; forcedGrid?: ForcedGrid } {
+function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surface: PanelSurface; deviceTouch?: boolean; shortSideSlots?: number; forcedGrid?: ForcedGrid; transposedTile: boolean } {
   const touch = deviceTouchOf(target, record);
   const surface = panelLayoutSurface(target.surface, record?.capabilities?.family ?? target.family, record?.widgetSize);
   const screen = screenOf(target, record);
@@ -124,6 +126,7 @@ function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surfac
   );
   return {
     surface,
+    transposedTile: tileTransposed(surface, resolveRecordRotation(record), screen),
     // A display's mouse reaches widgets that need a pointer.
     deviceTouch: record?.displayId ? true : surface === target.surface ? touch : surfaceSupportsTouch(target.surface, touch),
     shortSideSlots,
@@ -133,6 +136,8 @@ function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surfac
 
 function screenOf(target: PlacementTarget, record?: PanelDeviceRecord): { width: number; height: number; dpr: number } | undefined {
   const caps = record?.capabilities;
+  // A rotated glass renders at the swapped size, which the service states.
+  if (record?.renderWidth && record.renderHeight) return { width: record.renderWidth, height: record.renderHeight, dpr: caps?.dpr || 1 };
   // The Q-series WebView reports physical px as its css size.
   if (caps?.cssWidth && caps.cssHeight) return { width: caps.cssWidth, height: caps.cssHeight, dpr: target.surface === 'q60' ? 1 : caps.dpr || 1 };
   return target.screen ? { ...target.screen, dpr: target.screenDpr || 1 } : undefined;
@@ -145,8 +150,8 @@ function dpiOf(target: PlacementTarget, record?: PanelDeviceRecord): number {
 
 // Mirrors PanelDevicePage's editor grid; the runtime re-fits any drift on render.
 function panelCapacity(target: PlacementTarget, record?: PanelDeviceRecord): PaginateCapacity {
-  const { surface, shortSideSlots } = layoutOf(target, record);
-  const single = singleWidgetSurfaceSize(surface);
+  const { surface, shortSideSlots, transposedTile } = layoutOf(target, record);
+  const single = singleWidgetSurfaceSize(surface, transposedTile);
   if (single) {
     const span = sizeToSpan(single);
     return { gridCols: span.cols, pageRows: span.rows };
@@ -161,6 +166,7 @@ function panelCapacity(target: PlacementTarget, record?: PanelDeviceRecord): Pag
         dpi: dpiOf(target, record),
         sizing: getPanelGridSizingSettings(),
         shortSideSlots,
+        transposedTile,
         paddingRatio: panelWidgetPaddingRatio(normalizePanelWidgetPadding(record?.widgetPadding)),
       },
     );
@@ -180,10 +186,10 @@ export function planPlacement(
   copyOf?: WidgetCopy,
 ): PlacementPlan | null {
   const { layout, record } = loaded;
-  const { surface, deviceTouch, forcedGrid } = layoutOf(target, record);
-  if (!appAvailableForSurface(meta, surface, { deviceTouch, forcedGrid, displayBound: !!record?.displayId })) return null;
-  const copySize = copyOf?.size && sizesForSurface(meta, surface, deviceTouch, forcedGrid).includes(copyOf.size) ? copyOf.size : null;
-  const size = copySize ?? placementSize(meta, surface, deviceTouch, forcedGrid);
+  const { surface, deviceTouch, forcedGrid, transposedTile } = layoutOf(target, record);
+  if (!appAvailableForSurface(meta, surface, { deviceTouch, forcedGrid, displayBound: !!record?.displayId, transposedTile })) return null;
+  const copySize = copyOf?.size && sizesForSurface(meta, surface, deviceTouch, forcedGrid, transposedTile).includes(copyOf.size) ? copyOf.size : null;
+  const size = copySize ?? placementSize(meta, surface, deviceTouch, forcedGrid, transposedTile);
   if (!size) return null;
   if (meta.singleInstance && layout.pages.some(p => p.widgets.some(w => w.type === type))) return null;
   const screen = screenOf(target, record);
@@ -247,6 +253,7 @@ export async function loadTarget(target: PlacementTarget): Promise<LoadedTarget 
     laidOut.deviceTouch,
     laidOut.forcedGrid,
     !!record?.displayId,
+    laidOut.transposedTile,
   );
   return { layout, record };
 }

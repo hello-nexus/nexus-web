@@ -15,6 +15,7 @@ import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSen
 import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { GAUGE_DESIGNS } from './gauges';
+import { AdaptiveNumbersContext } from './gauges/GaugeValue';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
 import { DEFAULT_SLOTS, defaultSlotDesign, heroSpecForSize, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
@@ -34,6 +35,8 @@ interface TempSensorPrefs {
   cpuId: string;
   gpuId: string;
 }
+
+const POWER_MONITOR_ID_PREFIX = '/gpu-powermonitor/';
 
 /**
  * Resolve a sensor given a device category and sensor name. For fan with no
@@ -116,12 +119,19 @@ export function resolveSensor(
     case 'memoryModule':
     case 'battery':
     case 'cooler':
-    case 'psu':
     case 'embeddedController': {
       const list = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
       return sensorKey
         ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey) ?? list[0]
         : list[0];
+    }
+    case 'psu': {
+      // Power-monitor meters share the psu extras but are not a PSU, so only an exact id pick reaches them.
+      const all = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
+      const real = all.filter(s => !s.id.startsWith(POWER_MONITOR_ID_PREFIX));
+      return sensorKey
+        ? all.find(s => s.id === sensorKey) ?? real.find(s => s.name === sensorKey) ?? real[0]
+        : real[0];
     }
     case 'network':
       return sensorKey
@@ -255,7 +265,11 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   // A frame-filling design on the round display scales the whole tile to the rim.
   const fullBleed = isFullBleedRound(widget.size, widget.config);
 
+  // Per-instance option stored on the widget config; absent means off.
+  const adaptiveNumbers = widget.config?.adaptiveNumbers === true;
+
   return (
+    <AdaptiveNumbersContext.Provider value={adaptiveNumbers}>
     <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
       {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor, valueColorReverse, labelOverride, labelMode }, i) => {
         return (
@@ -284,6 +298,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
         );
       })}
     </div>
+    </AdaptiveNumbersContext.Provider>
   );
 }
 

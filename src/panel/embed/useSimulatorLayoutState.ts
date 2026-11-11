@@ -26,6 +26,7 @@ export interface SimulatorRuntimeState {
   dpi: number | undefined;
   // Forced short-axis slot count (see SimulatorInitMessage.shortSideSlots).
   shortSideSlots: number | undefined;
+  transposedTile: boolean;
   chromeGrid: ChromeGrid | undefined;
   // Parent's iframe fit scale; overlays drawn for the desktop operator divide
   // it out so they do not shrink with the preview.
@@ -40,7 +41,6 @@ export interface SimulatorRuntimeState {
   // Set when the parent rejects an action (e.g. a resize that can't fit);
   // drives a one-shot flash on the named widget. nonce re-fires repeats.
   flashSignal: { widgetId: string; nonce: number } | null;
-  brightness: number;
   screenOn: boolean;
   showPanel: boolean;
   deviceId: string | null;
@@ -78,6 +78,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [deviceTouch, setDeviceTouch] = useState<boolean | undefined>(undefined);
   const [dpi, setDpi] = useState<number | undefined>(undefined);
   const [shortSideSlots, setShortSideSlots] = useState<number | undefined>(undefined);
+  const [transposedTile, setTransposedTile] = useState(false);
   const [chromeGrid, setChromeGrid] = useState<ChromeGrid | undefined>(undefined);
   const [previewScale, setPreviewScale] = useState(1);
   const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
@@ -86,7 +87,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
-  const [brightness, setBrightness] = useState(100);
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
@@ -103,6 +103,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setDeviceTouch(data.deviceTouch);
           setDpi(data.dpi);
           setShortSideSlots(data.shortSideSlots);
+          setTransposedTile(data.transposedTile === true);
           setChromeGrid(data.chromeGrid);
           setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           setDisplayBound(data.displayBound);
@@ -111,7 +112,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setTheme(data.theme);
           setThemeMode(data.themeMode);
           setSelectedWidgetId(data.selectedWidgetId);
-          setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
           if (data.deviceId !== undefined) setDeviceId(data.deviceId);
@@ -125,6 +125,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         case 'simulator/set-grid': {
           setDpi(data.dpi);
           setShortSideSlots(data.shortSideSlots);
+          setTransposedTile(data.transposedTile === true);
           setChromeGrid(data.chromeGrid);
           break;
         }
@@ -156,7 +157,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           break;
         }
         case 'simulator/set-display': {
-          setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
           break;
@@ -208,6 +208,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     deviceTouch,
     dpi,
     shortSideSlots,
+    transposedTile,
     chromeGrid,
     previewScale,
     displayBound,
@@ -217,7 +218,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     themeMode,
     selectedWidgetId,
     flashSignal,
-    brightness,
     screenOn,
     showPanel,
     deviceId,

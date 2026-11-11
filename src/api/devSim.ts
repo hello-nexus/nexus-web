@@ -48,3 +48,16 @@ export const setDevSimAstral = (patch: Partial<Omit<DevSimAstral, 'active'>>) =>
   postService<DevSimAstral>('/dev/sim/astral', patch);
 
 export const stopDevSimAstral = () => deleteService<DevSimAstral>('/dev/sim/astral');
+
+export interface DevSimSpeaker {
+  active: boolean;
+  testsPlayed: number;
+  lastTestChannel?: number;
+}
+
+export const fetchDevSimSpeaker = () => fetchService<DevSimSpeaker>('/dev/sim/logitech-speaker');
+
+/** Starts the simulated G560. */
+export const startDevSimSpeaker = () => postService<DevSimSpeaker>('/dev/sim/logitech-speaker', {});
+
+export const stopDevSimSpeaker = () => deleteService<DevSimSpeaker>('/dev/sim/logitech-speaker');

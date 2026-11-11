@@ -61,7 +61,7 @@ export const HEAT_SPAN_REPORT_K = 0.1;
 export const POWER_RESUME_DELTA_W = 15;
 /** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;
-/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed or Slow mo never shortens a particle's life or its trail. */
+/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed never shortens a particle's life or its trail. */
 export const PARTICLE_REFERENCE_SPEED = 1;
 /** Particle age, in simulation steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;
@@ -70,10 +70,11 @@ export const PARTICLE_LIFE_JITTER = 0.5;
 /** The first pool is born over this share of the max age: until its birth a particle waits unseen at its spawn point. */
 export const PARTICLE_BIRTH_SPREAD = 0.3;
 
-/** The fixed particle pool, one texel per particle; a coarser grid tier draws a share of it. */
+/** The fixed particle pool, one texel per particle. */
 export const PARTICLE_TEXTURE = { w: 128, h: 84 };
 
 export const GRID_TARGET_CELLS = 64 * 48 * 96;
+/** A coarse density for harnesses and tests that trade resolution for speed; the layer itself always runs the target. */
 export const GRID_LOW_CELLS = 32 * 24 * 48;
 export const MAX_GRID_AXIS = 128;
 export const MIN_GRID_AXIS = 8;

@@ -47,13 +47,14 @@ export function playingPlaylistTypes(
   layout: PanelLayout,
   surface: PanelSurface,
   deviceTouch?: boolean,
+  transposedTile = false,
 ): string[] | null {
   if (singleWidgetSurfaceSize(surface) === undefined) return null;
   const playlist = widgetPlaylistOf(layout);
   if (!playlist.enabled) return null;
   const types = playlist.types.filter(type => {
     const def = lookupApp(type);
-    return !def || appAvailableForSurface(def.meta, surface, { deviceTouch });
+    return !def || appAvailableForSurface(def.meta, surface, { deviceTouch, transposedTile });
   });
   return types.length > 0 ? types : null;
 }
@@ -64,10 +65,10 @@ export function playingPlaylistTypes(
  * stand-in id `playlist:<deviceId>:<type>` is what the service's widget
  * settings routes resolve against the device's SingleWidgetConfigs.
  */
-export function playlistWidget(layout: PanelLayout, type: string, surface: PanelSurface, deviceId = ''): PanelWidget | undefined {
+export function playlistWidget(layout: PanelLayout, type: string, surface: PanelSurface, deviceId = '', transposedTile = false): PanelWidget | undefined {
   const shown = layout.pages[0]?.widgets[0];
   if (shown?.type === type) return shown;
-  const size = singleWidgetSurfaceSize(surface);
+  const size = singleWidgetSurfaceSize(surface, transposedTile);
   if (size === undefined) return undefined;
   const config = layout.singleWidgetConfigs?.[type];
   return {

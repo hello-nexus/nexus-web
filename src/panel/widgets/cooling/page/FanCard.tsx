@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, GaugeCircle, Gpu, Link2, Link2Off, MousePointerClick, Pencil, Pin, PinOff, Plus, RotateCcw } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, GaugeCircle, Gpu, Link2, Link2Off, MousePointerClick, Pencil, Pin, PinOff, Plus, RotateCcw, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanUnresponsive } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -533,10 +533,11 @@ export const FanCard = memo(function FanCard({
             </span>
           </HoverTooltip>
         ) : unresponsive ? (
-          <HoverTooltip body={t('cooling.fan.unresponsiveHint')}>
+          <HoverTooltip title={t('cooling.fan.unresponsive')} body={t('cooling.fan.unresponsiveHint')}>
             <span className={styles.fanRpmReadout}>
-              <GaugeCircle size={12} aria-hidden="true" />
-              <span className={styles.fanRpmLabel}>{t('cooling.fan.unresponsive')}</span>
+              <span className={styles.fanRpmLabel} role="img" aria-label={t('cooling.fan.unresponsive')}>
+                <Unplug size={12} aria-hidden="true" />
+              </span>
             </span>
           </HoverTooltip>
         ) : (

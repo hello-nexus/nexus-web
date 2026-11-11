@@ -11,8 +11,9 @@ export function catalogRowSizeForGlass(
   glassAspect: number | undefined,
   cellSize: number,
   gap: number,
+  transposedTile = false,
 ): number | undefined {
-  const size = singleWidgetSurfaceSize(surface);
+  const size = singleWidgetSurfaceSize(surface, transposedTile);
   if (!size || !glassAspect || !Number.isFinite(glassAspect) || glassAspect <= 0) return undefined;
   const { cols, rows } = sizeToSpan(size);
   const tileWidth = cols * cellSize + (cols - 1) * gap;

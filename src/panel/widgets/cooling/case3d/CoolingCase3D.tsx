@@ -34,6 +34,7 @@ import { HEAT_COLOR_SPAN_C, ROOM_TEMP_C, VISUAL_TIME_SCALE } from '../../../../l
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { convertTemperature, formatNumber, tempUnitSymbol } from '../../../../lib/units';
 import { visualFlow } from '../../../../lib/cooling/visualFlow';
+import { slotProduct } from '../../../../lib/cooling/slotProduct';
 import { fanRotorSpeeds } from '../../../../lib/cooling/fanRotors';
 import { linkChannelToSlots, nextSelection, sharedOf, simSpeeds } from '../../../../lib/cooling/fanSelection';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
@@ -42,6 +43,8 @@ import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
+import { FanCfmPills } from './FanCfmPills';
+import { useSettlingNotice } from './useSettlingNotice';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import { PRESSURE_COLOR } from './pressureColor';
 import styles from './CoolingCase3D.module.scss';
@@ -80,9 +83,8 @@ const POSITION_KEYS: Record<string, string> = {
   psu: 'cooling.case3d.position.psu',
 };
 
-/** Particle speed multiplier, and the share of it that Slow mo keeps. */
+/** Particle speed multiplier. */
 const NORMAL_SPEED = 0.6;
-const SLOW_MO_FACTOR = 0.25;
 const VENT_KEY = '#vent';
 const SIM_HEADER = '#sim-group';
 const SIM_VALUE = '#sim';
@@ -137,9 +139,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [renderer, setRenderer] = useState<CaseSceneRenderer | null>(null);
   const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
-  const [slowMo, setSlowMo] = useState(false);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
   const [heatVolume, setHeatVolume] = useState(false);
+  const [gridCells, setGridCells] = useState(false);
   const [spanK, setSpanK] = useState<number | null>(null);
   // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
   useEffect(() => { setFlowMode(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE); }, [savedFlowMode]);
@@ -200,12 +202,12 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   }, [canvas, attempt]);
 
   // Flows that moved little keep their old values, so tach jitter never restarts the solve.
+  const visual = useMemo(() => (caseLayout ? visualFlow(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions) : null), [caseLayout, record, speeds, directions]);
   const rawFlow = useMemo(() => {
-    if (!model || !caseLayout) return null;
-    const v = visualFlow(caseLayout.fanSlots, catalogFanSpecs(record?.setup.items ?? []), speeds, directions);
-    if (Object.keys(v.fanCfm).length === 0) return null;
-    return { [VENT_KEY]: v.ventCfm, [REF_KEY]: v.referenceCfm, ...v.fanCfm };
-  }, [model, caseLayout, record, speeds, directions]);
+    if (!model || !visual || Object.keys(visual.fanCfm).length === 0) return null;
+    return { [VENT_KEY]: visual.ventCfm, [REF_KEY]: visual.referenceCfm, ...visual.fanCfm };
+  }, [model, visual]);
+  const productFans = useMemo(() => (caseLayout ? fanGeometries(caseLayout).filter(g => slotProduct(g.slot, caseLayout.fanSlots)).map(g => ({ key: g.slot.key, at: [g.box.min[0] + g.box.size[0] / 2, g.box.min[1] + g.box.size[1] / 2, g.box.min[2] + g.box.size[2] / 2] as [number, number, number] })) : []), [caseLayout]);
   const [settledFlow, setSettledFlow] = useState<Readonly<Record<string, number>> | null>(null);
   // Settled in the same render the raw flows arrive, so the scene never sees a stale set of fans for one frame and re-solves twice.
   const effectiveFlow = rawFlow ? (settledFlow ? settleFlows(settledFlow, rawFlow) : rawFlow) : null;
@@ -221,9 +223,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowKey]);
   const flowOptions = useMemo<FlowOptions>(() => {
-    const slow = DEV_TOOLS && slowMo;
-    return { particles, collisions: DEV_TOOLS && collisions && showCase, heat: heatVolume, speed: slow ? NORMAL_SPEED * SLOW_MO_FACTOR : NORMAL_SPEED, timeScale: slow ? VISUAL_TIME_SCALE * SLOW_MO_FACTOR : VISUAL_TIME_SCALE };
-  }, [particles, collisions, heatVolume, showCase, slowMo]);
+    return { particles, collisions: DEV_TOOLS && collisions && showCase, grid: DEV_TOOLS && gridCells, heat: heatVolume, speed: NORMAL_SPEED, timeScale: VISUAL_TIME_SCALE };
+  }, [particles, collisions, gridCells, heatVolume, showCase]);
 
   const selectedKey = (selectedChannelIds ?? (selectedChannelId ? [selectedChannelId] : [])).join('\n');
   const highlighted = useMemo(() => new Set((selectedKey ? selectedKey.split('\n') : []).flatMap(id => slotsOfChannel(bindings, id))), [bindings, selectedKey]);
@@ -241,6 +242,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
 
   // The legend ends are the real air temperatures: room temperature, and room plus the color span the renderer measured.
   useEffect(() => { renderer?.setSpanListener(setSpanK); return () => renderer?.setSpanListener(null); }, [renderer]);
+  const settling = useSettlingNotice(renderer);
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const legendTemp = (celsius: number) => `${formatNumber(convertTemperature(celsius, monitoringTempUnit), numberFormat, { maximumFractionDigits: 1 })} ${tempUnitSymbol(monitoringTempUnit)}`;
   const legendFrom = legendTemp(ROOM_TEMP_C);
@@ -355,7 +357,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const multiSim = multi ? simSpeeds(k => channelOfSlot(bindings, k), multiKeys) : null;
   const multiRpm = sharedOf(multiSim ?? []);
   const activeOwner = activeSlot ? channels.find(c => c.id === channelOfSlot(bindings, activeSlot.key)) : undefined;
-  const selectedName = channels.find(c => c.id === selectedChannelId)?.name;
   const result = model?.result;
   const modeKey = result ? `cooling.case3d.pressure.${result.mode}` : '';
   const pressureTooltip = { title: t(modeKey), body: `${t(`${modeKey}.body`)} ${t('cooling.case3d.pressure.estimate')}` };
@@ -371,6 +372,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   ) : null;
   const activeOwnerId = activeSlot ? channelOfSlot(bindings, activeSlot.key) : null;
   const activeSimRpm = activeSlot ? simRpm(channelOfSlot(bindings, activeSlot.key) ?? '') : null;
+  const activeProduct = activeSlot ? slotProduct(activeSlot, caseLayout.fanSlots) : null;
+  const activeFanCfm = activeSlot ? Math.round(flowInput?.fanCfm[activeSlot.key] ?? 0) : 0;
   const slotPosition = (key: string) => caseLayout.fanSlots.find(s => s.key === key)?.position ?? '';
 
   // Every device of the left-hand list, by the name it shows there; one already on another fan says which, and choosing it moves it here.
@@ -407,6 +410,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
         <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
+        <FanCfmPills renderer={renderer} fans={productFans} cfm={flowInput?.fanCfm ?? {}} />
         <div className={styles.topStack}>
           {result && model && (
             <div className={`${styles.overlay} ${styles.overlayTop}`}>
@@ -432,21 +436,29 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 <span>{legendTo}</span>
               </div>
             )}
-            <div className={styles.legendActions}>
-              {flowSupported && (
-                <label className={styles.legendToggle}>
-                  <Toggle size="sm" checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
-                  <span>{t('cooling.case3d.flow.heat')}</span>
-                </label>
-              )}
-              <span className={styles.legendInfo}>
-                <InfoTooltip side="left" ariaLabel={t('cooling.case3d.hint.label')} message={selectedName ? t('cooling.case3d.hint.bind', { name: selectedName }) : t('cooling.case3d.hint.select')} />
-              </span>
-            </div>
+            {flowSupported && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={heatVolume} onChange={setHeatVolume} ariaLabel={t('cooling.case3d.flow.heat')} />
+                <span>{t('cooling.case3d.flow.heat')}</span>
+              </label>
+            )}
+            {DEV_TOOLS && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={gridCells} onChange={setGridCells} ariaLabel={t('cooling.case3d.flow.grid')} />
+                <span>{t('cooling.case3d.flow.grid')}</span>
+              </label>
+            )}
+            {DEV_TOOLS && showCase && (
+              <label className={`${styles.legend} ${styles.control}`}>
+                <Toggle size="sm" checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
+                <span>{t('cooling.case3d.flow.collisions')}</span>
+              </label>
+            )}
           </div>
         </div>
         <div className={`${styles.overlay} ${styles.overlayBottom}`}>
           <div className={styles.bottomMain}>
+            <span className={styles.settling} role="status">{settling ? t('cooling.case3d.flow.settling') : null}</span>
             <div className={styles.flowBar} role="group" aria-label={t('cooling.case3d.flow.controls')}>
               <ChipGroup
                 className={styles.control}
@@ -460,21 +472,15 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                   if (mode === 'airflow') setActive(null);
                 }}
               />
-              {DEV_TOOLS && showCase && (
-                <label className={`${styles.flowToggle} ${styles.control}`}>
-                  <Toggle checked={collisions} onChange={on => { setCollisions(on); onCollisionShapesChange?.(on); }} ariaLabel={t('cooling.case3d.flow.collisions')} />
-                  <span>{t('cooling.case3d.flow.collisions')}</span>
-                </label>
-              )}
-              {DEV_TOOLS && particles && (
-                <label className={`${styles.flowToggle} ${styles.control}`}>
-                  <Toggle checked={slowMo} onChange={setSlowMo} ariaLabel={t('cooling.case3d.flow.slowMo')} />
-                  <span>{t('cooling.case3d.flow.slowMo')}</span>
-                </label>
-              )}
             </div>
           </div>
           <Button className={styles.control} size="sm" tone="accent" icon={<span aria-hidden="true"><BuildLogo className={styles.buildLogo} fontSize={9} /></span>} onClick={() => requestOpenBuild('/builder')}>{t('cooling.case3d.build.customize')}</Button>
+          <span className={styles.modelNote}>
+            {t('cooling.case3d.model.note')}
+            <span className={styles.control}>
+              <InfoTooltip side="top" ariaLabel={t('cooling.case3d.model.label')} message={t('cooling.case3d.model.detail')} />
+            </span>
+          </span>
         </div>
         <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (
@@ -497,6 +503,18 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             <div className={styles.popoverTitle}>
               {activeOwner?.name ?? (activeSimRpm !== null ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
             </div>
+            {activeProduct && (
+              <div className={styles.product} role="group" aria-label={t('cooling.case3d.product.label')} data-testid="fan-product">
+                <div className={styles.productName} data-testid="fan-product-name">{activeProduct.title}</div>
+                <dl className={styles.productStats}>
+                {activeProduct.rpmMax !== undefined && <div className={styles.productRow}><dt>{t('cooling.case3d.product.maxRpm')}</dt><dd data-testid="fan-product-rpm" data-value={activeProduct.rpmMax}>{t('cooling.case3d.sim.rpm', { value: String(Math.round(activeProduct.rpmMax)) })}</dd></div>}
+                {activeProduct.airflowCfm !== undefined && <div className={styles.productRow}><dt>{t('cooling.case3d.product.ratedCfm')}</dt><dd data-testid="fan-product-cfm" data-value={activeProduct.airflowCfm}>{t('cooling.case3d.cfm', { value: formatNumber(activeProduct.airflowCfm, numberFormat, { maximumFractionDigits: 1 }) })}</dd></div>}
+                {activeProduct.staticMmH2O !== undefined && <div className={styles.productRow}><dt>{t('cooling.case3d.product.pressure')}</dt><dd data-testid="fan-product-pressure" data-value={activeProduct.staticMmH2O}>{t('cooling.case3d.product.mmH2O', { value: formatNumber(activeProduct.staticMmH2O, numberFormat, { maximumFractionDigits: 2 }) })}</dd></div>}
+                <div className={styles.productRow}><dt>{t('cooling.case3d.product.currentCfm')}</dt><dd data-testid="fan-product-current" data-value={activeFanCfm}>{cfm(activeFanCfm)}</dd></div>
+                <div className={styles.productRow}><dt>{t('cooling.case3d.product.source')}</dt><dd data-testid="fan-product-source">{activeSimRpm !== null ? t('cooling.case3d.product.simulatedAt', { value: String(activeSimRpm) }) : activeOwner?.name ?? t('cooling.case3d.noneLinked')}</dd></div>
+                </dl>
+              </div>
+            )}
             {!isPsuSlotKey(activeSlot.key) && (
               <ChipGroup
                 ariaLabel={t('cooling.case3d.direction.label')}

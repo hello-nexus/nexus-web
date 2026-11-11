@@ -43,6 +43,7 @@
 .statLabel,
 .statNote {
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
 }
 
@@ -95,14 +96,6 @@
   gap: 0.4rem 1.2rem;
 }
 
-.flowToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  @include text-button;
-  color: var(--text);
-}
-
 // Strips over the canvas: dark and translucent so their text reads over the scene; a press on one is not a press on empty canvas.
 .overlay {
   position: absolute;
@@ -136,10 +129,49 @@
   gap: 0.3rem;
   flex: 1 1 0;
   min-width: 0;
+  position: relative;
 }
 
 .control {
   pointer-events: auto;
+}
+
+// Shown while the airflow is still settling: bottom left, above the display chips, in the weight of a caption. Out of the flex flow, so the always-mounted live region leaves no gap while empty.
+.settling {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.3rem;
+  @include text-caption;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  pointer-events: none;
+
+  // Sits over the scene rather than inside the strip, so it carries the strip's backdrop to stay legible.
+  &:not(:empty) {
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgb(0 0 0 / var(--alpha-strong));
+    backdrop-filter: blur(var(--blur-backdrop));
+    color: #fff;
+  }
+}
+
+// The model caption floats over the canvas, right-aligned just above the bottom strip and level with the Build button. Out of flow and click-through except for its info button.
+.modelNote {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 100%;
+  margin-bottom: 0.3rem;
+  max-width: 55%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: right;
+  @include text-caption;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  pointer-events: none;
 }
 
 // The logo takes the button's ink so it reads in the enabled, hover and disabled states.
@@ -168,34 +200,11 @@
 
 .legendRow {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
   align-items: center;
   align-self: stretch;
   padding: 0 0.75rem;
-}
-
-// Heat volume toggle then the info button, at the far right of the legend's row.
-.legendActions {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  pointer-events: auto;
-}
-
-.legendInfo {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.5rem;
-}
-
-.legendToggle {
-  display: inline-flex;
-  align-items: center;
-  @include text-caption;
-  color: var(--text-dim);
-
-  > span {
-    margin-left: 0.4rem;
-  }
 }
 
 .legend {
@@ -207,6 +216,7 @@
   background: rgb(0 0 0 / var(--alpha-strong));
   backdrop-filter: blur(var(--blur-backdrop));
   @include text-caption;
+  font-size: var(--type-mini);
   color: var(--text-dim);
 }
 
@@ -220,4 +230,43 @@
 // A device already driving another fan: the move is visible before it is chosen.
 .linkedElsewhere {
   color: var(--accent);
+}
+
+.product {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.productName {
+  @include text-caption;
+  color: var(--text);
+  // Catalog titles run long: two lines, the rest cut with an ellipsis.
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.productStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+}
+
+.productRow {
+  @include text-caption;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-dim);
+
+  dd {
+    margin: 0;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
 }
