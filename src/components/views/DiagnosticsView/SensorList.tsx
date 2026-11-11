@@ -38,7 +38,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
         const kind = rowState(rule, st);
         const reading = liveOf(rule) ?? st?.value ?? null;
         const selected = rule.id === selectedId;
-        const name = ruleLabel(t, rule);
+        const name = ruleLabel(rule);
         // An enabled sensor the PC does not report has nothing to switch or grade: the chip alone says so.
         // A switched-off sensor shows its name and switch only.
         const BuiltInIcon = rule.builtIn ? BUILT_IN_ICONS[rule.builtIn] : null;

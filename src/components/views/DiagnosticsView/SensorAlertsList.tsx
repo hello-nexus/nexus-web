@@ -50,7 +50,7 @@ export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
                     }
                   }}
                 >
-                  <span className={styles.name}>{ruleLabel(t, rule)}</span>
+                  <span className={styles.name}>{ruleLabel(rule)}</span>
                   {rule.enabled && (reading === null && (isBuiltIn(rule) || kind === 'unavailable') ? (
                     <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
                   ) : (

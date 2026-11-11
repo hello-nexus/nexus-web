@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -225,5 +225,13 @@ describe('stateLabelKey', () => {
   it('words an unavailable sensor as not reported, never as a fault', () => {
     expect(stateLabelKey('unavailable')).toBe('diagnostics.sensors.notReported');
     expect(stateLabelKey('ok')).toBe('diagnostics.alerts.state.ok');
+  });
+});
+
+describe('ruleLabel', () => {
+  it('names a built-in by its device name and a user rule by its sensor label', () => {
+    const builtIn = rule({ builtIn: 'gpuTemp', sensor: { category: 'builtin', id: 'gpu-temp:gpu-0', name: 'GPU Alpha', type: 'Temperature', parentName: '' } });
+    expect(ruleLabel(builtIn)).toBe('GPU Alpha');
+    expect(ruleLabel(rule())).toBe('CPU Package');
   });
 });

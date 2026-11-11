@@ -250,14 +250,6 @@ export function sensorLabel(sensor: SensorRef): string {
   return `${parentName} ${name}`;
 }
 
-/** Locale key of each built-in rule's display name. */
-const BUILT_IN_LABEL_KEYS: Record<BuiltInSensorKind, string> = {
-  cpuTemp: 'diagnostics.sensors.builtin.cpu',
-  gpuTemp: 'diagnostics.sensors.builtin.gpu',
-  storageTemp: 'diagnostics.sensors.builtin.storage',
-  ramTemp: 'diagnostics.sensors.builtin.ram',
-};
-
 /** Native bounds (Celsius) the service clamps a built-in's upper limit to. */
 const BUILT_IN_LIMIT_BOUNDS: Record<BuiltInSensorKind, Bounds> = {
   cpuTemp: { min: 60, max: 105 },
@@ -276,15 +268,9 @@ export function builtInLimitBounds(rule: SensorAlertRule): Bounds | null {
   return rule.builtIn ? BUILT_IN_LIMIT_BOUNDS[rule.builtIn] : null;
 }
 
-/** A rule's name: localized for a built-in, else the sensor's own label. */
-export function ruleLabel(t: (key: string, params?: Record<string, string | number>) => string, rule: SensorAlertRule): string {
-  return rule.builtIn ? t(BUILT_IN_LABEL_KEYS[rule.builtIn]) : sensorLabel(rule.sensor);
-}
-
-/** The localized name of a built-in from a health reason's `builtIn` param; undefined for a user rule or an unknown kind. */
-export function builtInParamLabel(t: (key: string) => string, builtIn: string | undefined): string | undefined {
-  const key = builtIn ? BUILT_IN_LABEL_KEYS[builtIn as BuiltInSensorKind] : undefined;
-  return key ? t(key) : undefined;
+/** A rule's name: the device name a built-in carries, else the sensor's own label. */
+export function ruleLabel(rule: SensorAlertRule): string {
+  return rule.builtIn ? rule.sensor.name : sensorLabel(rule.sensor);
 }
 
 /** A finished alert still waiting for the user to dismiss it. */
@@ -305,11 +291,11 @@ export function alertLine(
   const fmt = (v: number | null | undefined) => (v == null ? '-' : formatAlertValue(v, type, prefs.monitoringTempUnit, prefs.numberFormat, prefs.monitoringWholeNumbers));
   if (ended) {
     return t(below ? 'diagnostics.alerts.banner.ended.below' : 'diagnostics.alerts.banner.ended.above', {
-      name: ruleLabel(t, rule), limit: fmt(state.endedThreshold ?? (below ? rule.low : rule.high)), peak: fmt(state.endedPeak),
+      name: ruleLabel(rule), limit: fmt(state.endedThreshold ?? (below ? rule.low : rule.high)), peak: fmt(state.endedPeak),
     });
   }
   return t(below ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
-    name: ruleLabel(t, rule), limit: fmt(below ? rule.low : rule.high), value: fmt(state.value ?? state.extreme),
+    name: ruleLabel(rule), limit: fmt(below ? rule.low : rule.high), value: fmt(state.value ?? state.extreme),
   });
 }
 
@@ -354,7 +340,7 @@ export function alertBannerText(
   const below = state.direction === 'below';
   return {
     title: t(below ? 'diagnostics.alerts.banner.below' : 'diagnostics.alerts.banner.above', {
-      name: ruleLabel(t, rule),
+      name: ruleLabel(rule),
       limit: fmt(below ? rule.low : rule.high),
       time: sinceLabel(state.since, nowMs, prefs, language),
       peak: fmt(state.extreme ?? state.value),

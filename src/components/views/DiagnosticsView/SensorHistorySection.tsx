@@ -35,7 +35,7 @@ export function SensorHistorySection({ history, rule }: SensorHistorySectionProp
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers, timeFormat, dateFormat } = useUnitPrefs();
   const type = rule.sensor.type;
 
-  const line = useMemo(() => toSensorChartSeries(history.series, rule, tempUnit, ruleLabel(t, rule)), [history.series, rule, tempUnit, t]);
+  const line = useMemo(() => toSensorChartSeries(history.series, rule, tempUnit, ruleLabel(rule)), [history.series, rule, tempUnit]);
   const thresholds = useMemo(() => sensorChartThresholds(rule, tempUnit), [rule, tempUnit]);
   const yDomain = useMemo(() => sensorYDomain(line, thresholds), [line, thresholds]);
 
@@ -52,7 +52,7 @@ export function SensorHistorySection({ history, rule }: SensorHistorySectionProp
     <section className={cooling.root}>
       <div className={cooling.headerRow}>
         <div className={cooling.headerStatus}>
-          <SectionHeader>{ruleLabel(t, rule)}</SectionHeader>
+          <SectionHeader>{ruleLabel(rule)}</SectionHeader>
           {history.mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
         <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />

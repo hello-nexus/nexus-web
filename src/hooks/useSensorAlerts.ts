@@ -245,7 +245,8 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
 
   return {
     rules, states, loading, loaded, error,
-    atLimit: rules.length >= MAX_SENSOR_ALERT_RULES,
+    // Built-ins are one per detected device and sit outside the cap.
+    atLimit: rules.filter(r => !r.builtIn).length >= MAX_SENSOR_ALERT_RULES,
     preview: replaceRule, save, add, remove, acknowledge, resetBuiltIns, refresh: load,
   };
 }

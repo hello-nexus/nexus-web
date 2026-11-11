@@ -1,7 +1,7 @@
 import type { DiagnosticsReason } from '../../../api/diagnostics';
 import { formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
 import type { Language } from '../../../lib/settings';
-import { builtInParamLabel, formatAlertValue, type AlertUnitPrefs } from './sensorAlertHelpers';
+import { formatAlertValue, type AlertUnitPrefs } from './sensorAlertHelpers';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -64,7 +64,7 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
     if (value === null || threshold === null || !p.type || !p.sensorName || (p.direction !== 'above' && p.direction !== 'below')) return null;
     const fmt = (v: number) => formatAlertValue(v, p.type, ctx.monitoringTempUnit, ctx.numberFormat, ctx.monitoringWholeNumbers);
     return ctx.t(p.direction === 'below' ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
-      name: alertParamName(p, ctx), limit: fmt(threshold), value: fmt(value),
+      name: p.sensorName, limit: fmt(threshold), value: fmt(value),
     });
   },
   'alerts.sensorThresholdEnded': (p, ctx) => {
@@ -74,13 +74,10 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
     if (peak === null || threshold === null || ended === null || !p.type || !p.sensorName) return null;
     const fmt = (v: number) => formatAlertValue(v, p.type, ctx.monitoringTempUnit, ctx.numberFormat, ctx.monitoringWholeNumbers);
     return ctx.t('diagnostics.reasonDetail.sensorThresholdEnded', {
-      name: alertParamName(p, ctx), limit: fmt(threshold), peak: fmt(peak), time: ended,
+      name: p.sensorName, limit: fmt(threshold), peak: fmt(peak), time: ended,
     });
   },
 };
-
-/** A health reason's sensor name: localized for a built-in, else the name the service sent. */
-const alertParamName = (p: Record<string, string>, ctx: ReasonDetailContext): string => builtInParamLabel(ctx.t, p.builtIn) ?? p.sensorName;
 
 function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | null {
   const rpm = num(p.rpm);

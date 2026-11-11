@@ -47,10 +47,10 @@ describe('reasonDetailText', () => {
     expect(h12).toMatch(/AM|PM/);
   });
 
-  it('words a finished sensor alert, localizing a built-in by its builtIn param', () => {
+  it('words a finished sensor alert for a built-in with its device name', () => {
     const ended = { ruleId: 'builtin-cpu', category: 'builtin', type: 'Temperature', sensorName: 'CPU', direction: 'above', threshold: '90', peak: '95', ended: String(Date.UTC(2026, 10, 10, 20)), builtIn: 'cpuTemp' };
     const text = reasonDetailText(reason('alerts.sensorThresholdEnded', ended), ctx())!;
-    expect(text).toContain('diagnostics.reasonDetail.sensorThresholdEnded(name=diagnostics.sensors.builtin.cpu,limit=90°C,peak=95°C');
+    expect(text).toContain('diagnostics.reasonDetail.sensorThresholdEnded(name=CPU,limit=90°C,peak=95°C');
     expect(reasonDetailText(reason('alerts.sensorThresholdEnded', { ...ended, peak: '' }), ctx())).toBeNull();
   });
 

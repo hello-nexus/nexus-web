@@ -181,7 +181,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
       <ConfirmModal
         open={confirmOpen}
         title={t('common.delete')}
-        message={t('diagnostics.alerts.deleteConfirm', { name: ruleLabel(t, rule) })}
+        message={t('diagnostics.alerts.deleteConfirm', { name: ruleLabel(rule) })}
         confirmLabel={t('common.delete')}
         destructive
         onConfirm={() => { setConfirmOpen(false); onDelete(); }}

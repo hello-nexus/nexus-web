@@ -53,6 +53,16 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('useSensorAlerts', () => {
+  it('counts only user rules toward the cap', async () => {
+    const builtIns = Array.from({ length: 5 }, (_, i) => rule(`builtin:gpu-temp:${i}`, { builtIn: 'gpuTemp' }));
+    const users = Array.from({ length: 19 }, (_, i) => rule(`u${i}`));
+    h.fetchSensorAlerts.mockResolvedValue(ok({ rules: [...builtIns, ...users], states: [] }));
+    const { result } = renderHook(() => useSensorAlerts(true, false));
+    await act(async () => {});
+    expect(result.current.rules).toHaveLength(24);
+    expect(result.current.atLimit).toBe(false);
+  });
+
   it('drops the queued write of a reset built-in but keeps the edit of a user rule', async () => {
     const { result } = await mount();
     let releaseFirst: (v: unknown) => void = () => {};
