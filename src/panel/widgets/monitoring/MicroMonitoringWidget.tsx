@@ -239,7 +239,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat, sensor.type, monitoringWholeNumbers) : '-';
   const sensorDisplayName = sensorCaptionName(device, sensors, sensor) ?? '';
-  const sensorMissing = isSavedSensorMissing(device, effectiveSensorName, sensor);
+  const sensorMissing = isSavedSensorMissing(device, effectiveSensorName, sensor, extras);
   const autoLabel = sensorMissing ? t('monitoring.sensorMissing') : prefixed
     ? labelForDevice(device, sensorDisplayName || effectiveSensorName)
     : bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;

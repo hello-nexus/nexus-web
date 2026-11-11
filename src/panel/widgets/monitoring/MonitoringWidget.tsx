@@ -20,7 +20,7 @@ import type { GaugeDesignKey, GaugeProps } from './gauges';
 import { DEFAULT_SLOTS, defaultSlotDesign, heroSpecForSize, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorCaptionName, smartStorageSensors } from './sensorCategories';
+import { currentFanProbeName, extrasSensorsForDevice, fanProbeAlias, gpu2Sensors, igpuSensors, sensorCaptionName, smartStorageSensors } from './sensorCategories';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
@@ -37,6 +37,20 @@ interface TempSensorPrefs {
 }
 
 /**
+ * True when a slot is bound to an extras-topic sensor that is no longer listed (a fan unplugged).
+ * Never true before the first extras frame (`extras` is the shared empty placeholder or absent), so
+ * a cold load does not flash "Sensor missing" over a sensor that is about to appear.
+ */
+export function isSavedSensorMissing(
+  device: DeviceKey,
+  sensorKey: string,
+  sensor: HardwareSensor | undefined,
+  extras?: SensorExtras,
+): boolean {
+  return !sensor && !!sensorKey && isExtrasBackedDevice(device) && !!extras && extras !== EMPTY_SENSOR_EXTRAS;
+}
+
+/**
  * Resolve a sensor given a device category and sensor name. For fan with no
  * sensor name, picks the first fan sensor.
  *
@@ -44,11 +58,6 @@ interface TempSensorPrefs {
  * to the global preferred-temp-sensor setting; an explicit named sensor (e.g.
  * "CPU Package", "GPU Hot Spot") is used as-is.
  */
-/** True when a slot is bound to an extras-topic sensor that is no longer listed (a fan unplugged). */
-export function isSavedSensorMissing(device: DeviceKey, sensorKey: string, sensor: HardwareSensor | undefined): boolean {
-  return !sensor && !!sensorKey && isExtrasBackedDevice(device);
-}
-
 export function resolveSensor(
   sensors: ReturnType<typeof useSensors>,
   fpsSensors: HardwareSensor[],
@@ -125,10 +134,13 @@ export function resolveSensor(
     case 'fanSensors':
     case 'psu':
     case 'embeddedController': {
-      const list = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
+      const source = extras ?? EMPTY_SENSOR_EXTRAS;
+      const read = fanProbeAlias(device, sensorKey, source);
+      const list = extrasSensorsForDevice(read, source);
+      const name = read === device ? sensorKey : currentFanProbeName(sensorKey);
       // A saved sensor that is no longer listed (a fan unplugged) resolves to nothing, never to another sensor.
       return sensorKey
-        ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey)
+        ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === name)
         : list[0];
     }
     case 'network':
@@ -325,7 +337,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
-  const sensorMissing = isSavedSensorMissing(device, effectiveSensorName, sensor);
+  const sensorMissing = isSavedSensorMissing(device, effectiveSensorName, sensor, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat, sensor.type, monitoringWholeNumbers) : '-';
   // Auto / hide / custom caption; the stored custom text survives sensor
