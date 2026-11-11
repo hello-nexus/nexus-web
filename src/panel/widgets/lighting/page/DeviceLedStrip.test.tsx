@@ -95,10 +95,10 @@ describe('DeviceLedStrip', () => {
       expect(ctx.fillRect).not.toHaveBeenCalled();
     });
 
-    it('applies the device brightness', () => {
+    it('does not dim the bytes again: they already carry the brightness', () => {
       publishLedFrame(null, 0, 0, new Map([[7, bytes]]));
       render(<DeviceLedStrip device={{ ...withIndex, brightness: 50 }} />);
-      expect(lastImage()[0]).toBe(128);
+      expect(lastImage()[0]).toBe(255);
     });
 
     it('reads a matrix device in wiring order, evenly across its LEDs', () => {
@@ -111,6 +111,12 @@ describe('DeviceLedStrip', () => {
       expect(reds[0]).toBe(0);
       expect(reds[23]).toBe(95);
       expect([...reds].sort((a, b) => a - b)).toEqual(reds);
+    });
+
+    it('still applies brightness to the canvas-sampling fallback, whose pixels are pre-brightness', () => {
+      publishRed();
+      render(<DeviceLedStrip device={{ ...withIndex, brightness: 50 }} />);
+      expect(lastImage()[0]).toBe(128);
     });
 
     it('falls back to sampling the canvas when the frame has no bytes for it', () => {

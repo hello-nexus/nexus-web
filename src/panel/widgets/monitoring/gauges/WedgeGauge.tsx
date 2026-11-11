@@ -4,7 +4,9 @@ import type { GaugeGradient } from '../valueColor';
 import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import styles from './WedgeGauge.module.scss';
 
-const RADIUS = 36;
+const RADIUS = 44;
+// Share of the slot short side the value may span, kept inside the filled disc.
+const VALUE_INNER_FRACTION = 0.8;
 const CX = 50;
 const CY = 50;
 
@@ -63,15 +65,16 @@ export function WedgeGauge({ value, formatted, label, gradient }: GaugeProps) {
   return (
     <div className={styles.wedge}>
       <div className={styles.chartWrap}>
-        <svg className={styles.svg} viewBox="0 0 100 100">
-          <circle cx={CX} cy={CY} r={RADIUS} className={styles.track} />
+        <svg className={styles.svg} viewBox="0 0 100 100" aria-hidden="true">
           {clamped > 0 && (gradient
-            ? gradedSectors(clamped, gradient.stops).map((sector, i) => <path key={i} d={sector.d} fill={sector.color} />)
+            // One group alpha, so the overdrawn sector seams do not stack, and
+            // the same dim body the Backdrop graph uses keeps the number readable.
+            ? <g opacity={gradient.bodyAlpha}>{gradedSectors(clamped, gradient.stops).map((sector, i) => <path key={i} d={sector.d} fill={sector.color} />)}</g>
             : <path d={wedgePath(clamped)} className={styles.fill} />)}
         </svg>
       </div>
       <div className={styles.info}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

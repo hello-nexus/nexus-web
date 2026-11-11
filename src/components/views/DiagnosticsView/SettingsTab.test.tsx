@@ -13,6 +13,8 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
   };
 });
 
+// The alerts section has its own suite and reads sensors and the service.
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, string | number>) => (
@@ -46,20 +48,66 @@ function baseSettings(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const maxTempSliders = () => screen.getAllByRole('slider', { name: /diagnostics\.settings\.components\.maxTemp/ });
+
 describe('SettingsTab', () => {
+  it('orders the sections components, linger, notifications, then the danger zone with the reset', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    const order = [
+      screen.getByText('diagnostics.settings.components.title'),
+      screen.getByText('diagnostics.settings.linger.title'),
+      screen.getByText('diagnostics.settings.notifications.title'),
+      screen.getByText('settings.dangerZone'),
+      screen.getByText('diagnostics.settings.reset.label'),
+    ];
+    order.slice(1).forEach((el, i) => {
+      expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
+
+  it('has no sensor alert rules: tracked sensors are managed on the Sensors tab', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    expect(screen.queryByText('diagnostics.alerts.customTitle')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'diagnostics.sensors.add' })).toBeNull();
+  });
+
   it('renders the section titles and per-component sliders', () => {
     mockSettings = baseSettings();
     update.mockClear();
     render(<SettingsTab />);
 
-    expect(screen.getByText('diagnostics.settings.thresholds.title')).toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.settings.thresholds.title')).toBeNull();
     expect(screen.getByText('diagnostics.settings.linger.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.notifications.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.components.title')).toBeInTheDocument();
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.cpu/ })).toHaveValue('90');
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.gpu/ })).toHaveValue('85');
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.storage/ })).toHaveValue('70');
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.ram/ })).toHaveValue('60');
+    // Each max temperature sits under its own component toggle, in toggle order.
+    expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '85', '70', '60']);
+  });
+
+  it('groups each component toggle with its max temperature so a separator falls only between components', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    const cpuToggle = screen.getByRole('switch', { name: 'benchmark.phase.cpu' });
+    const group = cpuToggle.closest('[class*="group"]') as HTMLElement;
+    expect(group).not.toBeNull();
+    expect(group.contains(maxTempSliders()[0])).toBe(true);
+    expect(group.contains(maxTempSliders()[1])).toBe(false);
+    expect(group.nextElementSibling?.contains(screen.getByRole('switch', { name: 'benchmark.phase.gpu' }))).toBe(true);
+  });
+
+  it('labels the cooling toggle as fans and pumps with its description', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    expect(screen.getByRole('switch', { name: 'diagnostics.settings.components.fansPumps.label' })).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.settings.components.fansPumps.description')).toBeInTheDocument();
+  });
+
+  it('hides a component max temperature while that component is off, and leaves the others', () => {
+    mockSettings = baseSettings({ diagnosticsComponentGpu: false, diagnosticsComponentRam: false });
+    render(<SettingsTab />);
+    expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '70']);
   });
 
   it('persists a threshold slider change on every onChange tick', () => {
@@ -67,7 +115,7 @@ describe('SettingsTab', () => {
     update.mockClear();
     render(<SettingsTab />);
 
-    const cpuSlider = screen.getByRole('slider', { name: /benchmark\.phase\.cpu/ });
+    const cpuSlider = maxTempSliders()[0];
     fireEvent.change(cpuSlider, { target: { value: '92' } });
     expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 92 });
 

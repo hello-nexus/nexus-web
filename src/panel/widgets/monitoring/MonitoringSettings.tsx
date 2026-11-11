@@ -678,6 +678,11 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 );
               })}
             </div>
+            <SettingsToggle
+              label={t('monitoring.settings.scaleNumbers')}
+              checked={widget.config?.adaptiveNumbers === true}
+              onChange={next => onUpdate({ adaptiveNumbers: next })}
+            />
           </SettingsSection>
 
           <SettingsSection title={t('monitoring.settings.sensor')}>

@@ -117,12 +117,31 @@ export function smartStorageSensors(sensors: SensorState): HardwareSensor[] {
     .flatMap(([, component]) => component.sensors ?? []);
 }
 
+/** The name an iCUE LINK QX probe carried before it was a fan sensor, as its current one; any other text unchanged. */
+export function currentFanProbeName(name: string): string {
+  const match = /^iCUE LINK QX RGB probe \((.*)\)$/.exec(name);
+  return match ? `QX fan (${match[1]})` : name;
+}
+
+/**
+ * Fan probes were saved under 'cooler' before they had a category of their own. A saved cooler key
+ * (id, or the old name) that names one resolves through 'fanSensors'; no data migration.
+ * Returns the category to read the key from.
+ */
+export function fanProbeAlias(device: DeviceKey, sensorKey: string, extras: SensorExtras): DeviceKey {
+  if (device !== 'cooler' || !sensorKey) return device;
+  const fans = extras.fanSensors.flatMap(c => c.sensors ?? []);
+  const current = currentFanProbeName(sensorKey);
+  return fans.some(s => s.id === sensorKey || s.name === current) ? 'fanSensors' : device;
+}
+
 /** Flattened sensors for one extras-topic device category; [] for any other device. */
 export function extrasSensorsForDevice(device: DeviceKey, extras: SensorExtras): HardwareSensor[] {
   switch (device) {
     case 'memoryModule': return extras.memoryModules.flatMap(c => c.sensors ?? []);
     case 'battery': return extras.batteries.flatMap(c => c.sensors ?? []);
     case 'cooler': return extras.coolers.flatMap(c => c.sensors ?? []);
+    case 'fanSensors': return extras.fanSensors.flatMap(c => c.sensors ?? []);
     case 'psu': return extras.psus.flatMap(c => c.sensors ?? []);
     case 'embeddedController': return extras.embeddedControllers.flatMap(c => c.sensors ?? []);
     default: return [];

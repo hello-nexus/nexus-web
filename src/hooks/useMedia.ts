@@ -1,5 +1,6 @@
 import { fetchService, postService } from '../api/service';
-import { useTopic } from './useMultiplexSocket';
+import { useMemo } from 'react';
+import { topicFrameAgeMs, useTopic } from './useMultiplexSocket';
 
 export interface MediaSession {
   sourceAppName: string;
@@ -30,6 +31,22 @@ export interface MediaState {
   loading: boolean;
 }
 
+function ageSessions(frame: Record<string, MediaSession>, ageMs: number): Record<string, MediaSession> {
+  if (ageMs < 1) return frame;
+  const out: Record<string, MediaSession> = {};
+  for (const [name, s] of Object.entries(frame)) {
+    const pb = s.playback;
+    if (!pb?.playing || pb.stopped) {
+      out[name] = s;
+      continue;
+    }
+    const aged = pb.positionMs + ageMs;
+    const positionMs = pb.durationMs > 0 ? Math.min(aged, pb.durationMs) : aged;
+    out[name] = { ...s, playback: { ...pb, positionMs } };
+  }
+  return out;
+}
+
 const EMPTY: MediaState = { sessions: {}, loading: false };
 
 /**
@@ -40,8 +57,10 @@ const EMPTY: MediaState = { sessions: {}, loading: false };
  */
 export function useMedia(enabled: boolean): MediaState {
   const live = useTopic<Record<string, MediaSession>>('media', enabled);
+  // Cached frames hold the position as of arrival (no frames flow during steady playback), so age them.
+  const sessions = useMemo(() => (live ? ageSessions(live, topicFrameAgeMs('media')) : null), [live]);
   if (!enabled) return EMPTY;
-  return live ? { sessions: live, loading: false } : { sessions: {}, loading: true };
+  return sessions ? { sessions, loading: false } : { sessions: {}, loading: true };
 }
 
 /** Send a playback control command (play, pause, next, previous). */

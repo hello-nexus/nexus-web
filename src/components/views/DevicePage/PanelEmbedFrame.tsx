@@ -89,7 +89,6 @@ interface PanelEmbedFrameProps {
   transposedTile?: boolean;
   // The Large-size grid that sizes floating chrome in the preview.
   chromeGrid?: ChromeGrid;
-  brightness: number;
   screenOn: boolean;
   showPanel: boolean;
 }
@@ -192,11 +191,11 @@ function composeFrostForCapture(doc: Document): () => void {
 
 // html-to-image rasterizes a <video> by drawing it into a canvas sized to its
 // padding box (clientWidth), not its content box, so the wake-lock side
-// padding on the media background (.backgroundMediaVideo) would rasterize a
+// padding on panel videos (marked data-wakelock-pad) would rasterize a
 // horizontally stretched frame. Returns an undo.
 function unpadVideosForCapture(doc: Document): () => void {
   const undo: Array<() => void> = [];
-  doc.querySelectorAll<HTMLVideoElement>('[data-panel-bg-layer] video').forEach(video => {
+  doc.querySelectorAll<HTMLVideoElement>('video[data-wakelock-pad]').forEach(video => {
     const prevPadding = video.style.padding;
     const prevMarginLeft = video.style.marginLeft;
     video.style.padding = '0';
@@ -239,7 +238,6 @@ export function PanelEmbedFrame({
   shortSideSlots,
   transposedTile = false,
   chromeGrid,
-  brightness,
   screenOn,
   showPanel,
   deviceId,
@@ -396,7 +394,6 @@ export function PanelEmbedFrame({
       theme,
       themeMode,
       selectedWidgetId,
-      brightness,
       screenOn,
       showPanel,
       deviceId,
@@ -471,8 +468,8 @@ export function PanelEmbedFrame({
 
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-display', brightness, screenOn, showPanel });
-  }, [childReady, brightness, screenOn, showPanel, post]);
+    post({ type: 'simulator/set-display', screenOn, showPanel });
+  }, [childReady, screenOn, showPanel, post]);
 
   // Same-origin iframe, so its document rasterizes directly. The SVG
   // foreignObject render is vector, so drawing at the native output size

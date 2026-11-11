@@ -42,6 +42,10 @@ export interface BrightnessScheduleState {
   sunPoints: BrightnessSchedulePoint[] | null;
   /** Night and day levels of the generated curve. */
   sunLevels: SunLevels;
+  /** Whether lighting master brightness follows the schedule; true until the service says otherwise. */
+  lightingFollows: boolean;
+  /** Change whether lighting follows; the schedule itself is kept. */
+  saveLightingFollows: (next: boolean) => Promise<void>;
   /** Change Daylight sync, its location or its levels; the schedule itself is kept. */
   saveSun: (patch: SunPatch) => Promise<void>;
   /** Persist a new schedule. Optimistic: the state updates before the POST
@@ -60,6 +64,7 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
   const [sunShift, setSunShift] = useState(true);
   const [location, setLocation] = useState<BrightnessScheduleLocation | null>(null);
   const [sun, setSun] = useState<BrightnessScheduleSun | null>(null);
+  const [lightingFollows, setLightingFollows] = useState(true);
   const [sunLevels, setSunLevels] = useState<SunLevels>({ night: SUN_DEFAULT_NIGHT, day: SUN_DEFAULT_DAY });
   // The levels the service generated `sun.sunPoints` with; a local edit differs
   // from them until the service answers.
@@ -80,6 +85,7 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
     setSunShift(data.sunShift !== false);
     setLocation(data.location ?? null);
     setSun(data.sun ?? null);
+    setLightingFollows(data.lightingFollows !== false);
     const levels = { night: data.sunNight ?? SUN_DEFAULT_NIGHT, day: data.sunDay ?? SUN_DEFAULT_DAY };
     setSunLevels(levels);
     setServedLevels(levels);
@@ -166,10 +172,18 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
     }, { enabled: schedule.enabled, points: schedule.points, ...patch });
   }, [schedule, write]);
 
+  const saveLightingFollows = useCallback(async (next: boolean) => {
+    if (!schedule) return;
+    await write(() => setLightingFollows(next), { enabled: schedule.enabled, points: schedule.points, lightingFollows: next });
+  }, [schedule, write]);
+
   const sunPoints = useMemo(() => {
     const edited = sunLevels.night !== servedLevels.night || sunLevels.day !== servedLevels.day;
     return sunCurve(sunShift, sun, edited ? sunLevels : undefined);
   }, [sunShift, sun, sunLevels, servedLevels]);
   const current = schedule?.enabled ? Math.round(scheduledBrightness(sunPoints ?? schedule.points, minute)) : null;
-  return { schedule, defaults, current, minute, sunShift, location, sun, sunPoints, sunLevels, saveSun, save };
+  return {
+    schedule, defaults, current, minute, sunShift, location, sun, sunPoints, sunLevels, lightingFollows,
+    saveSun, saveLightingFollows, save,
+  };
 }

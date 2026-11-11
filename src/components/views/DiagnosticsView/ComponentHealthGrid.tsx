@@ -5,6 +5,8 @@ import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Card } from '../../common/Card/Card';
 import { DomainGlyph } from '../../common/DomainGlyph/DomainGlyph';
 import type { DiagnosticsComponent, DiagnosticsKind } from '../../../api/diagnostics';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { reasonDetailText } from './reasonDetail';
 import { aggregateDomainTiles, DOMAIN_ICON, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
@@ -21,7 +23,8 @@ interface ComponentHealthGridProps {
  *  per-endpoint data. Hover/focus treatment matches the monitoring overview's
  *  dash cards (dashHover), per the visual-parity requirement. */
 export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthGridProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const prefs = useUnitPrefs();
   const tiles = useMemo(() => aggregateDomainTiles(components), [components]);
   return (
     <div className={styles.grid}>
@@ -41,25 +44,28 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
             {Icon && <DomainGlyph icon={Icon} />}
             {tile.reasons.length > 0 && (
               <ul className={styles.reasonList}>
-                {tile.reasons.map((reason, i) => (
-                  <li key={i} className={styles.reasonItem}>
-                    <div className={styles.reasonText}>
-                      {/* An unmeasured probe states a coverage gap, not a finding,
-                          so it drops the finding weight the others carry. */}
-                      <div className={reason.severity === 'unknown' ? styles.reasonLabelMuted : styles.reasonLabel}>
-                        {reasonLabel(reason, t)}
+                {tile.reasons.map((reason, i) => {
+                  const detail = reasonDetailText(reason, { t, language, ...prefs });
+                  return (
+                    <li key={i} className={styles.reasonItem}>
+                      <div className={styles.reasonText}>
+                        {/* An unmeasured probe states a coverage gap, not a finding,
+                            so it drops the finding weight the others carry. */}
+                        <div className={reason.severity === 'unknown' ? styles.reasonLabelMuted : styles.reasonLabel}>
+                          {reasonLabel(reason, t)}
+                        </div>
+                        {reason.summary && <div className={styles.reasonSummary}>{reason.summary}</div>}
                       </div>
-                      {reason.summary && <div className={styles.reasonSummary}>{reason.summary}</div>}
-                    </div>
-                    {reason.detail && (
-                      // Only the info trigger swallows the click, so tapping the
-                      // reason text still bubbles to the card's navigate onClick.
-                      <span className={styles.reasonInfo} onClick={e => e.stopPropagation()}>
-                        <InfoTooltip message={reason.detail} side="top" />
-                      </span>
-                    )}
-                  </li>
-                ))}
+                      {detail && (
+                        // Only the info trigger swallows the click, so tapping the
+                        // reason text still bubbles to the card's navigate onClick.
+                        <span className={styles.reasonInfo} onClick={e => e.stopPropagation()}>
+                          <InfoTooltip message={detail} side="top" />
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Card>

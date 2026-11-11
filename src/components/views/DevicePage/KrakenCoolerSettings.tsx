@@ -16,6 +16,7 @@ import {
 } from '../../../api/nzxt-kraken';
 import type { KlipyGif } from '../../../api/klipy';
 import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
+import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
@@ -153,6 +154,8 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
     }
   }, [refresh]);
 
+  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding('nzxt-kraken-lcd', true);
+
   if (connection === 'disconnected') {
     return <EmptyState icon={<Unplug size={40} />} title={t('devices.nzxt-kraken.notConnected')} />;
   }
@@ -161,6 +164,7 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
 
   return (
     <>
+      {scheduleModal}
       <SettingsSection
         title={t('devices.nzxt-kraken.statusSection')}
         boxClassName={styles.sectionBox}
@@ -214,6 +218,7 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
               editable
               trackFill
               label={t('devices.nzxt-kraken.screenBrightness')}
+              schedule={scheduleBinding ?? undefined}
               value={state?.lcdBrightness ?? 0}
               min={0}
               max={100}

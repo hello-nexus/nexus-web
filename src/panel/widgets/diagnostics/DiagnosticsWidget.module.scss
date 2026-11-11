@@ -58,6 +58,28 @@
   min-height: 0;
 }
 
+// An active sensor alert takes an extra row under the four tiles.
+.alertLine {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+// Margin, not flex gap: the Q60 panel WebView (Chromium 83) has no flex gap.
+.alertLine > * + * {
+  margin-left: 0.4rem;
+}
+
+.alertText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .block {
   position: relative;
   display: flex;

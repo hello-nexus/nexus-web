@@ -75,6 +75,7 @@ import type { Language, ThemeMode } from '../lib/settings';
 import { FULLSCREEN_CAPABLE_VIEWS, NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
+import { resolveSidebarCompact } from './sidebarCompact';
 import { PageChromeProvider } from './PageChrome';
 import { AppBackdrop } from './AppBackdrop';
 import { BackgroundEffects } from './BackgroundEffects';
@@ -752,14 +753,13 @@ export function Dashboard() {
     const meta = getSidebarAppMeta(activeView);
     return meta ? t(meta.i18nKey) : t('sidebar.section.apps');
   })();
-  // null = auto (follow viewport), true = user-collapsed, false = user-expanded.
+  // null = auto (follow viewport), true = user-collapsed; false acts as null.
   // Seeded from the local settings cache so a reload doesn't flash expanded
   // before SidebarCollapsedSync restores the server value.
   const [manualOverride, setManualOverride] = useState<boolean | null>(
     () => (loadSettings().general.sidebarCollapsed ? true : null),
   );
-  // A stored false only clears a user-collapse; the transient "expanded while
-  // narrow" override stays.
+  // A stored false only clears a user-collapse.
   const restoreSidebarCollapsed = useCallback((collapsed: boolean) => {
     setManualOverride(prev => (collapsed ? true : prev === true ? null : prev));
   }, []);
@@ -848,18 +848,7 @@ export function Dashboard() {
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
-  // The "expanded while narrow" override (false) is transient: clear it when
-  // the viewport widens so the next narrow trip re-applies auto-collapse.
-  // Manual collapse (override === true) is the only preference that persists
-  // across width changes.
-  useEffect(() => {
-    if (!viewportNarrow && manualOverride === false) {
-      setManualOverride(null);
-    }
-  }, [viewportNarrow, manualOverride]);
-  // Manual override (true=collapsed, false=expanded) always wins over the
-  // viewport heuristic when set; null hands control back to auto-collapse.
-  const sidebarCompact = manualOverride !== null ? manualOverride : viewportNarrow;
+  const sidebarCompact = resolveSidebarCompact(manualOverride, viewportNarrow);
   const compact = hasSidebar && sidebarCompact;
 
   // Nothing opens the normal update modal over a running channel switch.
@@ -1105,6 +1094,7 @@ export function Dashboard() {
             <TopBar
               hasSidebar={hasSidebar}
               compact={compact}
+              compactLocked={viewportNarrow}
               onToggleCompact={() => setManualOverride(!sidebarCompact)}
               pageTitle={pageTitle}
               canGoBack={canGoBack}

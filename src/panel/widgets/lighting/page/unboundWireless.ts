@@ -3,10 +3,10 @@ import type { LianLiWirelessFan, LianLiWirelessState } from '../../../../api/lia
 
 export const UNBOUND_WIRELESS_PREFIX = 'lianli-wireless-unbound:';
 
-/** On the air, bound to no controller; other-controller and wired-owned units are bound elsewhere. */
+/** On the air, bound to no controller; other-controller, wired-owned and USB-driven units are handled elsewhere. */
 export function unboundWirelessFans(state: Pick<LianLiWirelessState, 'isConnected' | 'fans'> | null): LianLiWirelessFan[] {
   if (!state?.isConnected) return [];
-  return state.fans.filter(f => !f.boundToUs && !f.wiredOwned && !f.masterMac);
+  return state.fans.filter(f => !f.boundToUs && !f.wiredOwned && !f.usbConnected && !f.usbPresent && !f.masterMac);
 }
 
 /** Card stand-ins for those devices; ledCount 0 keeps every lighting control off them. */

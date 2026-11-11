@@ -22,7 +22,7 @@ vi.mock('../../../hooks/useSensors', () => ({
   isSmartStorageComponentId: (id: string) => id.startsWith('smart/'),
 }));
 vi.mock('../../../hooks/useSensorExtras', () => ({
-  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
+  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], fanSensors: [], embeddedControllers: [], memoryModules: [] }),
 }));
 vi.mock('../../../hooks/useFpsSensors', () => ({ useFpsSensors: () => [] }));
 vi.mock('../../../hooks/useNetworkMonitor', () => ({

@@ -30,6 +30,8 @@ export interface LianLiWirelessFan {
   pwmCableConnected?: boolean;
   /** A HydroShift II that is also on USB, whose screen has its own panel page. */
   usbConnected?: boolean;
+  /** A HydroShift II is on USB with its radio MAC unread (Nexus Control off for it), so this unit may be that one. */
+  usbPresent?: boolean;
   /** Wired Flex units only: "tlFlex", "slInfFlex" or "p28v2" (no screen, no stored effects). */
   family?: string;
   /** Wired LCD Flex units only: serial of the paired screen, empty when none. */

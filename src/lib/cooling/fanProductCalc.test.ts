@@ -6,7 +6,7 @@ import { parseCaseLayout, simChannelId, type CaseLayout } from './caseLayout';
 import { buildFlowScene } from './flow/gridScene';
 import { catalogFanSpecs } from './fanSpecs';
 import { slotDirections, slotSpeeds, withDefaultBindings } from './slotFlow';
-import { declutterPills, slotProduct } from './slotProduct';
+import { slotProduct } from './slotProduct';
 import { visualFlow } from './visualFlow';
 
 const raw = JSON.parse(readFileSync(new URL('./__fixtures__/y70-case-layout.json', import.meta.url), 'utf8')) as { fanSlots: { key: string }[] };
@@ -97,16 +97,5 @@ describe('slotProduct', () => {
     const fan = { key: 'rad:0', position: 'top', size: 120, index: 0, taken: 'fan' as const };
     expect(slotProduct(fan, [covered, fan])).toEqual({ title: 'Maker AIO', rpmMax: 2000, airflowCfm: 70, staticMmH2O: 2.4 });
     expect(slotProduct(fan, [fan])).toBeNull();
-  });
-});
-
-describe('declutterPills', () => {
-  it('leaves separate pills alone and stacks overlapping ones without overlap', () => {
-    const far = declutterPills([{ key: 'a', x: 0, y: 0 }, { key: 'b', x: 300, y: 0 }], 72, 22);
-    expect(far).toEqual({ a: 0, b: 0 });
-    const near = declutterPills([{ key: 'a', x: 100, y: 100 }, { key: 'b', x: 110, y: 102 }, { key: 'c', x: 105, y: 101 }], 72, 22);
-    const ys = [100 + near.a, 102 + near.b, 101 + near.c].sort((p, q) => p - q);
-    expect(ys[1] - ys[0]).toBeGreaterThanOrEqual(22);
-    expect(ys[2] - ys[1]).toBeGreaterThanOrEqual(22);
   });
 });

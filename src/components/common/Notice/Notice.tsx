@@ -53,3 +53,8 @@ export function Notice({ tone, role, children, actions, className, onDismiss, di
 export function NoticeSecondary({ children }: { children: ReactNode }) {
   return <span className={styles.secondary}>{children}</span>;
 }
+
+/** The bold first line of a notice. */
+export function NoticeHeadline({ children }: { children: ReactNode }) {
+  return <span className={styles.headline}>{children}</span>;
+}

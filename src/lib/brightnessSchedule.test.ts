@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import vectors from './sunsetShiftVectors.json';
-import { dragSunLevels, localDateKey, minuteOfDay, scheduledBrightness, sunCurve, sunRole, sunRoleLevel } from './brightnessSchedule';
+import { dragSunLevels, localDateKey, minuteOfDay, scheduleOutlook, scheduledBrightness, sunCurve, sunRole, sunRoleLevel } from './brightnessSchedule';
 
 // Vectors shared with nexus-service's MasterBrightnessTests: both sides
 // evaluate the same rule, so the slider's readout and the LEDs never
@@ -133,5 +133,29 @@ describe('sun curve vectors shared with the service', () => {
       sunPoints: v.expected, resolvedLocation: null, autoLocation: null,
     })!;
     for (const s of v.evalAt) expect(scheduledBrightness(curve, s.minute)).toBeCloseTo(s.expectedBrightness, 3);
+  });
+});
+
+describe('scheduleOutlook', () => {
+  const pts = [
+    { hour: 0, brightness: 10 }, { hour: 7, brightness: 10 }, { hour: 9, brightness: 100 },
+    { hour: 19, brightness: 100 }, { hour: 22, brightness: 10 },
+  ];
+  it('names the minute a flat stretch starts rising, not where the ramp ends', () => {
+    expect(scheduleOutlook(pts, 5 * 60)).toEqual({ kind: 'upcoming', rising: true, startMinute: 7 * 60 });
+  });
+  it('names the minute a flat stretch starts falling', () => {
+    expect(scheduleOutlook(pts, 14 * 60)).toEqual({ kind: 'upcoming', rising: false, startMinute: 19 * 60 });
+  });
+  it('wraps past midnight', () => {
+    expect(scheduleOutlook(pts, 23 * 60 + 30)).toEqual({ kind: 'upcoming', rising: true, startMinute: 7 * 60 });
+  });
+  it('reports the ramp end while the curve is already moving', () => {
+    expect(scheduleOutlook(pts, 8 * 60)).toEqual({ kind: 'moving', rising: true, untilMinute: 9 * 60 });
+    expect(scheduleOutlook(pts, 20 * 60)).toEqual({ kind: 'moving', rising: false, untilMinute: 22 * 60 });
+  });
+  it('is steady for a flat or empty schedule', () => {
+    expect(scheduleOutlook([{ hour: 0, brightness: 50 }, { hour: 12, brightness: 50 }], 600)).toEqual({ kind: 'steady' });
+    expect(scheduleOutlook([], 600)).toEqual({ kind: 'steady' });
   });
 });
