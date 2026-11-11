@@ -1480,8 +1480,10 @@ function PreviewEndTaskButton() {
 function PreviewStatusRow() {
   return (
     <div className={styles.previewStack}>
+      <StatusRow name="AMD Ryzen 7 9800X3D" subtitle="Core (Tctl/Tdie)" value="61 C" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} onSelect={() => {}} />
       <StatusRow name="CPU Package" value="45 C" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} selected onSelect={() => {}} />
       <StatusRow name="GPU Hot Spot" toggle={<Toggle checked={false} onChange={() => {}} ariaLabel="Enabled" />} dimmed onSelect={() => {}} />
+      <StatusRow name="NVIDIA GeForce RTX 5080 GPU Core Voltage" value="0.87 V" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} onSelect={() => {}} />
       <StatusRow name="Pump" value="1,108 RPM 31%" chip={<Badge label="Stalled" color="var(--bad)" />} danger toggle={<Toggle checked onChange={() => {}} ariaLabel="Monitor" />} />
     </div>
   );
@@ -3112,7 +3114,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'StatusRow', category: 'cards',
     filePath: 'src/components/common/StatusRow/StatusRow.tsx',
-    description: 'List row for a monitored thing, built on Card: name on the left, the reading with its status chip stacked beneath it and right-aligned, then the on/off switch at the far right. A row with no reading (switched off) shows name and switch only. Used by the Diagnostics Watchlist and the Cooling fans list.', Preview: PreviewStatusRow,
+    description: 'List row for a monitored thing, built on Card: name on the left, the reading with its status chip stacked beneath it and right-aligned, then the on/off switch at the far right. An optional dim `subtitle` line (the sensor behind the name) keeps the name to one line. The reading never wraps; a long name takes the squeeze (two lines, then an ellipsis with the full name in a tooltip). A row with no reading (switched off) shows name and switch only. Used by the Diagnostics Thermals watchlist and its fans list.', Preview: PreviewStatusRow,
   },
   {
     name: 'DomainGlyph', category: 'cards',
@@ -3185,7 +3187,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'GuardTripNotice', category: 'cards',
     filePath: 'src/components/views/DiagnosticsView/GuardTripNotice.tsx',
-    description: 'Notice at the top of the Diagnostics Cooling tab for a thermal guard trip nobody has dismissed. An ended trip shows when it happened, the peak and the cause with a Dismiss button; a trip still in progress shows an Open Cooling link and no Dismiss; a failed dismissal shows an inline error. Gone once acknowledged.',
+    description: 'Notice at the top of the Diagnostics Thermals tab for a thermal guard trip nobody has dismissed. An ended trip shows when it happened, the peak and the cause with a Dismiss button; a trip still in progress shows an Open Cooling link and no Dismiss; a failed dismissal shows an inline error. Gone once acknowledged.',
     Preview: PreviewGuardTripNotice,
   },
   {
@@ -3466,7 +3468,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'TimeSeriesChart', category: 'charts',
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
-    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
+    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. `activeSeriesId` highlights one line and `onSeriesSelect` turns the legend items into buttons that report their series. Used by the Diagnostics Thermals tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
     notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null. yAxisSide flips the tick-label lane to the right edge (the Monitoring history chart\'s convention). ribbons renders fixed-height, opacity-modulated bands (e.g. temperature) INSIDE the plot, stacked under the line and sharing its own x-domain/pixel mapping - each segment\'s opacity maps linearly from that ribbon\'s own window-observed min/max, and each ribbon carries its own points, fill, optional icon, and optional right-edge valueLabel.',
   },
   {

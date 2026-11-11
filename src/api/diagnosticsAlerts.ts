@@ -22,6 +22,8 @@ export interface SensorRef {
   name: string;
   type: string;
   parentName: string;
+  /** The hardware sensor a built-in tracks (e.g. "Core (Tctl/Tdie)"), when the service reports it. */
+  sourceName?: string;
 }
 
 export interface SensorAlertRule {
@@ -73,11 +75,16 @@ export interface SensorAlertResult<T> {
   ok: boolean;
   status: number;
   data: T | null;
+  /** The service's refusal reason when it names one (a 409 for a sensor another entry already tracks). */
+  code?: 'sensor_already_tracked';
 }
 
 async function call<T>(path: string, method: string, body?: unknown): Promise<SensorAlertResult<T>> {
   const { response, status } = await authFetchWithStatus(path, { method, body, cache: method === 'GET' ? 'no-store' : undefined });
-  if (!response || !response.ok) return { ok: false, status, data: null };
+  if (!response || !response.ok) {
+    const text = response ? await response.text().catch(() => '') : '';
+    return { ok: false, status, data: null, ...(text.includes('sensor_already_tracked') ? { code: 'sensor_already_tracked' as const } : {}) };
+  }
   if (status === 204) return { ok: true, status, data: null };
   try {
     return { ok: true, status, data: (await response.json()) as T };

@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Fan, Thermometer, ZoomOut } from 'lucide-react';
-import { TimeSeriesChart, type ChartRibbonSpec } from '../../common/TimeSeriesChart/TimeSeriesChart';
+import { TimeSeriesChart, type ChartRibbonSpec, type TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../common/TimelineBrush/TimelineBrush';
 import { Select } from '../../common/Select/Select';
@@ -28,6 +28,12 @@ import styles from './CoolingHistorySection.module.scss';
 export interface CoolingHistorySectionProps {
   history: UseMetricHistoryResult;
   episodes?: readonly DiagnosticsTemperatureEpisode[];
+  /** Rendered in the header beside the live badge (the Thermals mode toggle). */
+  headerControl?: ReactNode;
+  /** The highlighted line, with its limit lines in `thresholds`. */
+  activeSeriesId?: string | null;
+  thresholds?: readonly TimeSeriesThreshold[];
+  onSeriesSelect?: (seriesId: string) => void;
 }
 
 const CHART_HEIGHT = 246;
@@ -36,10 +42,9 @@ const CHART_HEIGHT = 246;
  * The Cooling tab's temperature history block: a scrubbable multi-line chart
  * (one line per cpu/gpu/memory/drive temperature sensor) with sustained-high-
  * temperature episodes as bands and average fan speed (RPM) as a band
- * underneath, a range picker, and a seek-bar. Sits above the GPU/fan-pump
- * split.
+ * underneath, a range picker, and a seek-bar. Heads the Thermals tab.
  */
-export function CoolingHistorySection({ history, episodes }: CoolingHistorySectionProps) {
+export function CoolingHistorySection({ history, episodes, headerControl, activeSeriesId, thresholds, onSeriesSelect }: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat, timeFormat, dateFormat } = useUnitPrefs();
 
@@ -108,7 +113,10 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
           <SectionHeader>{t('diagnostics.temperature.title')}</SectionHeader>
           {history.mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
-        <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
+        <div className={styles.headerActions}>
+          {headerControl}
+          <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
+        </div>
       </div>
 
       {showUnsupported ? (
@@ -140,6 +148,9 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
             avgLabel={t('diagnostics.temperature.avg')}
             maxLabel={t('diagnostics.temperature.max')}
             bands={bands}
+            thresholds={thresholds}
+            activeSeriesId={activeSeriesId}
+            onSeriesSelect={onSeriesSelect}
             tooltipHeaderExtra={tooltipHeaderRpm ?? undefined}
             onRangeSelect={history.onChartDragSelect}
             onWheelZoom={history.onChartWheelZoom}

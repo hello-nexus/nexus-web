@@ -16,7 +16,7 @@ import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 
 const LIVE_VALUES_POLL_MS = 5000;
 
-export type SensorAlertAddResult = { result: 'created'; rule: SensorAlertRule } | { result: 'limit' | 'error'; rule: null };
+export type SensorAlertAddResult = { result: 'created'; rule: SensorAlertRule } | { result: 'limit' | 'tracked' | 'error'; rule: null };
 
 export interface UseSensorAlerts {
   rules: SensorAlertRule[];
@@ -30,7 +30,7 @@ export interface UseSensorAlerts {
   /** Shows an edit immediately (a slider mid-drag) without writing it. */
   preview: (rule: SensorAlertRule) => void;
   /** Shows and writes the full rule; writes for one rule are sent in order, newest last. `onFail` runs when the service refused that write. */
-  save: (rule: SensorAlertRule, onFail?: () => void) => void;
+  save: (rule: SensorAlertRule, onFail?: (code?: 'sensor_already_tracked') => void) => void;
   add: (rule: NewSensorAlertRule) => Promise<SensorAlertAddResult>;
   remove: (id: string) => Promise<boolean>;
   acknowledge: (id: string) => Promise<boolean>;
@@ -75,7 +75,7 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
   // Bumped by every pushed frame, so a slower poll response never overwrites a newer state.
   const stateSeqRef = useRef(0);
   // Per rule id: the newest rule awaiting a write, and the write loop in flight.
-  const pendingRef = useRef(new Map<string, { rule: SensorAlertRule; onFail?: () => void }>());
+  const pendingRef = useRef(new Map<string, { rule: SensorAlertRule; onFail?: (code?: 'sensor_already_tracked') => void }>());
   const inFlightRef = useRef(new Map<string, Promise<void>>());
   const removingRef = useRef(new Set<string>());
 
@@ -165,7 +165,7 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
             if (stored && stored.builtIn && !pendingRef.current.has(id) && mountedRef.current && (stored.low !== next.rule.low || stored.high !== next.rule.high)) replaceRule(stored);
             continue;
           }
-          if (mountedRef.current) next.onFail?.();
+          if (mountedRef.current) next.onFail?.(res.code);
           if (!pendingRef.current.has(id) && mountedRef.current) load();
         }
       } finally {
@@ -176,7 +176,7 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
     return loop;
   }, [load, replaceRule]);
 
-  const save = useCallback((rule: SensorAlertRule, onFail?: () => void) => {
+  const save = useCallback((rule: SensorAlertRule, onFail?: (code?: 'sensor_already_tracked') => void) => {
     replaceRule(rule);
     pendingRef.current.set(rule.id, { rule, onFail });
     void flush(rule.id);
@@ -197,7 +197,7 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
     }
     if (res.status === 409) {
       load();
-      return { result: 'limit', rule: null };
+      return { result: res.code === 'sensor_already_tracked' ? 'tracked' : 'limit', rule: null };
     }
     return { result: 'error', rule: null };
   }, [load]);

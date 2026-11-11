@@ -34,9 +34,17 @@
 }
 
 // Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
+.nameBlock {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .name {
   @include text-button;
-  flex: 1;
+  display: block;
   min-width: 0;
   background: none;
   border: 0;
@@ -45,6 +53,28 @@
   color: var(--text);
   overflow-wrap: break-word;
   word-break: normal;
+}
+
+// Two lines at most, then an ellipsis.
+.nameText {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  &.oneLine {
+    -webkit-line-clamp: 1;
+  }
+}
+
+.subtitle {
+  display: block;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 button.name {
@@ -58,9 +88,11 @@ button.name {
   align-items: flex-end;
   gap: var(--space-xs);
   text-align: right;
+  white-space: nowrap;
 }
 
 .value {
+  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

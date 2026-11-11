@@ -264,7 +264,7 @@ describe('incidentAppFaultLine', () => {
 });
 
 describe('visibleDiagnosticsTabs', () => {
-  const allTabs = ['summary', 'storage', 'memory', 'cooling', 'system', 'sensors'];
+  const allTabs = ['summary', 'storage', 'memory', 'cooling', 'system'];
 
   it('shows every tab on windows', () => {
     expect(visibleDiagnosticsTabs('windows')).toEqual(allTabs);
@@ -275,10 +275,10 @@ describe('visibleDiagnosticsTabs', () => {
   });
 
   it('hides Memory on linux (no Linux equivalent of Windows Memory Diagnostic)', () => {
-    expect(visibleDiagnosticsTabs('linux')).toEqual(['summary', 'storage', 'cooling', 'system', 'sensors']);
+    expect(visibleDiagnosticsTabs('linux')).toEqual(['summary', 'storage', 'cooling', 'system']);
   });
 
   it('keeps only Summary/Sensors/Cooling on macos (no SMART/PnP/event-log diagnostics)', () => {
-    expect(visibleDiagnosticsTabs('macos')).toEqual(['summary', 'cooling', 'sensors']);
+    expect(visibleDiagnosticsTabs('macos')).toEqual(['summary', 'cooling']);
   });
 });

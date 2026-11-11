@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import type { SensorAlertRule, SensorAlertSeverity, SensorAlertState } from '../../../api/diagnosticsAlerts';
+import type { SensorAlertRule, SensorAlertSeverity, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { Button } from '../../common/Button/Button';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -51,10 +51,13 @@ interface SensorAlertRuleSettingsProps {
   state?: SensorAlertState;
   /** Writes a built-in back to its factory values. */
   onRestoreDefault?: () => void;
+  /** The entry already tracking a sensor picked here, if any; the pick is then refused and `onTracked` runs. */
+  findTracked?: (sensor: SensorRef) => SensorAlertRule | undefined;
+  onTracked?: (existing: SensorAlertRule) => void;
 }
 
 /** The editable settings of one tracked sensor: the sensor, its alert limits, delays, severity and delivery options. Shown inside the sensor's card. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, state, onRestoreDefault }: SensorAlertRuleSettingsProps) {
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, state, onRestoreDefault, findTracked, onTracked }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -110,6 +113,8 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
             onChange={(sel, resolved) => {
               if (!resolved) return;
               const ref = sensorRefOf(sel.category, resolved);
+              const existing = findTracked?.(ref);
+              if (existing) { onTracked?.(existing); return; }
               const typeChanged = ref.type !== type;
               const next: SensorAlertRule = typeChanged
                 ? { ...rule, sensor: ref, low: null, high: defaultHigh(ref.type, resolved.value) }

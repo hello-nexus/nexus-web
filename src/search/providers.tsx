@@ -129,7 +129,7 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
   // Memory-test scheduling stays on this tab behind its own confirm (it arms
   // a reboot-time diagnostic), so the subtab is the palette's way in.
   { view: 'diagnostics', sub: 'memory',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.memory',  keywords: ['ram', 'memory', 'memtest', 'memory test', 'health'] },
-  { view: 'diagnostics', sub: 'cooling', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.cooling', keywords: ['thermals', 'temperature', 'throttle', 'health'] },
+  { view: 'diagnostics', sub: 'cooling', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.tab.thermals', keywords: ['thermals', 'cooling', 'fans', 'temperature', 'watchlist', 'sensors', 'alerts', 'throttle', 'health'] },
   { view: 'diagnostics', sub: 'system',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.system',  keywords: ['drivers', 'devices', 'events', 'health'] },
 ];
 const navSubtabs: SearchSource = (ctx) =>

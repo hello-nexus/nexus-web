@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
-import { SensorsTab } from './SensorsTab';
+import { ThermalsHarness as SensorsTab } from './thermalsTestHarness';
 
 vi.mock('./SensorNotificationSettings', () => ({ SensorNotificationSettings: () => null }));
 vi.mock('../../../search/scroll', () => ({ requestSearchScroll: vi.fn() }));
@@ -123,7 +123,7 @@ beforeEach(() => {
   h.connected = true;
 });
 
-describe('SensorsTab editing', () => {
+describe('ThermalsTab editing', () => {
   it('lists each rule with its sensor name, live value and state chip', async () => {
     await renderSection([rule('r1')], [okState('r1', { state: 'pending' })]);
     const row = within(screen.getByTestId('sensor-row'));

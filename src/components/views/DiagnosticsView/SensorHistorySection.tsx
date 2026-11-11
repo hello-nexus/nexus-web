@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { ChartLine, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../common/TimelineBrush/TimelineBrush';
@@ -23,14 +23,18 @@ interface SensorHistorySectionProps {
   history: UseMetricHistoryResult;
   /** The sensor whose recorded history is plotted. */
   rule: SensorAlertRule;
+  /** Rendered in the header beside the live badge (the Thermals mode toggle). */
+  headerControl?: ReactNode;
+  /** Rendered under the chart: the chips that switch between custom sensors. */
+  legend?: ReactNode;
 }
 
 /**
- * The Watchlist tab's history block, composed like the Cooling tab's temperature history (header with
+ * The Thermals tab's Custom sensors chart, composed like the Cooling tab's temperature history (header with
  * live badge, chart, range picker and seek bar) but plotting the one selected sensor in its own unit
  * with its alert limits as dashed lines. The plain wheel scrolls the page; Ctrl/Cmd+wheel or pinch zooms.
  */
-export function SensorHistorySection({ history, rule }: SensorHistorySectionProps) {
+export function SensorHistorySection({ history, rule, headerControl, legend }: SensorHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers, timeFormat, dateFormat } = useUnitPrefs();
   const type = rule.sensor.type;
@@ -55,7 +59,10 @@ export function SensorHistorySection({ history, rule }: SensorHistorySectionProp
           <SectionHeader>{ruleLabel(rule)}</SectionHeader>
           {history.mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
-        <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
+        <div className={cooling.headerActions}>
+          {headerControl}
+          <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
+        </div>
       </div>
 
       {!history.supported ? (
@@ -96,6 +103,7 @@ export function SensorHistorySection({ history, rule }: SensorHistorySectionProp
           showLegend={false}
         />
       )}
+      {legend}
       <div className={cooling.controls}>
         {history.rangeKey === 'custom' ? (
           <button

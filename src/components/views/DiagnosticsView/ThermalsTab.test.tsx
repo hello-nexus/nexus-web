@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
-import { SensorsTab } from './SensorsTab';
+import { ThermalsHarness as SensorsTab } from './thermalsTestHarness';
 
 const h = vi.hoisted(() => ({
   tempUnit: 'c' as 'c' | 'f',
@@ -96,7 +96,7 @@ beforeEach(() => {
   h.resetBuiltIns.mockResolvedValue(true);
 });
 
-describe('SensorsTab', () => {
+describe('ThermalsTab', () => {
   it('shows an empty state whose action adds a sensor, not a link to the settings', async () => {
     render(<SensorsTab {...props()} />);
     expect(screen.getByText('diagnostics.sensors.empty')).toBeInTheDocument();
@@ -113,14 +113,22 @@ describe('SensorsTab', () => {
     expect(screen.getByText('diagnostics.alerts.limitNote(max=20)')).toBeInTheDocument();
   });
 
+  const otherSensor = { category: 'cpu', id: 'cpu/temp/9', name: 'Other', type: 'Temperature', parentName: 'CPU' };
+
   it('keeps Add sensor enabled below the limit', () => {
-    h.rules = [rule('r1')];
+    h.rules = [rule('r1', { sensor: otherSensor })];
     render(<SensorsTab {...props()} />);
     expect(screen.getByTestId('sensor-add')).toBeEnabled();
   });
 
+  it('disables Add sensor while the only sensor the picker lists is already tracked', () => {
+    h.rules = [rule('r1')];
+    render(<SensorsTab {...props()} />);
+    expect(screen.getByTestId('sensor-add')).toBeDisabled();
+  });
+
   it('sends one create for a double click on Add sensor, and opens the new card', async () => {
-    h.rules = [rule('r1'), rule('new')];
+    h.rules = [rule('r1', { sensor: otherSensor }), rule('new', { sensor: { ...otherSensor, id: 'cpu/temp/8' } })];
     let finish!: (v: unknown) => void;
     h.add.mockReturnValue(new Promise(r => { finish = r; }));
     render(<SensorsTab {...props()} />);

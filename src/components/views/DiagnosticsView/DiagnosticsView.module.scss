@@ -286,25 +286,10 @@
   flex-wrap: wrap;
 }
 
-// ── GPU ──
-
-.gpuGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.throttleBadges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
 // ── Cooling ──
 
-// A two-column split under a chart: Cooling uses it for GPU (left) + Fans
-// (right); System uses it for the 30-day counts (left) + Device problems
-// (right). Stacks when the content area is narrow.
+// A two-column split: System uses it for the 30-day counts (left) + Device
+// problems (right). Stacks when the content area is narrow.
 .diagSplit {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -316,11 +301,6 @@
   }
 }
 
-// Cooling: a little more air between the history chart and the GPU/Fans titles.
-.diagSplitCooling {
-  margin-top: var(--space-sm);
-}
-
 // System's two halves are unrelated blocks, so they get more air than
 // Cooling's paired GPU/Fans columns.
 .diagSplitWide {
@@ -328,9 +308,14 @@
 }
 
 .coolingList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 // ── Temperature history ──

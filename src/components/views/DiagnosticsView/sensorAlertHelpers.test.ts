@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel, findTrackedRule, rowTitles,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -233,5 +233,28 @@ describe('ruleLabel', () => {
     const builtIn = rule({ builtIn: 'gpuTemp', sensor: { category: 'builtin', id: 'gpu-temp:gpu-0', name: 'GPU Alpha', type: 'Temperature', parentName: '' } });
     expect(ruleLabel(builtIn)).toBe('GPU Alpha');
     expect(ruleLabel(rule())).toBe('CPU Package');
+  });
+});
+
+describe('findTrackedRule and rowTitles', () => {
+  const mk = (id: string, sensor: Partial<SensorAlertRule['sensor']>, builtIn: SensorAlertRule['builtIn'] = null): SensorAlertRule => ({
+    id, enabled: true, sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU', ...sensor },
+    low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch', notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn,
+  });
+
+  it('finds the entry tracking a sensor by category and id, ignoring the entry being edited and synthetic built-ins', () => {
+    const a = mk('a', {});
+    const synthetic = mk('builtin:cpu-temp', { category: 'builtin', id: 'cpu-temp' }, 'cpuTemp');
+    expect(findTrackedRule([synthetic, a], a.sensor)).toBe(a);
+    expect(findTrackedRule([a], a.sensor, 'a')).toBeUndefined();
+    expect(findTrackedRule([synthetic], synthetic.sensor)).toBeUndefined();
+    expect(findTrackedRule([a], { ...a.sensor, id: 'other' })).toBeUndefined();
+  });
+
+  it('titles every entry as device then exact sensor, taking a built-in subtitle from the service when sent', () => {
+    expect(rowTitles(mk('a', {}))).toEqual({ title: 'CPU', subtitle: 'Package' });
+    expect(rowTitles(mk('b', { parentName: '' }))).toEqual({ title: 'Package', subtitle: undefined });
+    expect(rowTitles(mk('builtin:cpu-temp', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp'))).toEqual({ title: 'AMD Ryzen', subtitle: undefined });
+    expect(rowTitles(mk('builtin:cpu-temp', { category: 'builtin', name: 'AMD Ryzen', parentName: '', sourceName: 'Core (Tctl/Tdie)' }, 'cpuTemp'))).toEqual({ title: 'AMD Ryzen', subtitle: 'Core (Tctl/Tdie)' });
   });
 });

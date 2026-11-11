@@ -5,7 +5,7 @@ import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState } from '../..
 import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { Toggle } from '../../common/Toggle/Toggle';
-import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
+import { formatAlertValue, isBuiltIn, rowState, rowTitles, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorList.module.scss';
 
@@ -38,7 +38,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
         const kind = rowState(rule, st);
         const reading = liveOf(rule) ?? st?.value ?? null;
         const selected = rule.id === selectedId;
-        const name = ruleLabel(rule);
+        const { title: name, subtitle } = rowTitles(rule);
         // An enabled sensor the PC does not report has nothing to switch or grade: the chip alone says so.
         // A switched-off sensor shows its name and switch only.
         const BuiltInIcon = rule.builtIn ? BUILT_IN_ICONS[rule.builtIn] : null;
@@ -55,6 +55,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
           >
             <StatusRow
               name={name}
+              subtitle={subtitle}
               icon={BuiltInIcon ? <BuiltInIcon size={16} /> : undefined}
               selected={selected}
               dimmed={!rule.enabled}
@@ -68,7 +69,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
                   : <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />)
                 : undefined}
               toggle={notReported ? undefined : (
-                <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name })} />
+                <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })} />
               )}
             />
           </li>

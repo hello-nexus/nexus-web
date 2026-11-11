@@ -4,13 +4,6 @@
   gap: var(--space-lg);
 }
 
-.addRow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
 .note {
   font-size: var(--type-small);
   color: var(--text-dim);
@@ -46,7 +39,7 @@
   min-width: 0;
 }
 
-// Both columns' headers share this row height (the Add button sets it), so the first cards line up.
+// Both columns' headers share this row height, so the first cards line up.
 .groupHeader {
   min-height: var(--size-sm);
   display: flex;

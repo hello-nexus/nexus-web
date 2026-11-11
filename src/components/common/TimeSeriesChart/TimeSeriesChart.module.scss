@@ -63,6 +63,21 @@
   gap: 0.35rem;
 }
 
+// A legend item that selects its series: a bare button that keeps the item's
+// look, with the active one drawn in the primary text colour.
+.legendButton {
+  background: none;
+  border: 0;
+  padding: 0.1rem 0.35rem;
+  margin: -0.1rem -0.35rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+
+  &[aria-pressed='true'] .legendName {
+    color: var(--text);
+  }
+}
+
 .legendDot {
   width: 8px;
   height: 8px;

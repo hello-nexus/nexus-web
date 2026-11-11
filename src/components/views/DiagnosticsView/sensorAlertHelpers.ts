@@ -1,4 +1,4 @@
-import type { BuiltInSensorKind, NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
+import { BUILTIN_SENSOR_CATEGORY, type BuiltInSensorKind, type NewSensorAlertRule, type SensorAlertRule, type SensorAlertState, type SensorRef } from '../../../api/diagnosticsAlerts';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import type { Language } from '../../../lib/settings';
 import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
@@ -347,4 +347,22 @@ export function alertBannerText(
     }),
     detail: t('diagnostics.alerts.banner.detail', { value: fmt(state.value) }),
   };
+}
+
+/** The identity a sensor is tracked by: its resolver category and id. */
+function sensorKey(sensor: SensorRef): string {
+  return `${sensor.category}\u0000${sensor.id}`;
+}
+
+/** The entry already tracking `sensor`, other than `exceptId`, or undefined. A built-in without a resolver sensor of its own never matches. */
+export function findTrackedRule(rules: readonly SensorAlertRule[], sensor: SensorRef, exceptId?: string): SensorAlertRule | undefined {
+  const key = sensorKey(sensor);
+  return rules.find(r => r.id !== exceptId && r.sensor.category !== BUILTIN_SENSOR_CATEGORY && sensorKey(r.sensor) === key);
+}
+
+/** A row's title and subtitle. Every entry reads alike: the device, then the exact sensor tracked (a built-in's comes from the service when it reports one). */
+export function rowTitles(rule: SensorAlertRule): { title: string; subtitle: string | undefined } {
+  if (isBuiltIn(rule)) return { title: rule.sensor.name, subtitle: rule.sensor.sourceName || undefined };
+  const { name, parentName } = rule.sensor;
+  return parentName ? { title: parentName, subtitle: name } : { title: name, subtitle: undefined };
 }

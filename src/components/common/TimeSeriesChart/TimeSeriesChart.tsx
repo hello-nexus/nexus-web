@@ -111,6 +111,10 @@ export interface TimeSeriesChartProps {
   /** Dashed horizontal lines across the plot at fixed values (e.g. alert limits); a value outside the y range is not drawn. */
   thresholds?: readonly TimeSeriesThreshold[];
   showLegend?: boolean;
+  /** The highlighted series: it draws heavier and every other line dims. */
+  activeSeriesId?: string | null;
+  /** Makes each legend item a button that reports its series id. */
+  onSeriesSelect?: (id: string) => void;
   /** Force the x-axis window instead of deriving it from the data extent, so a
    *  range wider than the available data shows empty space rather than
    *  stretching the data to fill it. Falls back to the data extent when omitted. */
@@ -247,7 +251,7 @@ const EVENT_CLUSTER_THRESHOLD_PX = EVENT_MARKER_SIZE;
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
-  avgLabel, maxLabel, bands, thresholds, showLegend = true, domain, tooltipExtra, yDomain,
+  avgLabel, maxLabel, bands, thresholds, showLegend = true, activeSeriesId, onSeriesSelect, domain, tooltipExtra, yDomain,
   fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom, wheelZoomNeedsModifier = false,
   events, onEventClick, onAddEventAt, renderEventTooltip,
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
@@ -787,7 +791,8 @@ export function TimeSeriesChart({
                   d={d}
                   fill="none"
                   stroke={s.color}
-                  strokeWidth="1.6"
+                  strokeWidth={activeSeriesId === s.id ? 2.4 : 1.6}
+                  opacity={activeSeriesId && activeSeriesId !== s.id ? 0.35 : 1}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -947,7 +952,20 @@ export function TimeSeriesChart({
 
       {showLegend && series.length > 0 && (
         <div className={styles.legend}>
-          {series.map(s => (
+          {series.map(s => onSeriesSelect ? (
+            <button
+              key={s.id}
+              type="button"
+              className={`${styles.legendItem} ${styles.legendButton}`}
+              aria-pressed={activeSeriesId === s.id}
+              data-testid="chart-legend-item"
+              data-series-id={s.id}
+              onClick={() => onSeriesSelect(s.id)}
+            >
+              <span className={styles.legendDot} style={{ background: s.color }} />
+              <span className={styles.legendName}>{s.name}</span>
+            </button>
+          ) : (
             <span key={s.id} className={styles.legendItem}>
               <span className={styles.legendDot} style={{ background: s.color }} />
               <span className={styles.legendName}>{s.name}</span>

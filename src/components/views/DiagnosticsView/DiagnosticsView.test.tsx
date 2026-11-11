@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
 import { CoolingSection } from './CoolingSection';
 import { DiagnosticsView } from './DiagnosticsView';
-import { GpuSection } from './GpuSection';
 import { IncidentsSection } from './IncidentsSection';
 import { IncidentCounts } from './IncidentCounts';
 import { MemorySection } from './MemorySection';
@@ -19,7 +18,6 @@ import type {
   DiagnosticsComponent,
   DiagnosticsCoolingResponse,
   DiagnosticsCounts30d,
-  DiagnosticsGpuResponse,
   DiagnosticsHealth,
   DiagnosticsIncident,
   DiagnosticsIncidentsResponse,
@@ -40,7 +38,7 @@ vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
   useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: mockRefreshHealth }),
 }));
 
-// Sensor alert rules and states for the Summary list and the Watchlist tab, which read the same hook.
+// Sensor alert rules and states for the Summary list and the Thermals tab, which read the same hook.
 const mockAlerts = vi.hoisted(() => ({
   rules: [] as unknown[], states: [] as unknown[], acknowledge: vi.fn(async () => true),
 }));
@@ -514,71 +512,6 @@ describe('domain sections render without their outer kind title', () => {
     expect(screen.queryByText('null%')).not.toBeInTheDocument();
   });
 
-  it('GpuSection omits its kind title by default but renders a passed heading and its Throttling sub-header', () => {
-    const data: DiagnosticsGpuResponse = {
-      supported: true,
-      gpus: [{
-        name: 'Test GPU', driverVersion: '1.0', temperatureC: 50, powerW: 100,
-        throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0,
-      }],
-    };
-    render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} heading="GPU health" />);
-
-    expect(screen.queryByText('diagnostics.kind.gpu')).not.toBeInTheDocument();
-    expect(screen.getByText('GPU health')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.gpu.throttle.title')).toBeInTheDocument();
-    expect(screen.getByText('Test GPU')).toBeInTheDocument();
-  });
-
-  // Verbatim GET /diagnostics/gpu payload from an RTX 3070, the shape that
-  // crashed the Cooling tab: NVML reports temperature but no power draw.
-  it('GpuSection renders a GPU whose power draw is null', () => {
-    const data: DiagnosticsGpuResponse = {
-      supported: true,
-      gpus: [{
-        name: 'NVIDIA GeForce RTX 3070', driverVersion: '591.86', temperatureC: 68, powerW: null,
-        throttle: { active: [], swPowerCapUs: 175300906112, swThermalUs: 0, hwThermalUs: null, hwPowerBrakeUs: 0 },
-        recentTdrCount: 0,
-      }],
-    };
-    render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} heading="GPU health" />);
-
-    expect(screen.getByText('NVIDIA GeForce RTX 3070')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.gpu.power').nextSibling).toHaveTextContent('-');
-    expect(screen.getByText('diagnostics.gpu.temperature').nextSibling).toHaveTextContent('68');
-    // A populated counter still renders; the null and zero ones are omitted.
-    expect(screen.getByText('diagnostics.gpu.throttle.swPower')).toBeInTheDocument();
-    expect(screen.queryByText('diagnostics.gpu.throttle.hwThermal')).not.toBeInTheDocument();
-  });
-
-  // GpuSection sits beside CoolingSection in the Cooling tab (via diagSplit);
-  // an unsupported GPU renders nothing rather than a redundant "not
-  // available" box next to the fan/pump content that IS supported.
-  it('GpuSection renders nothing (not the "not available" note) when unsupported', () => {
-    const data: DiagnosticsGpuResponse = { supported: false, gpus: [] };
-    const { container } = render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} heading="GPU health" />);
-
-    expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByText('diagnostics.notAvailable')).not.toBeInTheDocument();
-  });
-
-  it('GpuSection falls back to "-" for every reading the service omits', () => {
-    const data: DiagnosticsGpuResponse = {
-      supported: true,
-      gpus: [{
-        name: 'Test GPU', driverVersion: null, temperatureC: null, powerW: null,
-        throttle: { active: [], swPowerCapUs: null, swThermalUs: null, hwThermalUs: null, hwPowerBrakeUs: null },
-        recentTdrCount: 0,
-      }],
-    };
-    render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} />);
-
-    expect(screen.getByText('Test GPU')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.gpu.driver: -')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.gpu.temperature').nextSibling).toHaveTextContent('-');
-    expect(screen.getByText('diagnostics.gpu.power').nextSibling).toHaveTextContent('-');
-  });
-
   it('MemorySection omits the outer "Memory" title but still renders module rows', () => {
     const data: DiagnosticsMemoryResponse = {
       supported: true,
@@ -714,7 +647,7 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('summary');
   });
 
-  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Watchlist tab', () => {
+  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Thermals tab', () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
@@ -728,12 +661,12 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /acknowledge/ })).toBeNull();
     fireEvent.click(row);
-    expect(onTabChange).toHaveBeenCalledWith('sensors');
+    expect(onTabChange).toHaveBeenCalledWith('cooling');
     mockAlerts.rules = [];
     mockAlerts.states = [];
   });
 
-  it('Dismiss on a Watchlist tab banner acknowledges the alert and force-refreshes health', async () => {
+  it('Dismiss on a Thermals tab banner acknowledges the alert and force-refreshes health', async () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
@@ -741,7 +674,7 @@ describe('DiagnosticsView tabs', () => {
     }];
     mockAlerts.states = [{ ruleId: 'r1', state: 'active', value: 95, since: null, extreme: 96, direction: 'above', acknowledged: false }];
     mockRefreshHealth.mockClear();
-    renderDiagnosticsView({ tab: 'sensors', onTabChange: vi.fn() });
+    renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
 
     fireEvent.click(screen.getByTestId('sensor-banner-dismiss'));
     await waitFor(() => expect(mockRefreshHealth).toHaveBeenCalledWith({ force: true }));
@@ -770,10 +703,34 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.queryByText('diagnostics.alerts.title')).toBeNull();
   });
 
-  it('redirects a legacy ?tab=gpu deep link to the Cooling tab', () => {
+  it('redirects a legacy ?tab=gpu deep link to the Thermals tab', () => {
     renderDiagnosticsView({ tab: 'gpu', onTabChange: vi.fn() });
 
-    expect(screen.getByRole('tab', { name: /diagnostics.kind.cooling/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.thermals/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('redirects a legacy ?tab=sensors deep link to the Thermals tab and corrects the url', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: 'sensors', onTabChange });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.thermals/ })).toHaveAttribute('aria-selected', 'true');
+    expect(onTabChange).toHaveBeenCalledWith('cooling');
+  });
+
+  it('shows the temperature chart, watchlist and fans on one Thermals page, with no GPU card', () => {
+    mockAlerts.rules = [{
+      id: 'builtin:cpu-temp', enabled: true, severity: 'watch', low: null, high: 90, builtIn: 'cpuTemp',
+      sensor: { category: 'builtin', id: 'cpu-temp', name: 'CPU', type: 'Temperature', parentName: '' },
+    }];
+    try {
+      renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
+      expect(screen.getByText('diagnostics.temperature.title')).toBeInTheDocument();
+      expect(screen.getByTestId('sensor-row')).toBeInTheDocument();
+      expect(screen.getByText('diagnostics.cooling.fansTitle')).toBeInTheDocument();
+      expect(screen.queryByText('diagnostics.gpu.throttle.title')).not.toBeInTheDocument();
+    } finally {
+      mockAlerts.rules = [];
+    }
   });
 
   it('dismissing a thermal guard trip force-refreshes the health overview', async () => {
@@ -791,7 +748,7 @@ describe('DiagnosticsView tabs', () => {
   it('deep-links straight into a domain tab from the url param', () => {
     renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
 
-    expect(screen.getByRole('tab', { name: /diagnostics.kind.cooling/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.thermals/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('diagnostics.temperature.title')).toBeInTheDocument();
   });
 
@@ -809,7 +766,7 @@ describe('DiagnosticsView tabs', () => {
       const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
       expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
         'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
-        'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors',
+        'diagnostics.tab.thermals', 'diagnostics.kind.system',
       ]);
       unmount();
     }
@@ -820,15 +777,15 @@ describe('DiagnosticsView tabs', () => {
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
       'diagnostics.tab.summary', 'diagnostics.kind.storage',
-      'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors',
+      'diagnostics.tab.thermals', 'diagnostics.kind.system',
     ]);
   });
 
-  it('keeps only Summary/Cooling/Sensors on macos', () => {
+  it('keeps only Summary and Thermals on macos', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'macos' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.sensors',
+      'diagnostics.tab.summary', 'diagnostics.tab.thermals',
     ]);
   });
 

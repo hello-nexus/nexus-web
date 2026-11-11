@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ClipboardList, Eye, Fan, HardDrive, MemoryStick, ShieldCheck } from 'lucide-react';
+import { ClipboardList, HardDrive, MemoryStick, ShieldCheck, Thermometer } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -10,7 +10,6 @@ import {
   downloadDiagnosticsReport,
   downloadSupportBundle,
   fetchDiagnosticsCooling,
-  fetchDiagnosticsGpu,
   fetchDiagnosticsIncidents,
   fetchDiagnosticsMemory,
   fetchDiagnosticsSmart,
@@ -23,10 +22,10 @@ import { useToast } from '../../common/Toast/Toast';
 import { ServiceRequired } from '../ServiceRequired';
 import { StorageSection } from './StorageSection';
 import { MemorySection } from './MemorySection';
-import { CoolingTab } from './CoolingTab';
+import { ThermalsTab } from './ThermalsTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
-import { SensorsTab } from './SensorsTab';
+import { INITIAL_THERMALS_SELECTION, type ThermalsSelection } from './thermalsHelpers';
 import { SENSOR_HISTORY_OPTIONS, SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
 import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
@@ -61,19 +60,18 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
-    { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
+    { key: 'cooling', label: t('diagnostics.tab.thermals'), icon: <Thermometer size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
-    { key: 'sensors', label: t('diagnostics.tab.sensors'), icon: <Eye size={14} /> },
   ] as const;
 
   const visibleKeys = visibleDiagnosticsTabs(platform);
   const tabs = allTabs.filter(tb => visibleKeys.includes(tb.key));
 
-  // GPU is no longer its own tab (folded into Cooling); an old ?tab=gpu deep
-  // link lands on Cooling, where GPU health now lives.
+  // GPU and Watchlist are no longer tabs: an old ?tab=gpu or ?tab=sensors deep
+  // link lands on Thermals (the 'cooling' route), where both now live.
   // The Settings tab is gone (its switches live on each tab and in Nexus Settings > Monitoring);
   // an old ?tab=settings link lands on Summary.
-  const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab === 'settings' ? 'summary' : urlTab;
+  const requestedTab = urlTab === 'gpu' || urlTab === 'sensors' ? 'cooling' : urlTab === 'settings' ? 'summary' : urlTab;
   // A tab key can be real but hidden on this platform (e.g. Memory on Linux):
   // that case corrects the route to Summary, unlike a plain unrecognized key
   // (typo'd url), which stays render-only and never writes history.
@@ -83,6 +81,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
 
   useEffect(() => {
     if ((isRecognizedTab && !isVisibleTab) || urlTab === 'settings') onTabChange('summary');
+    else if (urlTab === 'sensors') onTabChange('cooling');
   }, [isRecognizedTab, isVisibleTab, urlTab, onTabChange]);
 
   const { health, loading: healthLoading, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
@@ -95,7 +94,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
 
   const smart = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSmart);
   const memory = useDiagnosticsResource(serviceOnline, fetchDiagnosticsMemory);
-  const gpu = useDiagnosticsResource(serviceOnline, fetchDiagnosticsGpu);
   const cooling = useDiagnosticsResource(serviceOnline, fetchDiagnosticsCooling);
   const system = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSystem);
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
@@ -106,15 +104,17 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // "refresh all" both stay accurate from the Summary tab too.
   const temperatures = useDiagnosticsTemperatures(serviceOnline, COOLING_EPISODES_QUERY);
 
-  // The chart itself scrubs via its own viewport, independent of any
-  // range/day state here - only active while the Cooling tab is showing (its
+  // The charts scrub via their own viewports, independent of any range/day
+  // state here - only the one the Thermals tab is showing is active (its
   // live-tail poll runs every second, wasteful to keep running on every other
-  // tab), but the hook instance lives here (not in CoolingTab) so its
-  // viewport/cache survive switching away from and back to the tab.
-  const isSensorsTab = tab === 'sensors';
-  const sensorHistory = useMetricHistory(serviceOnline && isSensorsTab, isSensorsTab ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory, SENSOR_HISTORY_OPTIONS);
-  const isCoolingTab = tab === 'cooling';
-  const coolingHistory = useMetricHistory(serviceOnline && isCoolingTab, isCoolingTab ? COOLING_HISTORY_SERIES_QUERY : '');
+  // tab or for the hidden chart), but the hook instances live here (not in
+  // ThermalsTab) so their viewport/cache survive switching away and back.
+  const isThermalsTab = tab === 'cooling';
+  const [thermalsSelection, setThermalsSelection] = useState<ThermalsSelection>(INITIAL_THERMALS_SELECTION);
+  const customChart = isThermalsTab && thermalsSelection.mode === 'custom';
+  const sensorHistory = useMetricHistory(serviceOnline && customChart, customChart ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory, SENSOR_HISTORY_OPTIONS);
+  const allChart = isThermalsTab && !customChart;
+  const coolingHistory = useMetricHistory(serviceOnline && allChart, allChart ? COOLING_HISTORY_SERIES_QUERY : '');
 
   // The System tab's incident timeline uses a relative-range / specific-day
   // model, kept here so it persists across tab switches. Range filtering is
@@ -126,9 +126,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     setIncidentDate(null);
   }, []);
 
-  const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
+  const anyMocked = healthMocked || smart.mocked || memory.mocked
     || cooling.mocked || system.mocked || incidents.mocked || temperatures.mocked;
-  const anyLoading = healthLoading || smart.loading || memory.loading || gpu.loading
+  const anyLoading = healthLoading || smart.loading || memory.loading
     || cooling.loading || system.loading || incidents.loading;
 
   // useDiagnosticsResource returns a new object every render; pulling out
@@ -137,7 +137,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // per-render object.
   const { refresh: refreshSmart } = smart;
   const { refresh: refreshMemory } = memory;
-  const { refresh: refreshGpu } = gpu;
   const { refresh: refreshCooling } = cooling;
   const { refresh: refreshSystem } = system;
   const { refresh: refreshIncidents } = incidents;
@@ -148,13 +147,12 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     refreshHealth({ force: true });
     refreshSmart({ force: true });
     refreshMemory({ force: true });
-    refreshGpu({ force: true });
     refreshCooling();
     refreshSystem({ force: true });
     refreshIncidents();
     refreshTemperatures();
     retryCoolingHistory();
-  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures, retryCoolingHistory]);
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures, retryCoolingHistory]);
 
   // Clearing the Windows event logs invalidates the health overview and the
   // System section's 30-day counts in addition to Incidents itself (which
@@ -196,29 +194,26 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
           anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
           onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
-          onOpenAlert={id => { setFocusSensorId(id); onTabChange('sensors'); }}
+          onOpenAlert={id => { setFocusSensorId(id); onTabChange('cooling'); }}
           downloading={downloading} downloadingReport={downloadingReport}
           onDownload={() => void handleDownload()} onDownloadReport={() => void handleDownloadReport()}
-        />
-      );
-      case 'sensors': return (
-        <SensorsTab
-          history={sensorHistory}
-          focusRuleId={focusSensorId}
-          onFocused={() => setFocusSensorId(null)}
-          onAlertDismissed={() => refreshHealth({ force: true })}
         />
       );
       case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;
       case 'memory': return <MemorySection data={memory.data} loading={memory.loading} error={memory.error} onRefresh={memory.refresh} />;
       case 'cooling': return (
-        <CoolingTab
+        <ThermalsTab
           cooling={cooling}
-          gpu={gpu}
           coolingHistory={coolingHistory}
+          sensorHistory={sensorHistory}
           episodes={temperatures.data?.episodes ?? []}
           serviceOnline={serviceOnline}
           onOpenCooling={onOpenCooling}
+          selection={thermalsSelection}
+          onSelectionChange={setThermalsSelection}
+          focusRuleId={focusSensorId}
+          onFocused={() => setFocusSensorId(null)}
+          onAlertDismissed={() => refreshHealth({ force: true })}
           onGuardTripDismissed={() => {
             refreshHealth({ force: true });
             refreshCooling();

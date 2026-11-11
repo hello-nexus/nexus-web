@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { CoolingSection } from './CoolingSection';
-import { GpuSection } from './GpuSection';
 import { StorageSection } from './StorageSection';
-import type { DiagnosticsCoolingResponse, DiagnosticsGpuResponse, DiagnosticsSmartResponse } from '../../../api/diagnostics';
+import type { DiagnosticsCoolingResponse, DiagnosticsSmartResponse } from '../../../api/diagnostics';
 
 // The hook itself is covered through the real provider in
 // useUiSettings.test.tsx; here it is stubbed so each section's wiring - which
@@ -37,14 +36,6 @@ const smart: DiagnosticsSmartResponse = {
 const cooling: DiagnosticsCoolingResponse = {
   supported: true,
   devices: [{ id: 'pump-1', name: 'Pump', type: 'pump', rpm: 0, targetDutyPercent: 60, status: 'stalled', sinceUtc: '2026-01-01T00:00:00Z' }],
-};
-
-const gpu: DiagnosticsGpuResponse = {
-  supported: true,
-  gpus: [{
-    name: 'RTX 5080', driverVersion: null, temperatureC: null, powerW: null, recentTdrCount: 0,
-    throttle: { active: [], swPowerCapUs: null, swThermalUs: null, hwThermalUs: null, hwPowerBrakeUs: null },
-  }],
 };
 
 beforeEach(() => {
@@ -83,11 +74,5 @@ describe('per-device ignore wiring', () => {
     expect(screen.queryByText('diagnostics.cooling.status.stalled')).not.toBeInTheDocument();
     expect(screen.queryByText(/diagnostics.cooling.since/)).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'diagnostics.monitor.label' })).toHaveAttribute('aria-checked', 'false');
-  });
-
-  it('a GPU card uses its NVML ordinal as the id', () => {
-    render(<GpuSection data={gpu} loading={false} error={false} onRefresh={() => {}} />);
-    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.monitor.label' }));
-    expect(h.toggle).toHaveBeenCalledWith('gpu:0');
   });
 });
