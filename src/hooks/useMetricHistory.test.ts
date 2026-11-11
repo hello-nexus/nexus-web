@@ -1198,4 +1198,48 @@ describe('useMetricHistory', () => {
       await Promise.resolve();
     });
   });
+
+  describe('custom fetcher (no push topic)', () => {
+    type Result = { data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean };
+    const alertResp = (points: { t: number; avg: number; max: number }[]): MetricHistoryResponse => (
+      { supported: true, retentionDays: 90, stepSeconds: 5, series: [{ id: 'r1', kind: 'sensorAlert', name: 'CPU', points }] }
+    );
+
+    it('keeps the older window points when the tail poll appends newer ones, and polls on', async () => {
+      const older = Array.from({ length: 6 }, (_, i) => ({ t: NOW - 25 * MINUTE + i * 5000, avg: 40 + i, max: 41 + i }));
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async q => ({
+        data: q.maxPoints === 50 ? alertResp([{ t: NOW + 2000, avg: 60, max: 60 }]) : alertResp(older),
+        mocked: false, unsupported: false,
+      }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));
+      await advance(0);
+
+      expect(result.current.series.find(s => s.id === 'r1')!.points.slice(0, older.length)).toEqual(older);
+
+      fetcher.mockClear();
+      await advance(5000);
+      expect(fetcher.mock.calls.some(([q]) => q.maxPoints === 50)).toBe(true);
+      const points = result.current.series.find(s => s.id === 'r1')!.points;
+      expect(points.slice(0, older.length)).toEqual(older);
+      expect(points[points.length - 1].t).toBe(NOW + 2000);
+    });
+
+    it('does not call the monitoring source, and with fillBox the chart window is the whole strip', async () => {
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));
+      await advance(0);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(result.current.domain).toEqual(result.current.stripDomain);
+      act(() => { result.current.setRange('3h'); });
+      expect(result.current.domain[1] - result.current.domain[0]).toBe(3 * HOUR);
+      expect(result.current.domain).toEqual(result.current.stripDomain);
+    });
+
+    it('keeps the default sixth-of-strip window without fillBox', async () => {
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      expect(result.current.domain[1] - result.current.domain[0]).toBe(5 * MINUTE);
+    });
+  });
 });

@@ -28,7 +28,7 @@ import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
 import { SettingsTab } from './SettingsTab';
 import { SensorsTab } from './SensorsTab';
-import { SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
+import { SENSOR_HISTORY_OPTIONS, SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
 import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
 import { DEFAULT_INCIDENT_RANGE_HOURS, type IncidentRangeHours } from './incidentTimelineHelpers';
@@ -114,7 +114,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // tab), but the hook instance lives here (not in CoolingTab) so its
   // viewport/cache survive switching away from and back to the tab.
   const isSensorsTab = tab === 'sensors';
-  const sensorHistory = useMetricHistory(serviceOnline && isSensorsTab, isSensorsTab ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory);
+  const sensorHistory = useMetricHistory(serviceOnline && isSensorsTab, isSensorsTab ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory, SENSOR_HISTORY_OPTIONS);
   const isCoolingTab = tab === 'cooling';
   const coolingHistory = useMetricHistory(serviceOnline && isCoolingTab, isCoolingTab ? COOLING_HISTORY_SERIES_QUERY : '');
 

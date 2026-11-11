@@ -189,7 +189,18 @@ function seriesMatchesQuery(s: MetricHistorySeries, query: string): boolean {
  * scrub position. Seq-guarded like useDiagnosticsTemperatures - a stale
  * response for an outdated request is dropped.
  */
-export function useMetricHistory(enabled: boolean, seriesQuery: string, fetcher: MetricHistoryFetcher = fetchMonitoringHistory): UseMetricHistoryResult {
+export interface MetricHistoryOptions {
+  /** The chart window is the whole range the picker names, not the default sixth of it. */
+  fillBox?: boolean;
+}
+
+export function useMetricHistory(
+  enabled: boolean,
+  seriesQuery: string,
+  fetcher: MetricHistoryFetcher = fetchMonitoringHistory,
+  options: MetricHistoryOptions = {},
+): UseMetricHistoryResult {
+  const fillBoxRef = useRef(options.fillBox ?? false);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   // A custom source has no push topic, so its live edge is polled instead.
@@ -201,7 +212,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string, fetcher:
   // guard below).
   const [bootstrapNow] = useState(() => Date.now());
   const nowRef = useRef(bootstrapNow);
-  const [viewport, setViewport] = useState<ViewportState>(() => initViewport(nowRef.current));
+  const [viewport, setViewport] = useState<ViewportState>(() => initViewport(nowRef.current, fillBoxRef.current));
   const viewportRef = useRef(viewport);
   useEffect(() => { viewportRef.current = viewport; }, [viewport]);
   const seriesQueryRef = useRef(seriesQuery);
@@ -649,7 +660,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string, fetcher:
 
   useEffect(() => {
     if (!pollsTail || !tailActive) return undefined;
-    const timer = window.setInterval(() => { if (!tailInFlightRef.current) runTailGapFill(); }, TAIL_POLL_MS);
+    const timer = window.setInterval(() => runTailGapFill(), TAIL_POLL_MS);
     return () => window.clearInterval(timer);
   }, [pollsTail, tailActive, runTailGapFill]);
 
@@ -678,7 +689,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string, fetcher:
     setDragging(false);
     clearDragTimers();
     setViewport(prev => {
-      const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
+      const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current, fillBox: fillBoxRef.current });
       // A wide preset (e.g. 7d) picked on a shorter-retention install must
       // not leave the strip past what the server actually keeps.
       return viewportReducer(next, { type: 'retentionClamp', retentionMs: retentionDaysRef.current * DAY_MS, now: nowRef.current });
