@@ -54,22 +54,23 @@ export function pickerPointFor(hex: string): PickerPoint {
 }
 
 /**
- * The segmented view samples the same field on a coarse grid - twelve hues, one
- * every 30 degrees starting at pure red, so the six primaries are all on it. The rows are lightness stops, not an even split of the axis:
- * the centre stop is the pure hue (full saturation and value), three tints run
- * above it and three shades below, and the ends pull in from white and black,
- * which an LED renders as blown out and as off.
+ * The segmented view samples the same field on a coarse grid. Hues sit on
+ * column starts, evenly spaced from pure red, so the primaries are all on it.
+ * The rows are lightness stops, not an even split of the axis: the centre stop
+ * is the pure hue (full saturation and value), tints run above it and shades
+ * below, and the ends pull in from white and black, which an LED renders as
+ * blown out and as off.
  */
 export const PICKER_SEGMENT_COLS = 12;
 const SEGMENT_ROW_L = [0.84, 0.727, 0.613, 0.5, 0.393, 0.287, 0.18];
 export const PICKER_SEGMENT_ROWS = SEGMENT_ROW_L.length;
 
 /**
- * The cell a point falls in. Swatches sit on column starts, so the column is the
- * nearest hue with wraparound (a hue just below 360 belongs to column 0). Rows
- * resolve by nearest lightness stop, not by an even split of the axis: the stops
- * are uneven, so an even split cannot reach the row whose stop sits outside its
- * own band.
+ * The cell whose swatch is nearest a point. Swatches sit on column starts, so
+ * the column is the nearest hue, wrapping around to column 0 past the last one.
+ * Rows resolve by nearest lightness stop, not by an even split of the axis: the
+ * stops are uneven, so an even split cannot reach the row whose stop sits
+ * outside its own band.
  */
 export function segmentCellFor(x: number, y: number): { col: number; row: number } {
   const col = Math.round(clamp01(x) * PICKER_SEGMENT_COLS) % PICKER_SEGMENT_COLS;

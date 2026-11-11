@@ -1,5 +1,6 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { hsvToHex } from '../../../../lib/settings';
 import { StaticPickerCanvas } from './StaticPickerCanvas';
 import {
   PICKER_ACTIVE_MS, PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES, pickerHexAt,
@@ -12,12 +13,21 @@ vi.mock('../../../../lib/i18n', () => ({
 const W = 1200;
 const H = 700;
 
-function setup(segmented = true) {
+function renderWith(devices: { id: string; name: string; hex: string }[]) {
+  return render(
+    <StaticPickerCanvas
+      devices={devices} hex="" segmented patternEffect={null} patternSlot={0}
+      patternVersion="" gpuAvailable={false} onPreview={vi.fn()} onCommit={vi.fn()}
+    />,
+  );
+}
+
+function setup(segmented = true, devices: { id: string; name: string; hex: string }[] = []) {
   const onPreview = vi.fn();
   const onCommit = vi.fn();
   const { container } = render(
     <StaticPickerCanvas
-      devices={[]} hex="" segmented={segmented} patternEffect={null} patternSlot={0}
+      devices={devices} hex="" segmented={segmented} patternEffect={null} patternSlot={0}
       patternVersion="" gpuAvailable={false} onPreview={onPreview} onCommit={onCommit}
     />,
   );
@@ -27,6 +37,12 @@ function setup(segmented = true) {
   });
   field.setPointerCapture = vi.fn();
   return { field, onPreview, onCommit };
+}
+
+// jsdom has no layout, so the field's measured size is stubbed.
+function stubFieldSize() {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(W);
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(H);
 }
 
 const cellPoint = (col: number, row: number) => ({
@@ -154,5 +170,36 @@ describe('StaticPickerCanvas touch', () => {
     fireEvent.pointerUp(field, { pointerId: 1 });
     expect(onPreview).not.toHaveBeenCalledWith(swatch(11, 6));
     expect(onCommit).toHaveBeenCalledWith(swatch(3, 2));
+  });
+});
+
+describe('StaticPickerCanvas segmented marker', () => {
+  beforeEach(() => stubFieldSize());
+  afterEach(() => vi.restoreAllMocks());
+
+  const outline = (container: HTMLElement) =>
+    container.querySelector('[class*="staticCell"]') as HTMLElement;
+  const pin = (el: HTMLElement) => el.parentElement as HTMLElement;
+
+  it('centers the cell outline on the swatch of a device sitting on one', () => {
+    const { container } = renderWith([{ id: 'a', name: 'A', hex: swatch(0, 3) }]);
+    const cell = outline(container);
+    expect(pin(cell).style.left).toBe(`${0.5 * (W / PICKER_SEGMENT_COLS)}px`);
+    expect(pin(cell).style.top).toBe(`${3.5 * (H / PICKER_SEGMENT_ROWS)}px`);
+    expect(cell.className).not.toContain('staticCellInexact');
+  });
+
+  it('marks pure red exactly on its own cell', () => {
+    const { container } = renderWith([{ id: 'a', name: 'A', hex: '#ff0000' }]);
+    const cell = outline(container);
+    expect(pin(cell).style.left).toBe(`${0.5 * (W / PICKER_SEGMENT_COLS)}px`);
+    expect(cell.className).not.toContain('staticCellInexact');
+  });
+
+  it('puts a hue just short of a full turn on the first column', () => {
+    const { container } = renderWith([{ id: 'a', name: 'A', hex: hsvToHex(350, 100, 100) }]);
+    const cell = outline(container);
+    expect(pin(cell).style.left).toBe(`${0.5 * (W / PICKER_SEGMENT_COLS)}px`);
+    expect(cell.className).toContain('staticCellInexact');
   });
 });

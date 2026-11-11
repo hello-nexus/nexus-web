@@ -207,6 +207,17 @@ describe('LightingTouch pins', () => {
     expect(typeof pickerProps.current!.onCommit).toBe('function');
   });
 
+  it('snaps a near-red pick to pure red when the Swatches tile is pressed', async () => {
+    vi.mocked(fetchPins).mockImplementation(() => Promise.resolve({ 'dev-a': { kind: 'static', effect: 'flat', color: '#fb0a0a', slot: 0 } }));
+    render(<LightingTouch widget={widget} />);
+    await select(['dev-a']);
+
+    fireEvent.click(await screen.findByText('lighting.static.pickerSegmented'));
+
+    await waitFor(() => expect(setPins).toHaveBeenCalled());
+    expect(lastPins()[1]).toMatchObject({ kind: 'static', effect: 'flat', color: '#ff0000' });
+  });
+
   // A finger drag has to reach the hardware on every move.
   it('pins a dragged color on the selected devices', async () => {
     render(<LightingTouch widget={widget} />);
