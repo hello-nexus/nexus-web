@@ -10,17 +10,25 @@ import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
  * value - e.g. the per-device effective-brightness indicator - use this.
  */
 export function useGlobalBrightness(): number | null {
-  const [percent, setPercent] = useState<number | null>(null);
+  return useGlobalBrightnessState().percent;
+}
+
+/**
+ * The master brightness percent and whether it multiplies each device instead
+ * of capping it, from one fetch of the same endpoint.
+ */
+export function useGlobalBrightnessState(): { percent: number | null; scales: boolean } {
+  const [state, setState] = useState<{ percent: number | null; scales: boolean }>({ percent: null, scales: false });
 
   const refresh = useCallback(() => {
     fetchGlobalBrightness().then(data => {
       if (!data) return;
-      setPercent(Math.round(Math.max(0, Math.min(1, data.value)) * 100));
+      setState({ percent: Math.round(Math.max(0, Math.min(1, data.value)) * 100), scales: data.masterScalesDevices === true });
     }).catch(() => { /* best-effort */ });
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
   useTopicCallback('lighting', true, refresh);
 
-  return percent;
+  return state;
 }

@@ -47,6 +47,14 @@ interface TopicListener {
 // consumers ("refetch on push") would interpret a replayed stale frame
 // as a real server push and trigger unnecessary refetches.
 const lastFrameCache = new Map<string, unknown>();
+// Entries live only while the topic is continuously subscribed on a live socket.
+const lastFrameAt = new Map<string, number>();
+
+/** Milliseconds since the topic's last frame while it stayed live; 0 otherwise. */
+export function topicFrameAgeMs(topic: string): number {
+  const at = lastFrameAt.get(topic);
+  return at === undefined ? 0 : performance.now() - at;
+}
 
 // Live counters read by the renderer memory probe (src/diag/memoryProbe.ts).
 // `opens` increments on every transport open, so `opens - 1` approximates the
@@ -276,6 +284,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     clearTimeout(reconnectTimer.current);
     clearTimeout(directRetryTimerRef.current);
     directRetryTimerRef.current = undefined;
+    lastFrameAt.clear();
     if (wsRef.current) {
       wsRef.current.onclose = null;
       wsRef.current.close();
@@ -498,6 +507,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
         const msg = parsed as { t: string; d: unknown };
         markServiceAnswered();
         lastFrameCache.set(msg.t, msg.d);
+        if (topicsRef.current.has(msg.t)) lastFrameAt.set(msg.t, performance.now());
         const entry = topicsRef.current.get(msg.t);
         if (entry) {
           for (const listener of entry.listeners) {
@@ -510,6 +520,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
     transport.onclose = (event) => {
       multiplexDiag.connected = false;
       multiplexDiag.transport = null;
+      lastFrameAt.clear();
       setConnected(false);
       setTransport(null);
       setActiveTransport(null);
@@ -911,6 +922,7 @@ export function useMultiplexConnection(enabled: boolean, wired = false): Multipl
 
     if (entry.refCount <= 0) {
       topics.delete(topic);
+      lastFrameAt.delete(topic);
       multiplexDiag.topics = topics.size;
       pendingSubsRef.current.delete(topic);
       const ws = wsRef.current;

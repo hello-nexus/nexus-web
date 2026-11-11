@@ -62,7 +62,9 @@ export type HostToRenderer =
   | { type: 'visible'; visible: boolean }
   | { type: 'pacing'; pacing: FramePacing }
   | { type: 'asset-result'; id: number; data: ArrayBuffer }
-  | { type: 'asset-error'; id: number; message: string };
+  | { type: 'asset-error'; id: number; message: string }
+  /** Reply to a net-fetch: the proxy envelope, or null when the request was refused. */
+  | { type: 'net-result'; id: number; result: unknown };
 
 /** Messages the renderer worker sends to the host. */
 export type RendererToHost =
@@ -70,6 +72,9 @@ export type RendererToHost =
   | { type: 'ready' }
   | { type: 'post'; data: unknown }
   | { type: 'read-asset'; id: number; path: string }
+  /** Posted by the worker's fetch guard for an https GET; never by renderer code. */
+  | { type: 'net-fetch'; id: number; url: string }
+  | { type: 'net-abort'; id: number }
   | { type: 'error'; message: string }
   | { type: 'rejection'; message: string };
 
