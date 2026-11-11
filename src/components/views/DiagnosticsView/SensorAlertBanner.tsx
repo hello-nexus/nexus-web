@@ -15,7 +15,7 @@ interface SensorAlertBannerProps {
   onDismiss: () => Promise<boolean>;
 }
 
-/** The banner for one active sensor alert, the same Notice as the Cooling tab's thermal guard trip: warning for a watch rule, critical for an act rule. */
+/** The banner for one sensor alert, the same Notice as the Cooling tab's thermal guard trip: warning for a watch rule, critical for an active act rule. A finished alert stays as a warning until dismissed. */
 export function SensorAlertBanner({ rule, state, nowMs, onDismiss }: SensorAlertBannerProps) {
   const { t, language } = useTranslation();
   const prefs = useUnitPrefs();
@@ -24,7 +24,7 @@ export function SensorAlertBanner({ rule, state, nowMs, onDismiss }: SensorAlert
 
   return (
     <Notice
-      tone={rule.severity === 'act' ? 'critical' : 'warning'}
+      tone={state.state === 'active' && rule.severity === 'act' ? 'critical' : 'warning'}
       role="status"
       actions={(
         <Button

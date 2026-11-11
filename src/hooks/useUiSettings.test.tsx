@@ -396,13 +396,13 @@ describe('UiSettingsProvider - debounced write merge', () => {
     });
     await flush();
 
-    await act(async () => { captured.ctx!.update({ diagnosticsCpuTempC: 80 }); });
-    await act(async () => { captured.ctx!.update({ diagnosticsGpuTempC: 75 }); });
+    await act(async () => { captured.ctx!.update({ diagnosticsSensorNotifications: false }); });
+    await act(async () => { captured.ctx!.update({ diagnosticsSensorCooldownMinutes: 120 }); });
     await act(async () => { await new Promise(r => setTimeout(r, 300)); });
 
     expect(h.savePreferences).toHaveBeenCalledTimes(1);
     expect(h.savePreferences).toHaveBeenCalledWith({
-      diagnostics: { thresholds: { cpuC: 80, gpuC: 75 } },
+      diagnostics: { notifications: { sensorAlerts: false, sensorCooldownMinutes: 120 } },
     });
   });
 });

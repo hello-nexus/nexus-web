@@ -16,15 +16,17 @@ const h = vi.hoisted(() => ({
   save: vi.fn(),
   remove: vi.fn(),
   acknowledge: vi.fn(),
+  resetBuiltIns: vi.fn(),
   push: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
     rules: h.rules, states: h.states, loaded: h.loaded, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
-    add: h.add, save: h.save, remove: h.remove, acknowledge: h.acknowledge, preview: vi.fn(),
+    add: h.add, save: h.save, remove: h.remove, acknowledge: h.acknowledge, resetBuiltIns: h.resetBuiltIns, preview: vi.fn(),
   }),
 }));
+vi.mock('./SensorNotificationSettings', () => ({ SensorNotificationSettings: () => <div data-testid="sensor-notifications" /> }));
 vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: h.push }) }));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({
   sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'cpu' ? [{ value: 'cpu/temp/0', type: 'Temperature' }] : []),
@@ -92,6 +94,7 @@ beforeEach(() => {
   h.add.mockResolvedValue({ result: 'created', rule: rule('new') });
   h.acknowledge.mockResolvedValue(true);
   h.remove.mockResolvedValue(true);
+  h.resetBuiltIns.mockResolvedValue(true);
 });
 
 describe('SensorsTab', () => {
@@ -103,12 +106,12 @@ describe('SensorsTab', () => {
     expect(h.add.mock.calls[0][0]).toMatchObject({ sensor: { category: 'cpu', id: 'cpu/temp/0', type: 'Temperature' }, low: null });
   });
 
-  it('puts Add sensor at the top of the tab, disabled with the limit text at ten rules', () => {
-    h.rules = Array.from({ length: 10 }, (_, i) => rule(`r${i}`));
+  it('puts Add sensor at the top of the tab, disabled with the limit text at the rule limit', () => {
+    h.rules = Array.from({ length: 20 }, (_, i) => rule(`r${i}`));
     h.atLimit = true;
     render(<SensorsTab {...props()} />);
     expect(screen.getByTestId('sensor-add')).toBeDisabled();
-    expect(screen.getByText('diagnostics.alerts.limitNote(max=10)')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.limitNote(max=20)')).toBeInTheDocument();
   });
 
   it('keeps Add sensor enabled below the limit', () => {
@@ -219,6 +222,37 @@ describe('SensorsTab', () => {
     expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.deleteFailed' });
   });
 
+  describe('built-in sensors', () => {
+    const builtIn = (id: string, kind: SensorAlertRule['builtIn']) => rule(id, {
+      builtIn: kind, sensor: { category: 'builtin', id: id.replace('builtin-', ''), name: 'CPU', type: 'Temperature', parentName: '' },
+    });
+
+    it('groups the built-ins apart from the user sensors and restores them all or one at a time', () => {
+      h.rules = [builtIn('builtin-cpu', 'cpuTemp'), builtIn('builtin-gpu', 'gpuTemp'), rule('r1')];
+      render(<SensorsTab {...props()} />);
+      expect(within(screen.getByTestId('sensor-group-builtin')).getAllByTestId('sensor-row')).toHaveLength(2);
+      expect(within(screen.getByTestId('sensor-group-custom')).getAllByTestId('sensor-row')).toHaveLength(1);
+      expect(screen.getByText('diagnostics.sensors.group.builtIn')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('sensor-restore-all'));
+      expect(h.resetBuiltIns).toHaveBeenCalledWith(undefined);
+    });
+
+    it('toasts when a restore is refused', async () => {
+      h.rules = [builtIn('builtin-cpu', 'cpuTemp')];
+      h.resetBuiltIns.mockResolvedValue(false);
+      render(<SensorsTab {...props()} />);
+      await act(async () => { fireEvent.click(screen.getByTestId('sensor-restore-all')); });
+      expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' });
+    });
+
+    it('has no group heading for the user sensors while there are no built-ins', () => {
+      h.rules = [rule('r1')];
+      render(<SensorsTab {...props()} />);
+      expect(screen.queryByTestId('sensor-group-builtin')).toBeNull();
+      expect(screen.queryByText('diagnostics.sensors.group.custom')).toBeNull();
+    });
+  });
+
   describe('active alert banner', () => {
     const active = (id: string, over: Partial<SensorAlertState> = {}) => state(id, {
       state: 'active', direction: 'above', value: 10, extreme: 10.1, since: '2026-11-10T21:09:00', ...over,
@@ -249,6 +283,18 @@ describe('SensorsTab', () => {
       render(<SensorsTab {...props()} />);
       expect(screen.getByRole('status')).toHaveTextContent('diagnostics.alerts.banner.below(name=PSU Output,limit=3 A,');
       expect(screen.getByRole('status')).toHaveTextContent('peak=1.5 A');
+    });
+
+    it('keeps a banner for a finished alert until it is dismissed, as a warning even for an act rule', () => {
+      h.rules = [rule('r1', { severity: 'act', high: 9.5, sensor: current() })];
+      h.states = [state('r1', { endedAt: '2026-11-10T22:00:00', endedPeak: 10.4, endedThreshold: 9.5, endedDirection: 'above' })];
+      render(<SensorsTab {...props()} />);
+      const banner = screen.getByRole('status');
+      expect(banner).toHaveAttribute('data-tone', 'warning');
+      expect(banner).toHaveTextContent('diagnostics.alerts.banner.ended.above(name=PSU Output,limit=9.5 A,peak=10.4 A)');
+      expect(banner).toHaveTextContent('diagnostics.alerts.banner.ended.detail');
+      fireEvent.click(screen.getByTestId('sensor-banner-dismiss'));
+      expect(h.acknowledge).toHaveBeenCalledWith('r1');
     });
 
     it('shows no banner for an ok, acknowledged or disabled alert', () => {

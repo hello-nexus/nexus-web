@@ -4,6 +4,7 @@ import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnostics
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { SensorsTab } from './SensorsTab';
 
+vi.mock('./SensorNotificationSettings', () => ({ SensorNotificationSettings: () => null }));
 vi.mock('../../../search/scroll', () => ({ requestSearchScroll: vi.fn() }));
 
 const h = vi.hoisted(() => ({
@@ -155,11 +156,11 @@ describe('SensorsTab editing', () => {
     expect(screen.getByTestId('sensor-settings')).toBeInTheDocument();
   });
 
-  it('disables Add at ten rules and explains why', async () => {
-    const rules = Array.from({ length: 10 }, (_, i) => rule(`r${i}`));
+  it('disables Add at the rule limit and explains why', async () => {
+    const rules = Array.from({ length: 20 }, (_, i) => rule(`r${i}`));
     await renderSection(rules);
     expect(screen.getByTestId('sensor-add')).toBeDisabled();
-    expect(screen.getByText('diagnostics.alerts.limitNote(max=10)')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.limitNote(max=20)')).toBeInTheDocument();
   });
 
   it('keeps Add enabled below the limit', async () => {

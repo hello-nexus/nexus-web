@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import type { SensorAlertRule, SensorAlertSeverity } from '../../../api/diagnosticsAlerts';
+import type { SensorAlertRule, SensorAlertSeverity, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { Button } from '../../common/Button/Button';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -15,6 +15,7 @@ import {
   ALERT_SENSOR_TYPES,
   REPEAT_OPTIONS_MINUTES,
   baseBounds,
+  builtInLimitBounds,
   defaultHigh,
   delayChoices,
   delayLabel,
@@ -22,9 +23,10 @@ import {
   formatAlertValue,
   formatDisplayValue,
   fromDisplay,
+  isBuiltIn,
   seedBound,
   snapDisplay,
-  sensorLabel,
+  ruleLabel,
   sensorRefOf,
   stepFor,
   toDisplay,
@@ -45,10 +47,14 @@ interface SensorAlertRuleSettingsProps {
   /** Writes the full rule. */
   onSave: (rule: SensorAlertRule) => void;
   onDelete: () => void;
+  /** The rule's live state, the only reading source for a built-in. */
+  state?: SensorAlertState;
+  /** Writes a built-in back to its factory values. */
+  onRestoreDefault?: () => void;
 }
 
 /** The editable settings of one tracked sensor: the sensor, its alert limits, delays, severity and delivery options. Shown inside the sensor's card. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete }: SensorAlertRuleSettingsProps) {
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, state, onRestoreDefault }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -56,12 +62,13 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   const [hidden, setHidden] = useState<{ low: number | null; high: number | null }>({ low: null, high: null });
 
   const type = rule.sensor.type;
-  const live = lookup.resolve(rule.sensor.category, rule.sensor.id)?.value ?? null;
+  const builtIn = isBuiltIn(rule);
+  const live = builtIn ? (state?.value ?? null) : (lookup.resolve(rule.sensor.category, rule.sensor.id)?.value ?? null);
 
   // Track extent in the stored unit. It only grows once chosen, so the knobs do not move under a
   // drag as the reading wanders.
-  const [bounds, setBounds] = useState<Bounds>(() => baseBounds(type, live, rule.low, rule.high));
-  const wanted = widenBounds(bounds, [rule.low, rule.high, live]);
+  const [bounds, setBounds] = useState<Bounds>(() => builtInLimitBounds(rule) ?? baseBounds(type, live, rule.low, rule.high));
+  const wanted = widenBounds(bounds, builtIn ? [rule.low, rule.high] : [rule.low, rule.high, live]);
   if (wanted.min !== bounds.min || wanted.max !== bounds.max) setBounds(wanted);
   const shown = displayBounds(bounds, type, tempUnit);
 
@@ -110,38 +117,44 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
 
   return (
     <>
-      <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
-        <SensorPicker
-          lookup={lookup}
-          category={rule.sensor.category}
-          sensor={rule.sensor.id}
-          categories={ALERT_SENSOR_CATEGORIES}
-          sensorTypes={ALERT_SENSOR_TYPES}
-          onChange={(sel, resolved) => {
-            if (!resolved) return;
-            const ref = sensorRefOf(sel.category, resolved);
-            const typeChanged = ref.type !== type;
-            const next: SensorAlertRule = typeChanged
-              ? { ...rule, sensor: ref, low: null, high: defaultHigh(ref.type, resolved.value) }
-              : { ...rule, sensor: ref };
-            if (typeChanged) {
-              setBounds(baseBounds(ref.type, resolved.value, next.low, next.high));
-              setHidden({ low: null, high: null });
-            }
-            onSave(next);
-          }}
-        />
-      </SettingRow>
-      <SettingToggle
-        label={t('diagnostics.alerts.below')}
-        checked={lowOn}
-        onChange={on => toggleSide('low', on)}
-      />
-      <SettingToggle
-        label={t('diagnostics.alerts.above')}
-        checked={highOn}
-        onChange={on => toggleSide('high', on)}
-      />
+      {!builtIn && (
+        <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
+          <SensorPicker
+            lookup={lookup}
+            category={rule.sensor.category}
+            sensor={rule.sensor.id}
+            categories={ALERT_SENSOR_CATEGORIES}
+            sensorTypes={ALERT_SENSOR_TYPES}
+            onChange={(sel, resolved) => {
+              if (!resolved) return;
+              const ref = sensorRefOf(sel.category, resolved);
+              const typeChanged = ref.type !== type;
+              const next: SensorAlertRule = typeChanged
+                ? { ...rule, sensor: ref, low: null, high: defaultHigh(ref.type, resolved.value) }
+                : { ...rule, sensor: ref };
+              if (typeChanged) {
+                setBounds(baseBounds(ref.type, resolved.value, next.low, next.high));
+                setHidden({ low: null, high: null });
+              }
+              onSave(next);
+            }}
+          />
+        </SettingRow>
+      )}
+      {!builtIn && (
+        <>
+          <SettingToggle
+            label={t('diagnostics.alerts.below')}
+            checked={lowOn}
+            onChange={on => toggleSide('low', on)}
+          />
+          <SettingToggle
+            label={t('diagnostics.alerts.above')}
+            checked={highOn}
+            onChange={on => toggleSide('high', on)}
+          />
+        </>
+      )}
       <div className={styles.sliderBlock}>
         <RangeSlider
           orientation={STACKED}
@@ -205,14 +218,20 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         />
       </SettingRow>
       <SettingRow>
-        <Button type="button" tone="neutral" size="sm" data-testid="sensor-delete" icon={<Trash2 size={13} aria-hidden />} onClick={() => setConfirmOpen(true)}>
-          {t('common.delete')}
-        </Button>
+        {builtIn ? (
+          <Button type="button" tone="neutral" size="sm" data-testid="sensor-restore" icon={<RotateCcw size={13} aria-hidden />} onClick={onRestoreDefault}>
+            {t('diagnostics.sensors.restoreDefault')}
+          </Button>
+        ) : (
+          <Button type="button" tone="neutral" size="sm" data-testid="sensor-delete" icon={<Trash2 size={13} aria-hidden />} onClick={() => setConfirmOpen(true)}>
+            {t('common.delete')}
+          </Button>
+        )}
       </SettingRow>
       <ConfirmModal
         open={confirmOpen}
         title={t('common.delete')}
-        message={t('diagnostics.alerts.deleteConfirm', { name: sensorLabel(rule.sensor) })}
+        message={t('diagnostics.alerts.deleteConfirm', { name: ruleLabel(t, rule) })}
         confirmLabel={t('common.delete')}
         destructive
         onConfirm={() => { setConfirmOpen(false); onDelete(); }}

@@ -5,6 +5,7 @@ import {
   createSensorAlert,
   deleteSensorAlert,
   fetchSensorAlerts,
+  resetBuiltInSensorAlerts,
   updateSensorAlert,
   type NewSensorAlertRule,
   type SensorAlertRule,
@@ -31,6 +32,8 @@ export interface UseSensorAlerts {
   add: (rule: NewSensorAlertRule) => Promise<SensorAlertAddResult>;
   remove: (id: string) => Promise<boolean>;
   acknowledge: (id: string) => Promise<boolean>;
+  /** Writes the factory state back to one built-in, or all four without an id. */
+  resetBuiltIns: (id?: string) => Promise<boolean>;
   refresh: () => void;
 }
 
@@ -177,7 +180,19 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
   const acknowledge = useCallback(async (id: string) => {
     const res = await acknowledgeSensorAlert(id);
     if (res.ok && mountedRef.current) {
-      setStates(prev => prev.map(s => (s.ruleId === id ? { ...s, acknowledged: true } : s)));
+      setStates(prev => prev.map(s => (s.ruleId === id ? { ...s, acknowledged: true, endedAt: null, endedPeak: null, endedThreshold: null, endedDirection: null } : s)));
+    }
+    return res.ok;
+  }, []);
+
+  const resetBuiltIns = useCallback(async (id?: string) => {
+    const res = await resetBuiltInSensorAlerts(id);
+    if (!mountedRef.current) return res.ok;
+    if (res.ok && res.data) {
+      // Edits still queued for a reset rule would write the old values back over it.
+      for (const rule of res.data.rules) pendingRef.current.delete(rule.id);
+      setRules(res.data.rules);
+      setStates(res.data.states);
     }
     return res.ok;
   }, []);
@@ -185,6 +200,6 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
   return {
     rules, states, loading, loaded, error,
     atLimit: rules.length >= MAX_SENSOR_ALERT_RULES,
-    preview: replaceRule, save, add, remove, acknowledge, refresh: load,
+    preview: replaceRule, save, add, remove, acknowledge, resetBuiltIns, refresh: load,
   };
 }

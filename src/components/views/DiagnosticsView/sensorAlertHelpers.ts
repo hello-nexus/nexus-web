@@ -1,4 +1,4 @@
-import type { NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
+import type { BuiltInSensorKind, NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import type { Language } from '../../../lib/settings';
 import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
@@ -237,6 +237,48 @@ export function sensorLabel(sensor: SensorRef): string {
   return `${parentName} ${name}`;
 }
 
+/** Locale key of each built-in rule's display name. */
+const BUILT_IN_LABEL_KEYS: Record<BuiltInSensorKind, string> = {
+  cpuTemp: 'diagnostics.sensors.builtin.cpu',
+  gpuTemp: 'diagnostics.sensors.builtin.gpu',
+  storageTemp: 'diagnostics.sensors.builtin.storage',
+  ramTemp: 'diagnostics.sensors.builtin.ram',
+};
+
+/** Native bounds (Celsius) the service clamps a built-in's upper limit to. */
+const BUILT_IN_LIMIT_BOUNDS: Record<BuiltInSensorKind, Bounds> = {
+  cpuTemp: { min: 60, max: 105 },
+  gpuTemp: { min: 60, max: 105 },
+  storageTemp: { min: 40, max: 90 },
+  ramTemp: { min: 40, max: 90 },
+};
+
+/** A built-in component temperature rule: always present, can be turned off but not deleted. */
+export function isBuiltIn(rule: SensorAlertRule): boolean {
+  return Boolean(rule.builtIn);
+}
+
+/** The slider bounds of a built-in's limit, or null for a user rule. */
+export function builtInLimitBounds(rule: SensorAlertRule): Bounds | null {
+  return rule.builtIn ? BUILT_IN_LIMIT_BOUNDS[rule.builtIn] : null;
+}
+
+/** A rule's name: localized for a built-in, else the sensor's own label. */
+export function ruleLabel(t: (key: string, params?: Record<string, string | number>) => string, rule: SensorAlertRule): string {
+  return rule.builtIn ? t(BUILT_IN_LABEL_KEYS[rule.builtIn]) : sensorLabel(rule.sensor);
+}
+
+/** The localized name of a built-in from a health reason's `builtIn` param; undefined for a user rule or an unknown kind. */
+export function builtInParamLabel(t: (key: string) => string, builtIn: string | undefined): string | undefined {
+  const key = builtIn ? BUILT_IN_LABEL_KEYS[builtIn as BuiltInSensorKind] : undefined;
+  return key ? t(key) : undefined;
+}
+
+/** A finished alert still waiting for the user to dismiss it. */
+export function hasEndedAlert(state: SensorAlertState | undefined): state is SensorAlertState {
+  return Boolean(state?.endedAt);
+}
+
 /** The one-line text of an active alert: the sensor, its limit and the current reading, in the user's units. */
 export function alertLine(
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -245,18 +287,25 @@ export function alertLine(
   prefs: AlertUnitPrefs,
 ): string {
   const type = rule.sensor.type;
-  const below = state.direction === 'below';
+  const ended = state.state !== 'active' && hasEndedAlert(state);
+  const below = (ended ? state.endedDirection : state.direction) === 'below';
   const fmt = (v: number | null | undefined) => (v == null ? '-' : formatAlertValue(v, type, prefs.monitoringTempUnit, prefs.numberFormat, prefs.monitoringWholeNumbers));
+  if (ended) {
+    return t(below ? 'diagnostics.alerts.banner.ended.below' : 'diagnostics.alerts.banner.ended.above', {
+      name: ruleLabel(t, rule), limit: fmt(state.endedThreshold ?? (below ? rule.low : rule.high)), peak: fmt(state.endedPeak),
+    });
+  }
   return t(below ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
-    name: sensorLabel(rule.sensor), limit: fmt(below ? rule.low : rule.high), value: fmt(state.value ?? state.extreme),
+    name: ruleLabel(t, rule), limit: fmt(below ? rule.low : rule.high), value: fmt(state.value ?? state.extreme),
   });
 }
 
 export interface AlertBannerPrefs extends AlertUnitPrefs { timeFormat: TimeFormat; dateFormat: DateFormat }
 
-/** An alert still waiting to be dismissed: the rule is on, its state is active and nobody acknowledged it. */
+/** An alert still waiting to be dismissed: the rule is on and either active and not acknowledged, or finished and not dismissed. */
 export function isBannerAlert(rule: SensorAlertRule, state: SensorAlertState | undefined): state is SensorAlertState {
-  return rule.enabled && state?.state === 'active' && !state.acknowledged;
+  if (!rule.enabled || !state) return false;
+  return state.state === 'active' ? !state.acknowledged : hasEndedAlert(state);
 }
 
 /** When the alert began, in local time: the clock time for today, with the date for an earlier day. */
@@ -272,7 +321,7 @@ function sinceLabel(since: string | null | undefined, nowMs: number, prefs: Aler
   );
 }
 
-/** The two lines of an active alert's banner: sensor, limit, start time and extreme, then the current reading, in the user's units. */
+/** The two lines of an alert's banner, in the user's units. Active: sensor, limit, start time and extreme, then the current reading. Finished: sensor, limit and extreme, then when it came back in range. */
 export function alertBannerText(
   t: (key: string, params?: Record<string, string | number>) => string,
   rule: SensorAlertRule,
@@ -282,11 +331,17 @@ export function alertBannerText(
   nowMs: number,
 ): { title: string; detail: string } {
   const type = rule.sensor.type;
-  const below = state.direction === 'below';
   const fmt = (v: number | null | undefined) => (v == null ? '-' : formatAlertValue(v, type, prefs.monitoringTempUnit, prefs.numberFormat, prefs.monitoringWholeNumbers));
+  if (state.state !== 'active' && hasEndedAlert(state)) {
+    return {
+      title: alertLine(t, rule, state, prefs),
+      detail: t('diagnostics.alerts.banner.ended.detail', { time: sinceLabel(state.endedAt, nowMs, prefs, language) }),
+    };
+  }
+  const below = state.direction === 'below';
   return {
     title: t(below ? 'diagnostics.alerts.banner.below' : 'diagnostics.alerts.banner.above', {
-      name: sensorLabel(rule.sensor),
+      name: ruleLabel(t, rule),
       limit: fmt(below ? rule.low : rule.high),
       time: sinceLabel(state.since, nowMs, prefs, language),
       peak: fmt(state.extreme ?? state.value),

@@ -57,6 +57,7 @@ vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ Sensor
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
 
 // The Settings tab needs the UI settings provider; the deep link test only checks that it is the tab shown.
+vi.mock('./SensorNotificationSettings', () => ({ SensorNotificationSettings: () => null }));
 vi.mock('./SettingsTab', () => ({ SettingsTab: () => <div data-testid="settings-tab" /> }));
 
 vi.mock('../../../hooks/useThermalGuard', () => ({

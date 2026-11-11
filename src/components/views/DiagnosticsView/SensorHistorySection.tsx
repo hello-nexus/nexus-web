@@ -13,7 +13,7 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { RANGE_OPTIONS, formatBrushEdgeLabels, formatSelectedFrameTime, xTickFormatForWindow } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
-import { formatDisplayValue, sensorLabel } from './sensorAlertHelpers';
+import { formatDisplayValue, ruleLabel } from './sensorAlertHelpers';
 import { sensorChartThresholds, sensorYDomain, toSensorChartSeries } from './sensorHistoryHelpers';
 import cooling from './CoolingHistorySection.module.scss';
 
@@ -52,7 +52,7 @@ export function SensorHistorySection({ history, rule }: SensorHistorySectionProp
     <section className={cooling.root}>
       <div className={cooling.headerRow}>
         <div className={cooling.headerStatus}>
-          <SectionHeader>{sensorLabel(rule.sensor)}</SectionHeader>
+          <SectionHeader>{ruleLabel(t, rule)}</SectionHeader>
           {history.mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
         <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />

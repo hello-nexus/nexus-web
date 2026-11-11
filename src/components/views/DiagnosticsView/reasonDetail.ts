@@ -1,7 +1,7 @@
 import type { DiagnosticsReason } from '../../../api/diagnostics';
 import { formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
 import type { Language } from '../../../lib/settings';
-import { formatAlertValue, type AlertUnitPrefs } from './sensorAlertHelpers';
+import { builtInParamLabel, formatAlertValue, type AlertUnitPrefs } from './sensorAlertHelpers';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -56,13 +56,6 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
       escalation: ctx.t(escalated ? 'diagnostics.reasonDetail.escalated' : 'diagnostics.reasonDetail.notEscalated'),
     });
   },
-  'cooling.sustainedHighTemp': (p, ctx) => {
-    const peak = num(p.peakC);
-    const start = timeText(ctx, stampMs(p.start));
-    const end = timeText(ctx, stampMs(p.end));
-    if (peak === null || start === null || end === null) return null;
-    return ctx.t('diagnostics.reasonDetail.sustainedHighTemp', { peak: temp(ctx, peak), start, end });
-  },
   'cooling.fanStall': stall,
   'cooling.pumpStall': stall,
   'alerts.sensorThreshold': (p, ctx) => {
@@ -71,10 +64,23 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
     if (value === null || threshold === null || !p.type || !p.sensorName || (p.direction !== 'above' && p.direction !== 'below')) return null;
     const fmt = (v: number) => formatAlertValue(v, p.type, ctx.monitoringTempUnit, ctx.numberFormat, ctx.monitoringWholeNumbers);
     return ctx.t(p.direction === 'below' ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
-      name: p.sensorName, limit: fmt(threshold), value: fmt(value),
+      name: alertParamName(p, ctx), limit: fmt(threshold), value: fmt(value),
+    });
+  },
+  'alerts.sensorThresholdEnded': (p, ctx) => {
+    const peak = num(p.peak);
+    const threshold = num(p.threshold);
+    const ended = timeText(ctx, num(p.ended));
+    if (peak === null || threshold === null || ended === null || !p.type || !p.sensorName) return null;
+    const fmt = (v: number) => formatAlertValue(v, p.type, ctx.monitoringTempUnit, ctx.numberFormat, ctx.monitoringWholeNumbers);
+    return ctx.t('diagnostics.reasonDetail.sensorThresholdEnded', {
+      name: alertParamName(p, ctx), limit: fmt(threshold), peak: fmt(peak), time: ended,
     });
   },
 };
+
+/** A health reason's sensor name: localized for a built-in, else the name the service sent. */
+const alertParamName = (p: Record<string, string>, ctx: ReasonDetailContext): string => builtInParamLabel(ctx.t, p.builtIn) ?? p.sensorName;
 
 function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | null {
   const rpm = num(p.rpm);
@@ -86,7 +92,7 @@ function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | nu
 
 // Codes whose service detail is key=value debug text, never prose.
 const DEBUG_DETAIL_CODES: ReadonlySet<string> = new Set([
-  'cooling.thermalGuardTrip', 'cooling.fanStall', 'cooling.pumpStall', 'cooling.sustainedHighTemp', 'alerts.sensorThreshold',
+  'cooling.thermalGuardTrip', 'cooling.fanStall', 'cooling.pumpStall', 'alerts.sensorThreshold', 'alerts.sensorThresholdEnded',
 ]);
 
 const KEY_VALUE_START = /^\s*\w+=/;

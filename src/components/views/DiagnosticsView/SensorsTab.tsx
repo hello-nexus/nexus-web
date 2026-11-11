@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChartLine, Plus } from 'lucide-react';
+import { ChartLine, Plus, RotateCcw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { MAX_SENSOR_ALERT_RULES } from '../../../api/diagnosticsAlerts';
+import { MAX_SENSOR_ALERT_RULES, type SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { requestSearchScroll } from '../../../search/scroll';
@@ -14,11 +14,13 @@ import type { DeckMonitoringCategory } from '../../../panel/widgets/deck/types';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertBanner } from './SensorAlertBanner';
-import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, isBannerAlert, sensorRefOf } from './sensorAlertHelpers';
+import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, isBannerAlert, isBuiltIn, sensorRefOf } from './sensorAlertHelpers';
 import { Card } from '../../common/Card/Card';
+import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
 import { SensorHistorySection } from './SensorHistorySection';
 import { SensorList } from './SensorList';
+import { SensorNotificationSettings } from './SensorNotificationSettings';
 import { resolveSelectedId, sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorsTab.module.scss';
 
@@ -43,6 +45,8 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
   const [picked, setPicked] = useState<string | null>(null);
   const selectedId = resolveSelectedId(rules, picked);
   const selectedRule = rules.find(r => r.id === selectedId);
+  const builtInRules = useMemo(() => rules.filter(isBuiltIn), [rules]);
+  const userRules = useMemo(() => rules.filter(r => !isBuiltIn(r)), [rules]);
   // Re-snapshot "now" when the states change, so render stays pure.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [states]);
@@ -71,6 +75,14 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
   };
 
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
+  const listProps = {
+    states,
+    selectedId,
+    liveOf: (rule: SensorAlertRule) => resolve(rule.sensor.category, rule.sensor.id)?.value ?? null,
+    onSelect: setPicked,
+    onToggleEnabled: (rule: SensorAlertRule, enabled: boolean) => alerts.save({ ...rule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') })),
+  };
+  const restoreBuiltIns = (id?: string) => { void alerts.resetBuiltIns(id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); }); };
   const note = alerts.atLimit
     ? t('diagnostics.alerts.limitNote', { max: MAX_SENSOR_ALERT_RULES })
     : loaded && !firstSensor && rules.length === 0 ? t('diagnostics.alerts.noSensors') : null;
@@ -135,18 +147,27 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
       )}
       <div className={styles.split}>
         <div className={styles.listPane}>
-          <span className={styles.addRow}>
-            {addButton}
-            {note && <span className={styles.note}>{note}</span>}
-          </span>
-          <SensorList
-            rules={rules}
-            states={states}
-            selectedId={selectedId}
-            liveOf={rule => resolve(rule.sensor.category, rule.sensor.id)?.value ?? null}
-            onSelect={setPicked}
-            onToggleEnabled={(rule, enabled) => alerts.save({ ...rule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
-          />
+          {builtInRules.length > 0 && (
+            <section className={styles.group} data-testid="sensor-group-builtin">
+              <div className={styles.groupHeader}>
+                <SectionHeader>{t('diagnostics.sensors.group.builtIn')}</SectionHeader>
+                <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={14} aria-hidden />} data-testid="sensor-restore-all" onClick={() => restoreBuiltIns()}>
+                  {t('diagnostics.sensors.restoreDefaults')}
+                </Button>
+              </div>
+              <SensorList rules={builtInRules} {...listProps} />
+            </section>
+          )}
+          <section className={styles.group} data-testid="sensor-group-custom">
+            <div className={styles.groupHeader}>
+              {builtInRules.length > 0 && <SectionHeader>{t('diagnostics.sensors.group.custom')}</SectionHeader>}
+              <span className={styles.addRow}>
+                {addButton}
+                {note && <span className={styles.note}>{note}</span>}
+              </span>
+            </div>
+            <SensorList rules={userRules} {...listProps} />
+          </section>
         </div>
         {selectedRule && (
           <div className={styles.detail} data-testid="sensor-detail" data-rule-id={selectedRule.id}>
@@ -159,12 +180,15 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
                   onPreview={alerts.preview}
                   onSave={next => alerts.save(next, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
                   onDelete={() => { void alerts.remove(selectedRule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
+                  state={stateOf(selectedRule.id)}
+                  onRestoreDefault={() => restoreBuiltIns(selectedRule.id)}
                 />
               </div>
             </Card>
           </div>
         )}
       </div>
+      <SensorNotificationSettings />
     </div>
   );
 }

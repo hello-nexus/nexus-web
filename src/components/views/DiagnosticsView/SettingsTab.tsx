@@ -2,44 +2,24 @@ import { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { DIAGNOSTICS_SETTINGS_DEFAULTS, useUiSettings, type UiSettingsValue } from '../../../hooks/useUiSettings';
+import { resetBuiltInSensorAlerts } from '../../../api/diagnosticsAlerts';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingGroup, SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRow/SettingRow';
-
-// 0 = "clears immediately"; the rest step through the shared minutes/hours
-// duration templates (diagnostics.duration.minutes / .hours).
-const LINGER_OPTIONS_MINUTES = [0, 30, 60, 360, 1440] as const;
-const COOLDOWN_OPTIONS_MINUTES = [15, 30, 60, 120, 360, 1440] as const;
-
-type Translate = (key: string, params?: Record<string, string | number>) => string;
-
-function formatDurationMinutes(t: Translate, minutes: number): string {
-  if (minutes === 0) return t('diagnostics.settings.linger.immediate');
-  if (minutes < 60) return t('diagnostics.duration.minutes', { m: minutes });
-  return t('diagnostics.duration.hours', { h: minutes / 60 });
-}
-
-function durationOptions(t: Translate, minuteValues: readonly number[]): ChipOption[] {
-  return minuteValues.map(minutes => ({ key: String(minutes), label: formatDurationMinutes(t, minutes) }));
-}
+import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { COOLDOWN_OPTIONS_MINUTES, durationOptions } from './notificationCooldown';
 
 const DEFAULT_PATCH: Partial<UiSettingsValue> = {
-  diagnosticsCpuTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.cpuTempC,
-  diagnosticsGpuTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.gpuTempC,
-  diagnosticsStorageTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.storageTempC,
-  diagnosticsRamTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.ramTempC,
-  diagnosticsWarningLingerMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes,
   diagnosticsNotificationsEnabled: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationsEnabled,
-  diagnosticsNotifyHighTemp: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyHighTemp,
   diagnosticsNotifyStorageHealth: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyStorageHealth,
   diagnosticsNotifyCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyCooling,
   diagnosticsNotifyMemoryTest: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyMemoryTest,
   diagnosticsNotifySystemDevices: DIAGNOSTICS_SETTINGS_DEFAULTS.notifySystemDevices,
   diagnosticsNotifyGpuThrottle: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyGpuThrottle,
   diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
-  diagnosticsComponentCpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCpu,
+  diagnosticsSensorNotifications: DIAGNOSTICS_SETTINGS_DEFAULTS.sensorNotifications,
+  diagnosticsSensorCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.sensorCooldownMinutes,
   diagnosticsComponentGpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentGpu,
   diagnosticsComponentStorage: DIAGNOSTICS_SETTINGS_DEFAULTS.componentStorage,
   diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
@@ -51,10 +31,10 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
 };
 
 /**
- * Diagnostics Settings tab: per-component max temperatures, how long a
- * temperature warning lingers after cooling down, tray notifications (master
- * + per-category + cooldown), per-component monitoring on/off, and a reset
- * to the preferences.diagnostics contract defaults. Every field round-trips
+ * Diagnostics Settings tab: per-component health monitoring on/off, tray
+ * notifications for the health checks (master + per-category + cooldown), and
+ * a reset to the preferences.diagnostics contract defaults, which also restores
+ * the built-in temperature sensors. Every field round-trips
  * through useUiSettings (server is the source of truth, profile-scoped).
  */
 export function SettingsTab() {
@@ -63,7 +43,6 @@ export function SettingsTab() {
   const [resetOpen, setResetOpen] = useState(false);
 
   const notificationsEnabled = settings.diagnosticsNotificationsEnabled;
-  const lingerOptions = durationOptions(t, LINGER_OPTIONS_MINUTES);
   const cooldownOptions = durationOptions(t, COOLDOWN_OPTIONS_MINUTES).map(o => ({
     ...o,
     disabled: !notificationsEnabled,
@@ -71,6 +50,7 @@ export function SettingsTab() {
 
   const doReset = () => {
     update(DEFAULT_PATCH);
+    void resetBuiltInSensorAlerts();
     setResetOpen(false);
   };
 
@@ -80,74 +60,21 @@ export function SettingsTab() {
         title={t('diagnostics.settings.components.title')}
         description={t('diagnostics.settings.components.description')}
       >
-        <SettingGroup>
-          <SettingToggle
-            label={t('benchmark.phase.cpu')}
-            checked={settings.diagnosticsComponentCpu}
-            onChange={v => update({ diagnosticsComponentCpu: v })}
-          />
-          {settings.diagnosticsComponentCpu && (
-            <SettingSlider
-              nested
-              label={t('diagnostics.settings.components.maxTemp')}
-              value={settings.diagnosticsCpuTempC} min={60} max={105}
-              editable trackFill
-              formatValue={v => `${v}°C`}
-              onChange={v => update({ diagnosticsCpuTempC: v })}
-            />
-          )}
-        </SettingGroup>
-        <SettingGroup>
-          <SettingToggle
-            label={t('benchmark.phase.gpu')}
-            checked={settings.diagnosticsComponentGpu}
-            onChange={v => update({ diagnosticsComponentGpu: v })}
-          />
-          {settings.diagnosticsComponentGpu && (
-            <SettingSlider
-              nested
-              label={t('diagnostics.settings.components.maxTemp')}
-              value={settings.diagnosticsGpuTempC} min={60} max={105}
-              editable trackFill
-              formatValue={v => `${v}°C`}
-              onChange={v => update({ diagnosticsGpuTempC: v })}
-            />
-          )}
-        </SettingGroup>
-        <SettingGroup>
-          <SettingToggle
-            label={t('benchmark.phase.storage')}
-            checked={settings.diagnosticsComponentStorage}
-            onChange={v => update({ diagnosticsComponentStorage: v })}
-          />
-          {settings.diagnosticsComponentStorage && (
-            <SettingSlider
-              nested
-              label={t('diagnostics.settings.components.maxTemp')}
-              value={settings.diagnosticsStorageTempC} min={40} max={90}
-              editable trackFill
-              formatValue={v => `${v}°C`}
-              onChange={v => update({ diagnosticsStorageTempC: v })}
-            />
-          )}
-        </SettingGroup>
-        <SettingGroup>
-          <SettingToggle
-            label={t('benchmark.phase.ram')}
-            checked={settings.diagnosticsComponentRam}
-            onChange={v => update({ diagnosticsComponentRam: v })}
-          />
-          {settings.diagnosticsComponentRam && (
-            <SettingSlider
-              nested
-              label={t('diagnostics.settings.components.maxTemp')}
-              value={settings.diagnosticsRamTempC} min={40} max={90}
-              editable trackFill
-              formatValue={v => `${v}°C`}
-              onChange={v => update({ diagnosticsRamTempC: v })}
-            />
-          )}
-        </SettingGroup>
+        <SettingToggle
+          label={t('benchmark.phase.gpu')}
+          checked={settings.diagnosticsComponentGpu}
+          onChange={v => update({ diagnosticsComponentGpu: v })}
+        />
+        <SettingToggle
+          label={t('benchmark.phase.storage')}
+          checked={settings.diagnosticsComponentStorage}
+          onChange={v => update({ diagnosticsComponentStorage: v })}
+        />
+        <SettingToggle
+          label={t('benchmark.phase.ram')}
+          checked={settings.diagnosticsComponentRam}
+          onChange={v => update({ diagnosticsComponentRam: v })}
+        />
         <SettingToggle
           label={t('diagnostics.settings.components.fansPumps.label')}
           description={t('diagnostics.settings.components.fansPumps.description')}
@@ -162,20 +89,6 @@ export function SettingsTab() {
       </SettingsSection>
 
       <SettingsSection
-        title={t('diagnostics.settings.linger.title')}
-        description={t('diagnostics.settings.linger.description')}
-      >
-        <SettingRow label={t('diagnostics.settings.linger.rowLabel')}>
-          <ChipGroup
-            ariaLabel={t('diagnostics.settings.linger.rowLabel')}
-            activeKey={String(settings.diagnosticsWarningLingerMinutes)}
-            onChange={key => update({ diagnosticsWarningLingerMinutes: Number(key) })}
-            options={lingerOptions}
-          />
-        </SettingRow>
-      </SettingsSection>
-
-      <SettingsSection
         title={t('diagnostics.settings.notifications.title')}
         description={t('diagnostics.settings.notifications.description')}
       >
@@ -184,12 +97,6 @@ export function SettingsTab() {
           description={t('diagnostics.settings.notifications.enable.description')}
           checked={notificationsEnabled}
           onChange={v => update({ diagnosticsNotificationsEnabled: v })}
-        />
-        <SettingToggle
-          label={t('diagnostics.settings.notifications.highTemp.label')}
-          checked={settings.diagnosticsNotifyHighTemp}
-          disabled={!notificationsEnabled}
-          onChange={v => update({ diagnosticsNotifyHighTemp: v })}
         />
         <SettingToggle
           label={t('diagnostics.settings.notifications.storageHealth.label')}

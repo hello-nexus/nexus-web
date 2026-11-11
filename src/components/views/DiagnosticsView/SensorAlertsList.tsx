@@ -5,7 +5,7 @@ import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnostics
 import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
-import { formatAlertValue, rowState, sensorLabel, stateColor } from './sensorAlertHelpers';
+import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor } from './sensorAlertHelpers';
 import styles from './SensorAlertsList.module.scss';
 
 interface SensorAlertsListProps {
@@ -50,9 +50,9 @@ export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
                     }
                   }}
                 >
-                  <span className={styles.name}>{sensorLabel(rule.sensor)}</span>
+                  <span className={styles.name}>{ruleLabel(t, rule)}</span>
                   <span className={styles.value}>
-                    {reading !== null ? formatAlertValue(reading, type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading')}
+                    {reading !== null ? formatAlertValue(reading, type, tempUnit, numberFormat, monitoringWholeNumbers) : t(isBuiltIn(rule) ? 'diagnostics.sensors.notReported' : 'diagnostics.alerts.noReading')}
                   </span>
                   <Badge label={t(`diagnostics.alerts.state.${kind}`)} color={stateColor(kind, rule)} />
                 </div>

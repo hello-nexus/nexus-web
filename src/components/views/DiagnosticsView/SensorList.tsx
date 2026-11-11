@@ -3,7 +3,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
 import { Toggle } from '../../common/Toggle/Toggle';
-import { formatAlertValue, rowState, sensorLabel, stateColor } from './sensorAlertHelpers';
+import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorList.module.scss';
 
@@ -39,13 +39,13 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
             data-search-anchor={sensorCardAnchor(rule.id)}
           >
             <button type="button" className={styles.select} aria-pressed={selected} onClick={() => onSelect(rule.id)}>
-              <span className={styles.name}>{sensorLabel(rule.sensor)}</span>
+              <span className={styles.name}>{ruleLabel(t, rule)}</span>
               <span className={styles.value}>
-                {reading !== null ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading')}
+                {reading !== null ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers) : t(isBuiltIn(rule) ? 'diagnostics.sensors.notReported' : 'diagnostics.alerts.noReading')}
               </span>
               <Badge label={t(`diagnostics.alerts.state.${kind}`)} color={stateColor(kind, rule)} />
             </button>
-            <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name: sensorLabel(rule.sensor) })} />
+            <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name: ruleLabel(t, rule) })} />
           </li>
         );
       })}

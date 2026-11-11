@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { SettingsTab } from './SettingsTab';
 
 const update = vi.fn();
+const resetBuiltIns = vi.fn();
 let mockSettings: Record<string, unknown> = {};
 
 vi.mock('../../../hooks/useUiSettings', async importOriginal => {
@@ -12,6 +13,8 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
     useUiSettings: () => ({ settings: mockSettings, update, reload: vi.fn() }),
   };
 });
+
+vi.mock('../../../api/diagnosticsAlerts', () => ({ resetBuiltInSensorAlerts: () => resetBuiltIns() }));
 
 // The alerts section has its own suite and reads sensors and the service.
 
@@ -25,20 +28,15 @@ vi.mock('../../../lib/i18n', () => ({
 
 function baseSettings(overrides: Record<string, unknown> = {}) {
   return {
-    diagnosticsCpuTempC: 90,
-    diagnosticsGpuTempC: 85,
-    diagnosticsStorageTempC: 70,
-    diagnosticsRamTempC: 60,
-    diagnosticsWarningLingerMinutes: 0,
     diagnosticsNotificationsEnabled: false,
-    diagnosticsNotifyHighTemp: false,
     diagnosticsNotifyStorageHealth: false,
     diagnosticsNotifyCooling: false,
     diagnosticsNotifyMemoryTest: false,
     diagnosticsNotifySystemDevices: false,
     diagnosticsNotifyGpuThrottle: false,
     diagnosticsNotificationCooldownMinutes: 60,
-    diagnosticsComponentCpu: true,
+    diagnosticsSensorNotifications: true,
+    diagnosticsSensorCooldownMinutes: 60,
     diagnosticsComponentGpu: true,
     diagnosticsComponentStorage: true,
     diagnosticsComponentRam: true,
@@ -48,15 +46,12 @@ function baseSettings(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const maxTempSliders = () => screen.getAllByRole('slider', { name: /diagnostics\.settings\.components\.maxTemp/ });
-
 describe('SettingsTab', () => {
-  it('orders the sections components, linger, notifications, then the danger zone with the reset', () => {
+  it('orders the sections components, notifications, then the danger zone with the reset', () => {
     mockSettings = baseSettings();
     render(<SettingsTab />);
     const order = [
       screen.getByText('diagnostics.settings.components.title'),
-      screen.getByText('diagnostics.settings.linger.title'),
       screen.getByText('diagnostics.settings.notifications.title'),
       screen.getByText('settings.dangerZone'),
       screen.getByText('diagnostics.settings.reset.label'),
@@ -73,28 +68,19 @@ describe('SettingsTab', () => {
     expect(screen.queryByRole('button', { name: 'diagnostics.sensors.add' })).toBeNull();
   });
 
-  it('renders the section titles and per-component sliders', () => {
+  it('renders the section titles, with plain health toggles and no temperature limits or warning duration', () => {
     mockSettings = baseSettings();
-    update.mockClear();
     render(<SettingsTab />);
 
-    expect(screen.queryByText('diagnostics.settings.thresholds.title')).toBeNull();
-    expect(screen.getByText('diagnostics.settings.linger.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.notifications.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.components.title')).toBeInTheDocument();
-    // Each max temperature sits under its own component toggle, in toggle order.
-    expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '85', '70', '60']);
-  });
-
-  it('groups each component toggle with its max temperature so a separator falls only between components', () => {
-    mockSettings = baseSettings();
-    render(<SettingsTab />);
-    const cpuToggle = screen.getByRole('switch', { name: 'benchmark.phase.cpu' });
-    const group = cpuToggle.closest('[class*="group"]') as HTMLElement;
-    expect(group).not.toBeNull();
-    expect(group.contains(maxTempSliders()[0])).toBe(true);
-    expect(group.contains(maxTempSliders()[1])).toBe(false);
-    expect(group.nextElementSibling?.contains(screen.getByRole('switch', { name: 'benchmark.phase.gpu' }))).toBe(true);
+    expect(screen.queryByText('diagnostics.settings.linger.title')).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'benchmark.phase.cpu' })).toBeNull();
+    for (const phase of ['gpu', 'storage', 'ram']) {
+      expect(screen.getByRole('switch', { name: `benchmark.phase.${phase}` })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole('switch', { name: 'diagnostics.settings.notifications.highTemp.label' })).toBeNull();
   });
 
   it('labels the cooling toggle as fans and pumps with its description', () => {
@@ -104,31 +90,12 @@ describe('SettingsTab', () => {
     expect(screen.getByText('diagnostics.settings.components.fansPumps.description')).toBeInTheDocument();
   });
 
-  it('hides a component max temperature while that component is off, and leaves the others', () => {
-    mockSettings = baseSettings({ diagnosticsComponentGpu: false, diagnosticsComponentRam: false });
-    render(<SettingsTab />);
-    expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '70']);
-  });
-
-  it('persists a threshold slider change on every onChange tick', () => {
-    mockSettings = baseSettings();
-    update.mockClear();
-    render(<SettingsTab />);
-
-    const cpuSlider = maxTempSliders()[0];
-    fireEvent.change(cpuSlider, { target: { value: '92' } });
-    expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 92 });
-
-    fireEvent.change(cpuSlider, { target: { value: '95' } });
-    expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 95 });
-  });
-
   it('disables the per-type notification toggles while the master switch is off', () => {
     mockSettings = baseSettings({ diagnosticsNotificationsEnabled: false });
     update.mockClear();
     render(<SettingsTab />);
 
-    expect(screen.getByRole('switch', { name: 'diagnostics.settings.notifications.highTemp.label' }))
+    expect(screen.getByRole('switch', { name: 'diagnostics.settings.notifications.storageHealth.label' }))
       .toBeDisabled();
     expect(screen.getByRole('switch', { name: 'diagnostics.settings.notifications.enable.label' }))
       .not.toBeDisabled();
@@ -139,7 +106,7 @@ describe('SettingsTab', () => {
     update.mockClear();
     render(<SettingsTab />);
 
-    expect(screen.getByRole('switch', { name: 'diagnostics.settings.notifications.highTemp.label' }))
+    expect(screen.getByRole('switch', { name: 'diagnostics.settings.notifications.storageHealth.label' }))
       .not.toBeDisabled();
   });
 
@@ -153,20 +120,10 @@ describe('SettingsTab', () => {
     expect(update).toHaveBeenCalledWith({ diagnosticsNotificationsEnabled: true });
   });
 
-  it('picking the "immediate" linger chip persists 0 minutes', () => {
-    mockSettings = baseSettings({ diagnosticsWarningLingerMinutes: 60 });
-    update.mockClear();
-    render(<SettingsTab />);
-
-    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.settings.linger.immediate' }));
-
-    expect(update).toHaveBeenCalledWith({ diagnosticsWarningLingerMinutes: 0 });
-  });
-
   it('reset asks for confirmation, then restores every contract default', () => {
     mockSettings = baseSettings({
-      diagnosticsCpuTempC: 95,
       diagnosticsNotificationsEnabled: true,
+      diagnosticsSensorNotifications: false,
       diagnosticsComponentGpu: false,
       diagnosticsIgnoredComponents: ['storage:Z52AFCNF'],
     });
@@ -180,19 +137,16 @@ describe('SettingsTab', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'cooling.settings.reset' }));
 
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      diagnosticsCpuTempC: 90,
-      diagnosticsGpuTempC: 85,
-      diagnosticsStorageTempC: 70,
-      diagnosticsRamTempC: 60,
-      diagnosticsWarningLingerMinutes: 0,
       diagnosticsNotificationsEnabled: false,
-      diagnosticsComponentCpu: true,
+      diagnosticsSensorNotifications: true,
+      diagnosticsSensorCooldownMinutes: 60,
       diagnosticsComponentGpu: true,
       diagnosticsComponentStorage: true,
       diagnosticsComponentRam: true,
       diagnosticsComponentCooling: true,
       diagnosticsComponentSystem: true,
     }));
+    expect(resetBuiltIns).toHaveBeenCalledTimes(1);
     // Per-device ignores survive a reset; they are undone on the device card.
     expect(update.mock.calls[0][0]).not.toHaveProperty('diagnosticsIgnoredComponents');
   });

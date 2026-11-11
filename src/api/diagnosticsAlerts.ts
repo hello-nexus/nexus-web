@@ -5,10 +5,16 @@ import { authFetchWithStatus } from './service';
 import { requestJson } from './fetchOutcome';
 import { buildQuery, type MetricHistoryFetchResult, type MetricHistoryQuery, type MetricHistoryResponse } from './monitoringHistory';
 
-export const MAX_SENSOR_ALERT_RULES = 10;
+export const MAX_SENSOR_ALERT_RULES = 20;
 
 export type SensorAlertSeverity = 'watch' | 'act';
 export type SensorAlertStateKind = 'ok' | 'pending' | 'active' | 'unavailable';
+
+/** The component temperature rules the service always keeps; null on a user rule. */
+export type BuiltInSensorKind = 'cpuTemp' | 'gpuTemp' | 'storageTemp' | 'ramTemp';
+
+/** Resolver category of a built-in's fixed sensor ref; the live sensor lookup cannot resolve it. */
+export const BUILTIN_SENSOR_CATEGORY = 'builtin';
 
 export interface SensorRef {
   category: string;
@@ -30,9 +36,10 @@ export interface SensorAlertRule {
   notifyDesktop: boolean;
   showInHealth: boolean;
   repeatMinutes: number;
+  builtIn: BuiltInSensorKind | null;
 }
 
-export type NewSensorAlertRule = Omit<SensorAlertRule, 'id'>;
+export type NewSensorAlertRule = Omit<SensorAlertRule, 'id' | 'builtIn'>;
 
 export interface SensorAlertState {
   ruleId: string;
@@ -41,6 +48,13 @@ export interface SensorAlertState {
   since?: string | null;
   extreme?: number | null;
   direction?: 'above' | 'below' | null;
+  /** The limit crossed, while pending or active. */
+  threshold?: number | null;
+  /** A finished alert still waiting for the user to dismiss it (ISO UTC); the ended fields describe it. */
+  endedAt?: string | null;
+  endedPeak?: number | null;
+  endedThreshold?: number | null;
+  endedDirection?: 'above' | 'below' | null;
   acknowledged: boolean;
 }
 
@@ -78,6 +92,9 @@ export const fetchSensorAlerts = () => call<SensorAlertsResponse>(BASE, 'GET');
 export const createSensorAlert = (rule: NewSensorAlertRule) => call<SensorAlertRule>(BASE, 'POST', rule);
 export const updateSensorAlert = (rule: SensorAlertRule) => call<SensorAlertRule>(`${BASE}/${encodeURIComponent(rule.id)}`, 'PUT', rule);
 export const deleteSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}`, 'DELETE');
+/** Writes the factory state back to one built-in (or all four without an id); resolves with the refreshed list. */
+export const resetBuiltInSensorAlerts = (id?: string) =>
+  call<SensorAlertsResponse>(`${BASE}/builtins/reset${id ? `?id=${encodeURIComponent(id)}` : ''}`, 'POST', {});
 export const acknowledgeSensorAlert = (id: string) => call<null>(`${BASE}/${encodeURIComponent(id)}/acknowledge`, 'POST', {});
 
 /** Recorded values of the tracked sensors (every enabled rule), in the same shape as the monitoring history; no dev mock. */
