@@ -1,4 +1,4 @@
-// An LED's area cell: outlined in the dots' own stroke (mark color, thickness, shadow), never a target.
+// An LED's area cell: the dots' stroke (mark color, thickness, shadow), dimmed so cell edges recede; never a target.
 .cells {
   position: absolute;
   pointer-events: none;
@@ -10,6 +10,7 @@
 .cell {
   fill: none;
   stroke: var(--led-mark);
+  stroke-opacity: var(--alpha-strong);
   stroke-width: 2px;
   vector-effect: non-scaling-stroke;
   stroke-linejoin: round;
