@@ -1,4 +1,4 @@
-import { BUILTIN_SENSOR_CATEGORY, type BuiltInSensorKind, type NewSensorAlertRule, type SensorAlertRule, type SensorAlertState, type SensorRef } from '../../../api/diagnosticsAlerts';
+import type { BuiltInSensorKind, NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import type { Language } from '../../../lib/settings';
 import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
@@ -349,20 +349,31 @@ export function alertBannerText(
   };
 }
 
-/** The identity a sensor is tracked by: its resolver category and id. */
-function sensorKey(sensor: SensorRef): string {
-  return `${sensor.category}\u0000${sensor.id}`;
+/** The sensor an entry tracks, as the picker names it: a user rule's own, a built-in's current source (none for a drive or a memory mean). */
+function trackedSensor(rule: SensorAlertRule): SensorRef | null {
+  return rule.builtIn ? (rule.source?.sensor ?? null) : rule.sensor;
 }
 
-/** The entry already tracking `sensor`, other than `exceptId`, or undefined. A built-in without a resolver sensor of its own never matches. */
+/** The entry already tracking `sensor` (same category, type and id), other than `exceptId`, or undefined. */
 export function findTrackedRule(rules: readonly SensorAlertRule[], sensor: SensorRef, exceptId?: string): SensorAlertRule | undefined {
-  const key = sensorKey(sensor);
-  return rules.find(r => r.id !== exceptId && r.sensor.category !== BUILTIN_SENSOR_CATEGORY && sensorKey(r.sensor) === key);
+  return rules.find(r => {
+    if (r.id === exceptId) return false;
+    const tracked = trackedSensor(r);
+    return tracked !== null && tracked.category === sensor.category && tracked.type === sensor.type && tracked.id === sensor.id;
+  });
 }
 
-/** A row's title and subtitle. Every entry reads alike: the device, then the exact sensor tracked (a built-in's comes from the service when it reports one). */
-export function rowTitles(rule: SensorAlertRule): { title: string; subtitle: string | undefined } {
-  if (isBuiltIn(rule)) return { title: rule.sensor.name, subtitle: rule.sensor.sourceName || undefined };
+/** A built-in's subtitle: the exact reading behind it. */
+function sourceSubtitle(source: SensorAlertRule['source'], t: (key: string, vars?: Record<string, string | number>) => string): string | undefined {
+  if (!source) return undefined;
+  if (source.kind === 'drive') return t('diagnostics.sensors.source.drive');
+  if (source.kind === 'average') return source.sensors.length > 0 ? t('diagnostics.sensors.source.average', { count: source.sensors.length }) : undefined;
+  return source.sensor?.name || undefined;
+}
+
+/** A row's title and subtitle. Every entry reads alike: the device, then the exact sensor tracked. */
+export function rowTitles(rule: SensorAlertRule, t: (key: string, vars?: Record<string, string | number>) => string): { title: string; subtitle: string | undefined } {
+  if (isBuiltIn(rule)) return { title: rule.sensor.name, subtitle: sourceSubtitle(rule.source, t) };
   const { name, parentName } = rule.sensor;
   return parentName ? { title: parentName, subtitle: name } : { title: name, subtitle: undefined };
 }

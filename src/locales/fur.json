@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "No segnalât",
   "diagnostics.sensors.restoreDefault": "Ripristine il predefinît",
   "diagnostics.sensors.settings.title": "Impostazions dal sensôr",
+  "diagnostics.sensors.source.average": "Medie di {count} sensôrs",
+  "diagnostics.sensors.source.drive": "Temperadure SMART dal disc",
   "diagnostics.sensors.tracked.message": "Chest sensôr al è za tignût di voli di « {name} » te liste di control.",
   "diagnostics.sensors.tracked.show": "Mostre vôs",
   "diagnostics.sensors.tracked.title": "Sensôr za in cors di control",

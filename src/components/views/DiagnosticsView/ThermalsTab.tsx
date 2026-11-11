@@ -124,14 +124,14 @@ export function ThermalsTab({
     if (!firstSensor || alerts.atLimit || !loaded || addingRef.current) return;
     addingRef.current = true;
     const { category, sensor } = firstSensor;
-    const { result, rule } = await alerts.add(defaultRule(sensorRefOf(category, sensor), sensor.value)).finally(() => { addingRef.current = false; });
-    if (rule) select(rule);
-    else if (result === 'tracked') {
-      const existing = findTracked(sensorRefOf(category, sensor));
+    const res = await alerts.add(defaultRule(sensorRefOf(category, sensor), sensor.value)).finally(() => { addingRef.current = false; });
+    if (res.rule) select(res.rule);
+    else if (res.result === 'tracked') {
+      const existing = (res.ruleId ? rules.find(r => r.id === res.ruleId) : undefined) ?? findTracked(sensorRefOf(category, sensor));
       if (existing) setTrackedBy(existing);
       else push({ title: t('diagnostics.sensors.tracked.title') });
     }
-    else if (result === 'error') push({ title: t('diagnostics.alerts.addFailed') });
+    else if (res.result === 'error') push({ title: t('diagnostics.alerts.addFailed') });
   };
 
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
@@ -227,8 +227,10 @@ export function ThermalsTab({
                     rule={selectedRule}
                     lookup={lookup}
                     onPreview={alerts.preview}
-                    onSave={next => alerts.save(next, code => {
-                      const existing = code === 'sensor_already_tracked' ? findTracked(next.sensor, next.id) : undefined;
+                    onSave={next => alerts.save(next, (code, ruleId) => {
+                      const existing = code === 'sensor_already_tracked'
+                        ? ((ruleId ? rules.find(r => r.id === ruleId) : undefined) ?? findTracked(next.sensor, next.id))
+                        : undefined;
                       if (existing) setTrackedBy(existing);
                       else push({ title: t('diagnostics.alerts.saveFailed') });
                     })}

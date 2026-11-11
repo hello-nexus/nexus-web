@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Non riportato",
   "diagnostics.sensors.restoreDefault": "Ripristina predefinito",
   "diagnostics.sensors.settings.title": "Impostazioni del sensore",
+  "diagnostics.sensors.source.average": "Media di {count} sensori",
+  "diagnostics.sensors.source.drive": "Temperatura SMART del disco",
   "diagnostics.sensors.tracked.message": "Questo sensore è già monitorato da \"{name}\" nella lista di controllo.",
   "diagnostics.sensors.tracked.show": "Mostra voce",
   "diagnostics.sensors.tracked.title": "Sensore già monitorato",

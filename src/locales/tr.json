@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Bildirilmiyor",
   "diagnostics.sensors.restoreDefault": "Varsayılanı geri yükle",
   "diagnostics.sensors.settings.title": "Sensör ayarları",
+  "diagnostics.sensors.source.average": "{count} sensörün ortalaması",
+  "diagnostics.sensors.source.drive": "Sürücünün SMART sıcaklığı",
   "diagnostics.sensors.tracked.message": "Bu sensör izleme listesinde \"{name}\" tarafından zaten izleniyor.",
   "diagnostics.sensors.tracked.show": "Girdiyi göster",
   "diagnostics.sensors.tracked.title": "Sensör zaten izleniyor",

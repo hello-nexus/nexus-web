@@ -237,24 +237,31 @@ describe('ruleLabel', () => {
 });
 
 describe('findTrackedRule and rowTitles', () => {
-  const mk = (id: string, sensor: Partial<SensorAlertRule['sensor']>, builtIn: SensorAlertRule['builtIn'] = null): SensorAlertRule => ({
+  const mk = (id: string, sensor: Partial<SensorAlertRule['sensor']>, builtIn: SensorAlertRule['builtIn'] = null, source?: SensorAlertRule['source']): SensorAlertRule => ({
     id, enabled: true, sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU', ...sensor },
-    low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch', notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn,
+    low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch', notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn, source,
+  });
+  const t = (key: string, vars?: Record<string, string | number>) => (vars ? `${key}(${vars.count})` : key);
+  const pkg = { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU' };
+
+  it('finds the entry tracking a sensor, comparing a built-in by its source sensor and ignoring the entry being edited', () => {
+    const a = mk('a', { id: 'x' });
+    const cpu = mk('builtin:cpu-temp', { category: 'builtin', id: 'cpu-temp', parentName: '' }, 'cpuTemp', { kind: 'sensor', sensor: pkg, sensors: [], hardwareName: 'CPU' });
+    const drive = mk('builtin:drive-temp:d', { category: 'builtin', id: 'drive-temp:d', parentName: '' }, 'storageTemp', { kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' });
+    expect(findTrackedRule([a, cpu, drive], pkg)).toBe(cpu);
+    expect(findTrackedRule([cpu], pkg, 'builtin:cpu-temp')).toBeUndefined();
+    expect(findTrackedRule([a], a.sensor)).toBe(a);
+    expect(findTrackedRule([drive, mk('b', { id: 'y' })], { ...pkg, id: 'other' })).toBeUndefined();
+    expect(findTrackedRule([a], { ...a.sensor, type: 'Fan' })).toBeUndefined();
   });
 
-  it('finds the entry tracking a sensor by category and id, ignoring the entry being edited and synthetic built-ins', () => {
-    const a = mk('a', {});
-    const synthetic = mk('builtin:cpu-temp', { category: 'builtin', id: 'cpu-temp' }, 'cpuTemp');
-    expect(findTrackedRule([synthetic, a], a.sensor)).toBe(a);
-    expect(findTrackedRule([a], a.sensor, 'a')).toBeUndefined();
-    expect(findTrackedRule([synthetic], synthetic.sensor)).toBeUndefined();
-    expect(findTrackedRule([a], { ...a.sensor, id: 'other' })).toBeUndefined();
-  });
-
-  it('titles every entry as device then exact sensor, taking a built-in subtitle from the service when sent', () => {
-    expect(rowTitles(mk('a', {}))).toEqual({ title: 'CPU', subtitle: 'Package' });
-    expect(rowTitles(mk('b', { parentName: '' }))).toEqual({ title: 'Package', subtitle: undefined });
-    expect(rowTitles(mk('builtin:cpu-temp', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp'))).toEqual({ title: 'AMD Ryzen', subtitle: undefined });
-    expect(rowTitles(mk('builtin:cpu-temp', { category: 'builtin', name: 'AMD Ryzen', parentName: '', sourceName: 'Core (Tctl/Tdie)' }, 'cpuTemp'))).toEqual({ title: 'AMD Ryzen', subtitle: 'Core (Tctl/Tdie)' });
+  it('titles every entry as device then exact sensor', () => {
+    expect(rowTitles(mk('a', {}), t)).toEqual({ title: 'CPU', subtitle: 'Package' });
+    expect(rowTitles(mk('b', { parentName: '' }), t)).toEqual({ title: 'Package', subtitle: undefined });
+    const builtIn = (source?: SensorAlertRule['source']) => mk('builtin:x', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp', source);
+    expect(rowTitles(builtIn(), t)).toEqual({ title: 'AMD Ryzen', subtitle: undefined });
+    expect(rowTitles(builtIn({ kind: 'sensor', sensor: pkg, sensors: [], hardwareName: 'CPU' }), t).subtitle).toBe('Package');
+    expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg, pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average(2)');
+    expect(rowTitles(builtIn({ kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' }), t).subtitle).toBe('diagnostics.sensors.source.drive');
   });
 });

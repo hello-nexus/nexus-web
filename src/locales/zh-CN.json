@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "未报告",
   "diagnostics.sensors.restoreDefault": "恢复默认值",
   "diagnostics.sensors.settings.title": "传感器设置",
+  "diagnostics.sensors.source.average": "{count} 个传感器的平均值",
+  "diagnostics.sensors.source.drive": "驱动器 SMART 温度",
   "diagnostics.sensors.tracked.message": "该传感器已由监视列表中的\"{name}\"跟踪。",
   "diagnostics.sensors.tracked.show": "显示条目",
   "diagnostics.sensors.tracked.title": "该传感器已在跟踪中",

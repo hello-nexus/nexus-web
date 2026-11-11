@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "未回報",
   "diagnostics.sensors.restoreDefault": "還原預設值",
   "diagnostics.sensors.settings.title": "感測器設定",
+  "diagnostics.sensors.source.average": "{count} 個感測器的平均值",
+  "diagnostics.sensors.source.drive": "磁碟機 SMART 溫度",
   "diagnostics.sensors.tracked.message": "此感測器已由監看清單中的「{name}」追蹤。",
   "diagnostics.sensors.tracked.show": "顯示項目",
   "diagnostics.sensors.tracked.title": "此感測器已在追蹤中",

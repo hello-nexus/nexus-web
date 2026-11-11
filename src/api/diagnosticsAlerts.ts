@@ -22,8 +22,14 @@ export interface SensorRef {
   name: string;
   type: string;
   parentName: string;
-  /** The hardware sensor a built-in tracks (e.g. "Core (Tctl/Tdie)"), when the service reports it. */
-  sourceName?: string;
+}
+
+/** What a built-in actually reads right now (wire only, absent on a user rule): one sensor, the mean of several, or a drive's SMART temperature. */
+export interface SensorAlertSource {
+  kind: 'sensor' | 'average' | 'drive';
+  sensor: SensorRef | null;
+  sensors: SensorRef[];
+  hardwareName: string;
 }
 
 export interface SensorAlertRule {
@@ -39,6 +45,7 @@ export interface SensorAlertRule {
   showInHealth: boolean;
   repeatMinutes: number;
   builtIn: BuiltInSensorKind | null;
+  source?: SensorAlertSource;
 }
 
 export type NewSensorAlertRule = Omit<SensorAlertRule, 'id' | 'builtIn'>;
@@ -77,13 +84,18 @@ export interface SensorAlertResult<T> {
   data: T | null;
   /** The service's refusal reason when it names one (a 409 for a sensor another entry already tracks). */
   code?: 'sensor_already_tracked';
+  /** With `code`: the entry that already tracks the sensor. */
+  trackedRuleId?: string;
 }
 
 async function call<T>(path: string, method: string, body?: unknown): Promise<SensorAlertResult<T>> {
   const { response, status } = await authFetchWithStatus(path, { method, body, cache: method === 'GET' ? 'no-store' : undefined });
   if (!response || !response.ok) {
     const text = response ? await response.text().catch(() => '') : '';
-    return { ok: false, status, data: null, ...(text.includes('sensor_already_tracked') ? { code: 'sensor_already_tracked' as const } : {}) };
+    if (!text.includes('sensor_already_tracked')) return { ok: false, status, data: null };
+    let trackedRuleId: string | undefined;
+    try { trackedRuleId = (JSON.parse(text) as { ruleId?: string }).ruleId; } catch { /* the code alone is enough */ }
+    return { ok: false, status, data: null, code: 'sensor_already_tracked' as const, trackedRuleId };
   }
   if (status === 204) return { ok: true, status, data: null };
   try {

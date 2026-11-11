@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Not reported",
   "diagnostics.sensors.restoreDefault": "Restore default",
   "diagnostics.sensors.settings.title": "Sensor settings",
+  "diagnostics.sensors.source.average": "Average of {count} sensors",
+  "diagnostics.sensors.source.drive": "Drive SMART temperature",
   "diagnostics.sensors.tracked.message": "This sensor is already tracked by \"{name}\" in the Watchlist.",
   "diagnostics.sensors.tracked.show": "Show entry",
   "diagnostics.sensors.tracked.title": "Sensor already tracked",

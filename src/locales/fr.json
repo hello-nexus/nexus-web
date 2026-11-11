@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Non signalé",
   "diagnostics.sensors.restoreDefault": "Rétablir la valeur par défaut",
   "diagnostics.sensors.settings.title": "Réglages du capteur",
+  "diagnostics.sensors.source.average": "Moyenne de {count} capteurs",
+  "diagnostics.sensors.source.drive": "Température SMART du disque",
   "diagnostics.sensors.tracked.message": "Ce capteur est déjà suivi par « {name} » dans la surveillance.",
   "diagnostics.sensors.tracked.show": "Afficher l'entrée",
   "diagnostics.sensors.tracked.title": "Capteur déjà suivi",

@@ -2134,6 +2134,8 @@
   "diagnostics.sensors.notReported": "Nehlášeno",
   "diagnostics.sensors.restoreDefault": "Obnovit výchozí",
   "diagnostics.sensors.settings.title": "Nastavení senzoru",
+  "diagnostics.sensors.source.average": "Průměr z {count} senzorů",
+  "diagnostics.sensors.source.drive": "Teplota SMART disku",
   "diagnostics.sensors.tracked.message": "Tento senzor už sleduje položka „{name}“ v seznamu sledování.",
   "diagnostics.sensors.tracked.show": "Zobrazit položku",
   "diagnostics.sensors.tracked.title": "Senzor se již sleduje",

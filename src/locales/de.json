@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Nicht gemeldet",
   "diagnostics.sensors.restoreDefault": "Standard wiederherstellen",
   "diagnostics.sensors.settings.title": "Sensoreinstellungen",
+  "diagnostics.sensors.source.average": "Durchschnitt von {count} Sensoren",
+  "diagnostics.sensors.source.drive": "SMART-Temperatur des Laufwerks",
   "diagnostics.sensors.tracked.message": "Dieser Sensor wird bereits von „{name}“ in der Beobachtungsliste überwacht.",
   "diagnostics.sensors.tracked.show": "Eintrag anzeigen",
   "diagnostics.sensors.tracked.title": "Sensor wird bereits überwacht",

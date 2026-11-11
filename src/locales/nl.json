@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Niet gemeld",
   "diagnostics.sensors.restoreDefault": "Standaard herstellen",
   "diagnostics.sensors.settings.title": "Sensorinstellingen",
+  "diagnostics.sensors.source.average": "Gemiddelde van {count} sensoren",
+  "diagnostics.sensors.source.drive": "SMART-temperatuur van de schijf",
   "diagnostics.sensors.tracked.message": "Deze sensor wordt al bijgehouden door \"{name}\" in de volglijst.",
   "diagnostics.sensors.tracked.show": "Item tonen",
   "diagnostics.sensors.tracked.title": "Sensor wordt al bijgehouden",

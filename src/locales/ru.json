@@ -2134,6 +2134,8 @@
   "diagnostics.sensors.notReported": "Не сообщается",
   "diagnostics.sensors.restoreDefault": "Восстановить по умолчанию",
   "diagnostics.sensors.settings.title": "Настройки датчика",
+  "diagnostics.sensors.source.average": "Среднее по {count} датчикам",
+  "diagnostics.sensors.source.drive": "SMART-температура диска",
   "diagnostics.sensors.tracked.message": "Этот датчик уже отслеживается записью «{name}» в списке наблюдения.",
   "diagnostics.sensors.tracked.show": "Показать запись",
   "diagnostics.sensors.tracked.title": "Датчик уже отслеживается",

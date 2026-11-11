@@ -2134,6 +2134,8 @@
   "diagnostics.sensors.notReported": "Nie raportowane",
   "diagnostics.sensors.restoreDefault": "Przywróć domyślne",
   "diagnostics.sensors.settings.title": "Ustawienia czujnika",
+  "diagnostics.sensors.source.average": "Średnia z {count} czujników",
+  "diagnostics.sensors.source.drive": "Temperatura SMART dysku",
   "diagnostics.sensors.tracked.message": "Ten czujnik jest już śledzony przez „{name}” na liście obserwowanych.",
   "diagnostics.sensors.tracked.show": "Pokaż wpis",
   "diagnostics.sensors.tracked.title": "Czujnik jest już śledzony",

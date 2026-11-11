@@ -2125,6 +2125,8 @@
   "diagnostics.sensors.notReported": "Não informado",
   "diagnostics.sensors.restoreDefault": "Restaurar padrão",
   "diagnostics.sensors.settings.title": "Configurações do sensor",
+  "diagnostics.sensors.source.average": "Média de {count} sensores",
+  "diagnostics.sensors.source.drive": "Temperatura SMART da unidade",
   "diagnostics.sensors.tracked.message": "Este sensor já é monitorado por \"{name}\" na lista de observação.",
   "diagnostics.sensors.tracked.show": "Mostrar entrada",
   "diagnostics.sensors.tracked.title": "Sensor já monitorado",
