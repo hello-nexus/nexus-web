@@ -36,6 +36,8 @@ export interface PopoverProps {
   portal?: boolean;
   /** With portal: keep the popover inside this element's box instead of the viewport. */
   boundsRef?: RefObject<HTMLElement | null>;
+  /** With portal and a top or bottom placement: the distance, px, between the anchor and the popover on whichever side it opens. Defaults to the standard gap. */
+  gap?: number;
 }
 
 // Matches the inline placement offsets in Popover.module.scss.
@@ -73,6 +75,7 @@ export function Popover({
   ariaLabel,
   portal = false,
   boundsRef,
+  gap = GAP,
 }: PopoverProps) {
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const portalRoot = usePortalRoot();
@@ -89,8 +92,8 @@ export function Popover({
     let top: number;
     let left: number;
     if (side === 'top' || side === 'bottom') {
-      const below = r.bottom + GAP;
-      const above = r.top - GAP - h;
+      const below = r.bottom + gap;
+      const above = r.top - gap - h;
       const fitsBelow = below + h <= window.innerHeight - VIEWPORT_MARGIN;
       const fitsAbove = above >= VIEWPORT_MARGIN;
       top = side === 'bottom' ? (fitsBelow || !fitsAbove ? below : above) : (fitsAbove || !fitsBelow ? above : below);
@@ -105,7 +108,7 @@ export function Popover({
     const maxX = Math.min(window.innerWidth, b ? b.right : Infinity) - w - VIEWPORT_MARGIN;
     const maxY = Math.min(window.innerHeight, b ? b.bottom : Infinity) - h - VIEWPORT_MARGIN;
     setCoords({ top: clamp(top, minY, maxY), left: clamp(left, minX, maxX) });
-  }, [anchorRef, boundsRef, placement]);
+  }, [anchorRef, boundsRef, placement, gap]);
 
   useLayoutEffect(() => {
     if (open && portal) reposition();

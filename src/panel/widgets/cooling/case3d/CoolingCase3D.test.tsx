@@ -203,7 +203,7 @@ describe('CoolingCase3D device dropdown', () => {
   };
   const open = () => {
     act(() => h.pick.current?.('front:120:0', 10, 10));
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.product.source' }));
   };
   const mutate = () => h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout;
   const base = (bindings: CoolingLayout['bindings']): CoolingLayout => ({ directions: {}, bindings, tests: [] });
@@ -396,7 +396,7 @@ describe('CoolingCase3D radiator fans', () => {
     setLayout({ settled: true, layout: base(start) });
     render(ui());
     act(() => h.pick.current?.('rad:1', 10, 10));
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.product.source' }));
     fireEvent.click(screen.getByRole('option', { name: /cooling\.case3d\.noneLinked/ }));
     const next = (h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout)(base(start)).bindings;
     expect(next).toContainEqual({ channelId: 'none', slotKeys: ['rad:1'] });
@@ -542,7 +542,7 @@ describe('CoolingCase3D device menu and simulated speed edge cases', () => {
     setLayout({ settled: true });
     render(<CoolingCase3D channels={many} selectedChannelId={null} onSelectChannel={vi.fn()} />);
     act(() => h.pick.current?.('front:120:0', 10, 10));
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.product.source' }));
   };
 
   it('keeps the controls open when the search field of a long device list is pressed', () => {
@@ -866,7 +866,7 @@ describe('CoolingCase3D dark scope', () => {
     expect(scope.style.getPropertyValue('--accent')).toBe('inherit');
     act(() => h.pick.current?.('front:120:0', 10, 10));
     expect(screen.getByRole('dialog').closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.product.source' }));
     expect(screen.getByRole('listbox').closest('[data-theme]')?.getAttribute('data-theme')).toBe('dark');
     document.documentElement.removeAttribute('data-theme');
   });
@@ -956,7 +956,7 @@ describe('CoolingCase3D simulated fans', () => {
   };
   const open = (slot = 'front:120:0') => {
     act(() => h.pick.current?.(slot, 10, 10));
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.device.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.case3d.product.source' }));
   };
   const apply = (bindings: CoolingLayout['bindings']) => (h.layout.edit.mock.calls.at(-1)![0] as (l: CoolingLayout) => CoolingLayout)({ directions: {}, bindings, tests: [] }).bindings;
 

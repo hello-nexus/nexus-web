@@ -44,14 +44,15 @@ import type { FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { AutoResolveState } from './CoolingAutoResolve';
 import { createCaseRenderer, type CaseSceneRenderer, type PickHandler } from './coolingCaseRenderer';
 import { CaseTempLabels } from './CaseTempLabels';
+import { fanRingFrame } from './fanRing';
 import { FanCfmPills } from './FanCfmPills';
 import { useSettlingNotice } from './useSettlingNotice';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import { PRESSURE_COLOR } from './pressureColor';
 import styles from './CoolingCase3D.module.scss';
 
-// The popover opens this far below the clicked point, so the fan and what is around it stay in view; the popover keeps itself inside the canvas.
-const POPOVER_OFFSET_PX = 36;
+// The popover opens this far from the clicked point, above or below, so the fan and what is around it stay in view; the popover keeps itself inside the canvas.
+const POPOVER_GAP_PX = 40;
 
 export interface CoolingCase3DProps {
   channels: FanChannel[];
@@ -212,7 +213,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
     if (!model || !visual || Object.keys(visual.fanCfm).length === 0) return null;
     return { [VENT_KEY]: visual.ventCfm, [REF_KEY]: visual.referenceCfm, ...visual.fanCfm };
   }, [model, visual]);
-  const productFans = useMemo(() => (caseLayout ? fanGeometries(caseLayout).filter(g => slotProduct(g.slot, caseLayout.fanSlots)).map(g => ({ key: g.slot.key, at: [g.box.min[0] + g.box.size[0] / 2, g.box.min[1] + g.box.size[1] / 2, g.box.min[2] + g.box.size[2] / 2] as [number, number, number] })) : []), [caseLayout]);
+  const productFans = useMemo(() => (caseLayout ? fanGeometries(caseLayout).filter(g => slotProduct(g.slot, caseLayout.fanSlots)).map(g => ({ key: g.slot.key, at: fanRingFrame(g.slot, g.box).center.toArray() as [number, number, number] })) : []), [caseLayout]);
   const [settledFlow, setSettledFlow] = useState<Readonly<Record<string, number>> | null>(null);
   // Settled in the same render the raw flows arrive, so the scene never sees a stale set of fans for one frame and re-solves twice.
   const effectiveFlow = rawFlow ? (settledFlow ? settleFlows(settledFlow, rawFlow) : rawFlow) : null;
@@ -491,9 +492,9 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             </span>
           </span>
         </div>
-        <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y + POPOVER_OFFSET_PX }} />
+        <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
         {radiatorPicked && !activeSlot && (
-          <Popover open onClose={closePopover} anchorRef={anchorRef} portal boundsRef={viewportRef} className={styles.popover} ariaLabel={t('cooling.case3d.radiator.label')}>
+          <Popover open onClose={closePopover} anchorRef={anchorRef} portal boundsRef={viewportRef} gap={POPOVER_GAP_PX} className={styles.popover} ariaLabel={t('cooling.case3d.radiator.label')}>
             <div className={styles.popoverTitle}>{t('cooling.case3d.radiator.label')}</div>
             {radiatorChips}
           </Popover>
@@ -506,6 +507,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             anchorRef={anchorRef}
             portal
             boundsRef={viewportRef}
+            gap={POPOVER_GAP_PX}
             className={styles.popover}
             ariaLabel={t('cooling.case3d.direction.label')}
           >
@@ -544,7 +546,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             <div className={styles.sourceGroup}>
               <div className={styles.sourceLabel}>{t('cooling.case3d.product.source')}</div>
               <Select
-                ariaLabel={t('cooling.case3d.device.label')}
+                ariaLabel={t('cooling.case3d.product.source')}
                 value={activeSimRpm !== null ? SIM_VALUE : activeOwnerId === NONE_CHANNEL ? NONE : activeOwnerId ?? NONE}
                 options={deviceOptions}
                 onChange={id => { if (id !== SIM_VALUE) linkChannel(id, activeSlot.key); else if (activeSimRpm === null) linkChannel(simChannelId(SIM_RPM_DEFAULT), activeSlot.key); }}

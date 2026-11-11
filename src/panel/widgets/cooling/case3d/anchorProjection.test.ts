@@ -34,7 +34,7 @@ describe('projectToCanvas', () => {
     }
   });
 
-  it('moves an anchor by exactly its own offset, with no screen-space nudging', () => {
+  it('lands two world points one unit apart less than two pixels apart, so nothing displaces an anchor on screen', () => {
     const scratch = new Vector3();
     const a: CanvasPoint = { x: 0, y: 0, visible: false };
     const b: CanvasPoint = { x: 0, y: 0, visible: false };

@@ -34,4 +34,22 @@ describe('Popover', () => {
     fireEvent.scroll(screen.getByTestId('scroller'));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('opens the given gap below its anchor, and the standard gap without one', () => {
+    const rect = { top: 100, bottom: 100, left: 50, right: 50, width: 0, height: 0, x: 50, y: 100, toJSON: () => ({}) } as DOMRect;
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect);
+    const wide = (gap?: number) => {
+      function H() {
+        const anchor = useRef<HTMLDivElement>(null);
+        return <div ref={anchor}><Popover open onClose={() => {}} anchorRef={anchor} portal gap={gap} ariaLabel="gap">body</Popover></div>;
+      }
+      const view = render(<H />);
+      const top = screen.getByRole('dialog', { name: 'gap' }).style.top;
+      view.unmount();
+      return top;
+    };
+    expect(wide(40)).toBe('140px');
+    expect(wide()).toBe('106px');
+    spy.mockRestore();
+  });
 });
