@@ -22,12 +22,12 @@ function renderWith(devices: { id: string; name: string; hex: string }[]) {
   );
 }
 
-function setup(segmented = true, devices: { id: string; name: string; hex: string }[] = []) {
+function setup(segmented = true) {
   const onPreview = vi.fn();
   const onCommit = vi.fn();
   const { container } = render(
     <StaticPickerCanvas
-      devices={devices} hex="" segmented={segmented} patternEffect={null} patternSlot={0}
+      devices={[]} hex="" segmented={segmented} patternEffect={null} patternSlot={0}
       patternVersion="" gpuAvailable={false} onPreview={onPreview} onCommit={onCommit}
     />,
   );
