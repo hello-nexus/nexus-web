@@ -81,6 +81,8 @@ export function BuildPreviewSeed({ caseId, size = null }: { caseId: string | nul
       machine,
       layoutKey: key,
       preview: true,
+      // The tile draws from the record the visible Build keeps; this frame never writes it.
+      readSetup: true,
       onResolved: () => {},
       onUnavailable: () => {
         tried.add(triedKey);

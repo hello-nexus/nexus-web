@@ -5,12 +5,10 @@
   min-width: 0;
 }
 
-// The tab bar can outgrow its column on a many-page deck; scroll it
-// horizontally instead of squeezing every tab or wrapping the row.
+// Tabs owns the horizontal scrolling when a many-page deck outgrows the column.
 .tabsScroll {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
 }
 
 // Number chips (Customize tab pagination), matching the Keeb device page's
