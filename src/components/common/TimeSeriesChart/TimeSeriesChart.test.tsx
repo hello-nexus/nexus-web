@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import type { TimeSeriesSeries } from './timeSeriesChartUtils';
@@ -263,6 +263,14 @@ describe('TimeSeriesChart', () => {
     // makeSeries() sits at the epoch, so every hovered point is on a
     // different calendar day from Date.now(); the same-day case uses points
     // from the current hour instead.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2024, 5, 15, 12, 0, 0));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('stacks the calendar day under the time when the hovered point is not from today', () => {
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
       const svg = container.querySelector('svg')!;
