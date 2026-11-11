@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
-  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
+  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftDashed, PanelLeftOpen,
   MoreVertical, Settings, FlaskConical, Info, Unplug,
   SlidersHorizontal, RefreshCw, Maximize2, Minimize2,
 } from 'lucide-react';
@@ -35,6 +35,8 @@ interface TopBarProps {
   // sidebar (the collapse button has nothing to act on).
   hasSidebar: boolean;
   compact: boolean;
+  // Viewport too narrow to expand the sidebar: the toggle is disabled.
+  compactLocked?: boolean;
   onToggleCompact: () => void;
   // Centered page name shown inside the search-bar pill.
   pageTitle: string;
@@ -146,6 +148,7 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout, onOpenUp
 export function TopBar({
   hasSidebar,
   compact,
+  compactLocked = false,
   onToggleCompact,
   pageTitle,
   canGoBack,
@@ -188,6 +191,7 @@ export function TopBar({
   // SidebarCollapsedSync); the button only renders with a sidebar, so
   // `compact` is the state being toggled away from.
   const toggleCompact = () => {
+    if (compactLocked) return;
     onToggleCompact();
     updateUiSettings({ sidebarCollapsed: !compact });
   };
@@ -213,9 +217,12 @@ export function TopBar({
               type="button"
               className={styles.iconButton}
               onClick={toggleCompact}
+              disabled={compactLocked}
               aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
             >
-              {compact ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              {compactLocked
+                ? <PanelLeftDashed size={18} />
+                : compact ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
           </HoverTooltip>
         )}

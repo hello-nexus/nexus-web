@@ -90,6 +90,26 @@ describe('TopBar focus mode', () => {
     expect(collapse.compareDocumentPosition(focus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('disables the collapse toggle with a distinct icon when locked', () => {
+    const onToggleCompact = vi.fn();
+    const { container } = renderTopBar({ compact: true, compactLocked: true, onToggleCompact });
+    const btn = screen.getByLabelText('sidebar.expand');
+    expect(btn).toBeDisabled();
+    expect(container.querySelector('.lucide-panel-left-dashed')).not.toBeNull();
+    fireEvent.click(btn);
+    expect(onToggleCompact).not.toHaveBeenCalled();
+  });
+
+  it('keeps the normal toggle and icon when not locked', () => {
+    const onToggleCompact = vi.fn();
+    const { container } = renderTopBar({ compact: false, onToggleCompact });
+    const btn = screen.getByLabelText('sidebar.collapse');
+    expect(btn).not.toBeDisabled();
+    expect(container.querySelector('.lucide-panel-left-close')).not.toBeNull();
+    fireEvent.click(btn);
+    expect(onToggleCompact).toHaveBeenCalledTimes(1);
+  });
+
   it('calls onToggleFullscreen when the Focus button is clicked', () => {
     const onToggleFullscreen = vi.fn();
     renderTopBar({ fullscreenCapable: true, fullscreen: false, onToggleFullscreen });
