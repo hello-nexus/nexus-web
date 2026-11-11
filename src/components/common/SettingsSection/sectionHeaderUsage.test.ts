@@ -17,6 +17,7 @@ const ALLOWED = new Set([
   'components/views/DiagnosticsView/GpuSection.tsx',
   'components/views/DiagnosticsView/IncidentCounts.tsx',
   'components/views/DiagnosticsView/IncidentsSection.tsx',
+  'components/views/DiagnosticsView/SensorHistorySection.tsx',
   'components/views/DiagnosticsView/StorageSection.tsx',
   'components/views/DiagnosticsView/SystemSection.tsx',
   'panel/widgets/benchmark/BenchmarkEntryDetail.tsx',
