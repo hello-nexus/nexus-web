@@ -2820,9 +2820,9 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'All four props are optional and leave the dual-knob behavior unchanged. A one-sided band cannot be dragged as a unit.',
   },
   {
-    name: 'SensorAlertRuleCard', category: 'cards',
-    filePath: 'src/components/views/DiagnosticsView/SensorAlertRuleCard.tsx',
-    description: 'One sensor alert rule as a collapsible card: header with sensor name, live value, state chip and enabled switch; body with the sensor picker, below/above switches, a RangeSlider for the normal range, raise and clear delay sliders, severity, notification, Health and repeat options, and Delete.',
+    name: 'SensorAlertRuleSettings', category: 'cards',
+    filePath: 'src/components/views/DiagnosticsView/SensorAlertRuleSettings.tsx',
+    description: 'The settings of one tracked sensor, shown under its graph on the Sensors tab: the sensor picker, below/above switches, a RangeSlider for the normal range, raise and clear delays, severity, notification, Health and repeat options, and Delete.',
     notes: 'No live preview - it reads live sensors through useSensorLookup and writes through useSensorAlerts.',
   },
   {

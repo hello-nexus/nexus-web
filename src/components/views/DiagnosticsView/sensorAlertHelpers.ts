@@ -1,7 +1,7 @@
 import type { NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import type { Language } from '../../../lib/settings';
-import { convertTemperature, formatNumber, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../lib/units';
+import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
 
 export interface AlertUnitPrefs { monitoringTempUnit: TempUnit; numberFormat: NumberFormat; monitoringWholeNumbers: boolean }
 
@@ -233,11 +233,6 @@ export function sensorLabel(sensor: SensorRef): string {
   return `${parentName} ${name}`;
 }
 
-/** The search-anchor id of a rule's card on the Settings tab, which the Summary rows scroll to. */
-export function sensorAlertAnchor(ruleId: string): string {
-  return `sensor-alert-${ruleId}`;
-}
-
 /** The one-line text of an active alert: the sensor, its limit and the current reading, in the user's units. */
 export function alertLine(
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -251,4 +246,47 @@ export function alertLine(
   return t(below ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
     name: sensorLabel(rule.sensor), limit: fmt(below ? rule.low : rule.high), value: fmt(state.value ?? state.extreme),
   });
+}
+
+export interface AlertBannerPrefs extends AlertUnitPrefs { timeFormat: TimeFormat; dateFormat: DateFormat }
+
+/** An alert still waiting to be dismissed: the rule is on, its state is active and nobody acknowledged it. */
+export function isBannerAlert(rule: SensorAlertRule, state: SensorAlertState | undefined): state is SensorAlertState {
+  return rule.enabled && state?.state === 'active' && !state.acknowledged;
+}
+
+/** When the alert began, in local time: the clock time for today, with the date for an earlier day. */
+function sinceLabel(since: string | null | undefined, nowMs: number, prefs: AlertBannerPrefs, language: Language): string {
+  const date = since ? new Date(since) : null;
+  if (!date || Number.isNaN(date.getTime())) return '-';
+  const sameDay = date.toDateString() === new Date(nowMs).toDateString();
+  return formatDateTime(
+    date,
+    prefs.dateFormat,
+    { ...(sameDay ? {} : { month: 'short', day: 'numeric' }), hour: 'numeric', minute: '2-digit', hour12: hour12OptionFor(prefs.timeFormat) },
+    { locale: language },
+  );
+}
+
+/** The two lines of an active alert's banner: sensor, limit, start time and extreme, then the current reading, in the user's units. */
+export function alertBannerText(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  rule: SensorAlertRule,
+  state: SensorAlertState,
+  prefs: AlertBannerPrefs,
+  language: Language,
+  nowMs: number,
+): { title: string; detail: string } {
+  const type = rule.sensor.type;
+  const below = state.direction === 'below';
+  const fmt = (v: number | null | undefined) => (v == null ? '-' : formatAlertValue(v, type, prefs.monitoringTempUnit, prefs.numberFormat, prefs.monitoringWholeNumbers));
+  return {
+    title: t(below ? 'diagnostics.alerts.banner.below' : 'diagnostics.alerts.banner.above', {
+      name: sensorLabel(rule.sensor),
+      limit: fmt(below ? rule.low : rule.high),
+      time: sinceLabel(state.since, nowMs, prefs, language),
+      peak: fmt(state.extreme ?? state.value),
+    }),
+    detail: t('diagnostics.alerts.banner.detail', { value: fmt(state.value) }),
+  };
 }

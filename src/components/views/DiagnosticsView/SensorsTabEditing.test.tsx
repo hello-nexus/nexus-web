@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
-import { SensorAlertsSection } from './SensorAlertsSection';
+import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
+import { SensorsTab } from './SensorsTab';
 
-const scroll = vi.hoisted(() => ({ request: vi.fn() }));
-vi.mock('../../../search/scroll', () => ({ requestSearchScroll: scroll.request }));
+vi.mock('../../../search/scroll', () => ({ requestSearchScroll: vi.fn() }));
 
 const h = vi.hoisted(() => ({
   tempUnit: 'c' as 'c' | 'f',
@@ -40,6 +40,15 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
 }));
 
 vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: h.push }) }));
+vi.mock('../../common/TimeSeriesChart/TimeSeriesChart', () => ({ TimeSeriesChart: () => <div data-testid="chart" /> }));
+vi.mock('../../common/TimelineBrush/TimelineBrush', () => ({ TIMELINE_BRUSH_DEFAULT_HEIGHT: 28, TimelineBrush: () => <div data-testid="brush" /> }));
+
+const history = {
+  series: [], domain: [0, 2000], stripDomain: [0, 3000], rangeKey: '1h', lastPresetKey: '1h', following: true, supported: true,
+  setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), onChartWheelZoom: vi.fn(), backToLive: vi.fn(), stepSeconds: 1,
+} as unknown as UseMetricHistoryResult;
+const onAlertDismissed = vi.fn();
+const tab = () => <SensorsTab history={history} focusRuleId={null} onFocused={vi.fn()} onAlertDismissed={onAlertDismissed} />;
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -97,11 +106,11 @@ async function renderSection(rules: SensorAlertRule[], states: SensorAlertState[
   h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules, states, history: [] } });
   h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ({ ok: true, status: 200, data: r }));
   let utils!: ReturnType<typeof render>;
-  await act(async () => { utils = render(<SensorAlertsSection />); });
+  await act(async () => { utils = render(tab()); });
   return utils;
 }
 
-const openFirst = () => fireEvent.click(screen.getAllByRole('button', { name: /CPU Package/ })[0]);
+const openFirst = () => fireEvent.click(screen.getAllByTestId('sensor-edit-toggle')[0]);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -110,7 +119,7 @@ beforeEach(() => {
   h.connected = true;
 });
 
-describe('SensorAlertsSection', () => {
+describe('SensorsTab editing', () => {
   it('lists each rule with its sensor name, live value and state chip', async () => {
     await renderSection([rule('r1')], [okState('r1', { state: 'pending' })]);
     expect(screen.getByText('CPU Package')).toBeInTheDocument();
@@ -129,7 +138,7 @@ describe('SensorAlertsSection', () => {
     await renderSection([]);
     const created = rule('new', { sensor: { category: 'cpu', id: 'cpu/load/0', name: 'CPU Total', type: 'Load', parentName: 'p' }, high: 14 });
     h.createSensorAlert.mockResolvedValue({ ok: true, status: 201, data: created });
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.add' }));
+    fireEvent.click(screen.getByTestId('sensor-add'));
     await waitFor(() => expect(h.createSensorAlert).toHaveBeenCalledTimes(1));
     expect(h.createSensorAlert.mock.calls[0][0]).toMatchObject({
       enabled: true,
@@ -138,19 +147,20 @@ describe('SensorAlertsSection', () => {
       high: 14,
     });
     expect(h.createSensorAlert.mock.calls[0][0]).not.toHaveProperty('id');
-    expect(await screen.findByText('CPU Total')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('CPU Total').length).toBeGreaterThan(0));
+    expect(screen.getByTestId('sensor-settings')).toBeInTheDocument();
   });
 
   it('disables Add at ten rules and explains why', async () => {
     const rules = Array.from({ length: 10 }, (_, i) => rule(`r${i}`));
     await renderSection(rules);
-    expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeDisabled();
+    expect(screen.getByTestId('sensor-add')).toBeDisabled();
     expect(screen.getByText('diagnostics.alerts.limitNote(max=10)')).toBeInTheDocument();
   });
 
   it('keeps Add enabled below the limit', async () => {
     await renderSection([rule('r1')]);
-    expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeEnabled();
+    expect(screen.getByTestId('sensor-add')).toBeEnabled();
     expect(screen.queryByText(/limitNote/)).toBeNull();
   });
 
@@ -240,67 +250,48 @@ describe('SensorAlertsSection', () => {
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ clearAfterSeconds: 0 })));
   });
 
-  describe('acknowledge on the card', () => {
-    const ackName = 'diagnostics.alerts.acknowledgeFor(name=CPU Package)';
-
-    it('shows Acknowledge only while the rule is active and unacknowledged, and acknowledges it', async () => {
+  describe('active alert banner', () => {
+    it('shows the banner for an active alert, and Dismiss acknowledges it, hides it and refreshes health', async () => {
       h.acknowledgeSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
+      await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above', extreme: 86, since: '2026-11-10T21:09:00' })]);
+      expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'warning');
+      await act(async () => { fireEvent.click(screen.getByTestId('sensor-banner-dismiss')); });
+      expect(h.acknowledgeSensorAlert).toHaveBeenCalledWith('r1');
+      expect(screen.queryByRole('status')).toBeNull();
+      expect(onAlertDismissed).toHaveBeenCalledTimes(1);
+    });
+
+    it('has no Acknowledge button in the opened card settings', async () => {
       await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above' })]);
       openFirst();
-      await act(async () => { fireEvent.click(screen.getByRole('button', { name: ackName })); });
-      expect(h.acknowledgeSensorAlert).toHaveBeenCalledWith('r1');
-      expect(screen.queryByRole('button', { name: ackName })).toBeNull();
+      expect(screen.queryByRole('button', { name: /acknowledge/i })).toBeNull();
     });
 
-    it.each([
-      ['ok', { state: 'ok' as const }],
-      ['pending', { state: 'pending' as const }],
-      ['already acknowledged', { state: 'active' as const, acknowledged: true }],
-    ])('hides Acknowledge when the rule is %s', async (_label, over) => {
-      await renderSection([rule('r1')], [okState('r1', over)]);
-      openFirst();
-      expect(screen.queryByRole('button', { name: ackName })).toBeNull();
-    });
-  });
-
-  describe('focus from the Summary list', () => {
-    it('opens the rule card, scrolls to its anchor and reports it handled', async () => {
-      const onFocused = vi.fn();
-      h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1'), rule('r2', { sensor: { category: 'cpu', id: 'cpu/load/0', name: 'CPU Total', type: 'Load', parentName: 'p' } })], states: [], history: [] } });
-      await act(async () => { render(<SensorAlertsSection focusRuleId="r2" onFocused={onFocused} />); });
-      expect(scroll.request).toHaveBeenCalledWith('sensor-alert-r2');
-      expect(onFocused).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole('button', { name: /CPU Total/ })).toHaveAttribute('aria-expanded', 'true');
-      expect(screen.getByRole('button', { name: /CPU Package/ })).toHaveAttribute('aria-expanded', 'false');
-      expect(document.querySelector('[data-search-anchor="sensor-alert-r2"]')).not.toBeNull();
-    });
-
-    it('drops a request for a rule that no longer exists without scrolling', async () => {
-      const onFocused = vi.fn();
-      h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [], history: [] } });
-      await act(async () => { render(<SensorAlertsSection focusRuleId="gone" onFocused={onFocused} />); });
-      expect(scroll.request).not.toHaveBeenCalled();
-      expect(onFocused).toHaveBeenCalledTimes(1);
+    it('raises the banner when a state frame turns the rule active', async () => {
+      await renderSection([rule('r1', { severity: 'act' })], [okState('r1')]);
+      expect(screen.queryByRole('status')).toBeNull();
+      await act(async () => { h.frame!({ states: [okState('r1', { state: 'active', direction: 'above' })] }); });
+      expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'critical');
     });
   });
 
   describe('loading and resync', () => {
     it('shows an error with retry until the list loads, and keeps Add disabled', async () => {
       h.fetchSensorAlerts.mockResolvedValue({ ok: false, status: 500, data: null });
-      await act(async () => { render(<SensorAlertsSection />); });
+      await act(async () => { render(tab()); });
       expect(screen.getByText('diagnostics.loadFailed')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeDisabled();
+      expect(screen.queryByTestId('sensor-add')).toBeNull();
       h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [] } });
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'diagnostics.retry' })); });
       expect(screen.getByText('CPU Package')).toBeInTheDocument();
       expect(screen.queryByText('diagnostics.loadFailed')).toBeNull();
-      expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeEnabled();
+      expect(screen.getByTestId('sensor-add')).toBeEnabled();
     });
 
-    it('keeps Add disabled while the first fetch is pending', async () => {
+    it('offers no Add while the first fetch is pending', async () => {
       h.fetchSensorAlerts.mockReturnValue(new Promise(() => {}));
-      await act(async () => { render(<SensorAlertsSection />); });
-      expect(screen.getByRole('button', { name: 'diagnostics.alerts.add' })).toBeDisabled();
+      await act(async () => { render(tab()); });
+      expect(screen.queryByTestId('sensor-add')).toBeNull();
     });
 
     it('refetches after the socket reconnects, so a stale active state clears', async () => {
@@ -309,7 +300,7 @@ describe('SensorAlertsSection', () => {
       expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
       h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [okState('r1')] } });
       h.connected = true;
-      await act(async () => { utils.rerender(<SensorAlertsSection />); });
+      await act(async () => { utils.rerender(tab()); });
       expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(2);
       expect(screen.getByText('diagnostics.alerts.state.ok')).toBeInTheDocument();
     });
@@ -397,7 +388,7 @@ describe('SensorAlertsSection', () => {
       await renderSection([]);
       const pending = deferred();
       h.createSensorAlert.mockReturnValue(pending.promise);
-      const add = screen.getByRole('button', { name: 'diagnostics.alerts.add' });
+      const add = screen.getByTestId('sensor-add');
       fireEvent.click(add);
       fireEvent.click(add);
       expect(h.createSensorAlert).toHaveBeenCalledTimes(1);

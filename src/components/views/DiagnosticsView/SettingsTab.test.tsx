@@ -14,7 +14,6 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
 });
 
 // The alerts section has its own suite and reads sensors and the service.
-vi.mock('./SensorAlertsSection', () => ({ SensorAlertsSection: ({ focusRuleId }: { focusRuleId?: string | null }) => <div data-testid="sensor-alerts" data-focus={focusRuleId ?? ''} /> }));
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -52,14 +51,13 @@ function baseSettings(overrides: Record<string, unknown> = {}) {
 const maxTempSliders = () => screen.getAllByRole('slider', { name: /diagnostics\.settings\.components\.maxTemp/ });
 
 describe('SettingsTab', () => {
-  it('orders the sections components, linger, notifications, sensor alerts, then the danger zone with the reset', () => {
+  it('orders the sections components, linger, notifications, then the danger zone with the reset', () => {
     mockSettings = baseSettings();
     render(<SettingsTab />);
     const order = [
       screen.getByText('diagnostics.settings.components.title'),
       screen.getByText('diagnostics.settings.linger.title'),
       screen.getByText('diagnostics.settings.notifications.title'),
-      screen.getByTestId('sensor-alerts'),
       screen.getByText('settings.dangerZone'),
       screen.getByText('diagnostics.settings.reset.label'),
     ];
@@ -68,10 +66,11 @@ describe('SettingsTab', () => {
     });
   });
 
-  it('passes the alert to focus on to the sensor alerts section', () => {
+  it('has no sensor alert rules: tracked sensors are managed on the Sensors tab', () => {
     mockSettings = baseSettings();
-    render(<SettingsTab focusAlertId="r7" />);
-    expect(screen.getByTestId('sensor-alerts')).toHaveAttribute('data-focus', 'r7');
+    render(<SettingsTab />);
+    expect(screen.queryByText('diagnostics.alerts.customTitle')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'diagnostics.sensors.add' })).toBeNull();
   });
 
   it('renders the section titles and per-component sliders', () => {
@@ -83,7 +82,6 @@ describe('SettingsTab', () => {
     expect(screen.getByText('diagnostics.settings.linger.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.notifications.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.components.title')).toBeInTheDocument();
-    expect(screen.getByTestId('sensor-alerts')).toBeInTheDocument();
     // Each max temperature sits under its own component toggle, in toggle order.
     expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '85', '70', '60']);
   });

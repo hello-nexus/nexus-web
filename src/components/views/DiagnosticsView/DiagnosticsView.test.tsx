@@ -40,20 +40,21 @@ vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
   useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: mockRefreshHealth }),
 }));
 
-// Sensor alert rules and states for the Summary list; the Settings section reads the same hook.
+// Sensor alert rules and states for the Summary list and the Sensors tab, which read the same hook.
 const mockAlerts = vi.hoisted(() => ({
   rules: [] as unknown[], states: [] as unknown[], acknowledge: vi.fn(async () => true),
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
-    rules: mockAlerts.rules, states: mockAlerts.states, loading: false, error: false, atLimit: false,
+    rules: mockAlerts.rules, states: mockAlerts.states, loading: false, loaded: true, error: false, atLimit: false,
     preview: vi.fn(), save: vi.fn(), add: vi.fn(), remove: vi.fn(), refresh: vi.fn(), acknowledge: mockAlerts.acknowledge,
   }),
 }));
 
 // The Summary list reads live values through the sensor lookup; none here, so a row falls back to the state value.
-vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ useSensorLookup: () => ({ resolve: () => undefined }) }));
+vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
+vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
 
 // The Settings tab needs the UI settings provider; the deep link test only checks that it is the tab shown.
 vi.mock('./SettingsTab', () => ({ SettingsTab: () => <div data-testid="settings-tab" /> }));
@@ -705,7 +706,7 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).not.toHaveBeenCalled();
   });
 
-  it('opens the Settings tab for the sensor alerts deep link', () => {
+  it('opens the Settings tab', () => {
     renderDiagnosticsView({ tab: 'settings', onTabChange: vi.fn() });
 
     expect(screen.getByRole('tab', { name: /diagnostics.tab.settings/ })).toHaveAttribute('aria-selected', 'true');
@@ -727,6 +728,23 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.queryByRole('button', { name: /acknowledge/ })).toBeNull();
     fireEvent.click(row);
     expect(onTabChange).toHaveBeenCalledWith('sensors');
+    mockAlerts.rules = [];
+    mockAlerts.states = [];
+  });
+
+  it('Dismiss on a Sensors tab banner acknowledges the alert and force-refreshes health', async () => {
+    mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
+    mockAlerts.rules = [{
+      id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
+      sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
+    }];
+    mockAlerts.states = [{ ruleId: 'r1', state: 'active', value: 95, since: null, extreme: 96, direction: 'above', acknowledged: false }];
+    mockRefreshHealth.mockClear();
+    renderDiagnosticsView({ tab: 'sensors', onTabChange: vi.fn() });
+
+    fireEvent.click(screen.getByTestId('sensor-banner-dismiss'));
+    await waitFor(() => expect(mockRefreshHealth).toHaveBeenCalledWith({ force: true }));
+    expect(mockAlerts.acknowledge).toHaveBeenCalledWith('r1');
     mockAlerts.rules = [];
     mockAlerts.states = [];
   });

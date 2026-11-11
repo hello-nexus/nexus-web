@@ -9,9 +9,21 @@
 .headerRow {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.addRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.note {
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }
 
 .controls {
@@ -78,4 +90,11 @@
   padding: var(--space-lg);
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+// The settings rows sit under the graph, set off by a rule.
+.settings {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: var(--border-width) solid var(--border);
 }

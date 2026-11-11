@@ -7,7 +7,6 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingGroup, SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRow/SettingRow';
-import { SensorAlertsSection } from './SensorAlertsSection';
 
 // 0 = "clears immediately"; the rest step through the shared minutes/hours
 // duration templates (diagnostics.duration.minutes / .hours).
@@ -58,13 +57,7 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
  * to the preferences.diagnostics contract defaults. Every field round-trips
  * through useUiSettings (server is the source of truth, profile-scoped).
  */
-interface SettingsTabProps {
-  /** A sensor alert to open and shine, set when a Summary row was clicked. */
-  focusAlertId?: string | null;
-  onAlertFocused?: () => void;
-}
-
-export function SettingsTab({ focusAlertId, onAlertFocused }: SettingsTabProps) {
+export function SettingsTab() {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
   const [resetOpen, setResetOpen] = useState(false);
@@ -242,8 +235,6 @@ export function SettingsTab({ focusAlertId, onAlertFocused }: SettingsTabProps) 
           />
         </SettingRow>
       </SettingsSection>
-
-      <SensorAlertsSection focusRuleId={focusAlertId} onFocused={onAlertFocused} />
 
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>

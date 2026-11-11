@@ -89,8 +89,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
   const [now, setNow] = useState(() => Date.now());
-  // The sensor alert a Summary row asked to edit; the Settings tab opens and shines its card, then clears this.
-  const [focusAlertId, setFocusAlertId] = useState<string | null>(null);
   // The sensor card a Summary row asked to show; the Sensors tab scrolls to and shines it, then clears this.
   const [focusSensorId, setFocusSensorId] = useState<string | null>(null);
   useEffect(() => { setNow(Date.now()); }, [health]);
@@ -208,8 +206,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           history={sensorHistory}
           focusRuleId={focusSensorId}
           onFocused={() => setFocusSensorId(null)}
-          onEditRule={id => { setFocusAlertId(id); onTabChange('settings'); }}
-          onOpenSettings={() => onTabChange('settings')}
+          onAlertDismissed={() => refreshHealth({ force: true })}
         />
       );
       case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;
@@ -236,7 +233,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           onIncidentHoursChange={handleIncidentHoursChange} onIncidentDateChange={setIncidentDate}
         />
       );
-      case 'settings': return <SettingsTab focusAlertId={focusAlertId} onAlertFocused={() => setFocusAlertId(null)} />;
+      case 'settings': return <SettingsTab />;
     }
   };
 

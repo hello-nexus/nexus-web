@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -166,5 +166,42 @@ describe('delay choices', () => {
     expect(delayLabel(t, 'en', 30)).toContain('slideshow.seconds');
     expect(delayLabel(t, 'en', 180)).toContain('slideshow.minutes');
     expect(delayLabel(t, 'en', 90)).toContain('slideshow.seconds');
+  });
+});
+
+describe('active alert banner', () => {
+  const t = (key: string, vars?: Record<string, string | number>) => `${key}${vars ? JSON.stringify(vars) : ''}`;
+  const prefs = { monitoringTempUnit: 'c' as const, numberFormat: 'dot' as const, monitoringWholeNumbers: false, timeFormat: '24h' as const, dateFormat: 'system' as const };
+  const now = new Date('2026-11-10T23:30:00').getTime();
+  const current = rule({ sensor: { category: 'psu', id: 'p', name: 'PSU Output', type: 'Current', parentName: 'PSU' }, high: 9.5 });
+
+  it('names the sensor, limit, local start time and peak in the user units', () => {
+    const { title, detail } = alertBannerText(t, current, state({ since: '2026-11-10T21:09:00', value: 10, extreme: 10.1 }), prefs, 'en', now);
+    expect(title).toBe('diagnostics.alerts.banner.above{"name":"PSU Output","limit":"9.5 A","time":"21:09","peak":"10.1 A"}');
+    expect(detail).toBe('diagnostics.alerts.banner.detail{"value":"10 A"}');
+  });
+
+  it('shows the date as well for a start on an earlier day', () => {
+    const { title } = alertBannerText(t, current, state({ since: '2026-11-08T21:09:00', value: 10, extreme: 10.1 }), prefs, 'en', now);
+    expect(title).toContain('"time":"Nov 8, 21:09"');
+  });
+
+  it('converts a temperature to Fahrenheit and uses the lower limit and text for a low alert', () => {
+    const low = rule({ low: 20, high: null });
+    const { title } = alertBannerText(t, low, state({ direction: 'below', since: '2026-11-10T21:09:00', value: 15, extreme: 10 }), { ...prefs, monitoringTempUnit: 'f' }, 'en', now);
+    expect(title).toBe('diagnostics.alerts.banner.below{"name":"CPU Package","limit":"68°F","time":"21:09","peak":"50°F"}');
+  });
+
+  it('falls back to a dash for a missing start time', () => {
+    const { title } = alertBannerText(t, current, state({ since: null }), prefs, 'en', now);
+    expect(title).toContain('"time":"-"');
+  });
+
+  it('banners only an enabled, active, unacknowledged rule', () => {
+    expect(isBannerAlert(rule(), state())).toBe(true);
+    expect(isBannerAlert(rule({ enabled: false }), state())).toBe(false);
+    expect(isBannerAlert(rule(), state({ acknowledged: true }))).toBe(false);
+    expect(isBannerAlert(rule(), state({ state: 'pending' }))).toBe(false);
+    expect(isBannerAlert(rule(), undefined)).toBe(false);
   });
 });
