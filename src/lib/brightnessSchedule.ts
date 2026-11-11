@@ -77,3 +77,41 @@ export function scheduledBrightness(points: BrightnessSchedulePoint[], minute: n
   );
   return Math.max(0, Math.min(100, level));
 }
+
+/** What the schedule does next, from a given minute. */
+export type ScheduleOutlook =
+  | { kind: 'steady' }
+  /** The curve is moving now and stops at `untilMinute`. */
+  | { kind: 'moving'; rising: boolean; untilMinute: number }
+  /** The curve is flat now and starts moving at `startMinute`. */
+  | { kind: 'upcoming'; rising: boolean; startMinute: number };
+
+const DAY_MINUTES = 24 * 60;
+// Interpolation noise below this is not movement.
+const MOVE_EPSILON = 1e-6;
+
+/**
+ * Whether the schedule is moving at `minute`, and when the next change starts
+ * (the time the curve leaves the current level) or, while it is moving, when
+ * the ramp ends. Minute times wrap past midnight.
+ */
+export function scheduleOutlook(points: BrightnessSchedulePoint[], minute: number): ScheduleOutlook {
+  if (points.length === 0) return { kind: 'steady' };
+  const at = (m: number) => scheduledBrightness(points, ((m % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES);
+  const now = at(minute);
+  const step = at(minute + 1) - now;
+  if (Math.abs(step) > MOVE_EPSILON) {
+    const ends = [...points].map(p => p.hour * 60)
+      .map(m => (m > minute ? m : m + DAY_MINUTES))
+      .sort((a, b) => a - b)[0];
+    return { kind: 'moving', rising: step > 0, untilMinute: ends % DAY_MINUTES };
+  }
+  for (let m = minute + 1; m <= minute + DAY_MINUTES; m++) {
+    const delta = at(m) - now;
+    if (Math.abs(delta) > MOVE_EPSILON) {
+      // The curve left the level at the minute before the first one that differs.
+      return { kind: 'upcoming', rising: delta > 0, startMinute: (m - 1) % DAY_MINUTES };
+    }
+  }
+  return { kind: 'steady' };
+}

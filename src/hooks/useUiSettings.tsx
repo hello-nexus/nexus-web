@@ -144,6 +144,8 @@ export interface UiSettingsValue {
   startupDelaySeconds: number;
   // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
   readRamTemperatures: boolean;
+  // Machine-level, server-mirrored under the preferences top-level powerMonitorsEnabled field.
+  powerMonitorsEnabled: boolean;
   // Linux-only, server-mirrored under the preferences top-level amdGpuLighting field.
   amdGpuLighting: boolean;
   // Read-only: the service reports whether the switch applies on this host.
@@ -285,6 +287,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
     readRamTemperatures: src.general.readRamTemperatures,
+    powerMonitorsEnabled: src.general.powerMonitorsEnabled,
     amdGpuLighting: src.general.amdGpuLighting,
     amdGpuLightingApplicable: false,
     featureLightingEnabled: src.general.featureLightingEnabled,
@@ -364,6 +367,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
       readRamTemperatures: src.readRamTemperatures,
+      powerMonitorsEnabled: src.powerMonitorsEnabled,
       amdGpuLighting: src.amdGpuLighting,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
@@ -443,6 +447,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
   if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
+  if (patch.powerMonitorsEnabled !== undefined) out.powerMonitorsEnabled = patch.powerMonitorsEnabled;
   if (patch.amdGpuLighting !== undefined) out.amdGpuLighting = patch.amdGpuLighting;
   // features block
   const features: FeaturesPrefs = {};
@@ -580,6 +585,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
     readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
+    powerMonitorsEnabled: server.powerMonitorsEnabled ?? base.powerMonitorsEnabled,
     amdGpuLighting: server.amdGpuLighting ?? base.amdGpuLighting,
     amdGpuLightingApplicable: server.amdGpuLightingApplicable === true,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
@@ -680,6 +686,7 @@ export function UiSettingsProvider({
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined
       || serverPatch.readRamTemperatures !== undefined
+      || serverPatch.powerMonitorsEnabled !== undefined
       || serverPatch.amdGpuLighting !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);

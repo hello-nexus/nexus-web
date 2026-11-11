@@ -4,6 +4,9 @@ import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
 import styles from './Arc270Gauge.module.scss';
 
+// Share of the slot's short side the value may span inside the ring.
+const VALUE_INNER_FRACTION = 0.62;
+
 const STROKE = 9;
 const RADIUS = GAUGE_FIGURE_OUTER - STROKE / 2;
 // 270 deg arc starting at 7 o'clock (bottom-left) sweeping clockwise
@@ -49,7 +52,7 @@ export function Arc270Gauge({ value, formatted, label, gradient }: GaugeProps) {
         )}
       </svg>
       <div className={styles.center}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

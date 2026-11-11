@@ -36,4 +36,10 @@ describe('ToolsView without dev tools', () => {
 
     expect(screen.queryByText('tools.simAstral.title')).toBeNull();
   });
+
+  it('does not render the Logitech G560 Simulator card', async () => {
+    await act(async () => { render(<ToolsView serviceOnline />); });
+
+    expect(screen.queryByText('tools.simSpeaker.title')).toBeNull();
+  });
 });

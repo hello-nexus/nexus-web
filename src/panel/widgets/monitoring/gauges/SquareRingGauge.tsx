@@ -7,6 +7,9 @@ import { gradedRingClosure } from './gradedRingClosure';
 import { PATH_LENGTH, RING_STROKE, progressDash, squareRingShape, startSeamPath } from './squareRingGeometry';
 import styles from './CaterpillarGauge.module.scss';
 
+// Share of the slot's short side the value may span inside the ring.
+const VALUE_INNER_FRACTION = 0.62;
+
 // A graded stroke is drawn as solid dashes of the same path and revealed by a
 // dash mask, like the graded Ring.
 const SEGMENTS = 40;
@@ -107,7 +110,7 @@ export function SquareRingGauge({ value, formatted, label, gradient }: GaugeProp
         )}
       </svg>
       <div className={styles.center}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { MonitoringWidget } from './MonitoringWidget';
 import { MonitoringPreview } from './MonitoringPreview';
 import { MonitoringTouch } from './MonitoringTouch';
 import { MonitoringSettings } from './MonitoringSettings';
+import { newWidgetSlotDesigns } from './perfSlots';
 
 // Code-split: Page only loads when the dashboard navigates into the
 // immersive view. Widget + Touch stay eager so panel cells render
@@ -22,6 +23,7 @@ export const monitoringApp: AppManifest = {
     hasConfig: true,
     touch: false,
     usesSlotSelection: true,
+    defaultConfig: size => newWidgetSlotDesigns(size),
   },
   Widget: MonitoringWidget,
   Preview: MonitoringPreview,

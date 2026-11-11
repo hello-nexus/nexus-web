@@ -1,11 +1,13 @@
 import { useCallback, useMemo } from 'react';
 import { Select } from '../../../../components/common/Select/Select';
 import { useSensors } from '../../../../hooks/useSensors';
-import { useSensorExtras } from '../../../../hooks/useSensorExtras';
+import { EMPTY_SENSOR_EXTRAS, useSensorExtras } from '../../../../hooks/useSensorExtras';
 import { useTranslation } from '../../../../lib/i18n';
 import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from '../../deck/deckMonitoring';
 import type { DeckMonitoringCategory } from '../../deck/types';
 import { buildNicNetworkSensors } from '../networkSensors';
+import { isExtrasBackedDevice } from '../perfSlots';
+import { currentFanProbeName, fanProbeAlias } from '../sensorCategories';
 import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys, type SensorOption } from '../sensorPicker';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import styles from './SensorPicker.module.scss';
@@ -54,7 +56,9 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
 }) {
   const { t } = useTranslation();
   const { sensors, extras, networkSensors, resolve } = lookup;
-  const device = category as DeckMonitoringCategory;
+  // A fan probe saved under Cooler before it had its own category reads, and shows, as a fan sensor.
+  const device = fanProbeAlias(category as DeckMonitoringCategory, sensor, extras) as DeckMonitoringCategory;
+  const savedKey = device === category ? sensor : currentFanProbeName(sensor);
   // FPS has no reading the lighting service can resolve, so it is not offered.
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
     .filter(c => c !== 'fps' && (!categories || c === device || categories.includes(c)))
@@ -64,8 +68,10 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
     return sensorTypes ? all.filter(o => o.type !== undefined && sensorTypes.includes(o.type)) : all;
   };
   const sensorOptions: SensorOption[] = automatic ? [{ value: AUTOMATIC_VALUE, label: automatic.label }, ...optionsFor(device)] : optionsFor(device);
-  const listed = sensorOptions.some(o => o.value === sensor || o.sensorName === sensor);
-  const sensorValue = automatic?.active ? AUTOMATIC_VALUE : listed ? selectedSensorValue(sensorOptions, sensor) : '';
+  const listed = sensorOptions.some(o => o.value === savedKey || o.sensorName === savedKey);
+  const sensorValue = automatic?.active ? AUTOMATIC_VALUE : listed ? selectedSensorValue(sensorOptions, savedKey) : '';
+  // "Missing" needs a loaded extras frame: before the first one a saved sensor is just not listed yet.
+  const sensorMissing = !!sensor && !listed && isExtrasBackedDevice(device) && extras !== EMPTY_SENSOR_EXTRAS;
 
   const pickCategory = (next: string) => {
     const options = optionsFor(next as DeckMonitoringCategory);
@@ -77,7 +83,7 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
     <div className={`${styles.row} ${className ?? ''}`}>
       <Select
         className={styles.category}
-        value={category}
+        value={device}
         options={categoryOptions}
         onChange={pickCategory}
         disabled={disabled}
@@ -87,7 +93,7 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
         className={styles.sensor}
         value={sensorValue}
         options={sensorOptions}
-        placeholder={t('lighting.sensor.unavailable')}
+        placeholder={sensorMissing ? t('monitoring.sensorMissing') : t('lighting.sensor.unavailable')}
         onChange={next => {
           if (automatic && next === AUTOMATIC_VALUE) {
             automatic.onSelect();

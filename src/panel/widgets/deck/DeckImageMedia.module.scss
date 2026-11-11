@@ -1,0 +1,6 @@
+// Wake-lock side padding, see .backgroundMediaVideo in PanelApp.module.scss.
+.videoWakeLockPad {
+  box-sizing: content-box;
+  padding: 0 100%;
+  margin-left: -100%;
+}

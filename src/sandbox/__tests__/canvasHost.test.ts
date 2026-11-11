@@ -4,6 +4,8 @@ const fetchBundleFile = vi.fn();
 const fetchServiceBlob = vi.fn();
 vi.mock('../../panel/widgets/marketplace/useSdkBundle', () => ({ fetchBundleFile: (...a: unknown[]) => fetchBundleFile(...a) }));
 vi.mock('../../api/service', () => ({ fetchServiceBlob: (...a: unknown[]) => fetchServiceBlob(...a) }));
+const proxyFetch = vi.fn();
+vi.mock('../proxyClient', () => ({ proxyFetch: (...a: unknown[]) => proxyFetch(...a) }));
 const reportAppError = vi.fn();
 vi.mock('../../telemetry/appErrorReporting', () => ({ reportAppError: (...a: unknown[]) => reportAppError(...a) }));
 
@@ -57,6 +59,7 @@ beforeEach(() => {
   FakeWorker.all = [];
   fetchBundleFile.mockReset().mockResolvedValue(new Blob(['export {}']));
   fetchServiceBlob.mockReset();
+  proxyFetch.mockReset();
   reportAppError.mockReset();
   vi.stubGlobal('Worker', FakeWorker);
   let n = 0;
@@ -421,6 +424,43 @@ describe('readAsset', () => {
     worker.emit({ type: 'read-asset', id: 9, path: 'nope.png' });
     await flush();
     expect(worker.sent('asset-error')).toEqual([{ type: 'asset-error', id: 9, message: 'asset not found' }]);
+  });
+});
+
+describe('net-fetch relay', () => {
+  it('sends an https GET through the proxy for this app and replies with the envelope', async () => {
+    const { worker } = await readySession();
+    const envelope = { ok: true, status: 200, bodyBase64: 'AAEC' };
+    proxyFetch.mockResolvedValue(envelope);
+    worker.emit({ type: 'net-fetch', id: 7, url: 'https://tiles.example.com/1/2/3.pbf' });
+    await flush();
+    expect(proxyFetch).toHaveBeenCalledWith('com.test.app', { url: 'https://tiles.example.com/1/2/3.pbf', method: 'GET' }, [], expect.any(AbortSignal));
+    expect(worker.sent('net-result')).toEqual([{ type: 'net-result', id: 7, result: envelope }]);
+  });
+
+  it('aborts the proxy request on net-abort and sends no reply', async () => {
+    const { worker } = await readySession();
+    let signal: AbortSignal | undefined;
+    proxyFetch.mockImplementation((_a, _r, _h, sig: AbortSignal) => { signal = sig; return new Promise((resolve) => { sig.addEventListener('abort', () => resolve(null)); }); });
+    worker.emit({ type: 'net-fetch', id: 3, url: 'https://tiles.example.com/x' });
+    await flush();
+    expect(signal?.aborted).toBe(false);
+    worker.emit({ type: 'net-abort', id: 3 });
+    await flush();
+    expect(signal?.aborted).toBe(true);
+    expect(worker.sent('net-result')).toHaveLength(0);
+  });
+
+  it('replies null when the proxy throws or the url is not a string', async () => {
+    const { worker } = await readySession();
+    proxyFetch.mockRejectedValue(new Error('down'));
+    worker.emit({ type: 'net-fetch', id: 1, url: 'https://tiles.example.com/x' });
+    worker.emit({ type: 'net-fetch', id: 2, url: 42 });
+    await flush();
+    expect(proxyFetch).toHaveBeenCalledTimes(1);
+    expect(worker.sent('net-result')).toHaveLength(2);
+    for (const m of worker.sent('net-result')) expect(m.result).toBeNull();
+    expect(worker.sent('net-result').map((m) => m.id).sort()).toEqual([1, 2]);
   });
 });
 

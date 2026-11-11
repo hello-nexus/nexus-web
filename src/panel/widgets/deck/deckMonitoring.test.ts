@@ -34,7 +34,7 @@ describe('DECK_MONITORING_CATEGORIES', () => {
 describe('deckCategoryUsesExtras', () => {
   it('covers the extras-topic categories plus network', () => {
     const usesExtras = DECK_MONITORING_CATEGORIES.filter(deckCategoryUsesExtras);
-    expect(usesExtras).toEqual(['memoryModule', 'network', 'battery', 'cooler', 'psu', 'embeddedController']);
+    expect(usesExtras).toEqual(['memoryModule', 'network', 'battery', 'cooler', 'fanSensors', 'psu', 'embeddedController']);
   });
 });
 

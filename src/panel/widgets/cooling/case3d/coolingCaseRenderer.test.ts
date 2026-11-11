@@ -35,12 +35,16 @@ vi.mock('../../../../lib/cooling/flow/flowLayer', () => ({
 }));
 
 import { LineBasicMaterial, LineDashedMaterial, Color } from 'three';
-import { Group } from 'three';
+import { Group, Vector3 } from 'three';
 import y70 from '../../../../lib/cooling/__fixtures__/y70-case-layout.json';
 import { parseCaseLayout } from '../../../../lib/cooling/caseLayout';
 import { buildCase, coolingPalette, scenePalette, type SceneLayout } from '../../../../lib/scene/pcScene';
 import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
-import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringFaceShift, ringMaterial, rotorMaterial } from './coolingCaseRenderer';
+import { fanGeometries } from '../../../../lib/cooling/caseLayout';
+import { fanRingFrame } from './fanRing';
+import { projectToCanvas, type CanvasPoint } from './anchorProjection';
+import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringMaterial, rotorMaterial } from './coolingCaseRenderer';
+import { ringFaceShift } from './fanRing';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],
@@ -313,5 +317,63 @@ describe('case palette', () => {
     host.style.setProperty('--text', '#f5f5f5');
     expect(coolingPalette(host).part.getHexString()).toBe('f5f5f5');
     expect(scenePalette(host).part.getHexString()).not.toBe('f5f5f5');
+  });
+});
+
+describe('fan pill anchors sit on the drawn ring centers', () => {
+  const turn = 0.5;
+  const rotated = (v: [number, number, number]): [number, number, number] => new Vector3(...v).applyAxisAngle(new Vector3(0, 1, 0), turn).toArray() as [number, number, number];
+  const mixed: CaseLayout = {
+    size: [450, 230, 470],
+    boxes: [],
+    fanSlots: [
+      { key: 'front:120:0', position: 'front', size: 120, index: 0, taken: 'fan', box: { min: [0, 10, 10], size: [25, 120, 120] }, axis: [1, 0, 0] },
+      { key: 'top:120:0', position: 'top', size: 120, index: 0, taken: 'fan', box: { min: [100, 440, 10], size: [120, 25, 120] }, axis: [0, -1, 0] },
+      { key: 'rear:120:0', position: 'rear', size: 120, index: 0, taken: 'fan', box: { min: [425, 10, 10], size: [25, 120, 120] }, axis: [-1, 0, 0] },
+      { key: 'side:120:0', position: 'side', size: 120, index: 0, taken: 'fan', box: { min: [200, 10, 0], size: [120, 120, 25] }, axis: [0, 0, 1] },
+      { key: 'rad:fan:0', position: 'top', size: 140, index: 1, taken: 'fan', box: { min: [250, 440, 10], size: [140, 25, 140] }, axis: [0, -1, 0] },
+      { key: 'gpu:fan:0', position: 'bottom', size: 90, index: 0, taken: 'fan', box: { min: [120, 60, 40], size: [90, 300, 40] }, axis: [0, 1, 0] },
+      { key: 'gpu:fan:1', position: 'bottom', size: 90, index: 1, taken: 'fan', box: { min: [300, 60, 100], size: [300, 40, 90], rotationY: turn }, axis: rotated([1, 0, 0]) },
+      { key: 'side:120:1', position: 'side', size: 120, index: 1, taken: 'fan', box: { min: [200, 150, 0], size: [120, 120, 25], rotationY: turn }, axis: rotated([0, 0, 1]) },
+    ],
+  } as CaseLayout;
+
+  const draw = () => {
+    const r = createCaseRenderer(document.createElement('canvas'), () => {});
+    r.setState({ layout: mixed, directions: {}, highlighted: new Set(), bound: new Set(), simulated: new Set(), showCase: true, active: null, flow: null, flowOptions: { particles: true, collisions: false, speed: 1 } });
+    const scene = layers.host!.parent as unknown as Group;
+    scene.updateMatrixWorld(true);
+    // The scene adds the case, the fans, then the flow; each fan is one group whose first child is its tip ring, beside its pick box.
+    const rings = scene.children[1].children.filter(g => g.children[0]?.type === 'LineLoop').map(g => g.children[0].getWorldPosition(new Vector3()));
+    return { r, rings };
+  };
+
+  it('puts each slot anchor at the world center of its drawn ring, face shifted GPU fans included', () => {
+    const { r, rings } = draw();
+    const frames = fanGeometries(mixed).map(g => fanRingFrame(g.slot, g.box));
+    expect(rings).toHaveLength(mixed.fanSlots.length);
+    frames.forEach((f, i) => expect(f.center.distanceTo(rings[i])).toBeLessThan(1e-6));
+    expect(frames.filter(f => f.faceShift !== 0)).toHaveLength(2);
+    r.dispose();
+  });
+
+  it('keeps the projected anchor on the projected ring center from every camera angle', () => {
+    const { r, rings } = draw();
+    const frames = fanGeometries(mixed).map(g => fanRingFrame(g.slot, g.box));
+    const target = new Vector3(225, 115, 235);
+    const scratch = new Vector3();
+    const a: CanvasPoint = { x: 0, y: 0, visible: false };
+    const b: CanvasPoint = { x: 0, y: 0, visible: false };
+    for (const [az, el] of [[0, 0.1], [0.8, 0.3], [-0.8, 0.3], [3.1, 0.2], [1.6, 1.4], [-2.4, -0.5]]) {
+      r.camera.position.set(target.x + 900 * Math.cos(el) * Math.sin(az), target.y + 900 * Math.sin(el), target.z + 900 * Math.cos(el) * Math.cos(az));
+      r.camera.lookAt(target);
+      r.camera.updateMatrixWorld();
+      frames.forEach((f, i) => {
+        projectToCanvas(r.camera, f.center.toArray() as [number, number, number], 800, 600, scratch, a);
+        projectToCanvas(r.camera, rings[i].toArray() as [number, number, number], 800, 600, scratch, b);
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeLessThan(1e-3);
+      });
+    }
+    r.dispose();
   });
 });

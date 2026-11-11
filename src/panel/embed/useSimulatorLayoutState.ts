@@ -41,7 +41,6 @@ export interface SimulatorRuntimeState {
   // Set when the parent rejects an action (e.g. a resize that can't fit);
   // drives a one-shot flash on the named widget. nonce re-fires repeats.
   flashSignal: { widgetId: string; nonce: number } | null;
-  brightness: number;
   screenOn: boolean;
   showPanel: boolean;
   deviceId: string | null;
@@ -88,7 +87,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
-  const [brightness, setBrightness] = useState(100);
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
@@ -114,7 +112,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setTheme(data.theme);
           setThemeMode(data.themeMode);
           setSelectedWidgetId(data.selectedWidgetId);
-          setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
           if (data.deviceId !== undefined) setDeviceId(data.deviceId);
@@ -160,7 +157,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           break;
         }
         case 'simulator/set-display': {
-          setBrightness(data.brightness);
           setScreenOn(data.screenOn);
           setShowPanel(data.showPanel);
           break;
@@ -222,7 +218,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     themeMode,
     selectedWidgetId,
     flashSignal,
-    brightness,
     screenOn,
     showPanel,
     deviceId,

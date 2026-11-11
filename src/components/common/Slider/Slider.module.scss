@@ -158,6 +158,18 @@ $inline-gap: 0.5rem;
   font-style: italic;
 }
 
+/* The thumb's path: its centre stops half a thumb (--slider-thumb-size, global.scss) short of
+   each end of the track. The zero tick, band and marker are placed in it. No `inset`:
+   the Q60 panel is Chromium 83. */
+.scale {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--slider-thumb-size) / 2);
+  right: calc(var(--slider-thumb-size) / 2);
+  pointer-events: none;
+}
+
 .zeroTick {
   position: absolute;
   top: 50%;
@@ -204,6 +216,14 @@ $inline-gap: 0.5rem;
   border-top: 6px solid var(--text);
   margin-bottom: 5px;
   filter: drop-shadow(0 0 1.5px rgb(0 0 0 / var(--alpha-strong)));
+}
+
+.markerHit {
+  pointer-events: auto;
+  display: flex;
+  // The caret keeps its own margin; the hit area only widens what hover reaches.
+  padding: 4px 6px 0;
+  margin: -4px -6px 0;
 }
 
 .markerLabel {
