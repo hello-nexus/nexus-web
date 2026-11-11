@@ -14,6 +14,8 @@ import {
 } from '../api/diagnosticsAlerts';
 import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 
+const LIVE_VALUES_POLL_MS = 5000;
+
 export type SensorAlertAddResult = { result: 'created'; rule: SensorAlertRule } | { result: 'limit' | 'error'; rule: null };
 
 export interface UseSensorAlerts {
@@ -42,9 +44,11 @@ export interface UseSensorAlerts {
  * `diagnostics/alerts` topic. States are pushed on transitions only, so the
  * list is refetched on socket reconnect and window focus to drop a stale
  * active state. Rule edits are optimistic: a refused write refetches the
- * canonical list so the UI never shows a rule the service lacks.
+ * canonical list so the UI never shows a rule the service lacks. With `liveValues` the states are
+ * also re-read on a timer, since a built-in's reading arrives only in states and a frame is sent on
+ * transitions only.
  */
-export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
+export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensorAlerts {
   const [rules, setRules] = useState<SensorAlertRule[]>([]);
   const [states, setStates] = useState<SensorAlertState[]>([]);
   const [loading, setLoading] = useState(enabled);
@@ -54,6 +58,8 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
   const rulesRef = useRef<SensorAlertRule[]>([]);
   rulesRef.current = rules;
   const seqRef = useRef(0);
+  // Bumped by every pushed frame, so a slower poll response never overwrites a newer state.
+  const stateSeqRef = useRef(0);
   // Per rule id: the newest rule awaiting a write, and the write loop in flight.
   const pendingRef = useRef(new Map<string, { rule: SensorAlertRule; onFail?: () => void }>());
   const inFlightRef = useRef(new Map<string, Promise<void>>());
@@ -90,6 +96,7 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
   useTopicCallback('diagnostics/alerts', enabled, raw => {
     const frame = raw as Partial<SensorAlertsFrame> | null;
     if (!frame || !Array.isArray(frame.states)) return;
+    stateSeqRef.current++;
     setStates(frame.states);
     // A state for a rule this client lacks (added elsewhere) means the list is stale.
     if (frame.states.some(s => !rulesRef.current.some(r => r.id === s.ruleId))) load();
@@ -110,6 +117,18 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
     return () => window.removeEventListener('focus', onFocus);
   }, [enabled, load]);
 
+  useEffect(() => {
+    if (!enabled || !liveValues) return undefined;
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      const stateSeq = ++stateSeqRef.current;
+      void fetchSensorAlerts().then(res => {
+        if (mountedRef.current && res.ok && res.data && stateSeq === stateSeqRef.current) setStates(res.data.states);
+      });
+    }, LIVE_VALUES_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [enabled, liveValues]);
+
   const replaceRule = useCallback((rule: SensorAlertRule) => {
     setRules(prev => prev.map(r => (r.id === rule.id ? rule : r)));
   }, []);
@@ -124,7 +143,12 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
         for (let next = pendingRef.current.get(id); next; next = pendingRef.current.get(id)) {
           pendingRef.current.delete(id);
           const res = await updateSensorAlert(next.rule);
-          if (res.ok || removingRef.current.has(id)) continue;
+          if (res.ok || removingRef.current.has(id)) {
+            // The service may clamp a built-in's limit; show what it stored unless a newer edit is queued.
+            const stored = res.data;
+            if (stored && stored.builtIn && !pendingRef.current.has(id) && mountedRef.current && (stored.low !== next.rule.low || stored.high !== next.rule.high)) replaceRule(stored);
+            continue;
+          }
           if (mountedRef.current) next.onFail?.();
           if (!pendingRef.current.has(id) && mountedRef.current) load();
         }
@@ -134,7 +158,7 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
     })();
     inFlightRef.current.set(id, loop);
     return loop;
-  }, [load]);
+  }, [load, replaceRule]);
 
   const save = useCallback((rule: SensorAlertRule, onFail?: () => void) => {
     replaceRule(rule);
@@ -186,13 +210,19 @@ export function useSensorAlerts(enabled: boolean): UseSensorAlerts {
   }, []);
 
   const resetBuiltIns = useCallback(async (id?: string) => {
+    const ids = id ? [id] : rulesRef.current.filter(r => r.builtIn).map(r => r.id);
+    // Edits still queued for a reset rule would write the old values back over it; other rules keep theirs.
+    for (const rid of ids) pendingRef.current.delete(rid);
+    await Promise.all(ids.map(rid => inFlightRef.current.get(rid)));
     const res = await resetBuiltInSensorAlerts(id);
     if (!mountedRef.current) return res.ok;
     if (res.ok && res.data) {
-      // Edits still queued for a reset rule would write the old values back over it.
-      for (const rule of res.data.rules) pendingRef.current.delete(rule.id);
-      setRules(res.data.rules);
-      setStates(res.data.states);
+      const { rules: fresh, states: freshStates } = res.data;
+      const reset = new Set(ids);
+      stateSeqRef.current++;
+      // Only the reset rules change; every other rule keeps its local copy, which may hold an edit the response predates.
+      setRules(prev => fresh.map(r => (reset.has(r.id) ? r : (prev.find(p => p.id === r.id) ?? r))));
+      setStates(freshStates);
     }
     return res.ok;
   }, []);

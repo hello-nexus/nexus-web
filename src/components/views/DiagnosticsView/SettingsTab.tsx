@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { DIAGNOSTICS_SETTINGS_DEFAULTS, useUiSettings, type UiSettingsValue } from '../../../hooks/useUiSettings';
-import { resetBuiltInSensorAlerts } from '../../../api/diagnosticsAlerts';
+import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
 import { Button } from '../../common/Button/Button';
+import { useToast } from '../../common/Toast/Toast';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -40,6 +41,8 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
 export function SettingsTab() {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
+  const { push } = useToast();
+  const alerts = useSensorAlerts(true);
   const [resetOpen, setResetOpen] = useState(false);
 
   const notificationsEnabled = settings.diagnosticsNotificationsEnabled;
@@ -50,7 +53,7 @@ export function SettingsTab() {
 
   const doReset = () => {
     update(DEFAULT_PATCH);
-    void resetBuiltInSensorAlerts();
+    void alerts.resetBuiltIns().then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); });
     setResetOpen(false);
   };
 

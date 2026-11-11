@@ -98,6 +98,17 @@ describe('DiagnosticsWidget', () => {
       expect(screen.getByText('diagnostics.alerts.notice.above(name=CPU Package,limit=90°C,value=95°C)')).toBeTruthy();
     });
 
+    it('words a finished alert as ended, from the ended limit and peak', () => {
+      renderLive('4x2');
+      live.states = [{ ruleId: 'r1', state: 'ok', value: 70, acknowledged: false, endedAt: '2026-01-01T00:00:00Z', endedPeak: 95, endedThreshold: 85, endedDirection: 'above' }];
+      render(
+        <PanelPreviewProvider value={false}>
+          <DiagnosticsWidget widget={widget('4x2')} />
+        </PanelPreviewProvider>,
+      );
+      expect(screen.getByText('diagnostics.alerts.banner.ended.above(name=CPU Package,limit=85°C,peak=95°C)')).toBeTruthy();
+    });
+
     it('falls back to the service text before the alert rules load', () => {
       live.health = alertHealth;
       live.rules = [];

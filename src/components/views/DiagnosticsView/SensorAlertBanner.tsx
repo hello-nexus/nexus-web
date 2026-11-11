@@ -35,7 +35,7 @@ export function SensorAlertBanner({ rule, state, nowMs, onDismiss }: SensorAlert
             void onDismiss().finally(() => setDismissing(false));
           }}
         >
-          {t('diagnostics.cooling.guardTrip.dismiss')}
+          {t('diagnostics.sensors.dismissAlert')}
         </Button>
       )}
     >

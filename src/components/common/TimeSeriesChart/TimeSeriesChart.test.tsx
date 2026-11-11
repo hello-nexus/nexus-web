@@ -352,6 +352,15 @@ describe('TimeSeriesChart', () => {
       expect(onWheelZoom).toHaveBeenCalledTimes(2);
     });
 
+    it('with wheelZoomNeedsModifier, Ctrl+wheel never zooms the page even when the chart declines the zoom', () => {
+      const onWheelZoom = vi.fn(() => false);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} wheelZoomNeedsModifier />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, ctrlKey: true })).toBe(false);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
+    });
+
     it('lets mostly horizontal wheel motion (a trackpad pan) through untouched', () => {
       const onWheelZoom = vi.fn(() => true);
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);

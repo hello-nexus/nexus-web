@@ -16,18 +16,19 @@ export function sensorCardAnchor(ruleId: string): string {
   return `sensor-card-${ruleId}`;
 }
 
-/** A rule's recorded series as a chart line in the user's display unit; undefined when nothing is recorded in the window. */
+/** A rule's recorded series as a chart line, named by the localized `label` rather than the service's English name, in the user's display unit; undefined when nothing is recorded in the window. */
 export function toSensorChartSeries(
   series: readonly MetricHistorySeries[],
   rule: SensorAlertRule,
   tempUnit: TempUnit,
+  label: string,
 ): TimeSeriesSeries | undefined {
   const found = series.find(s => s.id === rule.id);
   if (!found || found.points.length === 0) return undefined;
   const type = rule.sensor.type;
   return {
     id: rule.id,
-    name: found.name,
+    name: label,
     color: 'var(--accent)',
     points: found.points.map(p => ({ t: p.t, avg: toDisplay(p.avg, type, tempUnit), max: toDisplay(p.max, type, tempUnit) })),
   };

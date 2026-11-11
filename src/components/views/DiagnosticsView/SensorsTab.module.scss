@@ -26,14 +26,16 @@
   background: var(--surface);
 }
 
-// Under the graph: list on the left, settings taking the rest; stacked on a narrow content area.
+// Under the graph: list on the left, settings taking the rest. SensorsTab sets data-stacked from the
+// measured width (container queries are unavailable on the oldest supported engine, and the app's
+// content column is narrower than any viewport breakpoint).
 .split {
   display: grid;
   grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
   gap: var(--space-lg);
   align-items: start;
 
-  @media (max-width: 720px) {
+  &[data-stacked='true'] {
     grid-template-columns: minmax(0, 1fr);
   }
 }

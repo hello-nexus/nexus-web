@@ -35,7 +35,7 @@ export function SensorHistorySection({ history, rule }: SensorHistorySectionProp
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers, timeFormat, dateFormat } = useUnitPrefs();
   const type = rule.sensor.type;
 
-  const line = useMemo(() => toSensorChartSeries(history.series, rule, tempUnit), [history.series, rule, tempUnit]);
+  const line = useMemo(() => toSensorChartSeries(history.series, rule, tempUnit, ruleLabel(t, rule)), [history.series, rule, tempUnit, t]);
   const thresholds = useMemo(() => sensorChartThresholds(rule, tempUnit), [rule, tempUnit]);
   const yDomain = useMemo(() => sensorYDomain(line, thresholds), [line, thresholds]);
 

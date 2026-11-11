@@ -20,7 +20,7 @@ interface SensorAlertsListProps {
 export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
-  const { rules, states } = useSensorAlerts(true);
+  const { rules, states } = useSensorAlerts(true, true);
   const { resolve } = useSensorLookup();
   if (rules.length === 0) return null;
 

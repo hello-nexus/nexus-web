@@ -159,7 +159,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         <RangeSlider
           orientation={STACKED}
           editable
-          softBounds
+          softBounds={!builtIn}
           label={t('diagnostics.alerts.validRange')}
           value={[snapDisplay(toDisplay(lowNative, type, tempUnit), type), snapDisplay(toDisplay(highNative, type, tempUnit), type)]}
           min={shown.min}

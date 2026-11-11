@@ -537,7 +537,10 @@ export function TimeSeriesChart({
   useLayoutEffect(() => {
     wheelHandlerRef.current = (e: WheelEvent) => {
       if (!onWheelZoom || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || isDragging) return;
-      if (wheelZoomNeedsModifier && !e.ctrlKey && !e.metaKey) return;
+      const modified = e.ctrlKey || e.metaKey;
+      if (wheelZoomNeedsModifier && !modified) return;
+      // Ctrl+wheel (and a trackpad pinch, which arrives as one) would otherwise zoom the page.
+      if (wheelZoomNeedsModifier) e.preventDefault();
       const svg = svgRef.current;
       if (!svg) return;
       const anchorT = pxToT(tToPx(e.clientX, svg.getBoundingClientRect()));

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChartLine, Plus, RotateCcw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { MAX_SENSOR_ALERT_RULES, type SensorAlertRule } from '../../../api/diagnosticsAlerts';
@@ -24,6 +24,9 @@ import { SensorNotificationSettings } from './SensorNotificationSettings';
 import { resolveSelectedId, sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorsTab.module.scss';
 
+/** Below this width the list and the editor stack: the list column plus an editor wide enough for the delay pair and the repeat chips. */
+const STACK_BELOW_PX = 880;
+
 interface SensorsTabProps {
   /** One viewport shared by every card, so a single range picker and seek bar drive them all. */
   history: UseMetricHistoryResult;
@@ -38,11 +41,13 @@ interface SensorsTabProps {
 export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }: SensorsTabProps) {
   const { t } = useTranslation();
   const { push } = useToast();
-  const alerts = useSensorAlerts(true);
+  const alerts = useSensorAlerts(true, true);
   const { rules, states, loaded, error, loading, refresh } = alerts;
   const lookup = useSensorLookup();
   const { sensors, extras, networkSensors, resolve } = lookup;
   const [picked, setPicked] = useState<string | null>(null);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [stacked, setStacked] = useState(false);
   const selectedId = resolveSelectedId(rules, picked);
   const selectedRule = rules.find(r => r.id === selectedId);
   const builtInRules = useMemo(() => rules.filter(isBuiltIn), [rules]);
@@ -73,6 +78,17 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
     if (rule) setPicked(rule.id);
     else if (result === 'error') push({ title: t('diagnostics.alerts.addFailed') });
   };
+
+  const hasSplit = loaded && rules.length > 0;
+  useLayoutEffect(() => {
+    const el = splitRef.current;
+    if (!el) return undefined;
+    const measure = (width: number) => { if (width > 0) setStacked(width < STACK_BELOW_PX); };
+    measure(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver(entries => { for (const entry of entries) measure(entry.contentRect.width); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasSplit]);
 
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
   const listProps = {
@@ -145,7 +161,7 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
           <SensorHistorySection history={history} rule={selectedRule} />
         </div>
       )}
-      <div className={styles.split}>
+      <div className={styles.split} ref={splitRef} data-stacked={stacked ? 'true' : 'false'}>
         <div className={styles.listPane}>
           {builtInRules.length > 0 && (
             <section className={styles.group} data-testid="sensor-group-builtin">

@@ -43,11 +43,11 @@
   text-align: left;
   color: var(--text);
   cursor: pointer;
+}
 
-  > :nth-child(3) {
-    grid-area: chip;
-    justify-self: end;
-  }
+.chip {
+  grid-area: chip;
+  justify-self: end;
 }
 
 .name {

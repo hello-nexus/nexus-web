@@ -16,18 +16,22 @@ const recorded = (id: string, avg: number): MetricHistorySeries => (
 
 describe('toSensorChartSeries', () => {
   it('keeps Celsius for a Celsius user and converts every point to Fahrenheit otherwise', () => {
-    expect(toSensorChartSeries([recorded('r1', 50)], rule(), 'c')!.points).toEqual([{ t: 1000, avg: 50, max: 52 }]);
-    expect(toSensorChartSeries([recorded('r1', 50)], rule(), 'f')!.points).toEqual([{ t: 1000, avg: 122, max: 125.6 }]);
+    expect(toSensorChartSeries([recorded('r1', 50)], rule(), 'c', 'CPU')!.points).toEqual([{ t: 1000, avg: 50, max: 52 }]);
+    expect(toSensorChartSeries([recorded('r1', 50)], rule(), 'f', 'Label')!.points).toEqual([{ t: 1000, avg: 122, max: 125.6 }]);
+  });
+
+  it('names the line with the given label, not the service name', () => {
+    expect(toSensorChartSeries([recorded('r1', 50)], rule(), 'c', 'Localized')!.name).toBe('Localized');
   });
 
   it('leaves non-temperature values untouched', () => {
     const fan = rule({ sensor: { ...rule().sensor, type: 'Fan' } });
-    expect(toSensorChartSeries([recorded('r1', 1200)], fan, 'f')!.points[0].avg).toBe(1200);
+    expect(toSensorChartSeries([recorded('r1', 1200)], fan, 'f', 'Label')!.points[0].avg).toBe(1200);
   });
 
   it('returns undefined without data for the rule', () => {
-    expect(toSensorChartSeries([recorded('other', 1)], rule(), 'c')).toBeUndefined();
-    expect(toSensorChartSeries([{ ...recorded('r1', 1), points: [] }], rule(), 'c')).toBeUndefined();
+    expect(toSensorChartSeries([recorded('other', 1)], rule(), 'c', 'Label')).toBeUndefined();
+    expect(toSensorChartSeries([{ ...recorded('r1', 1), points: [] }], rule(), 'c', 'Label')).toBeUndefined();
   });
 });
 
@@ -43,7 +47,7 @@ describe('sensorChartThresholds', () => {
 
 describe('sensorYDomain', () => {
   it('holds the data and the limits with padding, so an outside limit still draws', () => {
-    const line = toSensorChartSeries([recorded('r1', 50)], rule(), 'c');
+    const line = toSensorChartSeries([recorded('r1', 50)], rule(), 'c', 'CPU');
     const [min, max] = sensorYDomain(line, [{ value: 80 }])!;
     expect(min).toBeLessThan(50);
     expect(max).toBeGreaterThan(80);

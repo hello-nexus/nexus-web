@@ -43,7 +43,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
               <span className={styles.value}>
                 {reading !== null ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers) : t(isBuiltIn(rule) ? 'diagnostics.sensors.notReported' : 'diagnostics.alerts.noReading')}
               </span>
-              <Badge label={t(`diagnostics.alerts.state.${kind}`)} color={stateColor(kind, rule)} />
+              <span className={styles.chip}><Badge label={t(`diagnostics.alerts.state.${kind}`)} color={stateColor(kind, rule)} /></span>
             </button>
             <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name: ruleLabel(t, rule) })} />
           </li>

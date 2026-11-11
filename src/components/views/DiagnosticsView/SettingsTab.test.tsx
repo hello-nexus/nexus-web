@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SettingsTab } from './SettingsTab';
 
 const update = vi.fn();
-const resetBuiltIns = vi.fn();
+const resetBuiltIns = vi.fn().mockResolvedValue(true);
+const push = vi.fn();
 let mockSettings: Record<string, unknown> = {};
 
 vi.mock('../../../hooks/useUiSettings', async importOriginal => {
@@ -14,7 +15,8 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
   };
 });
 
-vi.mock('../../../api/diagnosticsAlerts', () => ({ resetBuiltInSensorAlerts: () => resetBuiltIns() }));
+vi.mock('../../../hooks/useSensorAlerts', () => ({ useSensorAlerts: () => ({ resetBuiltIns }) }));
+vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push }) }));
 
 // The alerts section has its own suite and reads sensors and the service.
 
@@ -147,7 +149,18 @@ describe('SettingsTab', () => {
       diagnosticsComponentSystem: true,
     }));
     expect(resetBuiltIns).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
     // Per-device ignores survive a reset; they are undone on the device card.
     expect(update.mock.calls[0][0]).not.toHaveProperty('diagnosticsIgnoredComponents');
+  });
+
+  it('toasts the same failure as the Sensors tab when the built-in restore is refused', async () => {
+    mockSettings = baseSettings();
+    resetBuiltIns.mockResolvedValueOnce(false);
+    push.mockClear();
+    render(<SettingsTab />);
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.settings.reset' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'cooling.settings.reset' }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' }));
   });
 });
