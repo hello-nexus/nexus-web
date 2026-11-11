@@ -5,6 +5,7 @@ import { useTranslation } from '../../lib/i18n';
 import { ServiceRequired } from './ServiceRequired';
 import { Card } from '../common/Card/Card';
 import { Button } from '../common/Button/Button';
+import { Tabs, type TabDef } from '../common/Tabs/Tabs';
 // Storybook lives behind the debug Tools page. Lazy so the catalog chunk is
 // split out and fetched on open. The import() is guarded by the raw build
 // defines (NOT the DEV_TOOLS const): esbuild folds `false || false` during
@@ -208,6 +209,10 @@ const SECTIONS: SectionDef[] = [
 function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<'current' | 'defaults'>('current');
+  const installDefaultsTabs: readonly TabDef[] = [
+    { key: 'current', label: t('tools.installDefaults.tabCurrent') },
+    { key: 'defaults', label: t('tools.installDefaults.tabDefaults') },
+  ];
   const [snapshot, setSnapshot] = useState<InstallDefaultsDocument | null>(null);
   const [canonical, setCanonical] = useState<InstallDefaultsDocument | null>(null);
 
@@ -236,13 +241,13 @@ function InstallDefaultsModal({ open, onClose }: { open: boolean; onClose: () =>
           <code> nexus-service/data/install-defaults.json</code>{' '}
           {t('tools.installDefaults.modalOutro')}
         </p>
-        <div className={styles.installDefaultsTabs} role="tablist">
-          <button type="button" role="tab" aria-selected={tab === 'current'}
-            className={`${styles.installDefaultsTab} ${tab === 'current' ? styles.installDefaultsTabActive : ''}`}
-            onClick={() => setTab('current')}>{t('tools.installDefaults.tabCurrent')}</button>
-          <button type="button" role="tab" aria-selected={tab === 'defaults'}
-            className={`${styles.installDefaultsTab} ${tab === 'defaults' ? styles.installDefaultsTabActive : ''}`}
-            onClick={() => setTab('defaults')}>{t('tools.installDefaults.tabDefaults')}</button>
+        <div className={styles.installDefaultsTabs}>
+          <Tabs
+            tabs={installDefaultsTabs}
+            activeKey={tab}
+            onChange={k => setTab(k as 'current' | 'defaults')}
+            ariaLabel={t('tools.installDefaults.title')}
+          />
         </div>
         {!doc ? (
           <p className={styles.dim}>{t('tools.installDefaults.loading')}</p>

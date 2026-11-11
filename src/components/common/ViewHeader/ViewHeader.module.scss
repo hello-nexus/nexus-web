@@ -1,5 +1,4 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/scrollbar' as *;
 
 .header {
   display: flex;
@@ -45,8 +44,9 @@
 .viewHeaderTabs {
   margin-bottom: 0.75rem;
   // Never below the tab labels: shrink pressure has to land on the actions,
-  // whose rail carries a floor of its own (PresetToolbar .toolbarRail).
-  flex: 0 0 auto;
+  // whose rail carries a floor of its own (PresetToolbar .toolbarRail). When
+  // the tabs themselves cannot fit they absorb the shrink first and scroll.
+  flex: 0 100 auto;
 }
 
 // Right rail of the tab row (tabActions, then actions): an in-flow flex item
@@ -69,26 +69,5 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  margin-bottom: 0.75rem;
-}
-
-// Opt-in scrolling tab strip (tabArrows); the arrows replace the scrollbar.
-.tabsScroller {
-  // Offset parent for the active-tab scroll math.
-  position: relative;
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  // Chromium 121+ ignores ::-webkit-scrollbar once the global scrollbar-width is set.
-  @include scrollbar-hidden;
-}
-
-// Both arrows together at the row's far end.
-.tabArrows {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
-  margin-left: auto;
   margin-bottom: 0.75rem;
 }

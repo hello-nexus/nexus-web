@@ -125,7 +125,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   if (!serviceOnline) {
     return (
       <div className={styles.settings}>
-        <ViewHeader title={t('settings.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled tabArrows />
+        <ViewHeader title={t('settings.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
         <ServiceRequired page="nexus" state={connectionState} />
       </div>
     );
@@ -151,7 +151,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
 
   return (
     <div className={styles.settings}>
-      <ViewHeader title={t('settings.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabArrows />
+      <ViewHeader title={t('settings.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
       <div className={`${styles.tabContent} pageBody`}>
         {renderTab()}
       </div>
