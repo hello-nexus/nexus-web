@@ -671,8 +671,8 @@ describe('shared PC setup relay', () => {
     expect(hello).not.toHaveProperty('canSyncSetup');
   });
 
-  it('syncs setup for the visible Build in a distribution build at a local origin', async () => {
-    previewApi.devTools = false;
+  it.each([true, false])('syncs setup for the visible Build at a local origin with dev tools %s', async (devTools) => {
+    previewApi.devTools = devTools;
     h.fetchPcSetup.mockResolvedValue({ rev: 4, setup });
     h.putPcSetup.mockResolvedValue({ kind: 'saved', rev: 5 });
     const { iframe, postSpy } = ready();
@@ -983,6 +983,47 @@ describe('BuildPage headless', () => {
     expect(helloOf(spy)!).toHaveProperty('canSyncSetup', true);
     await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
     expect(h.fetchPcSetup).toHaveBeenCalled();
+  });
+
+  it('offers a read-only setup to a headless frame that asked for it: setup-get is answered, setup-put refused', async () => {
+    h.specs = SAMPLE_SPECS;
+    for (const devTools of [true, false]) {
+      previewApi.devTools = devTools;
+      h.fetchPcSetup.mockClear();
+      h.putPcSetup.mockClear();
+      h.fetchPcSetup.mockResolvedValue({ rev: 4, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } });
+      const view = render(<BuildPage headless={headlessProp({ readSetup: true })} />);
+      const iframe = getIframe();
+      const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      const hello = helloOf(spy)!;
+      expect(hello).toHaveProperty('canReadSetup', true);
+      expect(hello).not.toHaveProperty('canSyncSetup');
+      await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+      expect(h.fetchPcSetup).toHaveBeenCalledTimes(1);
+      await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 4, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } }));
+      expect(h.putPcSetup).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith({ type: 'nexus-build:setup', v: 1, requestId: 'p', error: 'disabled' }, BUILD_ORIGIN);
+      view.unmount();
+    }
+    previewApi.devTools = false;
+  });
+
+  it('refuses setup-get and setup-put to a headless frame that did not opt in even with dev tools on', async () => {
+    previewApi.devTools = true;
+    h.specs = SAMPLE_SPECS;
+    render(<BuildPage headless={headlessProp()} />);
+    const iframe = getIframe();
+    const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = helloOf(spy)!;
+    expect(hello).not.toHaveProperty('canSyncSetup');
+    expect(hello).not.toHaveProperty('canReadSetup');
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 0, setup: { version: 1, case: {}, items: [], resolved: { objects: [] } } }));
+    expect(h.fetchPcSetup).not.toHaveBeenCalled();
+    expect(h.putPcSetup).not.toHaveBeenCalled();
+    previewApi.devTools = false;
   });
 
   it('offers no setup sync to a headless frame that did not opt in, and refuses its setup requests', async () => {

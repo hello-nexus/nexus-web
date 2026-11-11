@@ -32,11 +32,12 @@ describe('BuildPreviewSeed', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('frames Build headless with the host machine, asking for the preview', async () => {
+  it('frames Build headless with the host machine, asking for the preview and a read-only setup', async () => {
     const view = render(<BuildPreviewSeed caseId="y70" />);
     await flush();
     expect(view.queryByTestId('frame')).not.toBeNull();
-    expect(h.frames.at(-1)).toMatchObject({ machine: h.machine, layoutKey: 'case=y70', preview: true });
+    expect(h.frames.at(-1)).toMatchObject({ machine: h.machine, layoutKey: 'case=y70', preview: true, readSetup: true });
+    expect(h.frames.at(-1)).not.toHaveProperty('syncSetup');
   });
 
   it('waits for a machine that names the same case', async () => {
