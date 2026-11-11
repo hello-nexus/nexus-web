@@ -60,12 +60,50 @@ const KILLED_NAVIGATOR = [
   "ml", "xr",
 ];
 
-// Renderer workers keep a fetch that reaches only in-memory URLs: engines turn
-// embedded images into blob URLs and load them through fetch. Anything else
-// fails like a network error. The wrapper replaces the original on every owner
-// in the chain, so the prototype copy is no way around it.
-const FETCH_GUARD = `
+// The proxy envelope carries a binary upstream body as base64 in bodyBase64.
+const B64_BYTES = `
+function _b64Bytes(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}`;
+
+// Renderer workers keep a fetch that reaches in-memory URLs for engines that
+// turn embedded images into blob URLs, plus GET requests to https hosts, which
+// the host relays through the same manifest-gated proxy a widget's net.fetch
+// uses (an unlisted host comes back refused and the fetch rejects). Anything
+// else fails like a network error. The wrapper replaces the original on every
+// owner in the chain, so the prototype copy is no way around it.
+const FETCH_GUARD = `${B64_BYTES}
 const _realFetch = self.fetch;
+const _post = self.postMessage.bind(self);
+const _Response = Response;
+const _netPending = new Map();
+let _netId = 1;
+self.addEventListener("message", (ev) => {
+  const d = ev.data;
+  if (!d || d.type !== "net-result") return;
+  const done = _netPending.get(d.id);
+  if (done) { _netPending.delete(d.id); done(d.result); }
+});
+function _netFetch(url) {
+  return new Promise((resolve, reject) => {
+    const id = _netId++;
+    _netPending.set(id, (r) => {
+      try {
+        if (!r || !r.status) throw new TypeError("refused");
+        const bodiless = r.status === 204 || r.status === 205 || r.status === 304;
+        const body = bodiless ? null
+          : typeof r.bodyBase64 === "string" ? _b64Bytes(r.bodyBase64)
+          : typeof r.bodyText === "string" ? r.bodyText
+          : r.body != null ? JSON.stringify(r.body) : "";
+        resolve(new _Response(body, { status: r.status, statusText: r.statusText || "", headers: r.headers || {} }));
+      } catch (_) { reject(new TypeError("Failed to fetch")); }
+    });
+    _post({ type: "net-fetch", id, url });
+  });
+}
 // Everything the guard touches is captured at boot, and the request it checks is
 // the one it sends, so renderer code replacing a global, prototype or getter
 // cannot change what it decides or what it sends.
@@ -79,6 +117,10 @@ function _guardedFetch(input, init) {
   try {
     req = new _Request(input, init);
     const scheme = _apply(_lower, _apply(_slice, _apply(_urlGetter, req, []), [0, 5]), []);
+    if (scheme === "https") {
+      if (req.method !== "GET") throw new TypeError("blocked");
+      return _netFetch(_apply(_urlGetter, req, []));
+    }
     if (scheme !== "blob:" && scheme !== "data:") throw new TypeError("blocked");
   } catch (_) { return Promise.reject(new TypeError("Failed to fetch")); }
   return _apply(_realFetch, self, [req]);
@@ -136,7 +178,7 @@ try { if (self.navigator) _lock(self.navigator, _killedNavigator); } catch (_) {
 
 `;
 
-const WORKER_BODY = `
+const WORKER_BODY = `${B64_BYTES}
 let _readyResolve;
 let _ready = new Promise((res) => { _readyResolve = res; });
 let _widgetId = "";
@@ -265,14 +307,20 @@ const nexus = {
         // \`await res.json()\` / \`.text()\` / read \`.status\`. The proxy
         // parses a JSON upstream into \`body\` and hands any other content
         // type over verbatim as \`bodyText\` (also what a body cut at the
-        // size cap arrives as), so text() must read both.
+        // size cap arrives as), so text() must read both. A binary content
+        // type arrives as base64 in \`bodyBase64\`, read back by arrayBuffer().
         const r = res || {};
-        const raw = typeof r.bodyText === "string" ? r.bodyText : (typeof r.body === "string" ? r.body : null);
+        const bin = typeof r.bodyBase64 === "string" ? _b64Bytes(r.bodyBase64) : null;
+        const raw = bin ? new TextDecoder().decode(bin) : typeof r.bodyText === "string" ? r.bodyText : (typeof r.body === "string" ? r.body : null);
         return {
           ok: r.ok === true,
           status: r.status || 0,
           statusText: r.statusText || "",
           headers: r.headers || {},
+          async arrayBuffer() {
+            const b = bin || new TextEncoder().encode(raw !== null ? raw : (r.body ? JSON.stringify(r.body) : ""));
+            return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+          },
           async text() { return raw !== null ? raw : (r.body ? JSON.stringify(r.body) : ""); },
           async json() { return r.body && typeof r.body === "object" ? r.body : JSON.parse(raw || "null"); },
         };
@@ -309,7 +357,7 @@ const WORKER_BOOT = lockPrelude([...KILLED_COMMON, ...KILLED_WIDGET], false) + W
 /**
  * Boot prelude of a Canvas renderer worker: the widget lock set, except that
  * OffscreenCanvas, WebGL, createImageBitmap, WebAssembly and requestAnimationFrame
- * stay, and fetch survives as a guard that serves only blob: and data: URLs.
+ * stay, and fetch survives as a guard that serves blob: and data: URLs and relays https GETs to the host.
  */
 export function rendererBootScript(): string {
   return lockPrelude(KILLED_COMMON, true) + unhandledRejectionListener('self.postMessage({ type: "rejection", message: m });');

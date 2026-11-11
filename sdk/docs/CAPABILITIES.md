@@ -333,6 +333,11 @@ const res = await request('https://api.open-meteo.com/v1/...');
 const data = await res.json();
 ```
 
+The `Response` offers `ok`, `status`, `headers`, `text()`, `json()` and
+`arrayBuffer()`. A binary content type (anything but text, JSON, XML or
+script) arrives byte-exact through `arrayBuffer()`; the body is capped at
+1 MiB, and the proxy allows 30 requests per minute per app.
+
 ### `useDispatch()`
 
 Returns a stable dispatch function. Use it for control writes or host-action
@@ -1089,9 +1094,13 @@ interface CanvasPointerEvent {
 ```
 
 The renderer worker has `OffscreenCanvas`, WebGL, `createImageBitmap`,
-`WebAssembly` and `requestAnimationFrame`. It has no network: `fetch` serves
-only `blob:` and `data:` URLs (so engines can decode embedded images) and
-rejects everything else; `readAsset` is the way to load bundle files and is
+`WebAssembly` and `requestAnimationFrame`. Its `fetch` serves `blob:` and
+`data:` URLs (so engines can decode embedded images) and GET requests to
+`https` hosts listed in `capabilities.net.fetch`, relayed through the same
+host proxy as `request` (`arrayBuffer()` returns binary bodies byte-exact, up
+to the proxy's 1 MiB cap; a request to an unlisted host, or on a host older
+than this feature, rejects or returns a non-ok response). Every other URL is
+rejected, and there is no other network. `readAsset` is the way to load bundle files and is
 scoped to this app. It goes through the app asset route, which serves only
 `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.ico`, `.svg`, `.nxpack` and `.key`
 files; any other extension (a `.json`, `.glb` or `.bin`) is refused, so ship

@@ -14,6 +14,7 @@ import { liveContactButtons } from '../../panel/engine/touchViaPointer';
 import { composeRendererWorkerSource } from '../sandboxBoot';
 import { fetchBundleFile } from '../../panel/widgets/marketplace/useSdkBundle';
 import { fetchServiceBlob } from '../../api/service';
+import { proxyFetch } from '../proxyClient';
 import { reportAppError } from '../../telemetry/appErrorReporting';
 
 export type CanvasPhase = 'loading' | 'ready' | 'error';
@@ -356,6 +357,9 @@ export class CanvasSession {
       case 'read-asset':
         void this.serveAsset(worker, m.id, m.path);
         return;
+      case 'net-fetch':
+        void this.serveNetFetch(worker, m.id, m.url);
+        return;
       case 'rejection':
         console.error(`[canvas:${this.spec.appId}] unhandled rejection`, m.message);
         reportAppError(this.spec.appId, 'unhandled-rejection', m.message);
@@ -405,6 +409,15 @@ export class CanvasSession {
     } catch {
       reply({ type: 'asset-error', id, message: 'asset could not be read' });
     }
+  }
+
+  /** Relays a renderer's https GET through the service proxy, which enforces the manifest's net.fetch hosts. */
+  private async serveNetFetch(worker: Worker, id: number, url: unknown): Promise<void> {
+    let result: unknown = null;
+    if (typeof url === 'string') {
+      try { result = await proxyFetch(this.spec.appId, { url, method: 'GET' }, []); } catch { result = null; }
+    }
+    if (worker === this.worker) worker.postMessage({ type: 'net-result', id, result } satisfies HostToRenderer);
   }
 
   private teardownWorker(): void {
