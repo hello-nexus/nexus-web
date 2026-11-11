@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagnosticsReason } from '../../../api/diagnostics';
-import { reasonDetailText, type ReasonDetailContext } from './reasonDetail';
+import { looksLikeKeyValueDetail, reasonDetailText, type ReasonDetailContext } from './reasonDetail';
 
 const t = (key: string, vars?: Record<string, string | number>) => (
   vars ? `${key}(${Object.entries(vars).map(([k, v]) => `${k}=${v}`).join(',')})` : key
@@ -67,10 +67,33 @@ describe('reasonDetailText', () => {
     expect(reasonDetailText(reason('alerts.sensorThreshold', { ruleId: 'r', category: 'cpu', direction: 'above' }), ctx())).toBeNull();
   });
 
-  it('returns null for missing or incomplete params, a bad value and an unknown code', () => {
+  it('shows no tooltip for a debug-detail code with missing or incomplete params', () => {
     expect(reasonDetailText(reason('cooling.thermalGuardTrip'), ctx())).toBeNull();
     expect(reasonDetailText(reason('cooling.thermalGuardTrip', { ...guard, peakC: 'abc' }), ctx())).toBeNull();
     expect(reasonDetailText(reason('cooling.thermalGuardTrip', { ...guard, at: '' }), ctx())).toBeNull();
-    expect(reasonDetailText(reason('storage.noSmartSource', { a: '1' }), ctx())).toBeNull();
+    expect(reasonDetailText(reason('alerts.sensorThreshold', { ruleId: 'r' }), ctx())).toBeNull();
+  });
+
+  it('keeps readable prose detail as the tooltip for codes with no formatter', () => {
+    const prose = 'The drive does not expose SMART data, which USB enclosures commonly do not.';
+    for (const code of ['storage.noSmartSource', 'gpu.thermalThrottle', 'memory.testFailed', 'system.pnpProblems', 'smart.reallocated']) {
+      expect(reasonDetailText({ ...reason(code), detail: prose }, ctx())).toBe(prose);
+    }
+  });
+
+  it('hides key=value debug detail even for an unknown code, and empty detail', () => {
+    expect(reasonDetailText({ ...reason('future.code'), detail: 'cause=CPU reached its limit active=False peakC=99.4' }, ctx())).toBeNull();
+    expect(reasonDetailText({ ...reason('future.code'), detail: '   ' }, ctx())).toBeNull();
+  });
+
+  it('prefers the formatted text over the detail when params are present', () => {
+    const text = reasonDetailText({ ...reason('cooling.thermalGuardTrip', guard), detail: 'plain prose here' }, ctx())!;
+    expect(text).toContain('diagnostics.reasonDetail.thermalGuardTrip');
+    expect(text).not.toContain('plain prose');
+  });
+
+  it('does not treat prose with a single equals sign as debug text', () => {
+    expect(looksLikeKeyValueDetail('Temperature a=b is high')).toBe(false);
+    expect(looksLikeKeyValueDetail('a=1 b=2')).toBe(true);
   });
 });

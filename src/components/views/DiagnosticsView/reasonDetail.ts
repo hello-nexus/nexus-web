@@ -84,8 +84,24 @@ function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | nu
   return ctx.t('diagnostics.reasonDetail.stall', { rpm: Math.round(rpm), duty: Math.round(duty), time: since });
 }
 
-/** Readable tooltip text for a reason, built from its params; null when the code has no formatter or its params are incomplete. */
+// Codes whose service detail is key=value debug text, never prose.
+const DEBUG_DETAIL_CODES: ReadonlySet<string> = new Set([
+  'cooling.thermalGuardTrip', 'cooling.fanStall', 'cooling.pumpStall', 'cooling.sustainedHighTemp', 'alerts.sensorThreshold',
+]);
+
+const KEY_VALUE_START = /^\s*\w+=/;
+const KEY_VALUE_TOKEN = /\b\w+=/g;
+
+/** True for "a=1 b=two words" style debug text; a values-with-spaces line still starts with key= and repeats it. */
+export function looksLikeKeyValueDetail(detail: string): boolean {
+  return KEY_VALUE_START.test(detail) && (detail.match(KEY_VALUE_TOKEN)?.length ?? 0) >= 2;
+}
+
+/** Tooltip text for a reason: the formatted params text when a formatter has what it needs, else the service detail when it is prose, else nothing. */
 export function reasonDetailText(reason: DiagnosticsReason, ctx: ReasonDetailContext): string | null {
   const format = FORMATTERS[reason.code];
-  return format && reason.params ? format(reason.params, ctx) : null;
+  const formatted = format && reason.params ? format(reason.params, ctx) : null;
+  if (formatted !== null) return formatted;
+  if (DEBUG_DETAIL_CODES.has(reason.code) || looksLikeKeyValueDetail(reason.detail)) return null;
+  return reason.detail.trim() === '' ? null : reason.detail;
 }
