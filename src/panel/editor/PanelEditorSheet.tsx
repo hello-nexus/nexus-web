@@ -43,6 +43,7 @@ export function PanelEditorSheet({
   displayBound,
   genericDisplay,
   forcedGrid,
+  transposedTile = false,
   touchPanelChrome = false,
   editingWidget,
   immersiveOnLoadAvailable = false,
@@ -120,6 +121,7 @@ export function PanelEditorSheet({
   genericDisplay?: boolean;
   // Forced short-axis slot count of the panel's grid, for size gating.
   forcedGrid?: ForcedGrid;
+  transposedTile?: boolean;
   // Touch-driven host display (usesTouchPanelChrome): the sheet scales with
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
@@ -224,7 +226,7 @@ export function PanelEditorSheet({
   const Settings = def?.Settings;
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid) : [];
+  const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch, forcedGrid, transposedTile) : [];
   const slotLayoutOptions = editingWidget && isMonitoringWidget ? slotLayoutOptionsForSize(editingWidget.size) : [];
   const slotLayout = editingWidget && isMonitoringWidget
     ? resolvedSlotLayout(editingWidget.size, editingWidget.config)
@@ -363,6 +365,7 @@ export function PanelEditorSheet({
             displayBound={displayBound}
             genericDisplay={genericDisplay}
             forcedGrid={forcedGrid}
+            transposedTile={transposedTile}
             onAdd={onAdd}
             canAddSize={canAddSize}
             placedTypes={placedTypes}

@@ -11,7 +11,13 @@ const SRC = resolve(__dirname, '../../..');
 const OWNERS = ['components/common/Slider/Slider.module.scss', 'components/common/SettingRow/SettingRow.module.scss', 'styles/global.scss'];
 const SIZING = /(^|[\s;{])(width|min-width|max-width|inline-size|flex-basis|flex|grid-template-columns)\s*:/;
 // Classes handed to an inline Slider that may size it. Each entry: file relative to src, class, reason.
-const ALLOWED: Array<{ file: string; cls: string; reason: string }> = [];
+const ALLOWED: Array<{ file: string; cls: string; reason: string }> = [
+  {
+    file: 'panel/widgets/lighting/page/ColorTuningModal.tsx',
+    cls: 'markerInfo',
+    reason: 'Sizes the info button stacked above the marker caret, not the slider.',
+  },
+];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

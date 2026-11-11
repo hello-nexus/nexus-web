@@ -99,7 +99,7 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   const networkSensors = buildNetworkSensors(network);
   const extras = useSensorExtras(usesExtras);
   const tempPrefs = useTempSensorPrefs();
-  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   // One toggle for every bar, like the shared Micro range.
   const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
   const gaugeGradient = usePanelGaugeGradient();
@@ -155,6 +155,7 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
         tempPrefs={tempPrefs}
         monitoringTempUnit={monitoringTempUnit}
         numberFormat={numberFormat}
+        monitoringWholeNumbers={monitoringWholeNumbers}
       />
     );
 
@@ -226,13 +227,14 @@ interface MicroRowProps {
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
+  monitoringWholeNumbers: boolean;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, align, scale, fixedMin, fixedMax, valueColor, valueColorReverse, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, align, scale, fixedMin, fixedMax, valueColor, valueColorReverse, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat, monitoringWholeNumbers }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
-  const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
+  const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat, sensor.type, monitoringWholeNumbers) : '-';
   const sensorDisplayName = sensorCaptionName(device, sensors, sensor) ?? '';
   const autoLabel = prefixed
     ? labelForDevice(device, sensorDisplayName || effectiveSensorName)

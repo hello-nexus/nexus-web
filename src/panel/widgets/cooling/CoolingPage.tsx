@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power, Unplug } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -30,7 +30,7 @@ import {
   fetchCoolingPresets, createCoolingPreset, updateCoolingPreset, deleteCoolingPreset,
   activateCoolingPreset, type CoolingPreset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
-  resetPresetCurve, isFanDisconnected,
+  resetPresetCurve, isFanUnresponsive,
   type FanChannel, type FanRole, type TemperatureSource,
   type FanCalibration,
   saveFanGroups,
@@ -62,7 +62,6 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { FirmwareRecoveryBanner } from '../../../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
 import { useFirmwareRecoveryFlow } from '../../../hooks/useFirmwareRecovery';
-import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../components/common/SortableList/groupedDrag';
@@ -131,6 +130,8 @@ interface CoolingHistorySnapshot {
 
 const CALIBRATE_HINT_ID = 'cooling-calibrate';
 const CALIBRATE_HINT_SELECTOR = `[data-coachmark="${CALIBRATE_HINT_ID}"]`;
+const UNRESPONSIVE_HINT_ID = 'cooling-unresponsive';
+const UNRESPONSIVE_HINT_SELECTOR = `[data-coachmark="${UNRESPONSIVE_HINT_ID}"]`;
 
 // Module scope so the history survives CoolingPage's unmount on navigation.
 // Session-only; assumes one mounted CoolingPage, as the lighting page does.
@@ -146,15 +147,14 @@ const coolingHistoryStore = {
 const noopCurveEdit = () => {};
 
 /** The rail's select rule: a fan the user can drive and see as a card. */
-const isSelectableFan = (c: FanChannel) => !isFanDisconnected(c)
-  && !(c.readOnly ?? false)
+const isSelectableFan = (c: FanChannel) => !(c.readOnly ?? false)
   && c.classification !== 'Fixed'
   && c.controlled !== false;
 
 /** The fans a preset retargets (skipping pinned ones), or with `includePinned` the ones Off hands back. */
 const presetReach = (channels: readonly FanChannel[], includePinned = false): Set<string> => new Set(channels
   .filter(ch => (includePinned || !ch.pinned) && ch.controlled !== false && !ch.readOnly
-    && ch.classification !== 'Fixed' && !isFanDisconnected(ch))
+    && ch.classification !== 'Fixed')
   .map(ch => ch.id));
 
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
@@ -206,10 +206,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, []);
   // Per-group collapse state for the fan grid, persisted across restarts. Keyed
   // by rail block id (a device id or the board's synthetic one), by user-group
-  // id, plus the literal 'disconnected'. Default: only Disconnected
-  // starts collapsed so a calibration-flagged-unresponsive fan doesn't
-  // visually dominate the section; hub groups start expanded.
-  const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
+  // id. Every group starts expanded.
+  const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', []);
   const railSearch = useRailSearch();
   // A search opens every group, so a match is never folded away.
   const isFanGroupCollapsed = (key: string) => !railSearch.active && collapsedFanGroups.includes(key);
@@ -1115,8 +1113,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // waits here for the user to pick: all fans, or a copy for the selection.
   const [pendingSource, setPendingSource] = useState<{ curveId: string; sourceId: string } | null>(null);
 
-  // Mirrors what pushCurves writes as outputs, so a disconnected fan still
-  // bound to the curve counts as a fan the change would affect.
+  // Mirrors what pushCurves writes as outputs, so a fan not currently listed
+  // but still bound to the curve counts as a fan the change would affect.
   const fanIdsOnCurve = useCallback((curveId: string) => (
     Object.entries(fanStates).filter(([, st]) => st.curveId === curveId).map(([id]) => id)
   ), [fanStates]);
@@ -1248,7 +1246,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const calibrateHint = useOnboardingHint(CALIBRATE_HINT_ID);
   const controllableFans = useMemo(
     () => channels.filter(c => c.controlled !== false && !c.readOnly
-      && c.classification !== 'Fixed' && !isFanDisconnected(c)),
+      && c.classification !== 'Fixed'),
     [channels],
   );
   const anyFanCalibrated = controllableFans.some(c => c.calibrated);
@@ -1349,20 +1347,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         if (ch) base.push(ch);
       }
     }
-    // Calibration can mark fans Unresponsive (no tach / not controllable).
-    // Pin those to the bottom of the list so the actionable cards stay near
-    // the top; preserve relative order within each group, and don't mutate
-    // the saved fanOrder - if a fan recovers it returns to its prior slot.
-    const live: FanChannel[] = [];
-    const dead: FanChannel[] = [];
-    for (const ch of base) (isFanDisconnected(ch) ? dead : live).push(ch);
-    return dead.length === 0 ? base : [...live, ...dead];
+    return base;
   }, [channels, fanOrder]);
 
   // Nexus Control off means the motherboard or a vendor app owns the fan, so
   // the eye hides it here rather than showing a card that drives nothing. The
   // unfiltered list stays available for the group headers' indicator.
   const hideUncontrolled = !uiSettings.showUncontrolledCoolingDevices;
+  // Points at the eye when any fan reports no speed, on load or right after a
+  // calibration run; pressing the eye closes it for good. Not shown while the eye is already hiding them.
+  const unresponsiveHint = useOnboardingHint(UNRESPONSIVE_HINT_ID);
+  const showUnresponsiveHint = !simpleDashboard && unresponsiveHint.dismissed === false
+    && !hideUncontrolled
+    && channels.some(isFanUnresponsive) && !showCalibrateHint && !calibrating
+    && !calConfirmOpen && !importDialogOpen && !modeMenuOpen;
   // What the rail search matches a fan on: its names, its hub or board block,
   // and every user group above it.
   const railSearchFields = useCallback((c: FanChannel) => {
@@ -1373,18 +1371,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return [c.name, c.originalName, blockName, c.originalDeviceName, ...groupNamesOf(fanGroups, [block, c.id])];
   }, [boardBlockName, fanGroups]);
   const visibleChannels = useMemo(
-    () => orderedChannels.filter(c => (!hideUncontrolled || (c.controlled !== false && !isFanDisconnected(c)))
+    () => orderedChannels.filter(c => (!hideUncontrolled || (c.controlled !== false && !isFanUnresponsive(c)))
       && matchesAllWords(railSearch.query, railSearchFields(c))),
     [orderedChannels, hideUncontrolled, railSearch.query, railSearchFields],
   );
   // Ids the eye is holding back. A drag rebuilds fanOrder from what is on
   // screen, and orderedChannels DROPS any channel missing from that order, so
   // without re-appending these a reorder while hiding would erase them.
-  // What the eye holds back: a fan Nexus does not drive, or one the hardware
-  // stopped answering. The group badge stays narrower - it means "no Nexus
-  // Control" and must not fire for a fan that is merely disconnected.
+  // What the eye holds back: a fan Nexus does not drive, or one that reports
+  // no speed. The group badge stays narrower - it means "no Nexus Control" and
+  // must not fire for a fan that merely reports no speed.
   const isHiddenFan = useCallback(
-    (c: FanChannel) => c.controlled === false || isFanDisconnected(c),
+    (c: FanChannel) => c.controlled === false || isFanUnresponsive(c),
     [],
   );
   const hiddenFanIds = useMemo(() => {
@@ -1426,17 +1424,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [channels, setSelectedFanIds]);
 
   // Number of fans bound to each curve, shown under its selector button.
-  // Excludes hardware-unresponsive (disconnected) fans - they sit in the
-  // Disconnected group and can't be driven, so they don't count as "in use".
   const curveFanCounts = useMemo(() => {
-    const disconnected = new Set(
-      channels.filter(isFanDisconnected).map(c => c.id),
-    );
     // A saved assignment for a fan that is not enumerated right now is kept on purpose; it is not a fan in use.
     const present = new Set(channels.map(c => c.id));
     const m = new Map<string, number>();
     for (const [fanId, fs] of Object.entries(fanStates)) {
-      if (fs.curveId && present.has(fanId) && !disconnected.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
+      if (fs.curveId && present.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
     }
     return m;
   }, [fanStates, channels]);
@@ -1706,7 +1699,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 icon={hideUncontrolled ? <EyeOff /> : <Eye />}
                 aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
                 aria-pressed={hideUncontrolled}
-                onClick={() => updateUiSettings({ showUncontrolledCoolingDevices: hideUncontrolled })}
+                data-coachmark={UNRESPONSIVE_HINT_ID}
+                onClick={() => {
+                  unresponsiveHint.dismiss();
+                  updateUiSettings({ showUncontrolledCoolingDevices: hideUncontrolled });
+                }}
               />
             </HoverTooltip>
             <span className={styles.headerSep} aria-hidden />
@@ -1751,6 +1748,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   <span className={styles.calFanId}>{channels.find(c => c.id === r.fanId)?.name ?? r.fanId}</span>
                   {r.classification === 'Unresponsive' ? (
                     <span className={`${styles.calBadge} ${styles.calUnresponsive}`}>
+                      <Unplug size={12} aria-hidden="true" />
                       {t('cooling.calibrate.class.unresponsive')}
                     </span>
                   ) : (
@@ -1793,12 +1791,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
             >
             {(() => {
-              const disconnected = visibleChannels.filter(isFanDisconnected);
-              const live = visibleChannels.filter(c => !isFanDisconnected(c));
               // Group headers report members from the unfiltered list, so a
               // group still accounts for the fans the eye is holding back.
-              // Disconnected fans are in here too: they hide on the same
-              // switch, so the vanish rule below has to see them.
               const allByBlock = new Map<string, FanChannel[]>();
               for (const ch of orderedChannels) {
                 const key = blockIdOf(ch);
@@ -1810,12 +1804,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // Every fan lands in a block: its device, or the synthetic block
               // the board's own headers share.
               const groups = new Map<string, FanChannel[]>();
-              for (const ch of live) {
+              for (const ch of visibleChannels) {
                 const key = blockIdOf(ch);
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);
               }
-              const disconnectedIds = disconnected.map(c => c.id);
               // A group is ONE block, so dragging it moves the whole device and
               // its ports never split.
               const blockIds = Array.from(groups.keys());
@@ -1897,7 +1890,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               };
               // The same gate a card's own click has, over a group's members.
               const selectAllFor = (fans: readonly FanChannel[]) => {
-                const ids = fans.filter(c => !isFanDisconnected(c) && c.classification !== 'Fixed' && !c.readOnly).map(c => c.id);
+                const ids = fans.filter(c => c.classification !== 'Fixed' && !c.readOnly).map(c => c.id);
                 return ids.length > 0 ? { count: ids.length, run: () => setSelectedFanIds(new Set(ids)) } : undefined;
               };
               const bulkFor = (ch: FanChannel): FanBulkSelection | undefined => {
@@ -1915,7 +1908,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onSelect={additive => selectFan(ch.id, additive)}
                   calibrating={calibrating}
                   canCreateCurve={curves.length < MAX_CURVES}
-                  highlighted={highlightedFanIds.has(ch.id) && !isFanDisconnected(ch)}
+                  highlighted={highlightedFanIds.has(ch.id)}
                   hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
                   hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
                   hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
@@ -1945,7 +1938,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 const expandRow = (id: string): string[] => id in next.groupMembers
                   ? (next.groupMembers[id] ?? []).flatMap(expandRow)
                   : expand(id);
-                persistOrder([...next.rowIds.flatMap(expandRow), ...disconnectedIds, ...hiddenFanIds]);
+                persistOrder([...next.rowIds.flatMap(expandRow), ...hiddenFanIds]);
               };
 
               // The user group header, for a group at the top level or inside
@@ -2088,34 +2081,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       <span>{t('cooling.fan.groupAdd')}</span>
                     </button>
                   )}
-                  {disconnected.length > 0 && (
-                    <CollapsibleSection key="disconnected-hdr" compact
-                      title={t('cooling.fan.disconnected')} ariaLabel={t('cooling.fan.disconnected')}
-                      open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
-                      right={<span className={styles.fanGroupCount}>{disconnected.length}</span>}>
-                      <div className={styles.fanGroupChildren}>{disconnected.map(ch => (
-                        <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves} hazard={hazardByFan[ch.id]}
-                          compact
-                          calibrating={calibrating}
-                          canCreateCurve={curves.length < MAX_CURVES}
-                          highlighted={false}
-                          hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
-                          hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
-                          hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
-                          onSetMode={v => applyFanMode(ch.id, v)}
-                          onCreateCurve={() => createCurveAndAssign(ch.id)}
-                          onRename={handleRename}
-                          onSpeedChange={handleSpeedChange}
-                          onTogglePin={handleTogglePin}
-                          onToggleControlled={handleSetFanControlled}
-                          onSelectOnly={() => setSelectedFanIds(new Set([ch.id]))}
-                          bulk={bulkForFan(ch)}
-                          onSetRole={handleSetRole}
-                  onClearOffset={handleClearOffset}
-                        />
-                      ))}</div>
-                    </CollapsibleSection>
-                  )}
                 </>
               );
             })()}
@@ -2213,6 +2178,17 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           body={t('cooling.calibrateHint.body')}
           dismissLabel={t('onboarding.hint.dismiss')}
           onDismiss={calibrateHint.dismiss}
+        />
+      )}
+      {showUnresponsiveHint && (
+        <Coachmark
+          hintId={UNRESPONSIVE_HINT_ID}
+          target={UNRESPONSIVE_HINT_SELECTOR}
+          boundary={contentBelowTabs}
+          title={t('cooling.unresponsiveHint.title')}
+          body={t('cooling.unresponsiveHint.body')}
+          dismissLabel={t('onboarding.hint.dismiss')}
+          onDismiss={unresponsiveHint.dismiss}
         />
       )}
       <ConfirmModal

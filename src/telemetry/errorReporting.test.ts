@@ -17,6 +17,7 @@ vi.mock('../lib/staleChunkRecovery', async (orig) => ({
   recoverFromStaleChunkNow: (message?: string) => recoverNow(message),
 }));
 
+import { runInNewContext } from 'node:vm';
 import {
   droppedErrorCount,
   fingerprintOf,
@@ -374,5 +375,57 @@ describe('stale chunk errors', () => {
     settle('noop');
     await vi.advanceTimersByTimeAsync(5000);
     expect(sent().flatMap((b) => b.errors)).toHaveLength(1);
+  });
+});
+
+describe('non-Error reasons', () => {
+  const reportedOne = async (reason: unknown) => {
+    reportError(reason, 'unhandled-rejection');
+    await vi.advanceTimersByTimeAsync(5000);
+    return sent()[0].errors[0];
+  };
+
+  it('keeps the message and stack of an Error from another realm', async () => {
+    const foreign: unknown = runInNewContext('new TypeError("denied")');
+    expect(foreign instanceof Error).toBe(false);
+    const r = await reportedOne(foreign);
+    expect(r.type).toBe('TypeError');
+    expect(r.message).toBe('denied');
+    expect(r.stack as string).toContain('TypeError: denied');
+  });
+
+  it('caps an oversized foreign message and stack', async () => {
+    const foreign = runInNewContext('const e = new Error("m".repeat(40000)); e.stack = "s".repeat(40000); e') as unknown;
+    const r = await reportedOne(foreign);
+    expect((r.message as string).length).toBe(1000);
+    expect((r.stack as string).length).toBe(2000);
+  });
+
+  it('reads a DOMException-tagged reason from another realm', async () => {
+    const foreign: unknown = runInNewContext('({ name: "AbortError", message: "gone", [Symbol.toStringTag]: "DOMException" })');
+    const r = await reportedOne(foreign);
+    expect(r.type).toBe('AbortError');
+    expect(r.message).toBe('gone');
+  });
+
+  it('survives a throwing getter on an Error-tagged reason', async () => {
+    const hostile = {
+      [Symbol.toStringTag]: 'Error',
+      get name(): string { throw new Error('trap'); },
+      get message(): string { throw new Error('trap'); },
+      get stack(): string { throw new Error('trap'); },
+    };
+    const r = await reportedOne(hostile);
+    expect(r.type).toBe('Error');
+    expect(r.message).toBe('');
+  });
+
+  it('names non-enumerable own properties, never values', async () => {
+    function Error() {}
+    const odd = Object.create(Error.prototype) as object;
+    Object.defineProperty(odd, 'detail', { value: 'secret', enumerable: false });
+    const r = await reportedOne(odd);
+    expect(r.type).toBe('Error');
+    expect(r.message).toBe('Error{detail}');
   });
 });

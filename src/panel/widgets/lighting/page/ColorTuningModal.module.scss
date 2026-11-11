@@ -56,6 +56,15 @@
   min-width: 0;
 }
 
+.separator {
+  height: 0;
+  border-top: var(--border-width) solid var(--border);
+}
+
+.brightness {
+  min-width: 0;
+}
+
 .controls {
   display: flex;
   flex-direction: column;
@@ -63,26 +72,6 @@
   // The ribbon is a dense block of colour; without this the Brightness label
   // sits right under the Tuned band and reads as part of it.
   margin-top: var(--space-sm);
-}
-
-.control {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-// Sits over the slider's own head row so the badge reads as part of the label
-// line without the Slider needing to know about mixed values. The right inset
-// clears the Slider's value column, which is widest on the temperature row
-// (its formatter emits words, not a percentage).
-.controlHead {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 5.5rem;
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
 }
 
 // Info (i) stacked above the master-brightness caret inside the slider track;
@@ -125,3 +114,8 @@
   --accent-glow: #4a83e0;
 }
 
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

@@ -403,8 +403,8 @@ input[type="range"] {
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 14px;
-    height: 14px;
+    width: var(--slider-thumb-size);
+    height: var(--slider-thumb-size);
     border-radius: 50%;
     background: var(--accent);
     border: none;
@@ -423,8 +423,8 @@ input[type="range"] {
     border: none;
   }
   &::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: var(--slider-thumb-size);
+    height: var(--slider-thumb-size);
     border-radius: 50%;
     background: var(--accent);
     border: none;
@@ -471,10 +471,10 @@ input[type="range"][data-fill] {
       to right,
       var(--border-strong) 0,
       var(--border-strong) var(--slider-fill-start, 0%),
-      var(--accent-glow, var(--accent)) var(--slider-fill-start, 0%),
-      var(--accent-glow, var(--accent)) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
-      var(--slider-fill-dim, var(--accent-glow, var(--accent))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
-      var(--slider-fill-dim, var(--accent-glow, var(--accent))) var(--slider-fill-end, 0%),
+      var(--slider-fill-color, var(--accent-glow, var(--accent))) var(--slider-fill-start, 0%),
+      var(--slider-fill-color, var(--accent-glow, var(--accent))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
+      var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
+      var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))) var(--slider-fill-end, 0%),
       var(--border-strong) var(--slider-fill-end, 0%),
       var(--border-strong) 100%
     );
@@ -488,7 +488,14 @@ input[type="range"][data-fill] {
     background: var(--text);
     box-shadow: var(--shadow-sm);
   }
+  // A custom knob node is drawn over the track; the native knob stays for input only.
+  // The invisible native knob is the drawn knob's size (Slider.tsx KNOB_PX) so its travel and hit target coincide.
+  &[data-custom-thumb]::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -9px; background: transparent; box-shadow: none; }
+  &[data-custom-thumb]::-moz-range-thumb { width: 24px; height: 24px; background: transparent; box-shadow: none; border: none; }
 }
+
+// The range thumb's diameter: the thumb, and everything placed along its path, read it from here.
+:root { --slider-thumb-size: 14px; }
 
 :root {
   // Single source for the width of every inline slider (track plus value); nothing else sets it.

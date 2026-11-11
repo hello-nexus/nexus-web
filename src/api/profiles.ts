@@ -210,6 +210,7 @@ export interface UnitsPrefs {
   monitoringTempUnit?: TempUnit;
   timeFormat?: TimeFormat;
   numberFormat?: NumberFormat;
+  monitoringWholeNumbers?: boolean;
   dateFormat?: DateFormat;
 }
 
@@ -246,6 +247,9 @@ export interface Preferences {
   // Machine-level (not per-profile): false stops reading the temperature
   // sensor on each memory stick. Applies live. Missing means true.
   readRamTemperatures?: boolean;
+  // Machine-level: false stops scanning USB serial ports for in-line GPU power
+  // meters. Applies live. Missing means true.
+  powerMonitorsEnabled?: boolean;
   // Linux-only, machine-level: lets Nexus drive AMD graphics card lighting.
   // Missing means off. The Applicable flag is read-only and true only on
   // Linux; an older service omits both.
@@ -265,6 +269,9 @@ export interface PreferencesPatch {
   features?: FeaturesPrefs;
   startupDelaySeconds?: number;
   readRamTemperatures?: boolean;
+  // Machine-level: false stops scanning USB serial ports for in-line GPU power
+  // meters. Applies live. Missing means true.
+  powerMonitorsEnabled?: boolean;
   amdGpuLighting?: boolean;
 }
 

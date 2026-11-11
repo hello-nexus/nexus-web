@@ -21,7 +21,7 @@ import {
 } from '../api/profiles';
 import type { UpdateChannel, UpdateMode } from '../api/update';
 import {
-  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT, DEFAULT_DATE_FORMAT, DATE_FORMATS,
+  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT, DEFAULT_MONITORING_WHOLE_NUMBERS, DEFAULT_DATE_FORMAT, DATE_FORMATS,
   type TempUnit, type TimeFormat, type NumberFormat, type DateFormat,
 } from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -137,12 +137,15 @@ export interface UiSettingsValue {
   monitoringTempUnit: TempUnit;
   timeFormat: TimeFormat;
   numberFormat: NumberFormat;
+  monitoringWholeNumbers: boolean;
   dateFormat: DateFormat;
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
   // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
   readRamTemperatures: boolean;
+  // Machine-level, server-mirrored under the preferences top-level powerMonitorsEnabled field.
+  powerMonitorsEnabled: boolean;
   // Linux-only, server-mirrored under the preferences top-level amdGpuLighting field.
   amdGpuLighting: boolean;
   // Read-only: the service reports whether the switch applies on this host.
@@ -280,9 +283,11 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
+    monitoringWholeNumbers: src.general.monitoringWholeNumbers,
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
     readRamTemperatures: src.general.readRamTemperatures,
+    powerMonitorsEnabled: src.general.powerMonitorsEnabled,
     amdGpuLighting: src.general.amdGpuLighting,
     amdGpuLightingApplicable: false,
     featureLightingEnabled: src.general.featureLightingEnabled,
@@ -358,9 +363,11 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
+      monitoringWholeNumbers: src.monitoringWholeNumbers,
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
       readRamTemperatures: src.readRamTemperatures,
+      powerMonitorsEnabled: src.powerMonitorsEnabled,
       amdGpuLighting: src.amdGpuLighting,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
@@ -430,15 +437,17 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.lastDismissedUpdateVersion !== undefined) update.lastDismissedUpdateVersion = patch.lastDismissedUpdateVersion;
   if (Object.keys(update).length > 0) out.update = update;
   // units block
-  const units: Partial<{ monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat; dateFormat: DateFormat }> = {};
+  const units: Partial<{ monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat; monitoringWholeNumbers: boolean; dateFormat: DateFormat }> = {};
   if (patch.monitoringTempUnit !== undefined) units.monitoringTempUnit = patch.monitoringTempUnit;
   if (patch.timeFormat !== undefined) units.timeFormat = patch.timeFormat;
   if (patch.numberFormat !== undefined) units.numberFormat = patch.numberFormat;
+  if (patch.monitoringWholeNumbers !== undefined) units.monitoringWholeNumbers = patch.monitoringWholeNumbers;
   if (patch.dateFormat !== undefined) units.dateFormat = patch.dateFormat;
   if (Object.keys(units).length > 0) out.units = units;
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
   if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
+  if (patch.powerMonitorsEnabled !== undefined) out.powerMonitorsEnabled = patch.powerMonitorsEnabled;
   if (patch.amdGpuLighting !== undefined) out.amdGpuLighting = patch.amdGpuLighting;
   // features block
   const features: FeaturesPrefs = {};
@@ -570,11 +579,13 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     monitoringTempUnit: (server.units?.monitoringTempUnit as TempUnit) ?? base.monitoringTempUnit,
     timeFormat: (server.units?.timeFormat as TimeFormat) ?? base.timeFormat,
     numberFormat: (server.units?.numberFormat as NumberFormat) ?? base.numberFormat,
+    monitoringWholeNumbers: server.units?.monitoringWholeNumbers ?? base.monitoringWholeNumbers,
     // An open list: a pattern from a newer build would match no Settings option.
     dateFormat: server.units?.dateFormat === undefined ? base.dateFormat
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
     readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
+    powerMonitorsEnabled: server.powerMonitorsEnabled ?? base.powerMonitorsEnabled,
     amdGpuLighting: server.amdGpuLighting ?? base.amdGpuLighting,
     amdGpuLightingApplicable: server.amdGpuLightingApplicable === true,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
@@ -675,6 +686,7 @@ export function UiSettingsProvider({
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined
       || serverPatch.readRamTemperatures !== undefined
+      || serverPatch.powerMonitorsEnabled !== undefined
       || serverPatch.amdGpuLighting !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -889,7 +901,7 @@ export function usePreferredGpuId(): string {
  * instead of crashing - same pattern as {@link useTempSensorPrefs}.
  */
 export function useUnitPrefs(): {
-  monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat; dateFormat: DateFormat;
+  monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat; monitoringWholeNumbers: boolean; dateFormat: DateFormat;
 } {
   const ctx = useContext(UiSettingsContext);
   if (!ctx) {
@@ -897,6 +909,7 @@ export function useUnitPrefs(): {
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
+      monitoringWholeNumbers: DEFAULT_MONITORING_WHOLE_NUMBERS,
       dateFormat: DEFAULT_DATE_FORMAT,
     };
   }
@@ -904,6 +917,7 @@ export function useUnitPrefs(): {
     monitoringTempUnit: ctx.settings.monitoringTempUnit,
     timeFormat: ctx.settings.timeFormat,
     numberFormat: ctx.settings.numberFormat,
+    monitoringWholeNumbers: ctx.settings.monitoringWholeNumbers,
     dateFormat: ctx.settings.dateFormat,
   };
 }

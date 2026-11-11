@@ -7,6 +7,8 @@ export const JACOBI_ITERATIONS = 20;
 export const FAN_BLEND = 0.6;
 /** Darcy drag per step inside a porous (radiator or cooler) cell. */
 export const DARCY_K = 0.4;
+/** Most drag per step a radiator core may add; kept below the pressure model's loss so air passes the core and it only straightens the flow. */
+export const RADIATOR_DARCY_MAX = 0.04;
 /** Per-step velocity damping. */
 export const DAMPING = 0.999;
 /** Floor of the reference fan velocity, m/s, so a weak setup does not look as fast as a strong one. */
@@ -59,7 +61,7 @@ export const HEAT_SPAN_REPORT_K = 0.1;
 export const POWER_RESUME_DELTA_W = 15;
 /** Fluid cells this close to a heat-source solid are its heat cells. */
 export const HEAT_REACH_CELLS = 2;
-/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed or Slow mo never shortens a particle's life or its trail. */
+/** Visual particle speed at which a step is one step of simulation time: particle age, the stuck test and the streak length all run in simulation time (steps times speed over this), so a slower drawn speed never shortens a particle's life or its trail. */
 export const PARTICLE_REFERENCE_SPEED = 1;
 /** Particle age, in simulation steps, after which it is recycled. */
 export const PARTICLE_MAX_AGE = 900;
@@ -68,7 +70,11 @@ export const PARTICLE_LIFE_JITTER = 0.5;
 /** The first pool is born over this share of the max age: until its birth a particle waits unseen at its spawn point. */
 export const PARTICLE_BIRTH_SPREAD = 0.3;
 
+/** The fixed particle pool, one texel per particle. */
+export const PARTICLE_TEXTURE = { w: 128, h: 84 };
+
 export const GRID_TARGET_CELLS = 64 * 48 * 96;
+/** A coarse density for harnesses and tests that trade resolution for speed; the layer itself always runs the target. */
 export const GRID_LOW_CELLS = 32 * 24 * 48;
 export const MAX_GRID_AXIS = 128;
 export const MIN_GRID_AXIS = 8;
@@ -101,22 +107,17 @@ export const OUTSIDE_SPAWN_FROM = 0.45;
 export const OUTSIDE_SPAWN_TO = 0.9;
 /** Share of the particle pool that is drawn; the rest is simulated but hidden, so the picture stays readable. */
 export const PARTICLE_DRAW_SHARE = 0.1;
-/** How many of a pool's particles are drawn at a tier's share of it. */
-export const drawnParticles = (pool: number, tierShare: number) => Math.round(pool * tierShare * PARTICLE_DRAW_SHARE);
 /** Room kept clear of solid cells on both sides of a fan, mm beyond its own thickness: a collision shape or plate never closes a fan's disc, though the card, radiator and PSU still deflect air farther away. */
 export const FAN_CLEARANCE_MM = 30;
+/** Farthest, mm, a card's bracket end may sit from the case's rear face for the bracket vents to open onto it. */
+export const BRACKET_REACH_MM = 60;
 
 /** Velocity streaks: each particle is drawn as a ribbon whose total length is its last step's displacement times this many steps. */
 export const STREAK_STEPS = 15;
 /** Streak length bounds, scene mm: a stalled particle keeps the minimum, a fast one is capped at the maximum. */
 export const STREAK_MIN_MM = 3;
 export const STREAK_MAX_MM = 105;
-/** Streak width in scene mm, and the narrowest it is drawn on screen, px. */
-export const STREAK_WIDTH_MM = 5.5;
-export const STREAK_MIN_WIDTH_PX = 2.5;
 /** The ribbon is this many segments long. Its tail follows the flow field backward from the particle, so it bends where the air bends. */
 export const STREAK_SEGMENTS = 12;
-/** Share of the head width the tail tapers to. */
-export const STREAK_TAIL_WIDTH = 0.35;
 /** Steps shorter than this many mm have no usable direction, so the streak takes a fixed axis. */
 export const STREAK_STALL_MM = 1e-4;

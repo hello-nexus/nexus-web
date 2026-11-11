@@ -1,14 +1,13 @@
-import { Activity, Stethoscope, Thermometer } from 'lucide-react';
+import { Activity, Stethoscope, Zap } from 'lucide-react';
 import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
 import { SmartPollSection } from './SmartPollSection';
 import { RamTemperatureSection } from './RamTemperatureSection';
+import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
-import type { TempUnit } from '../../../lib/units';
 import styles from './SettingsView.module.scss';
 
 export interface MonitoringTabProps {
@@ -19,6 +18,7 @@ export interface MonitoringTabProps {
 
 export function MonitoringTab({ settings, updateGeneral, serviceOnline }: MonitoringTabProps) {
   const { t } = useTranslation();
+  const { settings: ui, update } = useUiSettings();
 
   return (
     <div className={styles.tabPanel}>
@@ -45,26 +45,17 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
         />
       </SettingsSection>
 
-      <SettingsSection>
-        <SettingRow
-          label={t('settings.units.temperature.label')}
-          icon={<Thermometer />}
+      <SettingsSection title={t('settings.hardwareSensors.title')}>
+        <SettingToggle
+          label={t('settings.powerMonitors.label')}
+          description={t('settings.powerMonitors.description')}
+          icon={<Zap />}
           iconLeading="subtle"
-          anchorId="set-temp-unit"
-          description={t('settings.units.temperature.description')}
-        >
-          <ChipGroup
-            ariaLabel={t('settings.units.temperature.label')}
-            activeKey={settings.general.monitoringTempUnit}
-            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'c', label: t('settings.units.temperature.celsius') },
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
-            ]}
-          />
-        </SettingRow>
+          anchorId="set-power-monitors"
+          checked={ui.powerMonitorsEnabled}
+          onChange={v => update({ powerMonitorsEnabled: v })}
+          disabled={!serviceOnline}
+        />
       </SettingsSection>
 
       <MonitoringEventsSettings />

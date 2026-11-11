@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FanChannel } from '../../../../api/cooling';
 import t1 from '../../../../lib/cooling/__fixtures__/t1-cooling-state.json';
 import { CoolingCase3D } from './CoolingCase3D';
+import { PRESSURE_COLOR } from './pressureColor';
 
 const h = vi.hoisted(() => ({
   setup: { record: null as unknown, loaded: true },
@@ -17,7 +18,7 @@ vi.mock('../../../../hooks/useComponentTemps', () => ({ useComponentTemps: () =>
 vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h.setup }));
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
-  createCaseRenderer: vi.fn(() => ({ setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true })),
+  createCaseRenderer: vi.fn(() => ({ setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), setSettlingListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true })),
 }));
 
 // T1's real state: the Y70 with a top radiator, a vertical card with two fans, and the channels the service listed.
@@ -43,5 +44,35 @@ describe('the top strip on T1 data', () => {
     expect(idle.group).toContain('cooling.case3d.stat.intake');
     expect(idle.group).toMatch(/cooling\.case3d\.cfm\[\d+\]/);
     for (const driven of [strip(null, 2500), strip('sim:3000'), strip('sim:500'), strip('none')]) expect(driven.group).toBe(idle.group);
+  });
+});
+
+describe('the pressure chip', () => {
+  const chipFor = (directions: Record<string, string>, bindings: unknown[]) => {
+    h.setup = { record: { rev: 1, setup: { version: 1, case: {}, items: [], resolved: { objects: [], caseLayout: t1.caseLayout } } }, loaded: true };
+    h.layout = { ...h.layout, layout: { directions, bindings, tests: [] } };
+    render(<CoolingCase3D channels={channels()} selectedChannelId={null} onSelectChannel={vi.fn()} />);
+    const group = screen.getByRole('group', { name: 'cooling.case3d.stats.label' });
+    return { group, chip: within(group).getByRole('img') };
+  };
+  const slotKeys = t1.caseLayout.fanSlots.map((slot: { key: string }) => slot.key);
+  const all = (direction: string) => Object.fromEntries(slotKeys.map(k => [k, direction]));
+
+  it.each([
+    ['positive', all('intake')],
+    ['negative', all('exhaust')],
+  ] as const)('shows %s pressure as a colored chip named for the state, with the meaning and estimate in the tooltip', (mode, directions) => {
+    const { group, chip } = chipFor(directions, t1.layout.bindings);
+    expect(chip.textContent).toContain(`cooling.case3d.pressure.${mode}`);
+    expect(chip.getAttribute('aria-label')).toBe(`cooling.case3d.pressure.${mode}. cooling.case3d.pressure.${mode}.body cooling.case3d.pressure.estimate`);
+    expect(chip.firstElementChild?.getAttribute('style')).toContain(`--badge-color: ${PRESSURE_COLOR[mode]}`);
+    expect(within(group).queryByText('cooling.case3d.estimate')).toBeNull();
+  });
+
+  it('keeps a neutral chip when intake and exhaust nearly cancel out', () => {
+    const nearlyEven = Object.fromEntries(slotKeys.map((k, i) => [k, i < 13 ? 'intake' : 'exhaust']));
+    const { chip } = chipFor(nearlyEven, t1.layout.bindings);
+    expect(chip.textContent).toContain('cooling.case3d.pressure.balanced');
+    expect(chip.firstElementChild?.getAttribute('style')).toContain(`--badge-color: ${PRESSURE_COLOR.balanced}`);
   });
 });

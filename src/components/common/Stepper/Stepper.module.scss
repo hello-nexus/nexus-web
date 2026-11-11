@@ -7,6 +7,11 @@
   gap: 3px;
 }
 
+.horizontal {
+  flex-direction: row;
+  gap: 6px;
+}
+
 .btn {
   @include text-caption;
   display: flex;

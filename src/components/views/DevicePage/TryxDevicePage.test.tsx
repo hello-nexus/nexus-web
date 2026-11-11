@@ -189,7 +189,7 @@ describe('TryxDevicePage - overlay editor', () => {
     await renderPage();
     const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
     expect(drag).toBeInTheDocument();
-    expect(drag).toHaveTextContent('45°C');
+    expect(drag).toHaveTextContent('45.0°C');
     expect(drag).toHaveTextContent('CPU Package');
     expect(drag.style.left).toBe('4%');
     expect(drag.style.top).toBe('38%');

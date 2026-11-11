@@ -60,10 +60,9 @@ describe('FanCard pin on cards without controls', () => {
     expect(document.querySelector('[class*="fanPinGlyph"]')).toBeTruthy();
   });
 
-  it('is not a button on a disconnected channel', () => {
+  it('stays a button on an unresponsive channel, which is still controllable', () => {
     renderCard(channel({ classification: 'Unresponsive', rpm: 0 }));
-    expect(screen.queryByRole('button', { name: 'cooling.pin.unpin' })).toBeNull();
-    expect(document.querySelector('[class*="fanPinGlyph"]')).toBeTruthy();
+    expect(pinBtn()).toBeInTheDocument();
   });
 
   it('stays a button on a controllable channel Nexus does not control', () => {
@@ -114,5 +113,19 @@ describe('FanCard pin menu rows', () => {
     renderCard(channel({ controlled: true }));
     fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
     expect(screen.getByText('cooling.pin.unpin').closest('button')).toHaveTextContent('cooling.pin.unpinDesc');
+  });
+});
+
+describe('FanCard unresponsive readout', () => {
+  it('shows the Unresponsive unplug icon instead of RPM and keeps the mode dropdown', () => {
+    renderCard(channel({ classification: 'Unresponsive', rpm: 0 }));
+    expect(screen.getByLabelText('cooling.fan.unresponsive')).toBeInTheDocument();
+    expect(screen.queryByText('RPM')).toBeNull();
+  });
+
+  it('lets live RPM win over a stale Unresponsive classification', () => {
+    renderCard(channel({ classification: 'Unresponsive', rpm: 700 }));
+    expect(screen.queryByLabelText('cooling.fan.unresponsive')).toBeNull();
+    expect(screen.getByText('RPM')).toBeInTheDocument();
   });
 });

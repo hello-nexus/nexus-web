@@ -131,11 +131,43 @@ $inline-gap: 0.5rem;
      chunks that bundle Slider.module.scss. */
 
   &:disabled { cursor: not-allowed; opacity: 0.5; }
+  // A caller-colored fill or custom knob is a deliberate display, so it is not dimmed.
+  &[data-toned]:disabled { opacity: 1; }
+}
+
+.thumbNode {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  // Solid in the fill color so the track never shows through; the glyph takes the contrast-paired ink.
+  background: var(--slider-fill-color, var(--accent));
+  color: var(--slider-thumb-ink, var(--accent-text));
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
 }
 
 .mixedValue {
   color: var(--text-dim);
   font-style: italic;
+}
+
+/* The thumb's path: its centre stops half a thumb (--slider-thumb-size, global.scss) short of
+   each end of the track. The zero tick, band and marker are placed in it. No `inset`:
+   the Q60 panel is Chromium 83. */
+.scale {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--slider-thumb-size) / 2);
+  right: calc(var(--slider-thumb-size) / 2);
+  pointer-events: none;
 }
 
 .zeroTick {
@@ -186,6 +218,14 @@ $inline-gap: 0.5rem;
   filter: drop-shadow(0 0 1.5px rgb(0 0 0 / var(--alpha-strong)));
 }
 
+.markerHit {
+  pointer-events: auto;
+  display: flex;
+  // The caret keeps its own margin; the hit area only widens what hover reaches.
+  padding: 4px 6px 0;
+  margin: -4px -6px 0;
+}
+
 .markerLabel {
   pointer-events: auto;
   display: flex;
@@ -199,4 +239,59 @@ $inline-gap: 0.5rem;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
+}
+
+// The bare layout's column: the bare root is a row, so marks stack with the track here.
+.markedColumn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+// Labelled marks along the track. The row is as wide as the track; each box is placed in px by SliderMarks.
+.marks {
+  position: relative;
+  width: 100%;
+}
+
+.mark {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+  white-space: nowrap;
+  // A label wider than the track is cut at the track edge.
+  max-width: 100%;
+  pointer-events: none;
+}
+
+.markPointer {
+  position: relative;
+  flex: none;
+  align-self: flex-start;
+}
+
+.markLabel {
+  @include text-caption;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.markDetail {
+  @include text-button;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// The headline figure: the heading style with tabular digits.
+.markDetailLarge {
+  @include text-heading;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -16,7 +16,7 @@ vi.mock('../../../../hooks/usePcSetupRecord', () => ({ usePcSetupRecord: () => h
 vi.mock('../../../../hooks/useCoolingLayout', () => ({ useCoolingLayout: () => h.layout }));
 vi.mock('./coolingCaseRenderer', () => ({
   createCaseRenderer: vi.fn(() => {
-    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true };
+    const r = { setState: vi.fn(), setTemps: vi.fn(), setAnchors: vi.fn(), setSpanListener: vi.fn(), setSettlingListener: vi.fn(), resize: vi.fn(), dispose: vi.fn(), flowSupported: true };
     h.renderers.push(r);
     return r;
   }),
@@ -55,7 +55,7 @@ describe('CoolingCase3D component temperatures', () => {
   it('labels each component that has a reading, and hides the one that has none', () => {
     h.temps = { cpu: null, gpu: 71.6 };
     render(ui());
-    expect(screen.getByTestId('temp-label-gpu').textContent).toContain('72');
+    expect(screen.getByTestId('temp-label-gpu').textContent).toContain('71.6');
     expect(screen.queryByTestId('temp-label-cpu')).toBeNull();
   });
 

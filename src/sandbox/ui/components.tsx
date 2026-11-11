@@ -14,12 +14,13 @@ import { TextInput as NativeTextInput } from '../../components/common/TextInput/
 import { Ring as NativeRing } from '../../components/common/Ring/Ring';
 import { Gauge as NativeGauge } from '../../components/common/Gauge/Gauge';
 import { Slider as NativeSlider } from '../../components/common/Slider/Slider';
+import type { SliderMark } from '../../components/common/Slider/SliderMarks';
 import { Button as NativeButton } from '../../components/common/Button/Button';
 import type { ButtonTone } from '../../components/common/Button/Button';
 import { UsageBar } from '../../components/common/UsageBar/UsageBar';
 import { Sparkline as NativeSparkline } from '../../components/common/Sparkline/Sparkline';
 import { ICON_TABLE } from './icons';
-import { alignValue, justifyValue, weightValue, textToneVar, toneVar, cssSize } from './tokens';
+import { alignValue, justifyValue, weightValue, textToneVar, toneVar, thumbInkVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
 import { useTranslation } from '../../lib/i18n';
 import { isExternalHttpsUrl, openExternalUrl } from './openExternal';
@@ -220,6 +221,27 @@ export function Sparkline(p: HostProps) {
   );
 }
 
+// An app supplies the marks, so their count and text length are capped.
+const MAX_SLIDER_MARKS = 8;
+const MAX_MARK_TEXT = 48;
+
+function toSliderMarks(raw: unknown): SliderMark[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const marks: SliderMark[] = [];
+  for (const m of (raw as Array<Record<string, unknown>>).slice(0, MAX_SLIDER_MARKS)) {
+    const value = num(m?.value);
+    const label = str(m?.label);
+    if (value === undefined || label === undefined) continue;
+    marks.push({
+      value, label: label.slice(0, MAX_MARK_TEXT), detail: str(m.detail)?.slice(0, MAX_MARK_TEXT),
+      color: m.tone ? toneVar(str(m.tone), '') || undefined : undefined,
+      side: m.side === 'above' ? 'above' : 'below',
+      large: m.large === true,
+    });
+  }
+  return marks;
+}
+
 export function Slider(p: HostProps) {
   const emit = (key: 'input' | 'change', value: number) => p.__events?.[key]?.(value);
   // The worker's `value` round-trips through the MessagePort, so a controlled
@@ -233,6 +255,12 @@ export function Slider(p: HostProps) {
   const rawFill = p.trackFill;
   const trackFill: boolean | number | undefined =
     typeof rawFill === 'number' ? rawFill : (rawFill != null ? !!rawFill : undefined);
+  const sliderTone = str(p.tone);
+  // An unknown tone resolves to '' so a typo leaves the slider as it was.
+  const sliderFill = sliderTone ? toneVar(sliderTone, '') : '';
+  const thumbIconName = str(p.thumbIcon);
+  const ThumbIcon = thumbIconName ? ICON_TABLE[thumbIconName.toLowerCase()] : undefined;
+  const sliderMarks = toSliderMarks(p.marks);
   const rawOrientation = str(p.orientation);
   const orientation: 'inline' | 'stacked' | 'bare' | undefined =
     rawOrientation === 'inline' || rawOrientation === 'stacked' || rawOrientation === 'bare'
@@ -247,6 +275,10 @@ export function Slider(p: HostProps) {
       disabled={!!p.disabled}
       trackFill={trackFill}
       orientation={orientation}
+      fillColor={sliderFill || undefined}
+      thumbInk={thumbInkVar(sliderTone)}
+      marks={sliderMarks}
+      thumbNode={ThumbIcon ? <ThumbIcon size={14} color="currentColor" aria-hidden="true" /> : undefined}
       onChange={(v, commit) => {
         setLive(v);
         emit(commit ? 'change' : 'input', v);

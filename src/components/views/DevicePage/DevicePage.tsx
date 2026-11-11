@@ -20,6 +20,7 @@ import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { AsiahorseUmbraDevicePage } from './AsiahorseUmbraDevicePage';
 import { AsusGlacialLcdDevicePage } from './AsusGlacialLcdDevicePage';
 import { AstralDevicePage } from './AstralDevicePage';
+import { LogitechSpeakerDevicePage } from './LogitechSpeakerDevicePage';
 import { DeepCoolMystiqueDevicePage } from './DeepCoolMystiqueDevicePage';
 import { GlacialPanelRoute } from './GlacialPanelRoute';
 import { KrakenDevicePage } from './KrakenDevicePage';
@@ -289,6 +290,10 @@ function DeviceBody({ device, controlDevice, platform, onOpenFirmware, onSection
 
   if (device.curatedId === 'asus-astral') {
     return <AstralDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'logitech-speaker') {
+    return <LogitechSpeakerDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'deepcool-mystique') {

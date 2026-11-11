@@ -4,6 +4,9 @@ import { Button } from '../../../../components/common/Button/Button';
 import { SettingSelect } from '../../../../components/common/SettingRow/SettingRow';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
+import { useScheduleSliderProps } from '../../../../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
+import { useLightingScheduleBinding } from '../../../../hooks/useLightingScheduleBinding';
+import { useMasterScalesDevices } from '../../../../hooks/useMasterScalesDevices';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTranslation } from '../../../../lib/i18n';
 import {
@@ -62,6 +65,8 @@ function spread(values: number[]): Spread {
 export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningModalProps) {
   const { t } = useTranslation();
   const globalBrightness = useGlobalBrightness();
+  const { binding: scheduleBinding, modal: scheduleModal } = useLightingScheduleBinding(true);
+  const masterScales = useMasterScalesDevices(true);
 
   // Service-owned trims, seeded once and then kept in step with our own
   // writes. Sparse on the wire: an id absent from the response is neutral.
@@ -189,15 +194,19 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
 
   const master = globalBrightness == null ? 100 : Math.round(globalBrightness * 100);
   const showCap = globalBrightness != null && bright.value > master;
+  // The schedule caps master brightness, so a device's effective ceiling is the
+  // lower of the two. With the brightness multiplier on, master scales rather
+  // than caps, so there is no ceiling to mark and the schedule marker stays out.
+  const scheduleCap = masterScales.on === true ? null : scheduleBinding?.capPercent ?? null;
+  const sched = useScheduleSliderProps(
+    scheduleBinding ? { ...scheduleBinding, capPercent: scheduleCap } : undefined,
+    Math.round(bright.value),
+  );
+  const scheduleLeads = scheduleCap !== null && scheduleCap <= master;
 
   return (
-    <DeviceModal open onClose={close} title={t('lighting.colorTuning.title')} medium
-      footer={(
-        <Button tone="ghost" size="md" disabled={empty} onClick={handleReset}>
-          {t('lighting.colorTuning.reset')}
-        </Button>
-      )}
-      cancelLabel={t('app.window.close')}>
+    <DeviceModal open onClose={close} title={t('lighting.colorTuning.title')} medium>
+      {scheduleModal}
       <div className={styles.body}>
         {/* Read-only: the scope is whatever the device rail had selected when
             the menu was opened, so this states what is about to change rather
@@ -208,6 +217,42 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
             {scopedCards.map(d => d.name).join(', ')}
           </p>
         </section>
+
+        <div className={styles.separator} role="separator" />
+
+        {/* The one control that also rides the brightness schedule: its sun and
+            cap marker sit on this row. */}
+        <section className={styles.brightness}>
+          <Slider
+            editable
+            trackFill
+            label={t('lighting.devices.brightness')}
+            ariaLabel={t('lighting.devices.brightness')}
+            info={t('lighting.colorTuning.brightnessInfo')}
+            labelAction={<>{sched.sun}{mixedLabel(bright)}</>}
+            value={Math.round(bright.value)}
+            min={0}
+            max={100}
+            step={1}
+            fillCap={scheduleLeads ? sched.fillCap : (showCap ? master : undefined)}
+            marker={scheduleLeads ? sched.marker : (showCap ? master : undefined)}
+            markerTooltip={scheduleLeads ? sched.markerTooltip : undefined}
+            markerLabel={showCap && !scheduleLeads ? (
+              <InfoTooltip
+                message={t('lighting.colorTuning.effectiveBrightnessInfo', { master })}
+                side="bottom"
+                className={styles.markerInfo}
+              />
+            ) : undefined}
+            disabled={empty}
+            formatValue={v => `${v}%`}
+            onChange={v => write({ brightness: v }, false)}
+            onCommit={v => write({ brightness: v }, true)}
+            className={bright.mixed ? styles.sliderMixed : undefined}
+          />
+        </section>
+
+        <div className={styles.separator} role="separator" />
 
         {/* The shift, as two stacked bands over the same reference colours:
             the top row is what the effect produced, the row under it what this
@@ -231,115 +276,70 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
         </section>
 
         <section className={styles.controls}>
-          <div className={styles.control}>
-            <div className={styles.controlHead}>{mixedLabel(bright)}</div>
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              editable
-              trackFill
-              label={t('lighting.devices.brightness')}
-              // The stacked layout wraps the input in a <label> that also holds
-              // the editable value, so without this the accessible name comes
-              // out as "Brightness100%".
-              ariaLabel={t('lighting.devices.brightness')}
-              info={t('lighting.colorTuning.brightnessInfo')}
-              value={Math.round(bright.value)}
-              min={0}
-              max={100}
-              step={1}
-              fillCap={showCap ? master : undefined}
-              marker={showCap ? master : undefined}
-              markerLabel={showCap ? (
-                <InfoTooltip
-                  message={t('lighting.colorTuning.effectiveBrightnessInfo', { master })}
-                  side="bottom"
-                  className={styles.markerInfo}
-                />
-              ) : undefined}
-              disabled={empty}
-              formatValue={v => `${v}%`}
-              onChange={v => write({ brightness: v }, false)}
-              onCommit={v => write({ brightness: v }, true)}
-              className={bright.mixed ? styles.sliderMixed : undefined}
-            />
-          </div>
-
           {([
             ['red', red, 'lighting.colorTuning.red'],
             ['green', green, 'lighting.colorTuning.green'],
             ['blue', blue, 'lighting.colorTuning.blue'],
           ] as const).map(([channel, value, labelKey]) => (
-            <div key={channel} className={`${styles.control} ${styles[channel]}`}>
-              <div className={styles.controlHead}>{mixedLabel(value)}</div>
-              <Slider
-                orientation="stacked"
-                editable
-                trackFill
-                label={t(labelKey)}
-                ariaLabel={t(labelKey)}
-                value={Math.round(value.value * 100)}
-                min={30}
-                max={170}
-                step={1}
-                disabled={empty}
-                formatValue={v => `${v}%`}
-                onChange={v => write({ [channel]: v / 100 }, false)}
-                onCommit={v => write({ [channel]: v / 100 }, true)}
-                className={value.mixed ? styles.sliderMixed : undefined}
-              />
-            </div>
-          ))}
-
-          <div className={styles.control}>
-            <div className={styles.controlHead}>{mixedLabel(temperature)}</div>
             <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
+              key={channel}
               editable
               trackFill
-              zeroMarker
-              showRange
-              label={t('lighting.colorTuning.temperature')}
-              ariaLabel={t('lighting.colorTuning.temperature')}
-              info={t('lighting.colorTuning.temperatureInfo')}
-              value={Math.round(temperature.value * 100)}
-              min={-100}
-              max={100}
-              step={1}
-              disabled={empty}
-              formatValue={v => (v === -100
-                ? t('lighting.colorTuning.cool')
-                : v === 100
-                  ? t('lighting.colorTuning.warm')
-                  : `${v > 0 ? '+' : ''}${v}`)}
-              onChange={v => write({ temperature: v / 100 }, false)}
-              onCommit={v => write({ temperature: v / 100 }, true)}
-              className={temperature.mixed ? styles.sliderMixed : undefined}
-            />
-          </div>
-
-          <div className={styles.control}>
-            <div className={styles.controlHead}>{mixedLabel(saturation)}</div>
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              editable
-              trackFill
-              label={t('lighting.devices.saturation')}
-              ariaLabel={t('lighting.devices.saturation')}
-              info={t('lighting.colorTuning.saturationInfo')}
-              value={Math.round(saturation.value * 100)}
-              min={0}
-              max={200}
+              label={t(labelKey)}
+              ariaLabel={t(labelKey)}
+              labelAction={mixedLabel(value)}
+              value={Math.round(value.value * 100)}
+              min={30}
+              max={170}
               step={1}
               disabled={empty}
               formatValue={v => `${v}%`}
-              onChange={v => write({ saturation: v / 100 }, false)}
-              onCommit={v => write({ saturation: v / 100 }, true)}
-              className={saturation.mixed ? styles.sliderMixed : undefined}
+              onChange={v => write({ [channel]: v / 100 }, false)}
+              onCommit={v => write({ [channel]: v / 100 }, true)}
+              className={`${styles[channel]} ${value.mixed ? styles.sliderMixed : ''}`}
             />
-          </div>
+          ))}
+
+          <Slider
+            editable
+            trackFill
+            zeroMarker
+            label={t('lighting.colorTuning.temperature')}
+            ariaLabel={t('lighting.colorTuning.temperature')}
+            info={t('lighting.colorTuning.temperatureInfo')}
+            labelAction={mixedLabel(temperature)}
+            value={Math.round(temperature.value * 100)}
+            min={-100}
+            max={100}
+            step={1}
+            disabled={empty}
+            formatValue={v => (v === -100
+              ? t('lighting.colorTuning.cool')
+              : v === 100
+                ? t('lighting.colorTuning.warm')
+                : `${v > 0 ? '+' : ''}${v}`)}
+            onChange={v => write({ temperature: v / 100 }, false)}
+            onCommit={v => write({ temperature: v / 100 }, true)}
+            className={temperature.mixed ? styles.sliderMixed : undefined}
+          />
+
+          <Slider
+            editable
+            trackFill
+            label={t('lighting.devices.saturation')}
+            ariaLabel={t('lighting.devices.saturation')}
+            info={t('lighting.colorTuning.saturationInfo')}
+            labelAction={mixedLabel(saturation)}
+            value={Math.round(saturation.value * 100)}
+            min={0}
+            max={200}
+            step={1}
+            disabled={empty}
+            formatValue={v => `${v}%`}
+            onChange={v => write({ saturation: v / 100 }, false)}
+            onCommit={v => write({ saturation: v / 100 }, true)}
+            className={saturation.mixed ? styles.sliderMixed : undefined}
+          />
 
           <SettingSelect
             label={t('lighting.colorTuning.colorOrder')}
@@ -351,6 +351,15 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
             onChange={v => write({ colorOrder: v as ColorOrder }, true)}
           />
         </section>
+
+        <div className={styles.actions}>
+          <Button tone="ghost" size="sm" disabled={empty} onClick={handleReset}>
+            {t('lighting.colorTuning.reset')}
+          </Button>
+          <Button tone="accent" size="sm" onClick={close}>
+            {t('lighting.colorTuning.done')}
+          </Button>
+        </div>
       </div>
     </DeviceModal>
   );

@@ -18,6 +18,24 @@ vi.mock('../../../../api/lighting', async importOriginal => ({
 // a marker, so a fixed value keeps these cases about the tuning controls.
 vi.mock('./useGlobalBrightness', () => ({ useGlobalBrightness: () => 1 }));
 
+// The schedule binding and the multiplier switch are controllable per case.
+const schedule = vi.hoisted(() => ({
+  binding: null as null | Record<string, unknown>,
+  multiplier: false,
+}));
+vi.mock('../../../../hooks/useLightingScheduleBinding', () => ({
+  useLightingScheduleBinding: () => ({ binding: schedule.binding, modal: null }),
+}));
+vi.mock('../../../../hooks/useMasterScalesDevices', () => ({
+  useMasterScalesDevices: () => ({ on: schedule.multiplier, save: vi.fn() }),
+}));
+
+const binding = (capPercent: number | null) => ({
+  scheduleOn: true, follows: true, onFollowsChange: vi.fn(), onTurnOn: vi.fn(), onEdit: vi.fn(),
+  statusAt: () => null, capPercent,
+});
+const caret = () => document.querySelector('[class*="markerCaret"]');
+
 function device(id: string, name: string, brightness = 100): LightingDevice {
   return {
     id, name, ledsOn: true, brightness, ledCount: 8,
@@ -42,6 +60,8 @@ const sliderFor = (name: string) => screen.getByRole('slider', { name });
 describe('ColorTuningModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    schedule.binding = null;
+    schedule.multiplier = false;
     fetchAdjust.mockResolvedValue({ adjustments: {} });
     setAdjust.mockResolvedValue(null);
     setBrightness.mockResolvedValue(null);
@@ -168,5 +188,32 @@ describe('ColorTuningModal', () => {
 
     const trigger = screen.getByRole('button', { name: 'lighting.colorTuning.colorOrder' });
     expect(trigger.textContent).toContain('BGR');
+  });
+
+  it('shows the schedule sun and cap marker on the brightness slider while lighting follows', async () => {
+    schedule.binding = binding(40);
+    await renderModal(['a']);
+    expect(screen.getByRole('button', { name: 'lighting.schedule.marker.title' })).toBeInTheDocument();
+    expect(caret()).not.toBeNull();
+  });
+
+  it('shows the sun but no cap marker when the schedule is off or lighting does not follow', async () => {
+    schedule.binding = binding(null);
+    await renderModal(['a']);
+    expect(screen.getByRole('button', { name: 'lighting.schedule.marker.title' })).toBeInTheDocument();
+    expect(caret()).toBeNull();
+  });
+
+  it('draws no schedule cap in brightness multiplier mode, where the schedule scales rather than caps', async () => {
+    schedule.binding = binding(40);
+    schedule.multiplier = true;
+    await renderModal(['a']);
+    expect(screen.getByRole('button', { name: 'lighting.schedule.marker.title' })).toBeInTheDocument();
+    expect(caret()).toBeNull();
+  });
+
+  it('has no sun before the schedule has loaded', async () => {
+    await renderModal(['a']);
+    expect(screen.queryByRole('button', { name: 'lighting.schedule.marker.title' })).toBeNull();
   });
 });

@@ -26,6 +26,8 @@ export interface SimulatorInitMessage {
   dpi?: number;
   // Short-axis slot count Widget size forces on the grid (see panelShortSideSlots).
   shortSideSlots?: number;
+  // The single-widget tile has its axes swapped (a quarter-turn render).
+  transposedTile?: boolean;
   // The Large-size grid that sizes floating chrome, so chrome ignores the Widget size.
   chromeGrid?: ChromeGrid;
   // True when the record is display-bound (promoted OS monitor, displayId
@@ -38,7 +40,6 @@ export interface SimulatorInitMessage {
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
-  brightness: number;
   screenOn: boolean;
   showPanel: boolean;
   deviceId?: string;
@@ -48,7 +49,6 @@ export interface SimulatorInitMessage {
 
 export interface SimulatorSetDisplayMessage {
   type: 'simulator/set-display';
-  brightness: number;
   screenOn: boolean;
   showPanel: boolean;
 }
@@ -64,6 +64,7 @@ export interface SimulatorSetGridMessage {
   type: 'simulator/set-grid';
   dpi?: number;
   shortSideSlots?: number;
+  transposedTile?: boolean;
   chromeGrid?: ChromeGrid;
 }
 

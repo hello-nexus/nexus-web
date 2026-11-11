@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, type CSSProperties, type PointerEventHandler, type ReactNode } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
+import { SliderMarks, type SliderMark } from './SliderMarks';
 import styles from './Slider.module.scss';
 
 /*
@@ -64,10 +66,20 @@ export interface SliderProps {
   /** Optional node stacked directly above the marker caret (e.g. an info
       affordance). Interactive; only rendered when `marker` is set. */
   markerLabel?: ReactNode;
+  /** Hover text for the marker caret; only used when `marker` is set. */
+  markerTooltip?: string;
   /** When the fill runs past this value (in [min, max]), the portion beyond it
       is painted in a dimmed accent - e.g. a master-brightness cap the device is
       set above. Requires trackFill; omit for a single-tone fill. */
   fillCap?: number;
+  /** CSS color of the filled part of the track; omit for the accent. A slider with a fill color or a thumb node keeps full opacity while disabled. */
+  fillColor?: string;
+  /** Drawn on the track at the value in place of the round knob, which stays in the DOM for input but is hidden. */
+  thumbNode?: ReactNode;
+  /** CSS color of the glyph inside `thumbNode`; defaults to the accent's paired text. */
+  thumbInk?: string;
+  /** Labelled points on the scale, drawn under the track (or over it with `side: 'above'`) and kept inside it; bare and stacked layouts only. */
+  marks?: readonly SliderMark[];
   ariaLabel?: string;
   className?: string;
   /** The controlled targets hold different values. No value is shown or filled; the value
@@ -81,11 +93,19 @@ export interface SliderProps {
   valueText?: string;
 }
 
+/** A value at `pct` (0..100) of the range, placed on the thumb's path: its centre stops half a thumb short of each end, so the two only agree at 50%. */
+const onThumbPath = (pct: number) => `calc(var(--slider-thumb-size) / 2 + (100% - var(--slider-thumb-size)) * ${pct / 100})`;
+
+// Diameter of the custom knob (thumbNode); mirrors .thumbNode in Slider.module.scss.
+const KNOB_PX = 24;
+// The native knob's width; mirrors the thumb rule in global.scss.
+const NATIVE_KNOB_PX = 14;
+
 export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, entryMap, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, band, fillCap, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
+  disabled, trackFill, marker, markerLabel, markerTooltip, band, fillCap, fillColor, thumbNode, thumbInk, marks, ariaLabel, className, labelAction, mixed = false, mixedLabel, valueText,
 }: SliderProps) {
   const rangeId = useId();
   // The inline label is a plain span, so it names the range and the value field unless an explicit ariaLabel wins.
@@ -115,20 +135,49 @@ export function Slider({
   }
   // Never past the fill end, or the gradient stops would decrease and mispaint.
   const capPct = fillCap != null ? Math.min(clamp(((fillCap - min) / (max - min)) * 100), fillEndPct) : null;
+  // A level fill starts at the track's own end; every other stop sits on the thumb's path, so
+  // the fill ends under the thumb and a centre-out fill starts where the thumb is at 0.
   const trackStyle = {
-    '--slider-fill-start': mixed ? '0%' : `${fillStartPct}%`,
-    '--slider-fill-end': mixed ? '0%' : `${fillEndPct}%`,
-    ...(capPct != null ? { '--slider-fill-cap': `${capPct}%` } : {}),
+    '--slider-fill-start': mixed || !isBipolar ? '0%' : onThumbPath(fillStartPct),
+    '--slider-fill-end': mixed ? '0%' : onThumbPath(fillEndPct),
+    ...(capPct != null ? { '--slider-fill-cap': onThumbPath(capPct) } : {}),
+    ...(fillColor ? { '--slider-fill-color': fillColor } : {}),
   } as CSSProperties;
+  // The custom knob is wider than the native one, so the thumb path everything is placed on is sized to it.
+  const rootStyle = thumbNode != null ? ({ '--slider-thumb-size': `${KNOB_PX}px` } as CSSProperties) : undefined;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const bandPct = band ? band.map(v => clamp(((v - min) / (max - min)) * 100)).sort((a, b) => a - b) : null;
+  // The node's travel is the track minus its own width, so it stays inside the track at both ends.
+  const thumbNodeEl = thumbNode != null ? (
+    <span className={styles.thumbNode} style={{ left: `calc(${KNOB_PX / 2}px + (100% - ${KNOB_PX}px) * ${clamp(valuePct) / 100})`, ...(fillColor ? { '--slider-fill-color': fillColor } as CSSProperties : {}), ...(thumbInk ? { '--slider-thumb-ink': thumbInk } as CSSProperties : {}) }} aria-hidden>
+      {thumbNode}
+    </span>
+  ) : null;
+  const markKnobPx = thumbNode != null ? KNOB_PX : NATIVE_KNOB_PX;
+  const marksAbove = marks?.some(m => m.side === 'above') ? <SliderMarks marks={marks} min={min} max={max} knobPx={markKnobPx} side="above" /> : null;
+  const marksBelow = marks?.some(m => (m.side ?? 'below') === 'below') ? <SliderMarks marks={marks} min={min} max={max} knobPx={markKnobPx} side="below" /> : null;
   const bandNode = bandPct ? (
     <span className={styles.band} style={{ left: `${bandPct[0]}%`, width: `${bandPct[1] - bandPct[0]}%` }} aria-hidden />
   ) : null;
   const markerNode = markerPct != null ? (
     <span className={styles.marker} style={{ left: `${markerPct}%` }}>
       {markerLabel != null && <span className={styles.markerLabel}>{markerLabel}</span>}
-      <span className={styles.markerCaret} aria-hidden />
+      {markerTooltip ? (
+        <HoverTooltip body={markerTooltip} side="top">
+          <span className={styles.markerHit}><span className={styles.markerCaret} aria-hidden /></span>
+        </HoverTooltip>
+      ) : (
+        <span className={styles.markerCaret} aria-hidden />
+      )}
+    </span>
+  ) : null;
+
+  // The zero tick, band and marker share the thumb's path, so each lines up with the thumb at its value.
+  const scaleNode = showZero || bandNode || markerNode ? (
+    <span className={styles.scale}>
+      {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+      {bandNode}
+      {markerNode}
     </span>
   ) : null;
 
@@ -247,6 +296,8 @@ export function Slider({
       aria-label={accessibleName}
       data-fill=""
       data-mixed={mixed ? 'true' : undefined}
+      data-toned={fillColor || thumbNode != null ? '' : undefined}
+      data-custom-thumb={thumbNode != null ? '' : undefined}
       aria-valuetext={valueText ?? (mixed ? mixedLabel : undefined)}
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
@@ -269,12 +320,16 @@ export function Slider({
 
   if (orientation === 'bare') {
     return (
-      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
-        <div className={styles.track}>
-          {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+      <div className={`${styles.root} ${styles.bare} ${className ?? ''}`} style={rootStyle}>
+        {/* The bare root is a row; marks stack with the track in a column of their own. */}
+        <div className={styles.markedColumn}>
+          {marksAbove}
+          <div className={styles.track}>
+            {range}
+            {scaleNode}
+            {thumbNodeEl}
+          </div>
+          {marksBelow}
         </div>
       </div>
     );
@@ -284,17 +339,18 @@ export function Slider({
     return (
       // A div with a label on the name only: a wrapping label forwards a click on
       // the value or name to its first labelable descendant, a labelAction button.
-      <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`}>
+      <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`} style={rootStyle}>
         <div className={styles.head}>
           <span className={styles.label}>{label && <label htmlFor={rangeId}>{label}</label>}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>
           {valueNode}
         </div>
+        {marksAbove}
         <div className={styles.track}>
           {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+          {scaleNode}
+          {thumbNodeEl}
         </div>
+        {marksBelow}
         {showRange && (
           <div className={styles.rangeLabels}>
             <span>{formatValue ? formatValue(min) : min}</span>
@@ -312,14 +368,13 @@ export function Slider({
   // order (range before value) steals focus from the just-opened edit input and
   // reverts it. The range carries its own aria-label, so no label is needed.
   return (
-    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`}>
+    <div className={`${styles.root} ${styles.inline} ${label ? '' : styles.inlineFill} ${className ?? ''}`} style={rootStyle}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
       <div className={styles.inlineControl}>
         <div className={styles.track}>
           {range}
-          {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
-          {bandNode}
-          {markerNode}
+          {scaleNode}
+          {thumbNodeEl}
         </div>
         {inlineValueNode}
       </div>

@@ -146,9 +146,9 @@ const navSubtabs: SearchSource = (ctx) =>
 // Profiles and Dev tools moved to their own pages - see `standalonePages`.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
   { tab: 'general',          labelKey: 'settings.general',               keywords: ['startup', 'tray', 'login', 'language', 'updates', 'diagnostics', 'danger', 'reset'] },
-  { tab: 'appearance',       labelKey: 'settings.tab.appearance',        keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
+  { tab: 'appearance',       labelKey: 'settings.tab.appearance',        keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format', 'temperature', 'celsius', 'fahrenheit'] },
   { tab: 'lighting-cooling', labelKey: 'settings.lightingCooling.title', keywords: ['lighting', 'cooling', 'rgb', 'led', 'fans', 'render gpu', 'sleep blackout'] },
-  { tab: 'monitoring',       labelKey: 'settings.tab.monitoringDiagnostics', keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'diagnostics', 'health'] },
+  { tab: 'monitoring',       labelKey: 'settings.tab.monitoringDiagnostics', keywords: ['sensors', 'diagnostics', 'health'] },
   { tab: 'hotkeys',          labelKey: 'settings.tab.hotkeys',           keywords: ['hotkey', 'shortcut', 'keyboard', 'global', 'keybind', 'key combo', 'deck'] },
   { tab: 'privacy',          labelKey: 'settings.tab.privacyData',       keywords: ['telemetry', 'screen time', 'data', 'ai'] },
 ];
@@ -184,6 +184,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.background',          anchor: 'set-background', keywords: ['background', 'glass', 'flat', 'gradient', 'transparency', 'blur'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.time.label',        anchor: 'set-time-format',  keywords: ['time', 'clock', '12 hour', '24 hour', 'am pm', 'format', 'units'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
+  { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.monitoringWholeNumbers.label', anchor: 'set-monitoring-whole-numbers', keywords: ['decimal', 'decimals', 'round', 'whole', 'integer', 'monitoring', 'units'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.date.label',        anchor: 'set-date-format',  keywords: ['date', 'clock', 'day', 'month', 'year', 'weekday', 'iso', 'format', 'units'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.lighting.label', anchor: 'set-feature-lighting', keywords: ['lighting', 'rgb', 'led', 'on', 'off', 'switch', 'feature'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.cooling.label',  anchor: 'set-feature-cooling',  keywords: ['cooling', 'fans', 'on', 'off', 'switch', 'feature'] },
@@ -201,11 +202,12 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.manualRgb.import.label', sectionKey: 'settings.manualRgb.title', anchor: 'set-manual-rgb-import', keywords: ['openrgb', 'import', 'manual', 'add', 'devices', 'undetected', 'missing'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.manualRgb.qmk.label',    sectionKey: 'settings.manualRgb.title', anchor: 'set-manual-rgb-qmk',    keywords: ['qmk', 'keyboard', 'via', 'manual', 'add', 'vid', 'pid', 'undetected', 'missing'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.manualRgb.e131.label',   sectionKey: 'settings.manualRgb.title', anchor: 'set-manual-rgb-e131',   keywords: ['wled', 'e1.31', 'e131', 'sacn', 'network', 'led strip', 'ip', 'manual', 'add'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
+  { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.monitoring.label',  anchor: 'set-feature-monitoring',  keywords: ['monitoring', 'history', 'on', 'off', 'switch', 'feature'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.diagnostics.label', anchor: 'set-feature-diagnostics', keywords: ['diagnostics', 'health', 'alerts', 'on', 'off', 'switch', 'feature'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.defaultLabel',  sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-default',   keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'ssd', 'hdd', 'health', 'polling', 'interval', 'spin down', 'sleep'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.perDriveLabel', sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-per-drive', keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'each drive', 'per drive', 'polling', 'interval'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.powerMonitors.label', sectionKey: 'settings.hardwareSensors.title', anchor: 'set-power-monitors', keywords: ['power', 'monitor', 'wireview', 'gpu', 'cable', 'meter', 'watts', 'usb', 'serial', 'sensor'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.ramTemperatures.label', anchor: 'set-read-ram-temperatures', keywords: ['ram', 'memory', 'dimm', 'temperature', 'sensor', 'spd', 'restart', 'boot'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data', 'clear'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.localDataStore.fps.label', anchor: 'set-fps-tracking', keywords: ['fps', 'frame rate', 'tracking', 'games', 'data', 'clear'] },

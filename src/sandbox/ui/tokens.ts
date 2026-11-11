@@ -23,6 +23,21 @@ export function toneVar(tone: UiTone | string | undefined, fallback = 'currentCo
   }
 }
 
+/**
+ * Ink for a glyph on a solid fill of `tone`: the accent's paired text for accent tones, the page
+ * background for text tones (the fill is the text color), white for good and bad as Button's
+ * danger-solid does, and the page background for warn (amber needs dark ink). Undefined for no tone.
+ */
+export function thumbInkVar(tone: UiTone | string | undefined): string | undefined {
+  switch (String(tone ?? '').toLowerCase()) {
+    case 'accent': case 'accent-deep': case 'accent-glow': return 'var(--accent-text)';
+    case 'text': case 'text-dim': case 'text-faded': case 'warn': return 'var(--bg)';
+    case 'good': case 'bad': return '#fff';
+    case 'border': case 'bg-card': return 'var(--text)';
+    default: return undefined;
+  }
+}
+
 /** Text colour for a tone; accent tones yield to a panel's custom text colour (--panel-ink-accent). */
 export function textToneVar(tone: UiTone | string | undefined, fallback?: string): string {
   const value = toneVar(tone, fallback);

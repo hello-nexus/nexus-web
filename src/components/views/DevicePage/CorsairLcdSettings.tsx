@@ -14,6 +14,7 @@ import {
   type CorsairLcdPatch,
   type CorsairLcdState,
 } from '../../../api/corsair-lcd';
+import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -132,6 +133,8 @@ export function CorsairLcdSettings() {
   // attached; without this the controls look live and every write is silently dropped.
   const loaded = state !== null && state.hasDevice;
 
+  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding('corsair-lcd', true);
+
   // The cooler may hold an image the library no longer lists (list still loading, fetch
   // failed, item deleted); the select must still say something is stored there.
   const deviceMediaId = state?.deviceMediaId || null;
@@ -139,11 +142,13 @@ export function CorsairLcdSettings() {
 
   return (
     <>
+      {scheduleModal}
       <SettingsSection title={t('devices.corsair.screenSection')} boxClassName={styles.sectionBox}>
         <SettingSlider
           editable
           trackFill
           label={t('devices.corsair.screenBrightness')}
+          schedule={scheduleBinding ?? undefined}
           value={state?.brightness ?? 0}
           min={0}
           max={100}

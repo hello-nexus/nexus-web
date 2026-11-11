@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { X } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
@@ -20,15 +21,15 @@ interface DeviceModalProps {
   medium?: boolean;
   /** A step wider than medium - for dialogs whose sections need the room. */
   roomy?: boolean;
-  /** When false the footer Cancel/Close is hidden and Esc/backdrop-click do not close. Defaults to true. */
+  /** When false the X button and footer are hidden and Esc/backdrop-click do not close. Defaults to true. */
   closable?: boolean;
   /**
-   * Submit buttons, rendered at the right of the footer. The footer's left
-   * slot is always the Cancel (or Close, when there is nothing to submit)
-   * button; there is no header X.
+   * Submit buttons, rendered at the right of the footer. Passing `footer` or
+   * `cancelLabel` switches the modal to footer mode: Cancel on the left, no
+   * header X. Without either, the modal has a header X and no footer.
    */
   footer?: ReactNode;
-  /** Overrides the left button label: Cancel when `footer` is set, Close otherwise. */
+  /** Footer mode with a custom left button label (default Cancel). */
   cancelLabel?: string;
   /** Disables the left button, e.g. while an async submit is in flight. */
   cancelDisabled?: boolean;
@@ -38,6 +39,7 @@ interface DeviceModalProps {
 
 export function DeviceModal({ open, onClose, title, subtitle, icon, large, wide, fullscreen, fit, medium, roomy, closable = true, footer, cancelLabel, cancelDisabled, headerRight, children }: DeviceModalProps) {
   const { t } = useTranslation();
+  const footerMode = footer != null || cancelLabel != null;
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
     : large ? styles.modalLarge
@@ -63,15 +65,20 @@ export function DeviceModal({ open, onClose, title, subtitle, icon, large, wide,
         </div>
         <div className={styles.headerRight}>
           {headerRight}
+          {closable && !footerMode && (
+            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('app.window.close')}>
+              <X size={18} />
+            </button>
+          )}
         </div>
       </div>
       <div className={`${styles.body} ${fullscreen ? styles.bodyFullscreen : wide ? styles.bodyWide : ''}`}>
         {children}
       </div>
-      {closable && (
+      {closable && footerMode && (
         <div className={styles.footer}>
           <Button tone="neutral" size="md" onClick={onClose} disabled={cancelDisabled}>
-            {cancelLabel ?? (footer ? t('confirm.cancel') : t('app.window.close'))}
+            {cancelLabel ?? t('confirm.cancel')}
           </Button>
           {footer && <div className={styles.footerEnd}>{footer}</div>}
         </div>
