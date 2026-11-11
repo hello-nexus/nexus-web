@@ -211,18 +211,28 @@ export function TopBar({
       })}
     >
       <div className={styles.leftCluster}>
-        {hasSidebar && !fullscreen && (
+        {hasSidebar && !fullscreen && compactLocked && (
+          // aria-disabled, not disabled: a native-disabled button has no
+          // pointer events, so its mousedown would start a window drag.
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={toggleCompact}
+            aria-disabled="true"
+            aria-label={t('sidebar.expand')}
+          >
+            <PanelLeftDashed size={18} />
+          </button>
+        )}
+        {hasSidebar && !fullscreen && !compactLocked && (
           <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="bottom">
             <button
               type="button"
               className={styles.iconButton}
               onClick={toggleCompact}
-              disabled={compactLocked}
               aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
             >
-              {compactLocked
-                ? <PanelLeftDashed size={18} />
-                : compact ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              {compact ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
           </HoverTooltip>
         )}

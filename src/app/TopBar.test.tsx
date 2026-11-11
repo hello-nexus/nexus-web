@@ -18,6 +18,12 @@ vi.mock('./sidebar', () => ({
   UpdateStatusSlot: () => <div data-testid="update-status-slot" />,
 }));
 
+const updateUiSettings = vi.hoisted(() => vi.fn());
+vi.mock('../hooks/useUiSettings', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../hooks/useUiSettings')>()),
+  useUiSettingsUpdateSafe: () => updateUiSettings,
+}));
+
 import { TopBar } from './TopBar';
 import { PageChromeProvider, usePageSettingsAction } from './PageChrome';
 
@@ -94,20 +100,24 @@ describe('TopBar focus mode', () => {
     const onToggleCompact = vi.fn();
     const { container } = renderTopBar({ compact: true, compactLocked: true, onToggleCompact });
     const btn = screen.getByLabelText('sidebar.expand');
-    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute('aria-disabled', 'true');
     expect(container.querySelector('.lucide-panel-left-dashed')).not.toBeNull();
+    updateUiSettings.mockClear();
     fireEvent.click(btn);
     expect(onToggleCompact).not.toHaveBeenCalled();
+    expect(updateUiSettings).not.toHaveBeenCalled();
   });
 
   it('keeps the normal toggle and icon when not locked', () => {
     const onToggleCompact = vi.fn();
     const { container } = renderTopBar({ compact: false, onToggleCompact });
     const btn = screen.getByLabelText('sidebar.collapse');
-    expect(btn).not.toBeDisabled();
+    expect(btn).not.toHaveAttribute('aria-disabled');
     expect(container.querySelector('.lucide-panel-left-close')).not.toBeNull();
+    updateUiSettings.mockClear();
     fireEvent.click(btn);
     expect(onToggleCompact).toHaveBeenCalledTimes(1);
+    expect(updateUiSettings).toHaveBeenCalledWith({ sidebarCollapsed: true });
   });
 
   it('calls onToggleFullscreen when the Focus button is clicked', () => {

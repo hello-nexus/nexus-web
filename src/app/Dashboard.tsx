@@ -753,8 +753,7 @@ export function Dashboard() {
     const meta = getSidebarAppMeta(activeView);
     return meta ? t(meta.i18nKey) : t('sidebar.section.apps');
   })();
-  // null = auto (follow viewport), true = user-collapsed, false = user-expanded
-  // (only effective at wide widths).
+  // null = auto (follow viewport), true = user-collapsed; false acts as null.
   // Seeded from the local settings cache so a reload doesn't flash expanded
   // before SidebarCollapsedSync restores the server value.
   const [manualOverride, setManualOverride] = useState<boolean | null>(
@@ -849,8 +848,6 @@ export function Dashboard() {
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
-  // Narrow viewports always collapse and cannot be expanded; a manual
-  // collapse persists across width changes.
   const sidebarCompact = resolveSidebarCompact(manualOverride, viewportNarrow);
   const compact = hasSidebar && sidebarCompact;
 
