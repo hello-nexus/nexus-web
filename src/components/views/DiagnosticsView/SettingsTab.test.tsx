@@ -88,6 +88,24 @@ describe('SettingsTab', () => {
     expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '85', '70', '60']);
   });
 
+  it('groups each component toggle with its max temperature so a separator falls only between components', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    const cpuToggle = screen.getByRole('switch', { name: 'benchmark.phase.cpu' });
+    const group = cpuToggle.closest('[class*="group"]') as HTMLElement;
+    expect(group).not.toBeNull();
+    expect(group.contains(maxTempSliders()[0])).toBe(true);
+    expect(group.contains(maxTempSliders()[1])).toBe(false);
+    expect(group.nextElementSibling?.contains(screen.getByRole('switch', { name: 'benchmark.phase.gpu' }))).toBe(true);
+  });
+
+  it('labels the cooling toggle as fans and pumps with its description', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    expect(screen.getByRole('switch', { name: 'diagnostics.settings.components.fansPumps.label' })).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.settings.components.fansPumps.description')).toBeInTheDocument();
+  });
+
   it('hides a component max temperature while that component is off, and leaves the others', () => {
     mockSettings = baseSettings({ diagnosticsComponentGpu: false, diagnosticsComponentRam: false });
     render(<SettingsTab />);

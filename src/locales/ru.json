@@ -2119,6 +2119,8 @@
   "diagnostics.refresh": "Обновить",
   "diagnostics.retry": "Повторить",
   "diagnostics.settings.components.description": "Отключите компонент, чтобы прекратить отслеживать его состояние и исключить его из оповещений.",
+  "diagnostics.settings.components.fansPumps.description": "Предупреждает, если вентилятор или помпа остановились, хотя должны вращаться, и при срабатывании тепловой защиты процессора.",
+  "diagnostics.settings.components.fansPumps.label": "Вентиляторы и помпы",
   "diagnostics.settings.components.maxTemp": "Максимальная температура",
   "diagnostics.settings.components.title": "Мониторинг компонентов",
   "diagnostics.settings.linger.description": "Как долго предупреждение о температуре остаётся видимым после того, как компонент остынет.",

@@ -2119,6 +2119,8 @@
   "diagnostics.refresh": "Odśwież",
   "diagnostics.retry": "Ponów",
   "diagnostics.settings.components.description": "Wyłącz komponent, aby przestać monitorować jego stan i pominąć go w alertach.",
+  "diagnostics.settings.components.fansPumps.description": "Ostrzega, gdy wentylator lub pompa zatrzyma się, choć powinna się kręcić, oraz gdy zadziała zabezpieczenie termiczne procesora.",
+  "diagnostics.settings.components.fansPumps.label": "Wentylatory i pompy",
   "diagnostics.settings.components.maxTemp": "Maksymalna temperatura",
   "diagnostics.settings.components.title": "Monitorowanie komponentów",
   "diagnostics.settings.linger.description": "Jak długo ostrzeżenie o temperaturze pozostaje widoczne po ostygnięciu komponentu.",

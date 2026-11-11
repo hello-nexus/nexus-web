@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Atualizar",
   "diagnostics.retry": "Tentar novamente",
   "diagnostics.settings.components.description": "Desative um componente para deixar de monitorizar o seu estado e excluí-lo dos alertas.",
+  "diagnostics.settings.components.fansPumps.description": "Avisa quando uma ventoinha ou uma bomba pára enquanto devia estar a rodar e quando a proteção térmica do CPU é acionada.",
+  "diagnostics.settings.components.fansPumps.label": "Ventoinhas e bombas",
   "diagnostics.settings.components.maxTemp": "Temperatura máxima",
   "diagnostics.settings.components.title": "Monitorização de componentes",
   "diagnostics.settings.linger.description": "Durante quanto tempo um aviso de temperatura permanece visível depois de o componente arrefecer.",

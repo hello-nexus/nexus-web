@@ -59,6 +59,7 @@ export function SettingRow({
   sliderRow,
   descriptionBelow,
   selected,
+  nested,
 }: {
   label?: string;
   // Inline content after the label text, e.g. a chip naming what the row belongs to.
@@ -105,6 +106,8 @@ export function SettingRow({
   descriptionBelow?: boolean | 'tight';
   // The row the user is currently on (e.g. the active profile): accent outline and fill.
   selected?: boolean;
+  // Refines the row above it (indented, secondary label); place both in a SettingGroup.
+  nested?: boolean;
 }) {
   const cls = [
     styles.row,
@@ -117,6 +120,7 @@ export function SettingRow({
     descriptionBelow === 'tight' && styles.descBelowTight,
     icon && iconLeading && styles.hasLeadingIcon,
     selected && styles.selected,
+    nested && styles.nested,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
@@ -234,6 +238,11 @@ export function SettingSelect({
   );
 }
 
+/** Keeps a row and its nested refinements together, so the section's hairline falls between groups, not inside one. */
+export function SettingGroup({ children }: { children: ReactNode }) {
+  return <div className={styles.group}>{children}</div>;
+}
+
 // Right-aligned inline slider bar in the control slot. `editable` makes the
 // value click-to-edit; `trackFill` paints the level accent (brightness/volume).
 export function SettingSlider({
@@ -260,6 +269,7 @@ export function SettingSlider({
   valueText,
   labelSuffix,
   schedule,
+  nested,
 }: {
   label?: string;
   description?: ReactNode;
@@ -289,6 +299,7 @@ export function SettingSlider({
   labelSuffix?: ReactNode;
   /** Binds the slider to the brightness schedule: the sun, and a caret at the level it caps this slider at. */
   schedule?: BrightnessScheduleBinding;
+  nested?: boolean;
 }) {
   const sched = useScheduleSliderProps(schedule, value);
   // Built outside the JSX: the variant id is not UI text, and the i18n literal
@@ -305,6 +316,7 @@ export function SettingSlider({
       disabled={disabled}
       anchorId={anchorId}
       sliderRow
+      nested={nested}
     >
       <Slider
         value={value}

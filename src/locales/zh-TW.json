@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "重新整理",
   "diagnostics.retry": "重試",
   "diagnostics.settings.components.description": "停用元件可停止追蹤其健康狀態，並將其排除在警示之外。",
+  "diagnostics.settings.components.fansPumps.description": "當風扇或水泵應該轉動卻停止時，以及 CPU 熱保護觸發時發出警告。",
+  "diagnostics.settings.components.fansPumps.label": "風扇和水泵",
   "diagnostics.settings.components.maxTemp": "最高溫度",
   "diagnostics.settings.components.title": "元件監控",
   "diagnostics.settings.linger.description": "元件降溫後，溫度警告保持顯示的時間長度。",

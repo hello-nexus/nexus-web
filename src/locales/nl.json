@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Vernieuwen",
   "diagnostics.retry": "Opnieuw proberen",
   "diagnostics.settings.components.description": "Schakel een component uit om de gezondheid ervan niet meer te volgen en het over te slaan bij meldingen.",
+  "diagnostics.settings.components.fansPumps.description": "Waarschuwt wanneer een ventilator of pomp stopt terwijl hij zou moeten draaien, en wanneer de thermische beveiliging van de CPU afgaat.",
+  "diagnostics.settings.components.fansPumps.label": "Ventilatoren en pompen",
   "diagnostics.settings.components.maxTemp": "Maximale temperatuur",
   "diagnostics.settings.components.title": "Componentmonitoring",
   "diagnostics.settings.linger.description": "Hoe lang een temperatuurwaarschuwing zichtbaar blijft nadat de component weer is afgekoeld.",

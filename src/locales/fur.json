@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Inzorne",
   "diagnostics.retry": "Torne prove",
   "diagnostics.settings.components.description": "Disabilite un component par fermâ il monitoraç dal so stât e escludilu des notifichis.",
+  "diagnostics.settings.components.fansPumps.description": "Al avise cuant che un ventiladôr o une pompe si ferme intant che al scugnarès zirâ e cuant che e scat la protezion termiche dal CPU.",
+  "diagnostics.settings.components.fansPumps.label": "Ventiladôrs e pompis",
   "diagnostics.settings.components.maxTemp": "Temperature massime",
   "diagnostics.settings.components.title": "Monitoraç dai components",
   "diagnostics.settings.linger.description": "Trop timp che un avîs di temperadure al reste visibil dopo che il component si è rinfrescjât.",

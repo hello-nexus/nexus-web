@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Refresh",
   "diagnostics.retry": "Retry",
   "diagnostics.settings.components.description": "Turn off a component to stop tracking its health and skip it in alerts.",
+  "diagnostics.settings.components.fansPumps.description": "Warn when a fan or pump stops while it should be spinning, and when the CPU thermal guard trips.",
+  "diagnostics.settings.components.fansPumps.label": "Fans and pumps",
   "diagnostics.settings.components.maxTemp": "Maximum temperature",
   "diagnostics.settings.components.title": "Component monitoring",
   "diagnostics.settings.linger.description": "How long a temperature warning stays visible after the component cools back down.",

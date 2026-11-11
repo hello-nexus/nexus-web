@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Yenile",
   "diagnostics.retry": "Yeniden dene",
   "diagnostics.settings.components.description": "Durumunu izlemeyi durdurmak ve uyarılardan hariç tutmak için bir bileşeni devre dışı bırakın.",
+  "diagnostics.settings.components.fansPumps.description": "Bir fan veya pompa dönmesi gerekirken durduğunda ve işlemci termal koruması devreye girdiğinde uyarır.",
+  "diagnostics.settings.components.fansPumps.label": "Fanlar ve pompalar",
   "diagnostics.settings.components.maxTemp": "Maksimum sıcaklık",
   "diagnostics.settings.components.title": "Bileşen izleme",
   "diagnostics.settings.linger.description": "Bileşen soğuduktan sonra bir sıcaklık uyarısının ne kadar süre görünür kalacağı.",

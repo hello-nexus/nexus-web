@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Atualizar",
   "diagnostics.retry": "Tentar novamente",
   "diagnostics.settings.components.description": "Desative um componente para parar de monitorar sua saúde e excluí-lo dos alertas.",
+  "diagnostics.settings.components.fansPumps.description": "Avisa quando um ventilador ou uma bomba para enquanto deveria estar girando e quando a proteção térmica da CPU é acionada.",
+  "diagnostics.settings.components.fansPumps.label": "Ventiladores e bombas",
   "diagnostics.settings.components.maxTemp": "Temperatura máxima",
   "diagnostics.settings.components.title": "Monitoramento de componentes",
   "diagnostics.settings.linger.description": "Por quanto tempo um aviso de temperatura permanece visível depois que o componente esfria.",

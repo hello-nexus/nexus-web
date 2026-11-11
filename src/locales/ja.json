@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "更新",
   "diagnostics.retry": "再試行",
   "diagnostics.settings.components.description": "コンポーネントを無効にすると、状態監視を停止し、通知の対象から除外します。",
+  "diagnostics.settings.components.fansPumps.description": "ファンやポンプが回るべきときに停止した場合と、CPU サーマルガードが作動した場合に警告します。",
+  "diagnostics.settings.components.fansPumps.label": "ファンとポンプ",
   "diagnostics.settings.components.maxTemp": "最高温度",
   "diagnostics.settings.components.title": "コンポーネントの監視",
   "diagnostics.settings.linger.description": "コンポーネントが冷えた後、温度警告が表示され続ける時間。",

@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "새로고침",
   "diagnostics.retry": "재시도",
   "diagnostics.settings.components.description": "구성 요소를 비활성화하면 상태 추적을 중지하고 알림에서 제외합니다.",
+  "diagnostics.settings.components.fansPumps.description": "팬이나 펌프가 회전해야 할 때 멈추거나 CPU 열 보호가 작동하면 경고합니다.",
+  "diagnostics.settings.components.fansPumps.label": "팬 및 펌프",
   "diagnostics.settings.components.maxTemp": "최대 온도",
   "diagnostics.settings.components.title": "구성 요소 모니터링",
   "diagnostics.settings.linger.description": "구성 요소가 식은 후 온도 경고가 표시되는 시간입니다.",

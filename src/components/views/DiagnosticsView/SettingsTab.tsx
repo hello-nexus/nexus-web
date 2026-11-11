@@ -6,7 +6,7 @@ import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingGroup, SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { SensorAlertsSection } from './SensorAlertsSection';
 
 // 0 = "clears immediately"; the rest step through the shared minutes/hours
@@ -87,64 +87,77 @@ export function SettingsTab({ focusAlertId, onAlertFocused }: SettingsTabProps) 
         title={t('diagnostics.settings.components.title')}
         description={t('diagnostics.settings.components.description')}
       >
-        <SettingToggle
-          label={t('benchmark.phase.cpu')}
-          checked={settings.diagnosticsComponentCpu}
-          onChange={v => update({ diagnosticsComponentCpu: v })}
-        />
-        {settings.diagnosticsComponentCpu && (
-          <SettingSlider
-            label={t('diagnostics.settings.components.maxTemp')}
-            value={settings.diagnosticsCpuTempC} min={60} max={105}
-            editable trackFill
-            formatValue={v => `${v}°C`}
-            onChange={v => update({ diagnosticsCpuTempC: v })}
+        <SettingGroup>
+          <SettingToggle
+            label={t('benchmark.phase.cpu')}
+            checked={settings.diagnosticsComponentCpu}
+            onChange={v => update({ diagnosticsComponentCpu: v })}
           />
-        )}
-        <SettingToggle
-          label={t('benchmark.phase.gpu')}
-          checked={settings.diagnosticsComponentGpu}
-          onChange={v => update({ diagnosticsComponentGpu: v })}
-        />
-        {settings.diagnosticsComponentGpu && (
-          <SettingSlider
-            label={t('diagnostics.settings.components.maxTemp')}
-            value={settings.diagnosticsGpuTempC} min={60} max={105}
-            editable trackFill
-            formatValue={v => `${v}°C`}
-            onChange={v => update({ diagnosticsGpuTempC: v })}
+          {settings.diagnosticsComponentCpu && (
+            <SettingSlider
+              nested
+              label={t('diagnostics.settings.components.maxTemp')}
+              value={settings.diagnosticsCpuTempC} min={60} max={105}
+              editable trackFill
+              formatValue={v => `${v}°C`}
+              onChange={v => update({ diagnosticsCpuTempC: v })}
+            />
+          )}
+        </SettingGroup>
+        <SettingGroup>
+          <SettingToggle
+            label={t('benchmark.phase.gpu')}
+            checked={settings.diagnosticsComponentGpu}
+            onChange={v => update({ diagnosticsComponentGpu: v })}
           />
-        )}
-        <SettingToggle
-          label={t('benchmark.phase.storage')}
-          checked={settings.diagnosticsComponentStorage}
-          onChange={v => update({ diagnosticsComponentStorage: v })}
-        />
-        {settings.diagnosticsComponentStorage && (
-          <SettingSlider
-            label={t('diagnostics.settings.components.maxTemp')}
-            value={settings.diagnosticsStorageTempC} min={40} max={90}
-            editable trackFill
-            formatValue={v => `${v}°C`}
-            onChange={v => update({ diagnosticsStorageTempC: v })}
+          {settings.diagnosticsComponentGpu && (
+            <SettingSlider
+              nested
+              label={t('diagnostics.settings.components.maxTemp')}
+              value={settings.diagnosticsGpuTempC} min={60} max={105}
+              editable trackFill
+              formatValue={v => `${v}°C`}
+              onChange={v => update({ diagnosticsGpuTempC: v })}
+            />
+          )}
+        </SettingGroup>
+        <SettingGroup>
+          <SettingToggle
+            label={t('benchmark.phase.storage')}
+            checked={settings.diagnosticsComponentStorage}
+            onChange={v => update({ diagnosticsComponentStorage: v })}
           />
-        )}
-        <SettingToggle
-          label={t('benchmark.phase.ram')}
-          checked={settings.diagnosticsComponentRam}
-          onChange={v => update({ diagnosticsComponentRam: v })}
-        />
-        {settings.diagnosticsComponentRam && (
-          <SettingSlider
-            label={t('diagnostics.settings.components.maxTemp')}
-            value={settings.diagnosticsRamTempC} min={40} max={90}
-            editable trackFill
-            formatValue={v => `${v}°C`}
-            onChange={v => update({ diagnosticsRamTempC: v })}
+          {settings.diagnosticsComponentStorage && (
+            <SettingSlider
+              nested
+              label={t('diagnostics.settings.components.maxTemp')}
+              value={settings.diagnosticsStorageTempC} min={40} max={90}
+              editable trackFill
+              formatValue={v => `${v}°C`}
+              onChange={v => update({ diagnosticsStorageTempC: v })}
+            />
+          )}
+        </SettingGroup>
+        <SettingGroup>
+          <SettingToggle
+            label={t('benchmark.phase.ram')}
+            checked={settings.diagnosticsComponentRam}
+            onChange={v => update({ diagnosticsComponentRam: v })}
           />
-        )}
+          {settings.diagnosticsComponentRam && (
+            <SettingSlider
+              nested
+              label={t('diagnostics.settings.components.maxTemp')}
+              value={settings.diagnosticsRamTempC} min={40} max={90}
+              editable trackFill
+              formatValue={v => `${v}°C`}
+              onChange={v => update({ diagnosticsRamTempC: v })}
+            />
+          )}
+        </SettingGroup>
         <SettingToggle
-          label={t('diagnostics.kind.cooling')}
+          label={t('diagnostics.settings.components.fansPumps.label')}
+          description={t('diagnostics.settings.components.fansPumps.description')}
           checked={settings.diagnosticsComponentCooling}
           onChange={v => update({ diagnosticsComponentCooling: v })}
         />

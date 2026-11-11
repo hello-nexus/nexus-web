@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Actualiser",
   "diagnostics.retry": "Réessayer",
   "diagnostics.settings.components.description": "Désactivez un composant pour arrêter de surveiller son état et l'exclure des alertes.",
+  "diagnostics.settings.components.fansPumps.description": "Avertit lorsqu'un ventilateur ou une pompe s'arrête alors qu'il devrait tourner, et lorsque la protection thermique du processeur se déclenche.",
+  "diagnostics.settings.components.fansPumps.label": "Ventilateurs et pompes",
   "diagnostics.settings.components.maxTemp": "Température maximale",
   "diagnostics.settings.components.title": "Surveillance des composants",
   "diagnostics.settings.linger.description": "Durée pendant laquelle un avertissement de température reste affiché après que le composant a refroidi.",

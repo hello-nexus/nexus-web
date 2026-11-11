@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "刷新",
   "diagnostics.retry": "重试",
   "diagnostics.settings.components.description": "关闭某个组件可停止跟踪其健康状况，并将其排除在警报之外。",
+  "diagnostics.settings.components.fansPumps.description": "当风扇或水泵应当转动却停止时，以及 CPU 热保护触发时发出警告。",
+  "diagnostics.settings.components.fansPumps.label": "风扇和水泵",
   "diagnostics.settings.components.maxTemp": "最高温度",
   "diagnostics.settings.components.title": "组件监控",
   "diagnostics.settings.linger.description": "组件降温后，温度警告保持可见的时长。",

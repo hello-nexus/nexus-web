@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Aktualisieren",
   "diagnostics.retry": "Erneut versuchen",
   "diagnostics.settings.components.description": "Deaktivieren Sie eine Komponente, um ihre Zustandsüberwachung zu beenden und sie von Benachrichtigungen auszunehmen.",
+  "diagnostics.settings.components.fansPumps.description": "Warnt, wenn ein Lüfter oder eine Pumpe stehen bleibt, obwohl sie laufen sollte, und wenn der CPU-Thermalschutz auslöst.",
+  "diagnostics.settings.components.fansPumps.label": "Lüfter und Pumpen",
   "diagnostics.settings.components.maxTemp": "Höchsttemperatur",
   "diagnostics.settings.components.title": "Komponentenüberwachung",
   "diagnostics.settings.linger.description": "Wie lange eine Temperaturwarnung sichtbar bleibt, nachdem die Komponente wieder abgekühlt ist.",

@@ -2110,6 +2110,8 @@
   "diagnostics.refresh": "Aggiorna",
   "diagnostics.retry": "Riprova",
   "diagnostics.settings.components.description": "Disattiva un componente per interrompere il monitoraggio del suo stato ed escluderlo dagli avvisi.",
+  "diagnostics.settings.components.fansPumps.description": "Avvisa quando una ventola o una pompa si ferma mentre dovrebbe girare e quando scatta la protezione termica della CPU.",
+  "diagnostics.settings.components.fansPumps.label": "Ventole e pompe",
   "diagnostics.settings.components.maxTemp": "Temperatura massima",
   "diagnostics.settings.components.title": "Monitoraggio dei componenti",
   "diagnostics.settings.linger.description": "Per quanto tempo un avviso di temperatura resta visibile dopo che il componente si è raffreddato.",

@@ -29,8 +29,10 @@ function timeText(ctx: ReasonDetailContext, ms: number | null): string | null {
   }, { variant: 'short', locale: ctx.language });
 }
 
-const isoMs = (raw: string | undefined): number | null => {
+const stampMs = (raw: string | undefined): number | null => {
   if (!raw) return null;
+  const n = num(raw);
+  if (n !== null) return n;
   const ms = Date.parse(raw);
   return Number.isNaN(ms) ? null : ms;
 };
@@ -56,8 +58,8 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
   },
   'cooling.sustainedHighTemp': (p, ctx) => {
     const peak = num(p.peakC);
-    const start = timeText(ctx, isoMs(p.start));
-    const end = timeText(ctx, isoMs(p.end));
+    const start = timeText(ctx, stampMs(p.start));
+    const end = timeText(ctx, stampMs(p.end));
     if (peak === null || start === null || end === null) return null;
     return ctx.t('diagnostics.reasonDetail.sustainedHighTemp', { peak: temp(ctx, peak), start, end });
   },
@@ -77,7 +79,7 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
 function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | null {
   const rpm = num(p.rpm);
   const duty = num(p.targetDuty?.replace('%', ''));
-  const since = timeText(ctx, isoMs(p.since));
+  const since = timeText(ctx, stampMs(p.since));
   if (rpm === null || duty === null || since === null) return null;
   return ctx.t('diagnostics.reasonDetail.stall', { rpm: Math.round(rpm), duty: Math.round(duty), time: since });
 }

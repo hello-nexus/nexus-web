@@ -49,15 +49,16 @@ describe('reasonDetailText', () => {
 
   it('words a sustained high temperature episode from ISO times', () => {
     const text = reasonDetailText(reason('cooling.sustainedHighTemp', {
-      componentId: 'cpu', peakC: '88.5', start: '2026-11-10T20:00:00.0000000Z', end: '2026-11-10T20:30:00.0000000Z',
+      componentId: 'cpu', peakC: '88.5', start: String(Date.UTC(2026, 10, 10, 20)), end: String(Date.UTC(2026, 10, 10, 20, 30)),
     }), ctx())!;
     expect(text).toContain('peak=88.5°C');
     expect(text).toContain('diagnostics.reasonDetail.sustainedHighTemp');
   });
 
   it('words a fan stall and tolerates a percent sign on the duty', () => {
-    const text = reasonDetailText(reason('cooling.fanStall', { rpm: '0', targetDuty: '45%', since: '2026-11-10T20:00:00.0000000Z' }), ctx())!;
+    const text = reasonDetailText(reason('cooling.fanStall', { rpm: '0', targetDuty: '45%', since: String(Date.UTC(2026, 10, 10, 20)) }), ctx())!;
     expect(text).toContain('rpm=0,duty=45');
+    expect(reasonDetailText(reason('cooling.fanStall', { rpm: 'null', targetDuty: '45', since: '1' }), ctx())).toBeNull();
   });
 
   it('words a sensor alert only when its value, threshold and name are present', () => {

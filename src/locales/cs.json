@@ -2119,6 +2119,8 @@
   "diagnostics.refresh": "Obnovit",
   "diagnostics.retry": "Zkusit znovu",
   "diagnostics.settings.components.description": "Vypnutím komponenty přestanete sledovat její stav a vynecháte ji z upozornění.",
+  "diagnostics.settings.components.fansPumps.description": "Upozorní, když se ventilátor nebo čerpadlo zastaví, přestože by se mělo točit, a když zareaguje tepelná ochrana procesoru.",
+  "diagnostics.settings.components.fansPumps.label": "Ventilátory a čerpadla",
   "diagnostics.settings.components.maxTemp": "Maximální teplota",
   "diagnostics.settings.components.title": "Monitorování komponent",
   "diagnostics.settings.linger.description": "Jak dlouho zůstane teplotní varování viditelné poté, co komponenta znovu vychladne.",
