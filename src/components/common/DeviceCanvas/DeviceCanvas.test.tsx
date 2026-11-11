@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
-import { clearLedFrame, publishLedFrame } from '../../../lib/ledFrameStore';
+import { clearLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -125,103 +125,6 @@ describe('DeviceCanvas', () => {
     );
     const polys = [...container.querySelectorAll<SVGElement>('polygon')];
     expect(polys.map(p => p.style.stroke)).toEqual(['', 'rgb(255, 0, 0)']);
-  });
-
-  describe('live LED dot colors', () => {
-    const leds = { a: [{ index: 0, u: 0.2, v: 0.5 }, { index: 1, u: 0.8, v: 0.5 }] } as never;
-    const mount = (device: LightingDevice) => render(
-      <DeviceCanvas
-        devices={[device]}
-        selectedIds={new Set(['a'])}
-        selectedDeviceLeds={leds}
-        primaryDeviceId={null}
-        onSelectDevice={vi.fn()}
-        onSetSelection={vi.fn()}
-      />,
-    );
-    const dots = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>(`.${styles.ledDot}`)];
-    const bytes = new Uint8Array([10, 20, 30, 40, 50, 60]);
-    // Non-null pixels so the afterEach clearLedFrame really clears.
-    const px = new Uint8Array(12);
-    const publish = (map: Map<number, Uint8Array>) => publishLedFrame(px, 2, 2, map);
-
-    it('takes the streamed color per LED', () => {
-      publish(new Map([[3, bytes]]));
-      const { container } = mount({ ...dragDevice('a', 'A'), frameIndex: 3 });
-      expect(dots(container).map(d => d.style.background)).toEqual(['rgb(10, 20, 30)', 'rgb(40, 50, 60)']);
-      expect(dots(container).every(d => d.classList.contains(styles.ledDotLive))).toBe(true);
-    });
-
-    it('follows later frames and goes grey when the bytes stop', () => {
-      publish(new Map([[3, bytes]]));
-      const { container } = mount({ ...dragDevice('a', 'A'), frameIndex: 3 });
-      act(() => { publish(new Map([[3, new Uint8Array([1, 2, 3, 4, 5, 6])]])); });
-      return new Promise<void>(resolve => requestAnimationFrame(() => {
-        expect(dots(container)[0].style.background).toBe('rgb(1, 2, 3)');
-        act(() => { clearLedFrame(); });
-        requestAnimationFrame(() => {
-          expect(dots(container)[0].style.background).toBe('');
-          expect(dots(container)[0].classList.contains(styles.ledDotLive)).toBe(false);
-          resolve();
-        });
-      }));
-    });
-
-    it('stays grey with no frame index, no bytes for the device, or an index past the bytes', () => {
-      publish(new Map([[3, new Uint8Array([10, 20, 30])]]));
-      const none = mount(dragDevice('a', 'A'));
-      expect(dots(none.container).map(d => d.style.background)).toEqual(['', '']);
-      none.unmount();
-      const other = mount({ ...dragDevice('a', 'A'), frameIndex: 4 });
-      expect(dots(other.container).map(d => d.style.background)).toEqual(['', '']);
-      other.unmount();
-      const short = mount({ ...dragDevice('a', 'A'), frameIndex: 3 });
-      expect(dots(short.container).map(d => d.style.background)).toEqual(['rgb(10, 20, 30)', '']);
-    });
-
-    it('a locked LED keeps its lock color without bytes, and the stream wins when present', () => {
-      const locked = { ...dragDevice('a', 'A'), ledColors: [{ index: 1, color: '#ff0000' }] } as unknown as LightingDevice;
-      const first = mount(locked);
-      expect(dots(first.container).map(d => d.style.background)).toEqual(['', 'rgb(255, 0, 0)']);
-      first.unmount();
-      publish(new Map([[3, bytes]]));
-      const second = mount({ ...locked, frameIndex: 3 });
-      expect(dots(second.container)[1].style.background).toBe('rgb(40, 50, 60)');
-    });
-
-    it('a lock toggled while the stream is live still shows the stream, and the lock once it stops', () => {
-      publish(new Map([[3, bytes]]));
-      const plain = { ...dragDevice('a', 'A'), frameIndex: 3 } as LightingDevice;
-      const locked = { ...plain, ledColors: [{ index: 1, color: '#ff0000' }] } as unknown as LightingDevice;
-      const props = { selectedIds: new Set(['a']), selectedDeviceLeds: leds, primaryDeviceId: null, onSelectDevice: vi.fn(), onSetSelection: vi.fn() };
-      const { container, rerender } = render(<DeviceCanvas {...props} devices={[plain]} />);
-      rerender(<DeviceCanvas {...props} devices={[locked]} />);
-      expect(dots(container)[1].style.background).toBe('rgb(40, 50, 60)');
-      act(() => { clearLedFrame(); });
-      return new Promise<void>(resolve => requestAnimationFrame(() => {
-        expect(dots(container)[1].style.background).toBe('rgb(255, 0, 0)');
-        expect(dots(container)[1].classList.contains(styles.ledDotLive)).toBe(false);
-        resolve();
-      }));
-    });
-
-    it('stack members each read their own frame section', () => {
-      publish(new Map([[3, bytes], [5, new Uint8Array([200, 150, 100, 9, 8, 7])]]));
-      const a = { ...dragDevice('a', 'A'), frameIndex: 3 } as LightingDevice;
-      const b = { ...dragDevice('b', 'B'), frameIndex: 5 } as LightingDevice;
-      const { container } = render(
-        <DeviceCanvas
-          devices={[a, b]}
-          selectedIds={new Set(['a', 'b'])}
-          selectedDeviceLeds={{ a: [{ index: 0, u: 0.5, v: 0.5 }], b: [{ index: 0, u: 0.5, v: 0.5 }] } as never}
-          primaryDeviceId={null}
-          stacks={[{ id: 's', name: '', members: ['a', 'b'] }]}
-          onSelectDevice={vi.fn()}
-          onSetSelection={vi.fn()}
-        />,
-      );
-      expect(dots(container).map(d => d.style.background)).toEqual(['rgb(10, 20, 30)', 'rgb(200, 150, 100)']);
-    });
   });
 
   it('draws no frames or names when asked to hide them', () => {

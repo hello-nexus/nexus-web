@@ -22,6 +22,7 @@ import { PromptModal } from '../../../../components/common/PromptModal/PromptMod
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { useThrottle } from '../../../../hooks/cadence';
+import { useLiveLedDots } from '../../../../hooks/useLiveLedDots';
 import { isApplePlatform, isMultiSelectModifier } from '../../../../lib/platform';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import { ZoneChainList, type ChainRow } from './ZoneChainList';
@@ -36,7 +37,7 @@ import {
   pushHistory, redoHistory, relabelLedZones, reorderChainEntries, segmentOffsets,
   selectionCenter, selectionSnapAdjust, settleLed,
   splitStagedZones,
-  splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
+  liveLedSources, splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
   zoneEnabledCounts, zoneLedCount,
   SAME_POSITION_EPSILON, type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type ReceivedLed, type StagedPartition,
 } from './zoneUtils';
@@ -351,6 +352,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
     return map;
   }, [zonesOrdered, offsets]);
+
+  // The saved zones, not the staged draft: the frame carries what the service
+  // is sending now, and its sections follow the saved partition.
+  const liveSources = useMemo(
+    () => liveLedSources(structure?.zones ?? [], offsets, devices),
+    [structure, offsets, devices],
+  );
+  const liveDotRef = useLiveLedDots();
 
   // Enabled-LED count per zone for the chip labels, tracking the staged
   // editor state live as the user parks / restores LEDs.
@@ -2517,6 +2526,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   elements.push(
                     <div
                       key={repIdx}
+                      ref={liveDotRef(repIdx, liveSources.get(repIdx))}
                       data-led="1"
                       className={[
                         styles.led,
@@ -2547,6 +2557,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 elements.push(
                   <div
                     key={led.index}
+                    ref={liveDotRef(led.index, liveSources.get(led.index))}
                     data-led="1"
                     className={[
                       styles.led,

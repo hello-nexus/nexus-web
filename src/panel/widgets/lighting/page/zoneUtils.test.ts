@@ -10,6 +10,7 @@ import {
   defaultPartitionGuess,
   emptyHistory,
   flattenDeviceMap,
+  liveLedSources,
   GRID_COLS,
   GRID_ROWS,
   selectionCenter,
@@ -718,5 +719,24 @@ describe('selectionSnapAdjust', () => {
   it('takes the bounding box centre, not the average, so outliers do not drag it', () => {
     expect(selectionCenter([{ u: 0, v: 0 }, { u: 0, v: 0 }, { u: 1, v: 1 }]))
       .toEqual({ u: 0.5, v: 0.5 });
+  });
+});
+
+describe('liveLedSources', () => {
+  const offsets = segmentOffsets(segments);
+  const a = zone('a', [{ segment: 0, start: 2, count: 2 }]);
+  const b = zone('b', [{ segment: 1, start: 0, count: 2 }]);
+
+  it('maps device indices to the owning card frame byte and zone-local index', () => {
+    const m = liveLedSources([a, b], offsets, [{ id: 'a', frameIndex: 4 }, { id: 'b', frameIndex: 9 }]);
+    expect(m.get(2)).toEqual({ frameIndex: 4, index: 0 });
+    expect(m.get(3)).toEqual({ frameIndex: 4, index: 1 });
+    const first = zoneDeviceIndices(b, offsets)[0];
+    expect(m.get(first)).toEqual({ frameIndex: 9, index: 0 });
+  });
+
+  it('leaves out zones whose card has no frame byte or no card', () => {
+    const m = liveLedSources([a, b], offsets, [{ id: 'a' }]);
+    expect(m.size).toBe(0);
   });
 });
