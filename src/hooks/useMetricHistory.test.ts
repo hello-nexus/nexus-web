@@ -1305,4 +1305,79 @@ describe('useMetricHistory', () => {
       expect(result.current.domain[1] - result.current.domain[0]).toBe(5 * MINUTE);
     });
   });
+  describe('mixed resolution after a long stale stretch', () => {
+    // Mirrors the service's decimation ladder so a request's maxPoints decides the step, like the real route.
+    const LADDER = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
+    const stepFor = (windowSec: number, maxPoints: number) => {
+      const min = Math.ceil(windowSec / Math.max(1, maxPoints));
+      return LADDER.find(l => l >= min) ?? LADDER[LADDER.length - 1];
+    };
+    const serverNow = { t: NOW };
+    const decimated = (q: MetricHistoryQuery): MetricHistoryResponse => {
+      const step = stepFor(Math.max(0, (q.to - q.from) / 1000), q.maxPoints ?? 600);
+      const points: { t: number; avg: number; max: number }[] = [];
+      const first = Math.ceil(q.from / (step * 1000)) * step * 1000;
+      for (let t = first; t <= Math.min(q.to, serverNow.t); t += step * 1000) points.push({ t, avg: 50, max: 51 });
+      return { supported: true, retentionDays: 7, stepSeconds: step, series: [{ id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points }] };
+    };
+
+    function maxSpacingInWindow(points: { t: number }[], domain: [number, number]): number {
+      const inside = points.filter(p => p.t >= domain[0] && p.t <= domain[1]);
+      let worst = 0;
+      for (let i = 1; i < inside.length; i++) worst = Math.max(worst, inside[i].t - inside[i - 1].t);
+      return worst;
+    }
+
+    beforeEach(() => { serverNow.t = NOW; });
+
+    it('re-enabling after a long absence never merges a coarse tail into the fine window', async () => {
+      fetchMock.mockImplementation(async q => ({ data: decimated(q), mocked: false, unsupported: false }));
+      const { result, rerender } = renderHook(({ on }) => useMetricHistory(on, 'cpu-temp'), { initialProps: { on: true } });
+      await advance(0);
+      act(() => { capturedTailPush?.(decimated({ from: NOW + 1000, to: NOW + 1000, maxPoints: 50 })); });
+
+      rerender({ on: false });
+      await advance(40 * MINUTE);
+      serverNow.t = NOW + 40 * MINUTE;
+      rerender({ on: true });
+      await advance(0);
+      act(() => { capturedTailPush?.(decimated({ from: serverNow.t, to: serverNow.t, maxPoints: 50 })); });
+      await advance(0);
+
+      const points = result.current.series.find(s => s.id === 'cpu-temp')!.points;
+      expect(points.map(p => p.t)).toEqual([...points.map(p => p.t)].sort((a, b) => a - b));
+      expect(maxSpacingInWindow(points, result.current.domain)).toBeLessThanOrEqual(1000);
+    });
+
+    it('a push after a gap longer than a fine tail fetch can cover refetches the window instead of merging coarse points', async () => {
+      fetchMock.mockImplementation(async q => ({ data: decimated(q), mocked: false, unsupported: false }));
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu-temp'));
+      await advance(0);
+      act(() => { capturedTailPush?.(decimated({ from: NOW + 1000, to: NOW + 1000, maxPoints: 50 })); });
+
+      // The socket delivered nothing for 40 minutes (throttled background tab), then one frame.
+      serverNow.t = NOW + 40 * MINUTE;
+      act(() => { capturedTailPush?.(decimated({ from: serverNow.t, to: serverNow.t, maxPoints: 50 })); });
+      await advance(0);
+
+      const points = result.current.series.find(s => s.id === 'cpu-temp')!.points;
+      expect(points.map(p => p.t)).toEqual([...points.map(p => p.t)].sort((a, b) => a - b));
+      expect(maxSpacingInWindow(points, result.current.domain)).toBeLessThanOrEqual(1000);
+    });
+
+    it('a mid-size hole is backfilled at the 1s step, not at a coarse one', async () => {
+      fetchMock.mockImplementation(async q => ({ data: decimated(q), mocked: false, unsupported: false }));
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu-temp'));
+      await advance(0);
+      act(() => { capturedTailPush?.(decimated({ from: NOW + 1000, to: NOW + 1000, maxPoints: 50 })); });
+
+      serverNow.t = NOW + 4 * MINUTE;
+      act(() => { capturedTailPush?.(decimated({ from: serverNow.t, to: serverNow.t, maxPoints: 50 })); });
+      await advance(0);
+
+      const points = result.current.series.find(s => s.id === 'cpu-temp')!.points;
+      expect(points.map(p => p.t)).toEqual([...points.map(p => p.t)].sort((a, b) => a - b));
+      expect(maxSpacingInWindow(points, result.current.domain)).toBeLessThanOrEqual(1000);
+    });
+  });
 });

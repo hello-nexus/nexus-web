@@ -32,6 +32,9 @@ const TAIL_POLL_MS = 5_000;
 // A tail fetch older than this no longer blocks the next one, so a never-settling fetch cannot stop polling.
 const TAIL_FLIGHT_MAX_AGE_MS = 30_000;
 const LIVE_TAIL_MAX_POINTS = 50;
+// The service clamps maxPoints to this; a gap-fill wider than this many seconds cannot be fetched at the
+// 1s step the live window uses, so it refetches the whole window instead of merging coarser points.
+const TAIL_FINE_MAX_WINDOW_SECONDS = 2_000;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
@@ -158,7 +161,10 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
     const seenT = new Set(s.points.map(p => p.t));
     const additions = t.points.filter(p => !seenT.has(p.t));
     if (additions.length === 0) return s;
-    return { ...s, points: [...s.points, ...additions] };
+    const points = [...s.points, ...additions];
+    // A gap-fill can land points older than the newest existing one; keep the series ascending.
+    if (s.points.length > 0 && additions[0].t < s.points[s.points.length - 1].t) points.sort((a, b) => a.t - b.t);
+    return { ...s, points };
   });
   const added = tail.filter(t => !prevById.has(t.id) && t.points.length > 0);
   return [...merged, ...added];
@@ -617,13 +623,23 @@ export function useMetricHistory(
     const base = lastLoadedTRef.current ?? nowRef.current;
     const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+    const windowSeconds = Math.max(0, to - from) / 1000;
+    // A hole this wide cannot be backfilled at the live 1s step. Merging a coarser response would leave
+    // minute-spaced points in front of per-second ones (drawn as dots and a bridging line), so refetch the
+    // window at its own resolution instead.
+    if (windowSeconds > TAIL_FINE_MAX_WINDOW_SECONDS) {
+      if (viewportRef.current.following) setFetchEpoch(e => e + 1);
+      return;
+    }
+    // Scale the budget with the hole so the response keeps the 1s step the window is drawn at.
+    const maxPoints = Math.max(LIVE_TAIL_MAX_POINTS, Math.ceil(windowSeconds) + 1);
     const seq = ++tailSeqRef.current;
     const flight = ++tailFlightIdRef.current;
     tailFlightStartRef.current = Date.now();
     void (async () => {
       let result: Awaited<ReturnType<typeof fetcherRef.current>> | null = null;
       try {
-        result = await fetcherRef.current({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
+        result = await fetcherRef.current({ from, to, maxPoints, series: seriesQueryRef.current });
       } catch {
         result = null;
       } finally {
