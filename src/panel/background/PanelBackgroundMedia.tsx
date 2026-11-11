@@ -95,6 +95,7 @@ export function PanelBackgroundMedia({
           ref={attachVideo}
           src={url}
           className={`${styles.backgroundMediaContent} ${styles.backgroundMediaVideo}`}
+          data-wakelock-pad
           autoPlay={!covered}
           loop={loop}
           muted

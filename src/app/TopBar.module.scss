@@ -172,6 +172,13 @@
     opacity: 0.35;
     pointer-events: none;
   }
+
+  &[aria-disabled='true'] {
+    opacity: 0.35;
+    cursor: default;
+    background: transparent;
+    color: var(--text-dim);
+  }
 }
 
 .iconButtonActive {

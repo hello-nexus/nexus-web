@@ -191,11 +191,11 @@ function composeFrostForCapture(doc: Document): () => void {
 
 // html-to-image rasterizes a <video> by drawing it into a canvas sized to its
 // padding box (clientWidth), not its content box, so the wake-lock side
-// padding on the media background (.backgroundMediaVideo) would rasterize a
+// padding on panel videos (marked data-wakelock-pad) would rasterize a
 // horizontally stretched frame. Returns an undo.
 function unpadVideosForCapture(doc: Document): () => void {
   const undo: Array<() => void> = [];
-  doc.querySelectorAll<HTMLVideoElement>('[data-panel-bg-layer] video').forEach(video => {
+  doc.querySelectorAll<HTMLVideoElement>('video[data-wakelock-pad]').forEach(video => {
     const prevPadding = video.style.padding;
     const prevMarginLeft = video.style.marginLeft;
     video.style.padding = '0';

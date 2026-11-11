@@ -349,7 +349,8 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
           ref={kickPlay}
           src={galleryItemVideoUrl(current.id)}
           poster={url ?? undefined}
-          className={styles.image}
+          className={`${styles.image} ${styles.videoWakeLockPad}`}
+          data-wakelock-pad
           data-fit={fitWhole ? 'contain' : 'cover'}
           autoPlay
           muted
