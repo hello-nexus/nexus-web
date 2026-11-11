@@ -671,8 +671,23 @@ describe('shared PC setup relay', () => {
     expect(hello).not.toHaveProperty('canSyncSetup');
   });
 
-  it('omits canSyncSetup and refuses setup-get and setup-put without dev tools', async () => {
+  it('syncs setup for the visible Build in a distribution build at a local origin', async () => {
     previewApi.devTools = false;
+    h.fetchPcSetup.mockResolvedValue({ rev: 4, setup });
+    h.putPcSetup.mockResolvedValue({ kind: 'saved', rev: 5 });
+    const { iframe, postSpy } = ready();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canSyncSetup: true }), BUILD_ORIGIN);
+    expect(h.topic?.enabled).toBe(true);
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-get', requestId: 'g' }));
+    await act(async () => postFromFrame(iframe, { type: 'nexus-build:setup-put', requestId: 'p', baseRev: 4, setup }));
+    expect(h.fetchPcSetup).toHaveBeenCalled();
+    expect(h.putPcSetup).toHaveBeenCalledWith(4, setup);
+  });
+
+  it('refuses setup-get and setup-put at a remote origin even in a distribution build', async () => {
+    previewApi.devTools = false;
+    h.isRemoteOrigin = true;
     const { iframe, postSpy } = ready();
     act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
     const hello = postSpy.mock.calls.map(c => c[0] as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
@@ -924,7 +939,7 @@ describe('BuildPage headless', () => {
   const headlessProp = (over: Partial<import('./BuildPage').HeadlessBuild> = {}) => ({ machine, layoutKey: 'case=hyte-y70-touch-infinite|cpu=AMD', onResolved: vi.fn(), onUnavailable: vi.fn(), ...over });
   const helloOf = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
 
-  it('sends the host\'s machine and key in hello, marked headless, and none of the page chrome flags', () => {
+  it('sends the host\'s machine and key in hello, marked headless, and none of the page chrome or sync flags', () => {
     previewApi.devTools = true;
     h.specs = SAMPLE_SPECS;
     render(<BuildPage headless={headlessProp()} onOpenBenchmark={vi.fn()} />);
@@ -932,7 +947,8 @@ describe('BuildPage headless', () => {
     const spy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
     act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
     const hello = helloOf(spy)!;
-    expect(hello).toMatchObject({ headless: true, layoutKey: 'case=hyte-y70-touch-infinite|cpu=AMD', machine, canSyncSetup: true });
+    expect(hello).toMatchObject({ headless: true, layoutKey: 'case=hyte-y70-touch-infinite|cpu=AMD', machine });
+    expect(hello).not.toHaveProperty('canSyncSetup');
     expect(hello).not.toHaveProperty('canSavePreview');
     previewApi.devTools = false;
   });
