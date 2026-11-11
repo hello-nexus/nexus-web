@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { SensorAlertsSection } from './SensorAlertsSection';
 
+const scroll = vi.hoisted(() => ({ request: vi.fn() }));
+vi.mock('../../../search/scroll', () => ({ requestSearchScroll: scroll.request }));
+
 const h = vi.hoisted(() => ({
   tempUnit: 'c' as 'c' | 'f',
   frame: null as null | ((data: unknown) => void),
@@ -38,6 +41,7 @@ vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: h.push }) 
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
+    language: 'en',
     t: (key: string, vars?: Record<string, string | number>) => (
       vars ? `${key}(${Object.entries(vars).map(([k, v]) => `${k}=${v}`).join(',')})` : key
     ),
@@ -73,7 +77,7 @@ vi.mock('../../../hooks/useSensors', async importOriginal => {
   };
 });
 vi.mock('../../../hooks/useSensorExtras', () => ({
-  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
+  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], fanSensors: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
 }));
 
 const rule = (id: string, over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -217,6 +221,39 @@ describe('SensorAlertsSection', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledWith(expect.objectContaining({ high: 150 })));
     expect(screen.getByRole('slider', { name: 'diagnostics.alerts.highKnob' })).toHaveAttribute('max', '150');
+  });
+
+  it('writes a delay picked in seconds, and shows an off-list stored delay as its own option', async () => {
+    await renderSection([rule('r1', { raiseAfterSeconds: 7 })]);
+    openFirst();
+    const raise = screen.getByRole('combobox', { name: 'diagnostics.alerts.raiseAfter' }) as HTMLSelectElement;
+    expect(raise.value).toBe('7');
+    expect(within(raise).getAllByRole('option').map(o => o.getAttribute('value'))).toEqual(['', '0', '5', '7', '10', '15', '30', '60', '180', '300']);
+    fireEvent.change(raise, { target: { value: '30' } });
+    await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', raiseAfterSeconds: 30, clearAfterSeconds: 5 })));
+    fireEvent.change(screen.getByRole('combobox', { name: 'diagnostics.alerts.clearAfter' }), { target: { value: '0' } });
+    await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ clearAfterSeconds: 0 })));
+  });
+
+  describe('focus from the Summary list', () => {
+    it('opens the rule card, scrolls to its anchor and reports it handled', async () => {
+      const onFocused = vi.fn();
+      h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1'), rule('r2', { sensor: { category: 'cpu', id: 'cpu/load/0', name: 'CPU Total', type: 'Load', parentName: 'p' } })], states: [], history: [] } });
+      await act(async () => { render(<SensorAlertsSection focusRuleId="r2" onFocused={onFocused} />); });
+      expect(scroll.request).toHaveBeenCalledWith('sensor-alert-r2');
+      expect(onFocused).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /CPU Total/ })).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('button', { name: /CPU Package/ })).toHaveAttribute('aria-expanded', 'false');
+      expect(document.querySelector('[data-search-anchor="sensor-alert-r2"]')).not.toBeNull();
+    });
+
+    it('drops a request for a rule that no longer exists without scrolling', async () => {
+      const onFocused = vi.fn();
+      h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [], history: [] } });
+      await act(async () => { render(<SensorAlertsSection focusRuleId="gone" onFocused={onFocused} />); });
+      expect(scroll.request).not.toHaveBeenCalled();
+      expect(onFocused).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('loading and resync', () => {

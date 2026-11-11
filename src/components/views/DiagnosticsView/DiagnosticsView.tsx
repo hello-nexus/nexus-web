@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Fan, HardDrive, LayoutDashboard, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { ClipboardList, Fan, HardDrive, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -56,7 +56,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   const { push } = useToast();
 
   const allTabs = [
-    { key: 'summary', label: t('diagnostics.tab.summary'), icon: <LayoutDashboard size={14} /> },
+    { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
     { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
@@ -85,6 +85,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
   const [now, setNow] = useState(() => Date.now());
+  // The sensor alert a Summary row asked to edit; the Settings tab opens and shines its card, then clears this.
+  const [focusAlertId, setFocusAlertId] = useState<string | null>(null);
   useEffect(() => { setNow(Date.now()); }, [health]);
 
   const smart = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSmart);
@@ -188,7 +190,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
           anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
           onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
-          onOpenSettings={() => onTabChange('settings')}
+          onOpenAlert={id => { setFocusAlertId(id); onTabChange('settings'); }}
           downloading={downloading} downloadingReport={downloadingReport}
           onDownload={() => void handleDownload()} onDownloadReport={() => void handleDownloadReport()}
         />
@@ -217,7 +219,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           onIncidentHoursChange={handleIncidentHoursChange} onIncidentDateChange={setIncidentDate}
         />
       );
-      case 'settings': return <SettingsTab />;
+      case 'settings': return <SettingsTab focusAlertId={focusAlertId} onAlertFocused={() => setFocusAlertId(null)} />;
     }
   };
 

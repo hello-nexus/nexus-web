@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  activeAlerts, alertLine, baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, seedBound, sensorLabel, snapDisplay, toDisplay, widenBounds,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -111,13 +111,19 @@ describe('alert state helpers', () => {
     expect(chipState(rule(), undefined)).toBe('ok');
   });
 
-  it('lists active unacknowledged alerts, critical first', () => {
-    const rules = [rule({ id: 'a' }), rule({ id: 'b', severity: 'act' }), rule({ id: 'c' }), rule({ id: 'd', enabled: false })];
-    const states = [
-      state({ ruleId: 'a' }), state({ ruleId: 'b' }), state({ ruleId: 'c', acknowledged: true }), state({ ruleId: 'd' }),
-      state({ ruleId: 'x' }),
-    ];
-    expect(activeAlerts(rules, states).map(a => a.rule.id)).toEqual(['b', 'a']);
+  it('shows a disabled rule as disabled, whatever the service state', () => {
+    expect(rowState(rule({ enabled: false }), state())).toBe('disabled');
+    expect(rowState(rule(), state({ state: 'unavailable' }))).toBe('unavailable');
+    expect(rowState(rule(), undefined)).toBe('ok');
+  });
+
+  it('colors ok good, pending warn, active by severity and the rest muted', () => {
+    expect(stateColor('ok', rule())).toBe('var(--good)');
+    expect(stateColor('pending', rule({ severity: 'act' }))).toBe('var(--warn)');
+    expect(stateColor('active', rule())).toBe('var(--warn)');
+    expect(stateColor('active', rule({ severity: 'act' }))).toBe('var(--bad)');
+    expect(stateColor('unavailable', rule())).toBe('var(--text-dim)');
+    expect(stateColor('disabled', rule())).toBe('var(--text-dim)');
   });
 });
 
@@ -137,10 +143,28 @@ describe('display helpers', () => {
     expect(sensorLabel({ ...rule().sensor, name: 'Pin 3 Current', parentName: 'PSU' })).toBe('PSU Pin 3 Current');
     expect(sensorLabel(rule().sensor)).toBe('CPU Package');
   });
+});
 
-  it('words an alert line from the rule and state, falling back to the extreme', () => {
-    const t = (k: string, v?: Record<string, string | number>) => `${k}:${v?.name}:${v?.limit}:${v?.value}`;
-    const prefs = { monitoringTempUnit: 'c' as const, numberFormat: 'dot' as const, monitoringWholeNumbers: false };
-    expect(alertLine(t, rule(), state({ value: undefined, extreme: 91 }), prefs)).toBe('diagnostics.alerts.notice.above:CPU Package:80°C:91°C');
+describe('alert sensor categories', () => {
+  it('offers the SMART category so drive temperatures can be picked, right after storage', () => {
+    const list = ALERT_SENSOR_CATEGORIES as readonly string[];
+    expect(list.indexOf('smart')).toBe(list.indexOf('storage') + 1);
+  });
+});
+
+describe('delay choices', () => {
+  const t = (k: string, v?: Record<string, string | number>) => `${k}:${v ? Object.values(v).join(',') : ''}`;
+
+  it('offers Instantly then the shared slideshow intervals up to the service limit, and adds a stored off-list value in place', () => {
+    expect(delayChoices(5)).toEqual([0, 5, 10, 15, 30, 60, 180, 300]);
+    expect(delayChoices(7)).toEqual([0, 5, 7, 10, 15, 30, 60, 180, 300]);
+    expect(delayChoices(600)).toEqual([0, 5, 10, 15, 30, 60, 180, 300, 600]);
+  });
+
+  it('words zero as instantly and the rest with the slideshow wording', () => {
+    expect(delayLabel(t, 'en', 0)).toBe('diagnostics.alerts.delay.instant:');
+    expect(delayLabel(t, 'en', 30)).toContain('slideshow.seconds');
+    expect(delayLabel(t, 'en', 180)).toContain('slideshow.minutes');
+    expect(delayLabel(t, 'en', 90)).toContain('slideshow.seconds');
   });
 });

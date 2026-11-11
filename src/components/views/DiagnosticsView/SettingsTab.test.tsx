@@ -14,7 +14,7 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
 });
 
 // The alerts section has its own suite and reads sensors and the service.
-vi.mock('./SensorAlertsSection', () => ({ SensorAlertsSection: () => <div data-testid="sensor-alerts" /> }));
+vi.mock('./SensorAlertsSection', () => ({ SensorAlertsSection: ({ focusRuleId }: { focusRuleId?: string | null }) => <div data-testid="sensor-alerts" data-focus={focusRuleId ?? ''} /> }));
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -49,21 +49,49 @@ function baseSettings(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const maxTempSliders = () => screen.getAllByRole('slider', { name: /diagnostics\.settings\.components\.maxTemp/ });
+
 describe('SettingsTab', () => {
+  it('orders the sections components, linger, notifications, sensor alerts, then the danger zone with the reset', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab />);
+    const order = [
+      screen.getByText('diagnostics.settings.components.title'),
+      screen.getByText('diagnostics.settings.linger.title'),
+      screen.getByText('diagnostics.settings.notifications.title'),
+      screen.getByTestId('sensor-alerts'),
+      screen.getByText('settings.dangerZone'),
+      screen.getByText('diagnostics.settings.reset.label'),
+    ];
+    order.slice(1).forEach((el, i) => {
+      expect(order[i].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
+
+  it('passes the alert to focus on to the sensor alerts section', () => {
+    mockSettings = baseSettings();
+    render(<SettingsTab focusAlertId="r7" />);
+    expect(screen.getByTestId('sensor-alerts')).toHaveAttribute('data-focus', 'r7');
+  });
+
   it('renders the section titles and per-component sliders', () => {
     mockSettings = baseSettings();
     update.mockClear();
     render(<SettingsTab />);
 
-    expect(screen.getByText('diagnostics.settings.thresholds.title')).toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.settings.thresholds.title')).toBeNull();
     expect(screen.getByText('diagnostics.settings.linger.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.notifications.title')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.settings.components.title')).toBeInTheDocument();
     expect(screen.getByTestId('sensor-alerts')).toBeInTheDocument();
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.cpu/ })).toHaveValue('90');
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.gpu/ })).toHaveValue('85');
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.storage/ })).toHaveValue('70');
-    expect(screen.getByRole('slider', { name: /benchmark\.phase\.ram/ })).toHaveValue('60');
+    // Each max temperature sits under its own component toggle, in toggle order.
+    expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '85', '70', '60']);
+  });
+
+  it('hides a component max temperature while that component is off, and leaves the others', () => {
+    mockSettings = baseSettings({ diagnosticsComponentGpu: false, diagnosticsComponentRam: false });
+    render(<SettingsTab />);
+    expect(maxTempSliders().map(sl => (sl as HTMLInputElement).value)).toEqual(['90', '70']);
   });
 
   it('persists a threshold slider change on every onChange tick', () => {
@@ -71,7 +99,7 @@ describe('SettingsTab', () => {
     update.mockClear();
     render(<SettingsTab />);
 
-    const cpuSlider = screen.getByRole('slider', { name: /benchmark\.phase\.cpu/ });
+    const cpuSlider = maxTempSliders()[0];
     fireEvent.change(cpuSlider, { target: { value: '92' } });
     expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 92 });
 

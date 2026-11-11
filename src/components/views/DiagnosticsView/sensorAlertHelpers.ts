@@ -1,4 +1,6 @@
 import type { NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
+import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
+import type { Language } from '../../../lib/settings';
 import { convertTemperature, formatNumber, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../lib/units';
 
 export interface AlertUnitPrefs { monitoringTempUnit: TempUnit; numberFormat: NumberFormat; monitoringWholeNumbers: boolean }
@@ -7,13 +9,28 @@ export interface AlertUnitPrefs { monitoringTempUnit: TempUnit; numberFormat: Nu
 export const ALERT_SENSOR_TYPES = ['Temperature', 'Current', 'Power', 'Voltage', 'Fan', 'Load', 'Clock', 'Control', 'Level'] as const;
 
 /** Resolver categories the service can re-find a sensor in. */
-export const ALERT_SENSOR_CATEGORIES = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'psu', 'cooler'] as const;
+export const ALERT_SENSOR_CATEGORIES = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'smart', 'psu', 'cooler'] as const;
 
 export const REPEAT_OPTIONS_MINUTES = [0, 5, 15, 60] as const;
 
 export const DEFAULT_RAISE_SECONDS = 5;
 export const DEFAULT_CLEAR_SECONDS = 5;
 export const MAX_DELAY_SECONDS = 600;
+
+/** The delay choices in seconds: Instantly, then the shared slideshow intervals the service accepts, plus a stored off-list value in place. */
+export function delayChoices(current: number): number[] {
+  const all = new Set<number>([0, ...SLIDESHOW_INTERVALS.filter(s => s <= MAX_DELAY_SECONDS), current]);
+  return [...all].sort((a, b) => a - b);
+}
+
+/** A delay as a label: Instantly for zero, else the slideshow interval wording. */
+export function delayLabel(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  language: Language,
+  seconds: number,
+): string {
+  return seconds <= 0 ? t('diagnostics.alerts.delay.instant') : slideshowIntervalLabel(t, language, seconds);
+}
 
 export interface Bounds { min: number; max: number }
 
@@ -192,22 +209,33 @@ export function chipState(rule: SensorAlertRule, state: SensorAlertState | undef
   return state?.state ?? 'ok';
 }
 
-/** Rules in an active, unacknowledged episode, worst severity first. */
-export function activeAlerts(rules: SensorAlertRule[], states: SensorAlertState[]): Array<{ rule: SensorAlertRule; state: SensorAlertState }> {
-  const out: Array<{ rule: SensorAlertRule; state: SensorAlertState }> = [];
-  for (const state of states) {
-    if (state.state !== 'active' || state.acknowledged) continue;
-    const rule = rules.find(r => r.id === state.ruleId);
-    if (rule && rule.enabled) out.push({ rule, state });
-  }
-  return out.sort((a, b) => Number(b.rule.severity === 'act') - Number(a.rule.severity === 'act'));
+export type AlertRowState = AlertChipState | 'disabled';
+
+/** The state a Summary row shows: the chip state, or disabled for a rule that is switched off. */
+export function rowState(rule: SensorAlertRule, state: SensorAlertState | undefined): AlertRowState {
+  return chipState(rule, state) ?? 'disabled';
 }
 
-/** A sensor's card and notice label: the parent device unless the name already carries it. */
+/** Badge color of a state: ok good, pending warn, active in the rule's tone (watch warn, act bad), lost or disabled muted. */
+export function stateColor(kind: AlertRowState, rule: SensorAlertRule): string {
+  switch (kind) {
+    case 'ok': return 'var(--good)';
+    case 'pending': return 'var(--warn)';
+    case 'active': return rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)';
+    default: return 'var(--text-dim)';
+  }
+}
+
+/** A sensor's card and row label: the parent device unless the name already carries it. */
 export function sensorLabel(sensor: SensorRef): string {
   const { name, parentName } = sensor;
   if (!parentName || name.toLowerCase().includes(parentName.toLowerCase())) return name;
   return `${parentName} ${name}`;
+}
+
+/** The search-anchor id of a rule's card on the Settings tab, which the Summary rows scroll to. */
+export function sensorAlertAnchor(ruleId: string): string {
+  return `sensor-alert-${ruleId}`;
 }
 
 /** The one-line text of an active alert: the sensor, its limit and the current reading, in the user's units. */

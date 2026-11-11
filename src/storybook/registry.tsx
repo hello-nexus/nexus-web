@@ -17,7 +17,6 @@ import { Avatar } from '../components/common/Avatar/Avatar';
 import { AppIconTile } from '../components/common/AppIconTile/AppIconTile';
 import { Slider } from '../components/common/Slider/Slider';
 import { RangeSlider } from '../components/common/Slider/RangeSlider';
-import { ActiveAlertsNoticeView } from '../components/views/DiagnosticsView/ActiveAlertsNotice';
 import { EditableText } from '../components/common/Editable/EditableText';
 import { EditableNumber } from '../components/common/Editable/EditableNumber';
 import { HsvPicker } from '../components/common/HsvPicker/HsvPicker';
@@ -1348,21 +1347,6 @@ function PreviewRangeSliderAlert() {
         onChange={setV}
       />
     </>
-  );
-}
-
-function PreviewActiveAlertsNotice() {
-  const sensor = { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' };
-  const rule = { enabled: true, sensor, low: null, high: 90, raiseAfterSeconds: 5, clearAfterSeconds: 5, notifyDesktop: true, showInHealth: true, repeatMinutes: 0 };
-  return (
-    <ActiveAlertsNoticeView
-      alerts={[
-        { rule: { ...rule, id: 'a', severity: 'act' }, state: { ruleId: 'a', state: 'active', value: 95, direction: 'above', acknowledged: false } },
-        { rule: { ...rule, id: 'w', severity: 'watch', high: 80 }, state: { ruleId: 'w', state: 'active', value: 85, direction: 'above', acknowledged: false } },
-      ]}
-      onAcknowledge={() => {}}
-      onOpenSettings={() => {}}
-    />
   );
 }
 
@@ -2834,12 +2818,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'RangeSlider with lowEnabled / highEnabled (a disabled side hides its knob and the band runs to that edge), outsideTone (shades the track outside the band), marker (a live reading pointed at under the track) and softBounds (a typed value may widen the track). Used for sensor alert bounds.', Preview: PreviewRangeSliderAlert,
     notes: 'All four props are optional and leave the dual-knob behavior unchanged. A one-sided band cannot be dragged as a unit.',
-  },
-  {
-    name: 'ActiveAlertsNoticeView', category: 'status',
-    filePath: 'src/components/views/DiagnosticsView/ActiveAlertsNotice.tsx',
-    description: 'The Summary tab notice for active sensor alerts: one Notice per severity (watch in the warning tone, act in the critical tone), each alert with an Acknowledge button, plus a button that opens the alert settings.', Preview: PreviewActiveAlertsNotice,
-    notes: 'ActiveAlertsNotice wraps it with the live useSensorAlerts hook; the View takes the active alerts as props.',
   },
   {
     name: 'SensorAlertRuleCard', category: 'cards',

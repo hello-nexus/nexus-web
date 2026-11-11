@@ -8,8 +8,8 @@ import type {
 import { Card } from '../../common/Card/Card';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
-import { ActiveAlertsNotice } from './ActiveAlertsNotice';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
+import { SensorAlertsList } from './SensorAlertsList';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { relativeTimeLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
@@ -25,8 +25,8 @@ interface SummaryTabProps {
   onRefreshAll: () => void;
   now: number;
   onNavigate: (kind: DiagnosticsKind) => void;
-  /** Opens the Settings tab, where sensor alerts are configured. */
-  onOpenSettings: () => void;
+  /** Opens the Settings tab on this sensor alert's card. */
+  onOpenAlert: (ruleId: string) => void;
   downloading: boolean;
   downloadingReport: boolean;
   onDownload: () => void;
@@ -35,7 +35,7 @@ interface SummaryTabProps {
 
 export function SummaryTab({
   health, healthLoading, healthError, refreshHealth, anyMocked, anyLoading, onRefreshAll, now,
-  onNavigate, onOpenSettings, downloading, downloadingReport, onDownload, onDownloadReport,
+  onNavigate, onOpenAlert, downloading, downloadingReport, onDownload, onDownloadReport,
 }: SummaryTabProps) {
   const { t } = useTranslation();
 
@@ -68,13 +68,13 @@ export function SummaryTab({
         </div>
       </Card>
 
-      <ActiveAlertsNotice onOpenSettings={onOpenSettings} />
-
       {!health ? (
         healthError ? <SectionLoadError onRetry={() => refreshHealth({ force: true })} loading={healthLoading} /> : <GenericSkeleton />
       ) : !health.supported ? <NotAvailableNote /> : (
         <ComponentHealthGrid components={health.components} onNavigate={onNavigate} />
       )}
+
+      <SensorAlertsList onOpenRule={onOpenAlert} />
     </>
   );
 }

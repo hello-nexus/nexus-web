@@ -10,28 +10,30 @@ import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleS
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { RangeSlider } from '../../common/Slider/RangeSlider';
-import { Slider } from '../../common/Slider/Slider';
+import { Select } from '../../common/Select/Select';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { SensorPicker, useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
 import {
   ALERT_SENSOR_CATEGORIES,
   ALERT_SENSOR_TYPES,
-  MAX_DELAY_SECONDS,
   REPEAT_OPTIONS_MINUTES,
   baseBounds,
   chipState,
   defaultHigh,
+  delayChoices,
+  delayLabel,
   displayBounds,
   formatAlertValue,
   fromDisplay,
   seedBound,
   snapDisplay,
+  sensorAlertAnchor,
   sensorLabel,
   sensorRefOf,
+  stateColor,
   stepFor,
   toDisplay,
   widenBounds,
-  type AlertChipState,
   type Bounds,
 } from './sensorAlertHelpers';
 import styles from './SensorAlertsSection.module.scss';
@@ -39,13 +41,6 @@ import styles from './SensorAlertsSection.module.scss';
 const STACKED = 'stacked' as const;
 const WARN = 'warn' as const;
 const BAD = 'bad' as const;
-
-const CHIP_COLOR: Record<AlertChipState, (rule: SensorAlertRule) => string> = {
-  ok: () => 'var(--good)',
-  pending: () => 'var(--warn)',
-  active: rule => (rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)'),
-  unavailable: () => 'var(--text-dim)',
-};
 
 interface SensorAlertRuleCardProps {
   rule: SensorAlertRule;
@@ -61,7 +56,7 @@ interface SensorAlertRuleCardProps {
 }
 
 export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, onPreview, onSave, onDelete }: SensorAlertRuleCardProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
   // The last limit of a side switched off, so switching it back on restores it.
@@ -125,7 +120,8 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
     <>
       <CollapsibleSection
         title={sensorLabel(rule.sensor)}
-        titleAfter={chip && <Badge label={t(`diagnostics.alerts.state.${chip}`)} color={CHIP_COLOR[chip](rule)} />}
+        searchAnchor={sensorAlertAnchor(rule.id)}
+        titleAfter={chip && <Badge label={t(`diagnostics.alerts.state.${chip}`)} color={stateColor(chip, rule)} />}
         open={open}
         onToggle={onToggleOpen}
         rightInteractive
@@ -193,34 +189,21 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
             onCommit={v => setRange(v, true)}
           />
         </div>
-        <div className={styles.sliderBlock}>
-          <Slider
-            orientation={STACKED}
-            editable
-            trackFill
-            label={t('diagnostics.alerts.raiseAfter')}
-            value={rule.raiseAfterSeconds}
-            min={0}
-            max={MAX_DELAY_SECONDS}
-            formatValue={s => t('diagnostics.duration.seconds', { s })}
-            onChange={s => edit({ raiseAfterSeconds: s }, false)}
-            onCommit={s => edit({ raiseAfterSeconds: s }, true)}
-          />
-        </div>
-        <div className={styles.sliderBlock}>
-          <Slider
-            orientation={STACKED}
-            editable
-            trackFill
-            label={t('diagnostics.alerts.clearAfter')}
-            value={rule.clearAfterSeconds}
-            min={0}
-            max={MAX_DELAY_SECONDS}
-            formatValue={s => t('diagnostics.duration.seconds', { s })}
-            onChange={s => edit({ clearAfterSeconds: s }, false)}
-            onCommit={s => edit({ clearAfterSeconds: s }, true)}
-          />
-        </div>
+        <SettingRow label={t('diagnostics.alerts.delays')}>
+          <span className={styles.delayPair}>
+            {(['raiseAfterSeconds', 'clearAfterSeconds'] as const).map(field => (
+              <span key={field} className={styles.delayField}>
+                <span className={styles.delayLabel}>{t(field === 'raiseAfterSeconds' ? 'diagnostics.alerts.raiseAfter' : 'diagnostics.alerts.clearAfter')}</span>
+                <Select
+                  value={String(rule[field])}
+                  ariaLabel={t(field === 'raiseAfterSeconds' ? 'diagnostics.alerts.raiseAfter' : 'diagnostics.alerts.clearAfter')}
+                  options={delayChoices(rule[field]).map(sec => ({ value: String(sec), label: delayLabel(t, language, sec) }))}
+                  onChange={v => edit({ [field]: Number(v) }, true)}
+                />
+              </span>
+            ))}
+          </span>
+        </SettingRow>
         <SettingRow label={t('diagnostics.alerts.severity')} description={t('diagnostics.alerts.severityHint')}>
           <ChipGroup
             ariaLabel={t('diagnostics.alerts.severity')}

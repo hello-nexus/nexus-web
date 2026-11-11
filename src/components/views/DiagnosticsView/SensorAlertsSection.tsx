@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { MAX_SENSOR_ALERT_RULES } from '../../../api/diagnosticsAlerts';
+import { requestSearchScroll } from '../../../search/scroll';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -12,11 +13,18 @@ import type { DeckMonitoringCategory } from '../../../panel/widgets/deck/types';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertRuleCard } from './SensorAlertRuleCard';
-import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, sensorRefOf } from './sensorAlertHelpers';
+import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, sensorAlertAnchor, sensorRefOf } from './sensorAlertHelpers';
 import styles from './SensorAlertsSection.module.scss';
 
+interface SensorAlertsSectionProps {
+  /** A rule to open, scroll to and shine once the list has loaded (set by a Summary row). */
+  focusRuleId?: string | null;
+  /** Called once the focus request is handled, found or not. */
+  onFocused?: () => void;
+}
+
 /** User-configurable sensor threshold alerts: up to MAX_SENSOR_ALERT_RULES rules, every edit written immediately. */
-export function SensorAlertsSection() {
+export function SensorAlertsSection({ focusRuleId, onFocused }: SensorAlertsSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
   const alerts = useSensorAlerts(true);
@@ -36,6 +44,16 @@ export function SensorAlertsSection() {
     }
     return null;
   }, [sensors, networkSensors, extras, resolve]);
+
+  const { loaded, rules } = alerts;
+  useEffect(() => {
+    if (!focusRuleId || !loaded) return;
+    if (rules.some(r => r.id === focusRuleId)) {
+      setOpenIds(prev => new Set(prev).add(focusRuleId));
+      requestSearchScroll(sensorAlertAnchor(focusRuleId));
+    }
+    onFocused?.();
+  }, [focusRuleId, loaded, rules, onFocused]);
 
   const toggleOpen = (id: string) => setOpenIds(prev => {
     const next = new Set(prev);
@@ -60,7 +78,7 @@ export function SensorAlertsSection() {
 
   return (
     <SettingsSection
-      title={t('diagnostics.alerts.title')}
+      title={t('diagnostics.alerts.customTitle')}
       description={t('diagnostics.alerts.description')}
       footer={(
         <div className={styles.addRow}>

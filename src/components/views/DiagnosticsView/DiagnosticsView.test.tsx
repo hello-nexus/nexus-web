@@ -40,7 +40,7 @@ vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
   useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: mockRefreshHealth }),
 }));
 
-// Sensor alert rules and states for the Summary notice; the Settings section reads the same hook.
+// Sensor alert rules and states for the Summary list; the Settings section reads the same hook.
 const mockAlerts = vi.hoisted(() => ({
   rules: [] as unknown[], states: [] as unknown[], acknowledge: vi.fn(async () => true),
 }));
@@ -51,6 +51,9 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
     preview: vi.fn(), save: vi.fn(), add: vi.fn(), remove: vi.fn(), refresh: vi.fn(), acknowledge: mockAlerts.acknowledge,
   }),
 }));
+
+// The Summary list reads live values through the sensor lookup; none here, so a row falls back to the state value.
+vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ useSensorLookup: () => ({ resolve: () => undefined }) }));
 
 // The Settings tab needs the UI settings provider; the deep link test only checks that it is the tab shown.
 vi.mock('./SettingsTab', () => ({ SettingsTab: () => <div data-testid="settings-tab" /> }));
@@ -691,7 +694,7 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByTestId('settings-tab')).toBeInTheDocument();
   });
 
-  it('lists active sensor alerts above the Summary grid, and Alert settings opens the Settings tab', () => {
+  it('lists sensor alerts below the Summary grid, acknowledges without navigating, and a row opens the Settings tab', () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
@@ -701,13 +704,35 @@ describe('DiagnosticsView tabs', () => {
     const onTabChange = vi.fn();
     renderDiagnosticsView({ tab: null, onTabChange });
 
-    expect(screen.getByText('diagnostics.alerts.notice.above')).toBeInTheDocument();
+    const row = screen.getByRole('button', { name: /CPU Package/ });
+    expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.acknowledgeFor' }));
     expect(mockAlerts.acknowledge).toHaveBeenCalledWith('r1');
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.notice.openSettings' }));
+    expect(onTabChange).not.toHaveBeenCalled();
+    fireEvent.click(row);
     expect(onTabChange).toHaveBeenCalledWith('settings');
     mockAlerts.rules = [];
     mockAlerts.states = [];
+  });
+
+  it('keeps alert components out of the Summary tiles while the overall badge still reflects them', () => {
+    mockHealth = {
+      generatedAt: new Date().toISOString(), supported: true, overall: 'act',
+      components: [{
+        id: 'alert:r1', kind: 'alerts', name: 'CPU Package', status: 'act',
+        reasons: [{ code: 'sensorAlert', severity: 'act', summary: 'CPU Package above 90', detail: '' }],
+      }],
+    };
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
+    expect(screen.queryByText('CPU Package above 90')).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
+    expect(screen.getByText('diagnostics.status.act')).toBeInTheDocument();
+  });
+
+  it('hides the sensor alerts list when no rules exist', () => {
+    mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
+    expect(screen.queryByText('diagnostics.alerts.title')).toBeNull();
   });
 
   it('redirects a legacy ?tab=gpu deep link to the Cooling tab', () => {
