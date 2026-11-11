@@ -1242,6 +1242,51 @@ describe('useMetricHistory', () => {
       expect(fetcher.mock.calls.filter(([q]) => q.maxPoints === 50)).toHaveLength(1);
     });
 
+    it('keeps polling after a viewport fetch lands while a tail fetch is in flight', async () => {
+      let finishTail: (r: Result) => void = () => {};
+      let tailCalls = 0;
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(q => {
+        if (q.maxPoints !== 50) return Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+        tailCalls++;
+        return tailCalls === 1 ? new Promise<Result>(r => { finishTail = r; }) : Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+      });
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      expect(tailCalls).toBe(1);
+      act(() => { result.current.setRange('3h'); });
+      await advance(0);
+      await act(async () => { finishTail({ data: alertResp([]), mocked: false, unsupported: false }); });
+      await advance(5000);
+      expect(tailCalls).toBeGreaterThan(1);
+    });
+
+    it('keeps polling after a tail fetch rejects', async () => {
+      let tailCalls = 0;
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async q => {
+        if (q.maxPoints !== 50) return { data: alertResp([]), mocked: false, unsupported: false };
+        tailCalls++;
+        if (tailCalls === 1) throw new Error('boom');
+        return { data: alertResp([]), mocked: false, unsupported: false };
+      });
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      await advance(5000);
+      expect(tailCalls).toBeGreaterThan(1);
+    });
+
+    it('resumes polling after a tail fetch that never settles', async () => {
+      let tailCalls = 0;
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(q => {
+        if (q.maxPoints !== 50) return Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+        tailCalls++;
+        return tailCalls === 1 ? new Promise<Result>(() => {}) : Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+      });
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      await advance(40000);
+      expect(tailCalls).toBeGreaterThan(1);
+    });
+
     it('does not call the monitoring source, and with fillBox the chart window is the whole strip', async () => {
       const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
       const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));

@@ -29,6 +29,8 @@ const WHEEL_SETTLE_MS = 250;
 
 const LIVE_TAIL_POLL_MS = 1_000;
 const TAIL_POLL_MS = 5_000;
+// A tail fetch older than this no longer blocks the next one, so a never-settling fetch cannot stop polling.
+const TAIL_FLIGHT_MAX_AGE_MS = 30_000;
 const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
@@ -241,11 +243,14 @@ export function useMetricHistory(
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
-  // True for the span between a runTailGapFill() call starting and its
-  // response committing - gates the reconnect effect below so it doesn't
-  // fire a redundant concurrent fetch while the bootstrap request (or a
-  // gap-detected one) is still in flight.
-  const tailInFlightRef = useRef(false);
+  // Start time and id of the newest runTailGapFill() fetch still awaiting its response; independent of
+  // tailSeqRef so a viewport fetch cannot strand it. Gates the reconnect and poll ticks against overlapping fetches.
+  const tailFlightStartRef = useRef<number | null>(null);
+  const tailFlightIdRef = useRef(0);
+  const tailBusy = useCallback(
+    () => tailFlightStartRef.current !== null && Date.now() - tailFlightStartRef.current < TAIL_FLIGHT_MAX_AGE_MS,
+    [],
+  );
   const lastLoadedTRef = useRef<number | null>(null);
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
@@ -613,11 +618,18 @@ export function useMetricHistory(
     const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const seq = ++tailSeqRef.current;
-    tailInFlightRef.current = true;
+    const flight = ++tailFlightIdRef.current;
+    tailFlightStartRef.current = Date.now();
     void (async () => {
-      const result = await fetcherRef.current({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
-      if (!mountedRef.current || seq !== tailSeqRef.current) return;
-      tailInFlightRef.current = false;
+      let result: Awaited<ReturnType<typeof fetcherRef.current>> | null = null;
+      try {
+        result = await fetcherRef.current({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
+      } catch {
+        result = null;
+      } finally {
+        if (tailFlightIdRef.current === flight) tailFlightStartRef.current = null;
+      }
+      if (!result || !mountedRef.current || seq !== tailSeqRef.current) return;
       if (!result.data) return;
       const tail = result.data.series;
       const t = newestT(tail);
@@ -654,15 +666,15 @@ export function useMetricHistory(
   const socketConnected = useMultiplex()?.connected ?? false;
   const prevSocketConnectedRef = useRef(socketConnected);
   useEffect(() => {
-    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailInFlightRef.current) runTailGapFill();
+    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailBusy()) runTailGapFill();
     prevSocketConnectedRef.current = socketConnected;
-  }, [tailActive, socketConnected, runTailGapFill]);
+  }, [tailActive, socketConnected, runTailGapFill, tailBusy]);
 
   useEffect(() => {
     if (!pollsTail || !tailActive) return undefined;
-    const timer = window.setInterval(() => { if (!tailInFlightRef.current) runTailGapFill(); }, TAIL_POLL_MS);
+    const timer = window.setInterval(() => { if (!tailBusy()) runTailGapFill(); }, TAIL_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [pollsTail, tailActive, runTailGapFill]);
+  }, [pollsTail, tailActive, runTailGapFill, tailBusy]);
 
   useTopicCallback('monitoring/history-tail', tailActive && !pollsTail, (raw) => {
     const payload = raw as MetricHistoryResponse | null;
