@@ -62,6 +62,11 @@ export interface TimeSeriesBand {
   color?: string;
 }
 
+export interface TimeSeriesThreshold {
+  value: number;
+  color?: string;
+}
+
 export interface ChartRibbonSpec {
   /** Points over the same window/domain as the chart's own series - also the
    *  source of this ribbon's own adaptive opacity range: the window's own
@@ -103,6 +108,8 @@ export interface TimeSeriesChartProps {
   maxLabel: string;
   /** Subtle translucent vertical bands (e.g. sustained-high-temperature episodes). */
   bands?: readonly TimeSeriesBand[];
+  /** Dashed horizontal lines across the plot at fixed values (e.g. alert limits); a value outside the y range is not drawn. */
+  thresholds?: readonly TimeSeriesThreshold[];
   showLegend?: boolean;
   /** Force the x-axis window instead of deriving it from the data extent, so a
    *  range wider than the available data shows empty space rather than
@@ -236,7 +243,7 @@ const EVENT_CLUSTER_THRESHOLD_PX = EVENT_MARKER_SIZE;
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
-  avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
+  avgLabel, maxLabel, bands, thresholds, showLegend = true, domain, tooltipExtra, yDomain,
   fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom,
   events, onEventClick, onAddEventAt, renderEventTooltip,
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
@@ -720,6 +727,13 @@ export function TimeSeriesChart({
             </g>
           </g>
         )}
+        {thresholds?.filter(th => th.value >= minV && th.value <= maxV).map(th => (
+          <line
+            key={th.value}
+            x1={pad.left} y1={yFor(th.value)} x2={width - pad.right} y2={yFor(th.value)}
+            stroke={th.color ?? 'var(--warn)'} strokeWidth="1" strokeDasharray="4 3" opacity="0.9"
+          />
+        ))}
         {bands?.map((band, i) => (
           <rect
             key={i}

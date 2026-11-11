@@ -136,7 +136,7 @@ export interface ViewportState {
 
 export type ViewportAction =
   | { type: 'init'; now: number }
-  | { type: 'setRange'; key: PresetKey; now: number }
+  | { type: 'setRange'; key: PresetKey; now: number; fillBox?: boolean }
   | { type: 'brushChange'; from: number; to: number; now: number }
   | { type: 'chartDragSelect'; from: number; to: number; now: number; retentionMs: number }
   | { type: 'wheelZoom'; anchorT: number; factor: number; now: number }
@@ -145,9 +145,10 @@ export type ViewportAction =
   | { type: 'backToLive'; now: number }
   | { type: 'detach' };
 
-export function initViewport(now: number): ViewportState {
+/** `fillBox` makes the chart window the whole strip instead of its default sixth. */
+export function initViewport(now: number, fillBox = false): ViewportState {
   const stripWidth = windowMsForRangeKey(DEFAULT_RANGE_KEY) ?? 30 * MINUTE_MS;
-  const boxWidth = defaultBoxWidthMs(stripWidth);
+  const boxWidth = fillBox ? stripWidth : defaultBoxWidthMs(stripWidth);
   return {
     from: now - boxWidth, to: now,
     stripFrom: now - stripWidth, stripTo: now,
@@ -184,7 +185,7 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
       return initViewport(action.now);
     case 'setRange': {
       const stripWidth = windowMsForRangeKey(action.key) ?? (state.stripTo - state.stripFrom);
-      const boxWidth = defaultBoxWidthMs(stripWidth);
+      const boxWidth = action.fillBox ? stripWidth : defaultBoxWidthMs(stripWidth);
       return {
         from: action.now - boxWidth, to: action.now,
         stripFrom: action.now - stripWidth, stripTo: action.now,

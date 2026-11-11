@@ -645,8 +645,9 @@ export function StorePage({ tab, onTabChange, accounts, devices = NO_DEVICES, on
   const installed = useInstalled();
   const [apps, setApps] = useState<StoreApp[] | null>(null);
   const [failed, setFailed] = useState(false);
-  // Hardware-bound apps get a full-width card next to the lead app rather than a grid row.
-  const featured = apps?.filter((a, i) => i === 0 || a.hardware) ?? [];
+  // The lead is the first app without hardware; hardware-bound apps follow as full-width cards.
+  const lead = apps?.find(a => !a.hardware) ?? apps?.[0];
+  const featured = apps ? [...(lead ? [lead] : []), ...apps.filter(a => a.hardware && a !== lead)] : [];
   const rest = apps?.filter(a => !featured.includes(a)) ?? [];
   const [localOpenId, setLocalOpenId] = useState<string | null>(null);
   // Install to resume once a session exists - the modal is opened by a refused

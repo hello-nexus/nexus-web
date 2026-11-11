@@ -14,7 +14,7 @@ import { deleteService } from './service';
 import { classifyFetchOutcome, requestJson } from './fetchOutcome';
 
 export type MetricHistoryKind =
-  | 'cpu' | 'memory' | 'net' | 'disk' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'mem-temp' | 'drive-temp' | 'fan' | 'fan-duty' | 'fps';
+  | 'cpu' | 'memory' | 'net' | 'disk' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'mem-temp' | 'drive-temp' | 'fan' | 'fan-duty' | 'fps' | 'sensorAlert';
 
 export interface MetricHistoryPoint {
   t: number;
@@ -55,7 +55,7 @@ export interface MetricHistoryFetchResult {
   unsupported: boolean;
 }
 
-function buildQuery(query: MetricHistoryQuery): string {
+export function buildQuery(query: MetricHistoryQuery): string {
   const params = new URLSearchParams();
   params.set('from', String(Math.round(query.from)));
   params.set('to', String(Math.round(query.to)));

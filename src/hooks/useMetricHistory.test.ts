@@ -1198,4 +1198,111 @@ describe('useMetricHistory', () => {
       await Promise.resolve();
     });
   });
+
+  describe('custom fetcher (no push topic)', () => {
+    type Result = { data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean };
+    const alertResp = (points: { t: number; avg: number; max: number }[]): MetricHistoryResponse => (
+      { supported: true, retentionDays: 90, stepSeconds: 5, series: [{ id: 'r1', kind: 'sensorAlert', name: 'CPU', points }] }
+    );
+
+    it('keeps the older window points when the tail poll appends newer ones, and polls on', async () => {
+      const older = Array.from({ length: 6 }, (_, i) => ({ t: NOW - 25 * MINUTE + i * 5000, avg: 40 + i, max: 41 + i }));
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async q => ({
+        data: q.maxPoints === 50 ? alertResp([{ t: NOW + 2000, avg: 60, max: 60 }]) : alertResp(older),
+        mocked: false, unsupported: false,
+      }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));
+      await advance(0);
+
+      expect(result.current.series.find(s => s.id === 'r1')!.points.slice(0, older.length)).toEqual(older);
+
+      fetcher.mockClear();
+      await advance(5000);
+      expect(fetcher.mock.calls.some(([q]) => q.maxPoints === 50)).toBe(true);
+      const points = result.current.series.find(s => s.id === 'r1')!.points;
+      expect(points.slice(0, older.length)).toEqual(older);
+      expect(points[points.length - 1].t).toBe(NOW + 2000);
+    });
+
+    it('does not subscribe to the push topic, which would be filtered out', async () => {
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      expect(capturedTailPush).toBeNull();
+    });
+
+    it('skips a tail poll tick while the previous tail fetch is still in flight', async () => {
+      const hang = new Promise<Result>(() => {});
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(q => (
+        q.maxPoints === 50 ? hang : Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false })
+      ));
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      await advance(15000);
+      expect(fetcher.mock.calls.filter(([q]) => q.maxPoints === 50)).toHaveLength(1);
+    });
+
+    it('keeps polling after a viewport fetch lands while a tail fetch is in flight', async () => {
+      let finishTail: (r: Result) => void = () => {};
+      let tailCalls = 0;
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(q => {
+        if (q.maxPoints !== 50) return Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+        tailCalls++;
+        return tailCalls === 1 ? new Promise<Result>(r => { finishTail = r; }) : Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+      });
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      expect(tailCalls).toBe(1);
+      act(() => { result.current.setRange('3h'); });
+      await advance(0);
+      await act(async () => { finishTail({ data: alertResp([]), mocked: false, unsupported: false }); });
+      await advance(5000);
+      expect(tailCalls).toBeGreaterThan(1);
+    });
+
+    it('keeps polling after a tail fetch rejects', async () => {
+      let tailCalls = 0;
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async q => {
+        if (q.maxPoints !== 50) return { data: alertResp([]), mocked: false, unsupported: false };
+        tailCalls++;
+        if (tailCalls === 1) throw new Error('boom');
+        return { data: alertResp([]), mocked: false, unsupported: false };
+      });
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      await advance(5000);
+      expect(tailCalls).toBeGreaterThan(1);
+    });
+
+    it('resumes polling after a tail fetch that never settles', async () => {
+      let tailCalls = 0;
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(q => {
+        if (q.maxPoints !== 50) return Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+        tailCalls++;
+        return tailCalls === 1 ? new Promise<Result>(() => {}) : Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false });
+      });
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      await advance(40000);
+      expect(tailCalls).toBeGreaterThan(1);
+    });
+
+    it('does not call the monitoring source, and with fillBox the chart window is the whole strip', async () => {
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));
+      await advance(0);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(result.current.domain).toEqual(result.current.stripDomain);
+      act(() => { result.current.setRange('3h'); });
+      expect(result.current.domain[1] - result.current.domain[0]).toBe(3 * HOUR);
+      expect(result.current.domain).toEqual(result.current.stripDomain);
+    });
+
+    it('keeps the default sixth-of-strip window without fillBox', async () => {
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      expect(result.current.domain[1] - result.current.domain[0]).toBe(5 * MINUTE);
+    });
+  });
 });
