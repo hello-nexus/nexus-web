@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -209,5 +209,21 @@ describe('active alert banner', () => {
     expect(isBannerAlert(rule(), state({ acknowledged: true }))).toBe(false);
     expect(isBannerAlert(rule(), state({ state: 'pending' }))).toBe(false);
     expect(isBannerAlert(rule(), undefined)).toBe(false);
+  });
+});
+
+describe('padBounds', () => {
+  it('grows an end by a step only when a set limit sits on it', () => {
+    expect(padBounds({ min: 0, max: 120 }, null, 120, 1)).toEqual({ min: 0, max: 121 });
+    expect(padBounds({ min: 0, max: 120 }, 0, 80, 1)).toEqual({ min: -1, max: 120 });
+    expect(padBounds({ min: 0, max: 120 }, 10, 80, 1)).toEqual({ min: 0, max: 120 });
+    expect(padBounds({ min: 0, max: 1 }, null, 1, 0.05)).toEqual({ min: 0, max: 1.05 });
+  });
+});
+
+describe('stateLabelKey', () => {
+  it('words an unavailable sensor as not reported, never as a fault', () => {
+    expect(stateLabelKey('unavailable')).toBe('diagnostics.sensors.notReported');
+    expect(stateLabelKey('ok')).toBe('diagnostics.alerts.state.ok');
   });
 });

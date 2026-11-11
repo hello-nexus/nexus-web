@@ -76,7 +76,10 @@ describe('SensorAlertsList', () => {
     expect(within(rows[0]).getByText('CPU Sensor a')).toBeInTheDocument();
     expect(within(rows[0]).getByText('62°C')).toBeInTheDocument();
     expect(within(rows[0]).getByText('diagnostics.alerts.state.ok')).toBeInTheDocument();
-    expect(within(rows[3]).getByText('diagnostics.alerts.state.disabled')).toBeInTheDocument();
+    // A switched-off sensor shows its name only.
+    expect(within(rows[3]).getByText('CPU Sensor d')).toBeInTheDocument();
+    expect(within(rows[3]).queryByText('diagnostics.alerts.state.disabled')).toBeNull();
+    expect(within(rows[3]).queryByText('62°C')).toBeNull();
   });
 
   it('colors the badges: ok good, pending warn, active by severity', async () => {

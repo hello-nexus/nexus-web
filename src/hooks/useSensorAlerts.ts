@@ -48,6 +48,20 @@ export interface UseSensorAlerts {
  * also re-read on a timer, since a built-in's reading arrives only in states and a frame is sent on
  * transitions only.
  */
+/**
+ * The service clears a rule's reading when the rule is edited (any field) and only refills it on the next
+ * sample, so a state pushed right after an edit carries no value. Keep the last known value for a sensor that
+ * is still reported; a lost sensor ("unavailable") rightly shows none.
+ */
+export function carryValues(prev: readonly SensorAlertState[], next: readonly SensorAlertState[]): SensorAlertState[] {
+  return next.map(s => {
+    if (s.value !== null && s.value !== undefined) return s;
+    if (s.state === 'unavailable') return s;
+    const before = prev.find(p => p.ruleId === s.ruleId)?.value;
+    return before !== null && before !== undefined ? { ...s, value: before } : s;
+  });
+}
+
 export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensorAlerts {
   const [rules, setRules] = useState<SensorAlertRule[]>([]);
   const [states, setStates] = useState<SensorAlertState[]>([]);
@@ -73,7 +87,8 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (res.ok && res.data) {
         setRules(res.data.rules);
-        setStates(res.data.states);
+        const fresh = res.data.states;
+        setStates(prev => carryValues(prev, fresh));
         setError(false);
         setLoaded(true);
       } else {
@@ -97,7 +112,8 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
     const frame = raw as Partial<SensorAlertsFrame> | null;
     if (!frame || !Array.isArray(frame.states)) return;
     stateSeqRef.current++;
-    setStates(frame.states);
+    const incoming = frame.states;
+    setStates(prev => carryValues(prev, incoming));
     // A state for a rule this client lacks (added elsewhere) means the list is stale.
     if (frame.states.some(s => !rulesRef.current.some(r => r.id === s.ruleId))) load();
   });
@@ -123,7 +139,7 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
       if (document.hidden) return;
       const stateSeq = ++stateSeqRef.current;
       void fetchSensorAlerts().then(res => {
-        if (mountedRef.current && res.ok && res.data && stateSeq === stateSeqRef.current) setStates(res.data.states);
+        if (mountedRef.current && res.ok && res.data && stateSeq === stateSeqRef.current) { const incoming = res.data.states; setStates(prev => carryValues(prev, incoming)); }
       });
     }, LIVE_VALUES_POLL_MS);
     return () => window.clearInterval(timer);
@@ -222,7 +238,7 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
       stateSeqRef.current++;
       // Only the reset rules change; every other rule keeps its local copy, which may hold an edit the response predates.
       setRules(prev => fresh.map(r => (reset.has(r.id) ? r : (prev.find(p => p.id === r.id) ?? r))));
-      setStates(freshStates);
+      setStates(prev => carryValues(prev, freshStates));
     }
     return res.ok;
   }, []);

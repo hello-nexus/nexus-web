@@ -10,17 +10,7 @@
 }
 
 .row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding-right: var(--space-sm);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  border: var(--border-width) solid transparent;
-
-  &[data-selected='true'] {
-    border-color: var(--accent);
-  }
+  min-width: 0;
 
   &[data-state='disabled'] .name,
   &[data-state='disabled'] .value {
@@ -28,15 +18,27 @@
   }
 }
 
+// The shared Card supplies the surface and the selected treatment; this only trims its inset
+// so the row's own button is the click target.
+.card {
+  padding: 0;
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-right: var(--space-sm);
+}
+
 .select {
   @include text-button;
   flex: 1;
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'name value' 'name chip';
-  align-items: center;
-  column-gap: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
   padding: var(--space-sm);
   background: none;
   border: 0;
@@ -45,20 +47,26 @@
   cursor: pointer;
 }
 
-.chip {
-  grid-area: chip;
-  justify-self: end;
+// Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
+.name {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
-.name {
-  grid-area: name;
-  min-width: 0;
-  overflow-wrap: anywhere;
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
 .value {
-  grid-area: value;
-  justify-self: end;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.toggle {
+  flex-shrink: 0;
+  display: inline-flex;
 }

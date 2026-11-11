@@ -11,7 +11,6 @@ export const ALERT_SENSOR_TYPES = ['Temperature', 'Current', 'Power', 'Voltage',
 /** Resolver categories the service can re-find a sensor in. */
 export const ALERT_SENSOR_CATEGORIES = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'smart', 'psu', 'cooler'] as const;
 
-export const REPEAT_OPTIONS_MINUTES = [0, 5, 15, 60] as const;
 
 export const DEFAULT_RAISE_SECONDS = 5;
 export const DEFAULT_CLEAR_SECONDS = 5;
@@ -147,6 +146,15 @@ export function widenBounds(bounds: Bounds, values: ReadonlyArray<number | null 
   return { min, max };
 }
 
+/** Display bounds grown by one step past a set limit that sits on an end of the track, so the end of the track always means no limit. */
+export function padBounds(bounds: Bounds, low: number | null, high: number | null, step: number): Bounds {
+  const decimals = step < 1 ? 2 : 0;
+  return {
+    min: low !== null && low <= bounds.min ? roundTo(low - step, decimals) : bounds.min,
+    max: high !== null && high >= bounds.max ? roundTo(high + step, decimals) : bounds.max,
+  };
+}
+
 /** Bounds in the displayed unit, snapped outward to the slider step so both ends sit on the grid. */
 export function displayBounds(bounds: Bounds, type: string, tempUnit: TempUnit): Bounds {
   const step = stepFor(type);
@@ -218,6 +226,11 @@ export type AlertRowState = AlertChipState | 'disabled';
 /** The state a Summary row shows: the chip state, or disabled for a rule that is switched off. */
 export function rowState(rule: SensorAlertRule, state: SensorAlertState | undefined): AlertRowState {
   return chipState(rule, state) ?? 'disabled';
+}
+
+/** Locale key of a state's chip. A sensor the PC does not report reads "Not reported", not as a fault. */
+export function stateLabelKey(kind: AlertRowState): string {
+  return kind === 'unavailable' ? 'diagnostics.sensors.notReported' : `diagnostics.alerts.state.${kind}`;
 }
 
 /** Badge color of a state: ok good, pending warn, active in the rule's tone (watch warn, act bad), lost or disabled muted. */

@@ -45,19 +45,22 @@ function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState }
 beforeEach(() => { h.tempUnit = 'c'; });
 
 describe('SensorAlertRuleSettings', () => {
-  it('hides the picker, the side toggles and Delete for a built-in and offers Restore default', () => {
+  it('hides the picker, the lower knob and Delete for a built-in and offers Restore default', () => {
     renderEditor(builtInRule);
     expect(screen.queryByTestId('sensor-picker')).toBeNull();
-    expect(screen.queryByText('diagnostics.alerts.below')).toBeNull();
-    expect(screen.queryByText('diagnostics.alerts.above')).toBeNull();
+    expect(screen.queryByRole('slider', { name: 'diagnostics.alerts.lowKnob' })).toBeNull();
     expect(screen.queryByTestId('sensor-delete')).toBeNull();
     expect(screen.getByTestId('sensor-restore')).toBeInTheDocument();
   });
 
-  it('shows the picker, the toggles and Delete for a user rule', () => {
+  it('shows the picker, both knobs and Delete for a user rule, with no on/off toggles for the limits', () => {
     renderEditor(userRule);
     expect(screen.getByTestId('sensor-picker')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.alerts.above')).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'diagnostics.alerts.lowKnob' })).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'diagnostics.alerts.highKnob' })).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'diagnostics.alerts.above' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'diagnostics.alerts.below' })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'diagnostics.alerts.showInHealth' })).toBeNull();
     expect(screen.getByTestId('sensor-delete')).toBeInTheDocument();
     expect(screen.queryByTestId('sensor-restore')).toBeNull();
   });
@@ -81,13 +84,49 @@ describe('SensorAlertRuleSettings', () => {
     expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ high: 105 }));
   });
 
-  it('lets a user rule keep a typed limit beyond the track', () => {
-    const { onSave, container } = renderEditor(userRule);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
+  const typeInto = (container: HTMLElement, knob: 'lowKnob' | 'highKnob', value: string) => {
+    fireEvent.click(screen.getByRole('button', { name: `diagnostics.alerts.${knob}` }));
     const field = container.querySelector('input[type="number"]') as HTMLInputElement;
-    fireEvent.change(field, { target: { value: '150' } });
+    fireEvent.change(field, { target: { value } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ high: 150 }));
+  };
+
+  it('reads a limit typed at or past the end of the track as no limit', () => {
+    const { onSave, container } = renderEditor(userRule);
+    typeInto(container, 'highKnob', '150');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: null, high: null, showInHealth: true }));
+  });
+
+  it('shows an off side as a hollow knob with its no-limit readout, and a set side with its value', () => {
+    renderEditor(userRule);
+    expect(screen.getByText('diagnostics.alerts.noLowerLimit')).toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.alerts.noUpperLimit')).toBeNull();
+    expect(screen.getByText('80°C')).toBeInTheDocument();
+    expect(document.querySelector('input[data-range-knob="min"]')).toHaveAttribute('data-unset', 'true');
+    expect(document.querySelector('input[data-range-knob="max"]')).not.toHaveAttribute('data-unset');
+  });
+
+  it('sets a lower limit by typing one, keeps low below high, and clears it by typing the track minimum', () => {
+    const { onSave, container } = renderEditor(userRule);
+    typeInto(container, 'lowKnob', '20');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: 20, high: 80 }));
+    typeInto(container, 'lowKnob', '95');
+    const last = onSave.mock.calls.at(-1)![0] as SensorAlertRule;
+    expect(last.low).not.toBeNull();
+    expect(last.low!).toBeLessThan(last.high ?? Infinity);
+  });
+
+  it('clears a limit when its field is emptied', () => {
+    const { onSave, container } = renderEditor({ ...userRule, low: 20 });
+    typeInto(container, 'lowKnob', '');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: null, high: 80 }));
+  });
+
+  it('keeps a limit set on the old track end strictly inside the track', () => {
+    renderEditor({ ...userRule, high: 120 });
+    const max = document.querySelector('input[data-range-knob="max"]') as HTMLInputElement;
+    expect(Number(max.max)).toBeGreaterThan(120);
+    expect(max).not.toHaveAttribute('data-unset');
   });
 
   it('marks a built-in at the state value, the only reading source it has', () => {

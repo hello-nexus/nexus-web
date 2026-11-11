@@ -556,6 +556,16 @@ input[type="range"][data-range-knob] {
     background: var(--text);
     box-shadow: var(--shadow-sm);
   }
+
+  // An off limit (RangeSlider openEnded): hollow, so the knob reads as parked rather than set.
+  &[data-unset='true']::-webkit-slider-thumb {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 2px var(--text-dim);
+  }
+  &[data-unset='true']::-moz-range-thumb {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 2px var(--text-dim);
+  }
 }
 
 // ── Chips: unified pill styling for selectors and status indicators ──────────

@@ -26,14 +26,13 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
     add: h.add, save: h.save, remove: h.remove, acknowledge: h.acknowledge, resetBuiltIns: h.resetBuiltIns, preview: vi.fn(),
   }),
 }));
-vi.mock('./SensorNotificationSettings', () => ({ SensorNotificationSettings: () => <div data-testid="sensor-notifications" /> }));
 vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: h.push }) }));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({
   sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'cpu' ? [{ value: 'cpu/temp/0', type: 'Temperature' }] : []),
 }));
 vi.mock('./SensorAlertRuleSettings', () => ({
-  SensorAlertRuleSettings: ({ rule, onDelete }: { rule: { id: string }; onDelete: () => void }) => (
-    <div data-testid="settings-stub">{rule.id}<button type="button" onClick={onDelete}>stub-delete</button></div>
+  SensorAlertRuleSettings: ({ rule, onDelete, onRestoreDefault }: { rule: { id: string }; onDelete: () => void; onRestoreDefault: () => void }) => (
+    <div data-testid="settings-stub">{rule.id}<button type="button" onClick={onDelete}>stub-delete</button><button type="button" onClick={onRestoreDefault}>stub-restore</button></div>
   ),
 }));
 vi.mock('../../../search/scroll', () => ({ requestSearchScroll: h.scroll }));
@@ -145,9 +144,9 @@ describe('SensorsTab', () => {
     h.states = [state('r1', { state: 'active', direction: 'above' }), state('r2')];
     render(<SensorsTab {...props()} />);
     expect(screen.getAllByTestId('chart')).toHaveLength(1);
-    expect(screen.getAllByText('62°C')).toHaveLength(2);
+    expect(screen.getAllByText('62°C')).toHaveLength(1);
     expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.alerts.state.disabled')).toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.alerts.state.disabled')).toBeNull();
     expect(h.chart.mock.calls[0][0]).toMatchObject({ thresholds: [{ value: 80, color: 'var(--bad)' }] });
   });
 
@@ -227,29 +226,29 @@ describe('SensorsTab', () => {
       builtIn: kind, sensor: { category: 'builtin', id: id.replace('builtin-', ''), name: 'CPU', type: 'Temperature', parentName: '' },
     });
 
-    it('groups the built-ins apart from the user sensors and restores them all or one at a time', () => {
+    it('lists the built-ins first in one list with no group headings and no group-level restore', () => {
       h.rules = [builtIn('builtin-cpu', 'cpuTemp'), builtIn('builtin-gpu', 'gpuTemp'), rule('r1')];
       render(<SensorsTab {...props()} />);
-      expect(within(screen.getByTestId('sensor-group-builtin')).getAllByTestId('sensor-row')).toHaveLength(2);
-      expect(within(screen.getByTestId('sensor-group-custom')).getAllByTestId('sensor-row')).toHaveLength(1);
-      expect(screen.getByText('diagnostics.sensors.group.builtIn')).toBeInTheDocument();
-      fireEvent.click(screen.getByTestId('sensor-restore-all'));
-      expect(h.resetBuiltIns).toHaveBeenCalledWith(undefined);
+      expect(screen.getAllByTestId('sensor-row').map(r => r.getAttribute('data-rule-id'))).toEqual(['builtin-cpu', 'builtin-gpu', 'r1']);
+      expect(screen.queryByText('diagnostics.sensors.group.builtIn')).toBeNull();
+      expect(screen.queryByText('diagnostics.sensors.group.custom')).toBeNull();
+      expect(screen.queryByTestId('sensor-restore-all')).toBeNull();
+      expect(screen.getByTestId('sensor-add')).toBeInTheDocument();
+    });
+
+    it('restores one built-in from its editor', () => {
+      h.rules = [builtIn('builtin-cpu', 'cpuTemp'), builtIn('builtin-gpu', 'gpuTemp')];
+      render(<SensorsTab {...props()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'stub-restore' }));
+      expect(h.resetBuiltIns).toHaveBeenCalledWith('builtin-cpu');
     });
 
     it('toasts when a restore is refused', async () => {
       h.rules = [builtIn('builtin-cpu', 'cpuTemp')];
       h.resetBuiltIns.mockResolvedValue(false);
       render(<SensorsTab {...props()} />);
-      await act(async () => { fireEvent.click(screen.getByTestId('sensor-restore-all')); });
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-restore' })); });
       expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' });
-    });
-
-    it('has no group heading for the user sensors while there are no built-ins', () => {
-      h.rules = [rule('r1')];
-      render(<SensorsTab {...props()} />);
-      expect(screen.queryByTestId('sensor-group-builtin')).toBeNull();
-      expect(screen.queryByText('diagnostics.sensors.group.custom')).toBeNull();
     });
   });
 

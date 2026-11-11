@@ -158,3 +158,8 @@
   width: 100%;
   min-width: 0;
 }
+
+// The track box is taller than its 6px bar; pull the live marker up so it hangs close under the bar.
+.markWrap {
+  margin-top: -0.6rem;
+}

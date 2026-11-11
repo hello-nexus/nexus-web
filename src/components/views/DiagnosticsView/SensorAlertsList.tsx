@@ -5,7 +5,7 @@ import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnostics
 import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
-import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor } from './sensorAlertHelpers';
+import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import styles from './SensorAlertsList.module.scss';
 
 interface SensorAlertsListProps {
@@ -28,7 +28,7 @@ export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
 
   return (
     <div className={styles.list}>
-      <SettingsSection title={t('diagnostics.alerts.title')}>
+      <SettingsSection title={t('diagnostics.tab.sensors')}>
         <ul className={styles.rows}>
           {rules.map(rule => {
             const state = stateOf(rule);
@@ -51,10 +51,16 @@ export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
                   }}
                 >
                   <span className={styles.name}>{ruleLabel(t, rule)}</span>
-                  <span className={styles.value}>
-                    {reading !== null ? formatAlertValue(reading, type, tempUnit, numberFormat, monitoringWholeNumbers) : t(isBuiltIn(rule) ? 'diagnostics.sensors.notReported' : 'diagnostics.alerts.noReading')}
-                  </span>
-                  <Badge label={t(`diagnostics.alerts.state.${kind}`)} color={stateColor(kind, rule)} />
+                  {rule.enabled && (reading === null && (isBuiltIn(rule) || kind === 'unavailable') ? (
+                    <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
+                  ) : (
+                    <>
+                      <span className={styles.value}>
+                        {reading !== null ? formatAlertValue(reading, type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading')}
+                      </span>
+                      <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />
+                    </>
+                  ))}
                 </div>
               </li>
             );

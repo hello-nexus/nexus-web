@@ -169,15 +169,15 @@ describe('SensorsTab editing', () => {
     expect(screen.queryByText(/limitNote/)).toBeNull();
   });
 
-  it('writes the full rule when a toggle changes', async () => {
+  it('writes the full rule when the lower limit is typed', async () => {
     await renderSection([rule('r1')]);
     openFirst();
-    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.below' }));
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.lowKnob' }));
+    const field = document.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(field, { target: { value: '30' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(1));
-    const sent = h.updateSensorAlert.mock.calls[0][0] as SensorAlertRule;
-    expect(sent).toMatchObject({ id: 'r1', high: 80, severity: 'watch', notifyDesktop: true, showInHealth: true });
-    expect(sent.low).toBeLessThan(80);
-    expect(sent.low).not.toBeNull();
+    expect(h.updateSensorAlert.mock.calls[0][0]).toMatchObject({ id: 'r1', low: 30, high: 80, severity: 'watch', notifyDesktop: true, showInHealth: true });
   });
 
   it('writes the severity and the enabled switch', async () => {
@@ -192,9 +192,10 @@ describe('SensorsTab editing', () => {
   it('lets the last remaining limit be switched off, making the sensor track-only', async () => {
     await renderSection([rule('r1')]);
     openFirst();
-    const above = screen.getByRole('switch', { name: 'diagnostics.alerts.above' });
-    expect(above).toBeEnabled();
-    fireEvent.click(above);
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
+    const field = document.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', low: null, high: null })));
   });
 
@@ -232,18 +233,17 @@ describe('SensorsTab editing', () => {
     expect(h.updateSensorAlert.mock.calls[0][0]).toMatchObject({ id: 'r1', high: 90 });
   });
 
-  it('widens the track when a typed limit is past its end', async () => {
+  it('reads a typed limit past the end of the track as no limit', async () => {
     await renderSection([rule('r1', { high: 80 })]);
     openFirst();
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
     const field = document.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(field, { target: { value: '150' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledWith(expect.objectContaining({ high: 150 })));
-    expect(screen.getByRole('slider', { name: 'diagnostics.alerts.highKnob' })).toHaveAttribute('max', '150');
+    await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledWith(expect.objectContaining({ high: null })));
   });
 
-  it('writes a delay picked in seconds, and shows an off-list stored delay as its own option', async () => {
+  it('writes a delay picked in seconds, keeps clear-after fixed, and shows an off-list stored delay as its own option', async () => {
     await renderSection([rule('r1', { raiseAfterSeconds: 7 })]);
     openFirst();
     const raise = screen.getByRole('combobox', { name: 'diagnostics.alerts.raiseAfter' }) as HTMLSelectElement;
@@ -251,8 +251,7 @@ describe('SensorsTab editing', () => {
     expect(within(raise).getAllByRole('option').map(o => o.getAttribute('value'))).toEqual(['', '0', '5', '7', '10', '15', '30', '60', '180', '300']);
     fireEvent.change(raise, { target: { value: '30' } });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', raiseAfterSeconds: 30, clearAfterSeconds: 5 })));
-    fireEvent.change(screen.getByRole('combobox', { name: 'diagnostics.alerts.clearAfter' }), { target: { value: '0' } });
-    await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ clearAfterSeconds: 0 })));
+    expect(screen.queryByRole('combobox', { name: 'diagnostics.alerts.clearAfter' })).toBeNull();
   });
 
   describe('active alert banner', () => {
@@ -333,12 +332,11 @@ describe('SensorsTab editing', () => {
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
       openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
-      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.showInHealth' }));
       fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
       expect(h.updateSensorAlert).toHaveBeenCalledTimes(1);
       await act(async () => { first.resolve(ok(rule('r1'))); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
-      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ notifyDesktop: false, showInHealth: false, severity: 'act' });
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ notifyDesktop: false, showInHealth: true, severity: 'act' });
     });
 
     it('sends the newest edit after a refused write instead of dropping it', async () => {
@@ -349,10 +347,10 @@ describe('SensorsTab editing', () => {
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
       openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
-      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.showInHealth' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
       await act(async () => { first.resolve({ ok: false, status: 400, data: null }); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
-      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ showInHealth: false });
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ severity: 'act', showInHealth: true });
       expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' });
       expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(1);
     });
@@ -365,11 +363,11 @@ describe('SensorsTab editing', () => {
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
       openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
-      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.showInHealth' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
       utils.unmount();
       await act(async () => { first.resolve(ok(rule('r1'))); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
-      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ showInHealth: false });
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ severity: 'act', showInHealth: true });
     });
 
     it('waits for a write in flight before deleting, with no failure toast', async () => {

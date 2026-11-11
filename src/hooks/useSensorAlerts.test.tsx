@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../api/diagnosticsAlerts';
-import { useSensorAlerts } from './useSensorAlerts';
+import { carryValues, useSensorAlerts } from './useSensorAlerts';
 
 const h = vi.hoisted(() => ({
   frame: null as null | ((data: unknown) => void),
@@ -106,5 +106,24 @@ describe('useSensorAlerts', () => {
     const calls = h.fetchSensorAlerts.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
     expect(h.fetchSensorAlerts.mock.calls.length).toBe(calls);
+  });
+
+  it('keeps the last reading when a frame pushed after an edit carries no value', async () => {
+    const { result } = await mount();
+    expect(result.current.states[0].value).toBe(50);
+    await act(async () => { result.current.save({ ...builtIn, severity: 'act' }); });
+    act(() => { h.frame?.({ states: [state('builtin-cpu', { value: null })] }); });
+    expect(result.current.states[0].value).toBe(50);
+    act(() => { h.frame?.({ states: [state('builtin-cpu', { value: 61 })] }); });
+    expect(result.current.states[0].value).toBe(61);
+  });
+});
+
+describe('carryValues', () => {
+  it('fills a missing value from the previous state, but not for a lost sensor or an unknown rule', () => {
+    const prev = [state('a', { value: 40 }), state('b', { value: 41 }), state('c', { value: 42 })];
+    const next = [state('a', { value: null }), state('b', { value: null, state: 'unavailable' }), state('d', { value: null })];
+    const out = carryValues(prev, next);
+    expect(out.map(s => s.value)).toEqual([40, null, null]);
   });
 });
