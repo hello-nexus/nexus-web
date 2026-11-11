@@ -28,6 +28,7 @@ import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import { LedColorLockSection } from './LedColorLockSection';
 import { RateCapSelect } from './RateCapSelect';
+import { ColorSamplingSelect } from './ColorSamplingSelect';
 import { SamplingModeSelect } from './SamplingModeSelect';
 import { AreaCells } from '../../../../components/common/AreaCells/AreaCells';
 import {
@@ -2894,6 +2895,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               )}
             </div>
             <div className={styles.saveGroup}>
+              {zoneCard && zoneCard.sampling !== undefined && (
+                <ColorSamplingSelect
+                  id={zoneCard.id}
+                  value={zoneCard.colorSampling ?? 'standard'}
+                  onFail={() => push({ title: t('lighting.ledMap.colorSamplingFailed') })}
+                  onSaved={onRateCapChanged}
+                />
+              )}
               {zoneCard && zoneCard.sampling !== undefined && (
                 <SamplingModeSelect
                   id={zoneCard.id}

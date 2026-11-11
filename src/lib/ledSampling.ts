@@ -1,3 +1,4 @@
+import type { ColorSamplingMode } from '../api/lighting';
 import { sliceStackSlot, type StackSlot } from './stackSlots';
 
 /**
@@ -82,25 +83,47 @@ export function ledSample(
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Plain mean of canvas pixels ix0..ix1 x iy0..iy1 inclusive, black included. */
-function meanRect(f: SampleFrame, ix0: number, iy0: number, ix1: number, iy1: number): [number, number, number] {
+/** Highest channel value still counted as near-black by ignore-black. */
+const NEAR_BLACK_MAX = 8;
+
+const srgbToLinear = (c: number) => {
+  const v = c / 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+};
+const linearToSrgb = (l: number) => {
+  const v = l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055;
+  return Math.round(clamp(v, 0, 1) * 255);
+};
+
+/** Combines the pixels of one LED's read into a color. Mirrors the service combiner; change them together. */
+export function combinePixels(f: SampleFrame, ix0: number, iy0: number, ix1: number, iy1: number, mode: ColorSamplingMode = 'standard'): [number, number, number] {
   let n = 0, r = 0, g = 0, b = 0;
+  let kn = 0, kr = 0, kg = 0, kb = 0;
   for (let y = iy0; y <= iy1; y++) {
     for (let x = ix0; x <= ix1; x++) {
       const s = (y * f.w + x) * 3;
-      r += f.pixels[s]; g += f.pixels[s + 1]; b += f.pixels[s + 2];
+      const pr = f.pixels[s], pg = f.pixels[s + 1], pb = f.pixels[s + 2];
+      if (mode === 'vivid') {
+        r += srgbToLinear(pr); g += srgbToLinear(pg); b += srgbToLinear(pb);
+      } else {
+        r += pr; g += pg; b += pb;
+        if (Math.max(pr, pg, pb) > NEAR_BLACK_MAX) { kr += pr; kg += pg; kb += pb; kn++; }
+      }
       n++;
     }
   }
-  return n === 0 ? [0, 0, 0] : [Math.floor(r / n), Math.floor(g / n), Math.floor(b / n)];
+  if (n === 0) return [0, 0, 0];
+  if (mode === 'vivid') return [linearToSrgb(r / n), linearToSrgb(g / n), linearToSrgb(b / n)];
+  if (mode === 'ignore-black' && kn > 0) return [Math.floor(kr / kn), Math.floor(kg / kn), Math.floor(kb / kn)];
+  return [Math.floor(r / n), Math.floor(g / n), Math.floor(b / n)];
 }
 
 /**
- * The color of one LED: the plain mean of a small spot of pixels centered on
+ * The color of one LED: the mean of a small spot of pixels centered on
  * the pixel holding its position, shrunk to the LED's own cell when that is
  * smaller, clamped at the canvas edges.
  */
-export function sampleSpot(f: SampleFrame, s: LedSample): [number, number, number] {
+export function sampleSpot(f: SampleFrame, s: LedSample, mode?: ColorSamplingMode): [number, number, number] {
   const spotHalf = Math.max(0.5, f.w * SPOT_SIDE_OF_CANVAS_WIDTH * 0.5);
   const hx = Math.min(s.halfW, spotHalf);
   const hy = Math.min(s.halfH, spotHalf);
@@ -110,14 +133,14 @@ export function sampleSpot(f: SampleFrame, s: LedSample): [number, number, numbe
   const iy0 = clamp(Math.floor(cy - hy), 0, f.h - 1);
   const ix1 = clamp(Math.ceil(cx + hx) - 1, ix0, f.w - 1);
   const iy1 = clamp(Math.ceil(cy + hy) - 1, iy0, f.h - 1);
-  return meanRect(f, ix0, iy0, ix1, iy1);
+  return combinePixels(f, ix0, iy0, ix1, iy1, mode);
 }
 
 /** The whole cell's plain mean: the read under full-frame sampling, where the cell is a slice of the pattern. */
-export function sampleBox(f: SampleFrame, s: LedSample): [number, number, number] {
+export function sampleBox(f: SampleFrame, s: LedSample, mode?: ColorSamplingMode): [number, number, number] {
   const ix0 = clamp(Math.floor(s.sx - s.halfW), 0, f.w - 1);
   const iy0 = clamp(Math.floor(s.sy - s.halfH), 0, f.h - 1);
   const ix1 = clamp(Math.ceil(s.sx + s.halfW) - 1, ix0, f.w - 1);
   const iy1 = clamp(Math.ceil(s.sy + s.halfH) - 1, iy0, f.h - 1);
-  return meanRect(f, ix0, iy0, ix1, iy1);
+  return combinePixels(f, ix0, iy0, ix1, iy1, mode);
 }
