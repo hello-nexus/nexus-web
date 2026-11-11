@@ -176,6 +176,24 @@ describe('ComponentHealthGrid domain tiles', () => {
     expect(screen.queryByText('CPU Package above 90')).toBeNull();
   });
 
+  it('never shows the raw reason detail: no tooltip without params, a formatted one with them', () => {
+    const raw = 'cause=CPU reached its temperature limit active=False peakC=99.4';
+    const base = { id: 'cooling:thermal-guard', kind: 'cooling' as const, name: 'CPU thermal guard', status: 'act' as const };
+    const { rerender } = render(<ComponentHealthGrid onNavigate={() => {}} components={[
+      { ...base, reasons: [{ code: 'cooling.thermalGuardTrip', severity: 'act', summary: 'Thermal guard tripped', detail: raw }] },
+    ]} />);
+    expect(screen.queryByRole('button', { name: 'infoTooltip.ariaLabel' })).toBeNull();
+    rerender(<ComponentHealthGrid onNavigate={() => {}} components={[
+      { ...base, reasons: [{
+        code: 'cooling.thermalGuardTrip', severity: 'act', summary: 'Thermal guard tripped', detail: raw,
+        params: { cause: 'x', active: 'false', reason: 'limit', peakC: '99.4', escalated: 'false', at: '1794378489292' },
+      }] },
+    ]} />);
+    const trigger = screen.getByRole('button', { name: 'infoTooltip.ariaLabel' });
+    fireEvent.focus(trigger);
+    expect(document.body.textContent).not.toContain('active=False');
+  });
+
   it('navigates to the matching tab when a tile is clicked', () => {
     const onNavigate = vi.fn();
     render(<ComponentHealthGrid components={[]} onNavigate={onNavigate} />);

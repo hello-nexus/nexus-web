@@ -16,6 +16,8 @@ export interface DiagnosticsReason {
   severity: DiagnosticsStatus;
   summary: string;
   detail: string;
+  /** Invariant-culture values per reason code; the only source of tooltip text, since detail is raw service text. */
+  params?: Record<string, string>;
 }
 
 export interface DiagnosticsComponent {

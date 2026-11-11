@@ -238,7 +238,7 @@ export function SettingsTab({ focusAlertId, onAlertFocused }: SettingsTabProps) 
           label={t('diagnostics.settings.reset.label')}
           description={t('diagnostics.settings.reset.description')}
         >
-          <Button type="button" tone="neutral" size="sm" icon={<RotateCcw size={13} />} onClick={() => setResetOpen(true)}>
+          <Button type="button" tone="danger" size="sm" icon={<RotateCcw size={13} />} onClick={() => setResetOpen(true)}>
             {t('cooling.settings.reset')}
           </Button>
         </SettingRow>
