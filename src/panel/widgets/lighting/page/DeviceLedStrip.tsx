@@ -203,7 +203,7 @@ function paintLook(
       d[o + 3] = 255;
       if (Number.isNaN(cx)) continue;
       // The same spot mean the engine reads at an LED.
-      const [r, g, b] = sampleSpot({ pixels, w, h }, { sx: (cx / CW) * w, sy: (cy / CH) * h, halfW: Infinity, halfH: Infinity });
+      const [r, g, b] = sampleSpot({ pixels, w, h }, { sx: (cx / CW) * w, sy: (cy / CH) * h, halfW: Infinity, halfH: Infinity }, device.colorSampling);
       d[o] = r * scale;
       d[o + 1] = g * scale;
       d[o + 2] = b * scale;
@@ -221,7 +221,7 @@ function paintLook(
   for (let i = 0; i < cells; i++) {
     const led = cells === 1 ? 0 : Math.round((i * (leds - 1)) / (cells - 1));
     const at = ledSample(device, led, leds, w, h, { fullFrame: fullscreen, slot });
-    const [r, g, b] = fullscreen ? sampleBox(frameView, at) : sampleSpot(frameView, at);
+    const [r, g, b] = fullscreen ? sampleBox(frameView, at, device.colorSampling) : sampleSpot(frameView, at, device.colorSampling);
     const o = i * 4;
     d[o] = r * scale;
     d[o + 1] = g * scale;
