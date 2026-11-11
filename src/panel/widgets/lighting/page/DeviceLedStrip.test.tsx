@@ -113,6 +113,12 @@ describe('DeviceLedStrip', () => {
       expect([...reds].sort((a, b) => a - b)).toEqual(reds);
     });
 
+    it('still applies brightness to the canvas-sampling fallback, whose pixels are pre-brightness', () => {
+      publishRed();
+      render(<DeviceLedStrip device={{ ...withIndex, brightness: 50 }} />);
+      expect(lastImage()[0]).toBe(128);
+    });
+
     it('falls back to sampling the canvas when the frame has no bytes for it', () => {
       publishRed();
       render(<DeviceLedStrip device={withIndex} />);

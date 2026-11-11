@@ -6,6 +6,7 @@ import { isStaticFill } from '../../../../types/lighting';
 import { isPaletteKey } from '../../../../types/lightingPalette';
 import { cardEnabledLedCount } from './zoneUtils';
 import { type StackSlot } from '../../../../lib/stackSlots';
+import { deviceLedBytes } from '../../../../lib/deviceLedBytes';
 import { ledSample, sampleBox, sampleSpot } from '../../../../lib/ledSampling';
 import { getScenePoints } from '../../../../lib/scene/scenePointsStore';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -80,10 +81,9 @@ function paint(
  * lighting off), so the caller falls back to sampling the canvas.
  */
 function paintDeviceBytes(canvas: HTMLCanvasElement, device: LightingDevice, frame: LedFrame): boolean {
-  if (device.frameIndex === undefined) return false;
-  const bytes = frame.devices?.get(device.frameIndex);
-  const leds = bytes ? Math.floor(bytes.length / 3) : 0;
-  if (!bytes || leds === 0) return false;
+  const bytes = deviceLedBytes(frame.devices, device.frameIndex);
+  if (!bytes) return false;
+  const leds = Math.floor(bytes.length / 3);
   const cells = stripCells(device);
   if (canvas.width !== cells) canvas.width = cells;
   if (canvas.height !== 1) canvas.height = 1;

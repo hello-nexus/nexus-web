@@ -335,12 +335,27 @@ export const CanvasBackground = memo(function CanvasBackground() {
 });
 
 /** What a dot needs to repaint itself from a frame without a React render. */
-interface DotInfo { frameIndex: number | undefined; index: number; lock: string | undefined }
+interface DotInfo {
+  el: HTMLElement;
+  frameIndex: number | undefined;
+  index: number;
+  lock: string | undefined;
+  /** Last values written, so an unchanged frame touches no style. */
+  applied: string | null;
+  appliedLive: boolean;
+}
 
-function paintDot(el: HTMLElement, info: DotInfo, frame: LedFrame): void {
-  const live = liveLedColor(frame, info.frameIndex, info.index);
-  el.style.background = live ?? info.lock ?? '';
-  el.classList.toggle(styles.ledDotLive, live !== null);
+function paintDot(dot: DotInfo, frame: LedFrame): void {
+  const live = liveLedColor(frame, dot.frameIndex, dot.index);
+  const bg = live ?? dot.lock ?? '';
+  if (bg !== dot.applied) {
+    dot.el.style.background = bg;
+    dot.applied = bg;
+  }
+  if ((live !== null) !== dot.appliedLive) {
+    dot.el.classList.toggle(styles.ledDotLive, live !== null);
+    dot.appliedLive = live !== null;
+  }
 }
 
 const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreignFrames, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onOpenKeyReactions, keyReactiveIds, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, stacks, stackActionsFor }: {
@@ -428,16 +443,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
   // the first measure. The layer is inset:0 on the canvas, so the rect matches.
   const labelLayerRef = useRef<HTMLDivElement>(null);
   // Live dot colors are written straight onto the dots, never through state.
-  const dotsRef = useRef(new Map<HTMLElement, DotInfo>());
+  const dotsRef = useRef(new Map<string, DotInfo>());
   const latestFrameRef = useRef<LedFrame | null>(null);
   useEffect(() => {
     const dots = dotsRef.current;
     return subscribeLedFrame(f => {
       latestFrameRef.current = f;
-      for (const [el, info] of dots) {
-        if (el.isConnected) paintDot(el, info, f);
-        else dots.delete(el);
-      }
+      for (const dot of dots.values()) paintDot(dot, f);
     });
   }, []);
   const [labelSizes, setLabelSizes] = useState<Map<string, LabelSize>>(new Map());
@@ -1011,11 +1023,14 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, foreig
                   return (
                     <div
                       key={`${id}:${led.index}`}
+                      // Re-created each render on purpose: React rewrites style and
+                      // className on change, so the fresh registration repaints.
                       ref={el => {
-                        if (!el) return;
-                        const info: DotInfo = { frameIndex: member?.frameIndex, index: led.index, lock: color };
-                        dotsRef.current.set(el, info);
-                        if (latestFrameRef.current) paintDot(el, info, latestFrameRef.current);
+                        const key = `${id}:${led.index}`;
+                        if (!el) { dotsRef.current.delete(key); return; }
+                        const dot: DotInfo = { el, frameIndex: member?.frameIndex, index: led.index, lock: color, applied: null, appliedLive: false };
+                        dotsRef.current.set(key, dot);
+                        if (latestFrameRef.current) paintDot(dot, latestFrameRef.current);
                       }}
                       className={color ? `${styles.ledDot} ${styles.ledDotLocked}` : styles.ledDot}
                       style={{ left: `${(part.x + led.u * part.w) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%`, ...(color ? { background: color } : {}) }}
