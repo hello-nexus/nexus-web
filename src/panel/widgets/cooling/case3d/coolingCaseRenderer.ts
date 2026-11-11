@@ -10,6 +10,7 @@ import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
 import { advanceRotor, ROTOR_BLADES, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
+import { projectToCanvas } from './anchorProjection';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
@@ -214,13 +215,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const h = canvas.clientHeight;
     for (const set of anchorSets.values()) {
       for (const a of set.anchors) {
-        const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
-        const x = (v.x * 0.5 + 0.5) * w;
-        const y = (-v.y * 0.5 + 0.5) * h;
         const entry = set.projected[a.key] ?? (set.projected[a.key] = { x: 0, y: 0, visible: false });
-        entry.x = x;
-        entry.y = y;
-        entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+        projectToCanvas(camera, a.at, w, h, scratch, entry);
       }
       set.onProject(set.projected);
     }

@@ -1360,8 +1360,8 @@ describe('CoolingCase3D renderer creation', () => {
 });
 
 describe('CoolingCase3D dev-tools flow controls', () => {
-  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.collisions', 'cooling.case3d.flow.grid'];
-  const devOnly = names.slice(1);
+  const names = ['cooling.case3d.flow.heat', 'cooling.case3d.flow.labels', 'cooling.case3d.flow.collisions', 'cooling.case3d.flow.grid'];
+  const devOnly = names.slice(2);
   const mount = () => {
     h.setup = { record: record(), loaded: true };
     setLayout({ settled: true });
@@ -1378,14 +1378,16 @@ describe('CoolingCase3D dev-tools flow controls', () => {
     mount();
     for (const name of devOnly) expect(screen.queryByRole('switch', { name })).toBeNull();
     expect(screen.getByRole('switch', { name: names[0] })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: names[1] })).toBeTruthy();
   });
 
-  it('lays the toggles out as pills after the legend: heat volume first, then the dev toggles, none in the bottom bar', () => {
+  it('lays the toggles out as pills after the legend: heat volume, then labels, then the dev toggles, none in the bottom bar', () => {
     mount();
     const legend = screen.getByRole('group', { name: /cooling.case3d.flow.legend/ });
     const row = legend.parentElement!;
     const order = [...row.querySelectorAll('[role="switch"]')].map(el => el.getAttribute('aria-label'));
     expect(order[0]).toBe(names[0]);
+    expect(order[1]).toBe(names[1]);
     expect([...order].sort()).toEqual([...names].sort());
     const bar = screen.getByRole('group', { name: 'cooling.case3d.flow.controls' });
     expect(bar.querySelector('[role="switch"]')).toBeNull();
@@ -1509,7 +1511,9 @@ describe('CoolingCase3D fan product', () => {
     expect(value('fan-product-rpm')).toBe('1500');
     expect(value('fan-product-cfm')).toBe('60');
     expect(value('fan-product-pressure')).toBe('1.8');
-    expect(screen.getByTestId('fan-product-source').textContent).toBe('Fan A');
+    expect(screen.getByText('cooling.case3d.product.source')).toBeTruthy();
+    expect(screen.queryByTestId('fan-product-source')).toBeNull();
+    expect(screen.getByRole('group', { name: 'cooling.case3d.product.currentCfm' }).contains(screen.getByTestId('fan-product-current'))).toBe(true);
   });
 
   it('shows the current airflow the solver is given for that fan', () => {
@@ -1543,7 +1547,7 @@ describe('CoolingCase3D fan product', () => {
   it('names the simulated speed of an unlinked fan, at the unassigned default', () => {
     mountWith();
     pick(FRONT);
-    expect(screen.getByTestId('fan-product-source').textContent).toBe('cooling.case3d.product.simulatedAt');
+    expect(screen.queryByText('cooling.case3d.product.simulatedAt')).toBeNull();
     expect((screen.getByRole('slider', { name: 'cooling.case3d.sim.speed' }) as HTMLInputElement).value).toBe('500');
     expect(Number(value('fan-product-current'))).toBeGreaterThan(0);
   });
@@ -1567,6 +1571,20 @@ describe('CoolingCase3D fan product', () => {
     expect(screen.queryByTestId(`fan-cfm-${REAR}`)).toBeNull();
     const calls = h.renderers[0].setAnchors.mock.calls.filter(c => c[2] === 'fan-cfm' && c[0].length > 0);
     expect(calls.at(-1)![0].map((a: { key: string }) => a.key)).toEqual([FRONT]);
+  });
+
+  it('hides the airflow pills and stops following the fans when Labels is switched off, and brings them back on', () => {
+    mountWith([{ channelId: 'fan-a', slotKeys: [FRONT] }]);
+    const labels = screen.getByRole('switch', { name: 'cooling.case3d.flow.labels' });
+    expect(labels.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(labels);
+    expect(screen.queryByTestId(`fan-cfm-${FRONT}`)).toBeNull();
+    expect(screen.queryByTestId('temp-label-cpu')).toBeNull();
+    expect(screen.queryByTestId('temp-label-gpu')).toBeNull();
+    const calls = h.renderers[0].setAnchors.mock.calls.filter(c => c[2] === 'fan-cfm');
+    expect(calls.at(-1)![0]).toEqual([]);
+    fireEvent.click(labels);
+    expect(screen.getByTestId(`fan-cfm-${FRONT}`)).toBeTruthy();
   });
 
   it('reads 0 on the pill of a fan that is not turning', () => {

@@ -10,6 +10,7 @@ import { Notice } from '../../../../components/common/Notice/Notice';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { ThemeScope } from '../../../../components/common/ThemeScope/ThemeScope';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
@@ -48,6 +49,9 @@ import { useSettlingNotice } from './useSettlingNotice';
 import { BuildLogo } from '../../../../components/common/BuildLogo/BuildLogo';
 import { PRESSURE_COLOR } from './pressureColor';
 import styles from './CoolingCase3D.module.scss';
+
+// The popover opens this far below the clicked point, so the fan and what is around it stay in view; the popover keeps itself inside the canvas.
+const POPOVER_OFFSET_PX = 36;
 
 export interface CoolingCase3DProps {
   channels: FanChannel[];
@@ -141,6 +145,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
   const [flowMode, setFlowMode] = useState<CoolingFlowMode>(savedFlowMode ?? DEFAULT_COOLING_FLOW_MODE);
   const [collisions, setCollisions] = useState(DEV_TOOLS && (savedCollisions ?? false));
   const [heatVolume, setHeatVolume] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
   const [gridCells, setGridCells] = useState(false);
   const [spanK, setSpanK] = useState<number | null>(null);
   // The saved choices can change after mount (the settings load, or another window edits them), so the view follows them.
@@ -409,8 +414,8 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
       {/* eslint-disable-next-line i18next/no-literal-string -- theme enum */}
       <ThemeScope theme="dark" scopeRef={viewportRef} className={styles.viewport}>
         <canvas ref={setCanvas} className={styles.canvas} role="img" aria-label={t('cooling.case3d.canvas')} />
-        <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />
-        <FanCfmPills renderer={renderer} fans={productFans} cfm={flowInput?.fanCfm ?? {}} />
+        {showLabels && <CaseTempLabels renderer={renderer} layout={caseLayout} temps={temps} />}
+        {showLabels && <FanCfmPills renderer={renderer} fans={productFans} cfm={flowInput?.fanCfm ?? {}} />}
         <div className={styles.topStack}>
           {result && model && (
             <div className={`${styles.overlay} ${styles.overlayTop}`}>
@@ -442,6 +447,10 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 <span>{t('cooling.case3d.flow.heat')}</span>
               </label>
             )}
+            <label className={`${styles.legend} ${styles.control}`}>
+              <Toggle size="sm" checked={showLabels} onChange={setShowLabels} ariaLabel={t('cooling.case3d.flow.labels')} />
+              <span>{t('cooling.case3d.flow.labels')}</span>
+            </label>
             {DEV_TOOLS && (
               <label className={`${styles.legend} ${styles.control}`}>
                 <Toggle size="sm" checked={gridCells} onChange={setGridCells} ariaLabel={t('cooling.case3d.flow.grid')} />
@@ -482,7 +491,7 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             </span>
           </span>
         </div>
-        <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y }} />
+        <div ref={anchorRef} className={styles.anchor} style={{ left: anchor.x, top: anchor.y + POPOVER_OFFSET_PX }} />
         {radiatorPicked && !activeSlot && (
           <Popover open onClose={closePopover} anchorRef={anchorRef} portal boundsRef={viewportRef} className={styles.popover} ariaLabel={t('cooling.case3d.radiator.label')}>
             <div className={styles.popoverTitle}>{t('cooling.case3d.radiator.label')}</div>
@@ -500,8 +509,18 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
             className={styles.popover}
             ariaLabel={t('cooling.case3d.direction.label')}
           >
-            <div className={styles.popoverTitle}>
-              {activeOwner?.name ?? (activeSimRpm !== null ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
+            <div className={styles.titleRow}>
+              <div className={styles.popoverTitle}>
+                {activeOwner?.name ?? (activeSimRpm !== null ? t('cooling.case3d.sim.fan') : null) ?? `${positionName(activeSlot.position)} ${t('cooling.case3d.size', { size: String(activeSlot.size) })}`}
+              </div>
+              {activeProduct && (
+                <HoverTooltip body={t('cooling.case3d.product.currentCfm')} side="top">
+                  <span className={styles.live} aria-label={t('cooling.case3d.product.currentCfm')} role="group">
+                    <span className={styles.liveDot} aria-hidden="true" />
+                    <span data-testid="fan-product-current" data-value={activeFanCfm}>{cfm(activeFanCfm)}</span>
+                  </span>
+                </HoverTooltip>
+              )}
             </div>
             {activeProduct && (
               <div className={styles.product} role="group" aria-label={t('cooling.case3d.product.label')} data-testid="fan-product">
@@ -510,8 +529,6 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
                 {activeProduct.rpmMax !== undefined && <div className={styles.productRow}><dt>{t('cooling.case3d.product.maxRpm')}</dt><dd data-testid="fan-product-rpm" data-value={activeProduct.rpmMax}>{t('cooling.case3d.sim.rpm', { value: String(Math.round(activeProduct.rpmMax)) })}</dd></div>}
                 {activeProduct.airflowCfm !== undefined && <div className={styles.productRow}><dt>{t('cooling.case3d.product.ratedCfm')}</dt><dd data-testid="fan-product-cfm" data-value={activeProduct.airflowCfm}>{t('cooling.case3d.cfm', { value: formatNumber(activeProduct.airflowCfm, numberFormat, { maximumFractionDigits: 1 }) })}</dd></div>}
                 {activeProduct.staticMmH2O !== undefined && <div className={styles.productRow}><dt>{t('cooling.case3d.product.pressure')}</dt><dd data-testid="fan-product-pressure" data-value={activeProduct.staticMmH2O}>{t('cooling.case3d.product.mmH2O', { value: formatNumber(activeProduct.staticMmH2O, numberFormat, { maximumFractionDigits: 2 }) })}</dd></div>}
-                <div className={styles.productRow}><dt>{t('cooling.case3d.product.currentCfm')}</dt><dd data-testid="fan-product-current" data-value={activeFanCfm}>{cfm(activeFanCfm)}</dd></div>
-                <div className={styles.productRow}><dt>{t('cooling.case3d.product.source')}</dt><dd data-testid="fan-product-source">{activeSimRpm !== null ? t('cooling.case3d.product.simulatedAt', { value: String(activeSimRpm) }) : activeOwner?.name ?? t('cooling.case3d.noneLinked')}</dd></div>
                 </dl>
               </div>
             )}
@@ -524,20 +541,23 @@ export function CoolingCase3D({ channels, selectedChannelId, selectedChannelIds,
               />
             )}
             {radiatorChips}
-            <Select
-              ariaLabel={t('cooling.case3d.device.label')}
-              value={activeSimRpm !== null ? SIM_VALUE : activeOwnerId === NONE_CHANNEL ? NONE : activeOwnerId ?? NONE}
-              options={deviceOptions}
-              onChange={id => { if (id !== SIM_VALUE) linkChannel(id, activeSlot.key); else if (activeSimRpm === null) linkChannel(simChannelId(SIM_RPM_DEFAULT), activeSlot.key); }}
-            />
-            {activeSimRpm !== null && (
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_CEILING} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => setSimPreview({ keys: [activeSlot.key], rpm: Math.round(v) })} onCommit={v => {
-                // A press that changed nothing saves nothing.
-                if (simRpm(channelOfSlot(savedBindings, activeSlot.key) ?? '') !== Math.round(v)) linkChannel(simChannelId(Math.round(v)), activeSlot.key);
-                setSimPreview(null);
-              }} />
-            )}
+            <div className={styles.sourceGroup}>
+              <div className={styles.sourceLabel}>{t('cooling.case3d.product.source')}</div>
+              <Select
+                ariaLabel={t('cooling.case3d.device.label')}
+                value={activeSimRpm !== null ? SIM_VALUE : activeOwnerId === NONE_CHANNEL ? NONE : activeOwnerId ?? NONE}
+                options={deviceOptions}
+                onChange={id => { if (id !== SIM_VALUE) linkChannel(id, activeSlot.key); else if (activeSimRpm === null) linkChannel(simChannelId(SIM_RPM_DEFAULT), activeSlot.key); }}
+              />
+              {activeSimRpm !== null && (
+                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                <Slider orientation="inline" editable trackFill ariaLabel={t('cooling.case3d.sim.speed')} value={activeSimRpm} min={SIM_RPM_MIN} max={SIM_RPM_CEILING} step={SIM_RPM_STEP} formatValue={v => t('cooling.case3d.sim.rpm', { value: String(Math.round(v)) })} onChange={v => setSimPreview({ keys: [activeSlot.key], rpm: Math.round(v) })} onCommit={v => {
+                  // A press that changed nothing saves nothing.
+                  if (simRpm(channelOfSlot(savedBindings, activeSlot.key) ?? '') !== Math.round(v)) linkChannel(simChannelId(Math.round(v)), activeSlot.key);
+                  setSimPreview(null);
+                }} />
+              )}
+            </div>
           </Popover>
         )}
         {multi && (
