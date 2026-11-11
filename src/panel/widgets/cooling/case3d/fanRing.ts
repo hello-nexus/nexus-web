@@ -24,8 +24,6 @@ export interface FanRingFrame {
   boxCenter: Vector3;
   axis: Axis;
   axisIndex: 0 | 1 | 2;
-  /** The slot's own airflow axis in the box's local frame, when it states one. */
-  localGiven: Vector3 | null;
   faceShift: number;
   /** The drawn ring's center in layout space: the box center moved along the ring axis by the face shift, turned with the box. */
   center: Vector3;
@@ -43,5 +41,5 @@ export function fanRingFrame(slot: Pick<CaseFanSlot, 'key' | 'axis'>, box: CaseB
   const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
   const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
   const center = boxCenter.clone().addScaledVector(UNIT[axis].clone().applyAxisAngle(UNIT.y, rotationY), faceShift);
-  return { boxCenter, axis, axisIndex, localGiven, faceShift, center };
+  return { boxCenter, axis, axisIndex, faceShift, center };
 }

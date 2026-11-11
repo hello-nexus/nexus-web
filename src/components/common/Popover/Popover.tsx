@@ -89,24 +89,25 @@ export function Popover({
     const w = pop.offsetWidth;
     const h = pop.offsetHeight;
     const [side, align] = placement.split('-');
+    const b = boundsRef?.current?.getBoundingClientRect();
+    const minY = Math.max(VIEWPORT_MARGIN, b ? b.top + VIEWPORT_MARGIN : 0);
+    const bottomLimit = Math.min(window.innerHeight, b ? b.bottom : Infinity) - VIEWPORT_MARGIN;
     let top: number;
     let left: number;
     if (side === 'top' || side === 'bottom') {
       const below = r.bottom + gap;
       const above = r.top - gap - h;
-      const fitsBelow = below + h <= window.innerHeight - VIEWPORT_MARGIN;
-      const fitsAbove = above >= VIEWPORT_MARGIN;
+      const fitsBelow = below + h <= bottomLimit;
+      const fitsAbove = above >= minY;
       top = side === 'bottom' ? (fitsBelow || !fitsAbove ? below : above) : (fitsAbove || !fitsBelow ? above : below);
       left = align === 'start' ? r.left : r.right - w;
     } else {
       left = side === 'right' ? r.right + SIDE_GAP : r.left - SIDE_GAP - w;
       top = align === 'start' ? r.top : r.bottom - h;
     }
-    const b = boundsRef?.current?.getBoundingClientRect();
     const minX = Math.max(VIEWPORT_MARGIN, b ? b.left + VIEWPORT_MARGIN : 0);
-    const minY = Math.max(VIEWPORT_MARGIN, b ? b.top + VIEWPORT_MARGIN : 0);
     const maxX = Math.min(window.innerWidth, b ? b.right : Infinity) - w - VIEWPORT_MARGIN;
-    const maxY = Math.min(window.innerHeight, b ? b.bottom : Infinity) - h - VIEWPORT_MARGIN;
+    const maxY = bottomLimit - h;
     setCoords({ top: clamp(top, minY, maxY), left: clamp(left, minX, maxX) });
   }, [anchorRef, boundsRef, placement, gap]);
 

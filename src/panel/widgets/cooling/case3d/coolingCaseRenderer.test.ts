@@ -43,7 +43,8 @@ import { sceneSignature } from '../../../../lib/scene/pcSceneSignature';
 import { fanGeometries } from '../../../../lib/cooling/caseLayout';
 import { fanRingFrame } from './fanRing';
 import { projectToCanvas, type CanvasPoint } from './anchorProjection';
-import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringFaceShift, ringMaterial, rotorMaterial } from './coolingCaseRenderer';
+import { AIRFLOW_DIM, CASE_ONLY_DIM, createCaseRenderer, ringMaterial, rotorMaterial } from './coolingCaseRenderer';
+import { ringFaceShift } from './fanRing';
 
 const layout: CaseLayout = {
   size: [450, 230, 470],

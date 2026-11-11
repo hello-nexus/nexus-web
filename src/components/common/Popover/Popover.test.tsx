@@ -52,4 +52,22 @@ describe('Popover', () => {
     expect(wide()).toBe('106px');
     spy.mockRestore();
   });
+
+  it('flips above its anchor when the bounds, not the window, leave no room below', () => {
+    const anchorRect = { top: 380, bottom: 380, left: 50, right: 50, width: 0, height: 0, x: 50, y: 380, toJSON: () => ({}) } as DOMRect;
+    const boundsRect = { top: 0, bottom: 400, left: 0, right: 600, width: 600, height: 400, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.bounds ? boundsRect : anchorRect;
+    });
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(100);
+    function H() {
+      const anchor = useRef<HTMLDivElement>(null);
+      const bounds = useRef<HTMLDivElement>(null);
+      return <div ref={bounds} data-bounds="1"><div ref={anchor}><Popover open onClose={() => {}} anchorRef={anchor} portal boundsRef={bounds} gap={40} ariaLabel="flip">body</Popover></div></div>;
+    }
+    render(<H />);
+    expect(screen.getByRole('dialog', { name: 'flip' }).style.top).toBe('240px');
+    height.mockRestore();
+    spy.mockRestore();
+  });
 });

@@ -11,13 +11,12 @@ import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
 import { advanceRotor, ROTOR_BLADES, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
 import { projectToCanvas } from './anchorProjection';
-import { fanRingFrame, ringFaceShift } from './fanRing';
+import { fanRingFrame } from './fanRing';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
 
-export { ringFaceShift };
 
 export interface CaseSceneState {
   layout: CaseLayout;
