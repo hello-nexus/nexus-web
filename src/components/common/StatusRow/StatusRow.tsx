@@ -14,6 +14,8 @@ import styles from './StatusRow.module.scss';
  */
 interface StatusRowProps {
   name: ReactNode;
+  /** Leading icon before the name; omit for none. */
+  icon?: ReactNode;
   /** The reading, rendered above the chip. Omit for a switched-off row. */
   value?: ReactNode;
   chip?: ReactNode;
@@ -30,7 +32,7 @@ interface StatusRowProps {
   className?: string;
 }
 
-export function StatusRow({ name, value, chip, note, toggle, onSelect, selected, dimmed, danger, className }: StatusRowProps) {
+export function StatusRow({ name, icon, value, chip, note, toggle, onSelect, selected, dimmed, danger, className }: StatusRowProps) {
   const hasStatus = value !== undefined || chip !== undefined || note !== undefined;
   return (
     <Card
@@ -42,6 +44,7 @@ export function StatusRow({ name, value, chip, note, toggle, onSelect, selected,
       className={`${styles.card} ${dimmed ? styles.dimmed : ''} ${danger ? styles.danger : ''} ${className ?? ''}`}
     >
       <div className={styles.body}>
+        {icon !== undefined && <span className={styles.icon} aria-hidden>{icon}</span>}
         {onSelect ? (
           <button type="button" className={styles.name} aria-pressed={Boolean(selected)} onClick={e => { e.stopPropagation(); onSelect(); }}>
             {name}

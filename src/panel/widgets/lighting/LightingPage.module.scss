@@ -1106,6 +1106,14 @@
     color: var(--text);
     background: var(--surface);
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--border-strong);
+    color: var(--text-dim);
+    background: transparent;
+  }
 }
 
 .deviceCard {

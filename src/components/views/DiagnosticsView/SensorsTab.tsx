@@ -21,6 +21,7 @@ import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
 import { SensorHistorySection } from './SensorHistorySection';
 import { SensorList } from './SensorList';
 import { resolveSelectedId, sensorCardAnchor } from './sensorHistoryHelpers';
+import pageStyles from '../../../panel/widgets/lighting/LightingPage.module.scss';
 import styles from './SensorsTab.module.scss';
 
 interface SensorsTabProps {
@@ -146,12 +147,16 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
         <div className={styles.listPane}>
           <div className={styles.groupHeader}>
             <SectionHeader>{t('diagnostics.tab.sensors')}</SectionHeader>
-            <span className={styles.addRow}>
-              {addButton}
-              {note && <span className={styles.note}>{note}</span>}
-            </span>
+            {note && <span className={styles.note}>{note}</span>}
           </div>
           <SensorList rules={rules} {...listProps} />
+          <button
+            type="button" className={pageStyles.addSmartLights} data-testid="sensor-add"
+            disabled={!loaded || alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
+          >
+            <Plus size={22} aria-hidden />
+            <span>{t('diagnostics.sensors.add')}</span>
+          </button>
         </div>
         {selectedRule && (
           <div className={styles.detail} data-testid="sensor-detail" data-rule-id={selectedRule.id}>

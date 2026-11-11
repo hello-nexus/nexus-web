@@ -1,12 +1,21 @@
+import { Cpu, Gpu, HardDrive, MemoryStick, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
+import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorList.module.scss';
+
+/** Built-in rows lead with their component's icon, the same glyphs the Cooling page and the Diagnostics tabs use. */
+const BUILT_IN_ICONS: Record<BuiltInSensorKind, LucideIcon> = {
+  cpuTemp: Cpu,
+  gpuTemp: Gpu,
+  storageTemp: HardDrive,
+  ramTemp: MemoryStick,
+};
 
 interface SensorListProps {
   rules: readonly SensorAlertRule[];
@@ -32,6 +41,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
         const name = ruleLabel(t, rule);
         // An enabled sensor the PC does not report has nothing to switch or grade: the chip alone says so.
         // A switched-off sensor shows its name and switch only.
+        const BuiltInIcon = rule.builtIn ? BUILT_IN_ICONS[rule.builtIn] : null;
         const notReported = rule.enabled && reading === null && (isBuiltIn(rule) || kind === 'unavailable');
         return (
           <li
@@ -45,6 +55,7 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
           >
             <StatusRow
               name={name}
+              icon={BuiltInIcon ? <BuiltInIcon size={16} /> : undefined}
               selected={selected}
               dimmed={!rule.enabled}
               onSelect={() => onSelect(rule.id)}

@@ -22,6 +22,15 @@
   gap: var(--space-sm);
   padding: var(--space-sm);
   min-width: 0;
+  // Every row matches the tallest layout (reading stacked over its chip), so rows with fewer parts do not shrink.
+  min-height: var(--status-row-min-height, 4.25rem);
+  box-sizing: border-box;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--text-dim);
 }
 
 // Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
