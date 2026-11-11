@@ -32,6 +32,9 @@ const TAIL_POLL_MS = 5_000;
 // A tail fetch older than this no longer blocks the next one, so a never-settling fetch cannot stop polling.
 const TAIL_FLIGHT_MAX_AGE_MS = 30_000;
 const LIVE_TAIL_MAX_POINTS = 50;
+// Mirrors the service's MonitoringHistoryRoutes.MaxMaxPoints clamp. A gap-fill that would need more points than
+// this to keep the viewport's step cannot be fetched at that step, so it refetches the window instead.
+const SERVICE_MAX_POINTS = 2_000;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
@@ -158,7 +161,10 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
     const seenT = new Set(s.points.map(p => p.t));
     const additions = t.points.filter(p => !seenT.has(p.t));
     if (additions.length === 0) return s;
-    return { ...s, points: [...s.points, ...additions] };
+    const points = [...s.points, ...additions];
+    // A gap-fill can land points older than the newest existing one; keep the series ascending.
+    if (s.points.length > 0 && additions[0].t < s.points[s.points.length - 1].t) points.sort((a, b) => a.t - b.t);
+    return { ...s, points };
   });
   const added = tail.filter(t => !prevById.has(t.id) && t.points.length > 0);
   return [...merged, ...added];
@@ -230,6 +236,8 @@ export function useMetricHistory(
   const [error, setError] = useState(false);
   const [mocked, setMocked] = useState(false);
   const [stepSeconds, setStepSeconds] = useState<number | null>(null);
+  const stepSecondsRef = useRef(stepSeconds);
+  useEffect(() => { stepSecondsRef.current = stepSeconds; }, [stepSeconds]);
   // True only between a TimelineBrush 'drag' event and its matching 'end' -
   // consumers (the adaptive Y axis) freeze on this to avoid recomputing from
   // the visible window's own per-tick shift during the pan.
@@ -617,13 +625,23 @@ export function useMetricHistory(
     const base = lastLoadedTRef.current ?? nowRef.current;
     const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+    const windowSeconds = Math.max(0, to - from) / 1000;
+    // Fetch the hole at the step the viewport is drawn at (1s before its first response). Merging a coarser
+    // response would leave minute-spaced points in front of per-second ones (dots and a bridging line), and a
+    // finer one would flood a wide viewport with per-second points.
+    const step = Math.max(1, stepSecondsRef.current ?? 1);
+    const maxPoints = Math.max(LIVE_TAIL_MAX_POINTS, Math.ceil(windowSeconds / step) + 1);
+    if (maxPoints > SERVICE_MAX_POINTS) {
+      if (viewportRef.current.following) setFetchEpoch(e => e + 1);
+      return;
+    }
     const seq = ++tailSeqRef.current;
     const flight = ++tailFlightIdRef.current;
     tailFlightStartRef.current = Date.now();
     void (async () => {
       let result: Awaited<ReturnType<typeof fetcherRef.current>> | null = null;
       try {
-        result = await fetcherRef.current({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
+        result = await fetcherRef.current({ from, to, maxPoints, series: seriesQueryRef.current });
       } catch {
         result = null;
       } finally {
