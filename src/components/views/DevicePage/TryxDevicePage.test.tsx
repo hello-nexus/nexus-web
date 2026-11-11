@@ -37,7 +37,7 @@ vi.mock('../../../hooks/useSensors', () => ({
 }));
 
 const mockExtras = {
-  batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [],
+  batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], fanSensors: [], embeddedControllers: [], memoryModules: [],
 };
 vi.mock('../../../hooks/useSensorExtras', () => ({
   useSensorExtras: () => mockExtras,
