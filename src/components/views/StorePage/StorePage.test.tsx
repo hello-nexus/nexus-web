@@ -287,6 +287,18 @@ describe('StorePage hardware-gated app', () => {
     expect(screen.queryByRole('button', { name: 'store.viewProduct' })).not.toBeInTheDocument();
   });
 
+  it('keeps the lead card for an app without hardware when a gated app sorts first', async () => {
+    fetchStoreApps.mockResolvedValue([{ ...gated(false), name: 'Gated' }, lead, { ...app, id: 'com.example.other', name: 'Other' }]);
+    render(<StorePage />);
+
+    const cards = await screen.findAllByText('store.featured');
+    expect(cards).toHaveLength(2);
+    const [first, second] = cards.map(c => c.closest('section') as HTMLElement);
+    expect(within(first).getByRole('button', { name: 'Lead' })).toBeInTheDocument();
+    expect(within(second).getByRole('button', { name: 'Gated' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'store.section.apps' })).toBeInTheDocument();
+  });
+
   it('swaps Install for a product button and a requirement line on the app page when the hardware is absent', async () => {
     fetchStoreApps.mockResolvedValue([gated(false)]);
     fetchStoreApp.mockResolvedValue({ ...detail, ...gated(false) });
