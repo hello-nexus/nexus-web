@@ -106,6 +106,7 @@ export function SensorAlertsSection({ focusRuleId, onFocused }: SensorAlertsSect
           onPreview={alerts.preview}
           onSave={next => alerts.save(next, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
           onDelete={() => { void alerts.remove(rule.id); }}
+          onAcknowledge={() => { void alerts.acknowledge(rule.id); }}
         />
       ))}
     </SettingsSection>

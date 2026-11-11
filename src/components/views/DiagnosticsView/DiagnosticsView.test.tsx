@@ -694,7 +694,7 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByTestId('settings-tab')).toBeInTheDocument();
   });
 
-  it('lists sensor alerts below the Summary grid, acknowledges without navigating, and a row opens the Settings tab', () => {
+  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Settings tab', () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
@@ -706,9 +706,7 @@ describe('DiagnosticsView tabs', () => {
 
     const row = screen.getByRole('button', { name: /CPU Package/ });
     expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.acknowledgeFor' }));
-    expect(mockAlerts.acknowledge).toHaveBeenCalledWith('r1');
-    expect(onTabChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /acknowledge/ })).toBeNull();
     fireEvent.click(row);
     expect(onTabChange).toHaveBeenCalledWith('settings');
     mockAlerts.rules = [];

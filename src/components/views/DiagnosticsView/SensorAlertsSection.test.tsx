@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   createSensorAlert: vi.fn(),
   updateSensorAlert: vi.fn(),
   deleteSensorAlert: vi.fn(),
+  acknowledgeSensorAlert: vi.fn(),
 }));
 
 vi.mock('../../../api/diagnosticsAlerts', async importOriginal => ({
@@ -23,6 +24,7 @@ vi.mock('../../../api/diagnosticsAlerts', async importOriginal => ({
   createSensorAlert: h.createSensorAlert,
   updateSensorAlert: h.updateSensorAlert,
   deleteSensorAlert: h.deleteSensorAlert,
+  acknowledgeSensorAlert: h.acknowledgeSensorAlert,
 }));
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
@@ -233,6 +235,29 @@ describe('SensorAlertsSection', () => {
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', raiseAfterSeconds: 30, clearAfterSeconds: 5 })));
     fireEvent.change(screen.getByRole('combobox', { name: 'diagnostics.alerts.clearAfter' }), { target: { value: '0' } });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ clearAfterSeconds: 0 })));
+  });
+
+  describe('acknowledge on the card', () => {
+    const ackName = 'diagnostics.alerts.acknowledgeFor(name=CPU Package)';
+
+    it('shows Acknowledge only while the rule is active and unacknowledged, and acknowledges it', async () => {
+      h.acknowledgeSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
+      await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above' })]);
+      openFirst();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: ackName })); });
+      expect(h.acknowledgeSensorAlert).toHaveBeenCalledWith('r1');
+      expect(screen.queryByRole('button', { name: ackName })).toBeNull();
+    });
+
+    it.each([
+      ['ok', { state: 'ok' as const }],
+      ['pending', { state: 'pending' as const }],
+      ['already acknowledged', { state: 'active' as const, acknowledged: true }],
+    ])('hides Acknowledge when the rule is %s', async (_label, over) => {
+      await renderSection([rule('r1')], [okState('r1', over)]);
+      openFirst();
+      expect(screen.queryByRole('button', { name: ackName })).toBeNull();
+    });
   });
 
   describe('focus from the Summary list', () => {

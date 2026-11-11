@@ -3,7 +3,6 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
-import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
 import { formatAlertValue, rowState, sensorLabel, stateColor } from './sensorAlertHelpers';
@@ -16,13 +15,12 @@ interface SensorAlertsListProps {
 
 /**
  * Read-only roll-up of the configured sensor alerts for the Summary tab: one row per rule with its
- * live value and state. A row opens the rule on the Settings tab; an active, unacknowledged row also
- * carries Acknowledge. Renders nothing until the list has loaded with at least one rule.
+ * live value and state. A row opens the rule on the Settings tab, where it is edited and acknowledged. Renders nothing until the list has loaded with at least one rule.
  */
 export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
-  const { rules, states, acknowledge } = useSensorAlerts(true);
+  const { rules, states } = useSensorAlerts(true);
   const { resolve } = useSensorLookup();
   if (rules.length === 0) return null;
 
@@ -58,15 +56,6 @@ export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
                   </span>
                   <Badge label={t(`diagnostics.alerts.state.${kind}`)} color={stateColor(kind, rule)} />
                 </div>
-                {kind === 'active' && state && !state.acknowledged && (
-                  <Button
-                    type="button" size="sm" tone="neutral"
-                    aria-label={t('diagnostics.alerts.acknowledgeFor', { name: sensorLabel(rule.sensor) })}
-                    onClick={() => { void acknowledge(rule.id); }}
-                  >
-                    {t('diagnostics.alerts.acknowledge')}
-                  </Button>
-                )}
               </li>
             );
           })}

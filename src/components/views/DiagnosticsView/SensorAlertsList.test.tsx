@@ -6,13 +6,11 @@ import { SensorAlertsList } from './SensorAlertsList';
 const h = vi.hoisted(() => ({
   tempUnit: 'c' as 'c' | 'f',
   fetchSensorAlerts: vi.fn(),
-  acknowledgeSensorAlert: vi.fn(),
 }));
 
 vi.mock('../../../api/diagnosticsAlerts', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/diagnosticsAlerts')>()),
   fetchSensorAlerts: h.fetchSensorAlerts,
-  acknowledgeSensorAlert: h.acknowledgeSensorAlert,
 }));
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
@@ -110,16 +108,8 @@ describe('SensorAlertsList', () => {
     expect(onOpenRule).toHaveBeenCalledTimes(3);
   });
 
-  it('acknowledges only an active unacknowledged row, without opening it', async () => {
-    h.acknowledgeSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
-    const { onOpenRule } = await renderList(
-      [rule('a'), rule('b'), rule('c')],
-      [state('a', { state: 'active', direction: 'above' }), state('b', { state: 'active', direction: 'above', acknowledged: true }), state('c')],
-    );
-    expect(screen.getAllByRole('button', { name: /^diagnostics.alerts.acknowledgeFor/ })).toHaveLength(1);
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.acknowledgeFor(name=CPU Sensor a)' })); });
-    expect(h.acknowledgeSensorAlert).toHaveBeenCalledWith('a');
-    expect(onOpenRule).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: /acknowledgeFor/ })).toBeNull();
+  it('has no Acknowledge button, even on an active row', async () => {
+    await renderList([rule('a')], [state('a', { state: 'active', direction: 'above' })]);
+    expect(screen.queryByRole('button', { name: /acknowledge/i })).toBeNull();
   });
 });

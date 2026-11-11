@@ -53,9 +53,11 @@ interface SensorAlertRuleCardProps {
   /** Writes the full rule. */
   onSave: (rule: SensorAlertRule) => void;
   onDelete: () => void;
+  /** Acknowledges the rule's active episode. */
+  onAcknowledge: () => void;
 }
 
-export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, onPreview, onSave, onDelete }: SensorAlertRuleCardProps) {
+export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, onPreview, onSave, onDelete, onAcknowledge }: SensorAlertRuleCardProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -134,6 +136,17 @@ export function SensorAlertRuleCard({ rule, state, lookup, open, onToggleOpen, o
           </span>
         )}
       >
+        {state?.state === 'active' && rule.enabled && !state.acknowledged && (
+          <SettingRow label={t('diagnostics.alerts.state.active')}>
+            <Button
+              type="button" size="sm" tone="neutral"
+              aria-label={t('diagnostics.alerts.acknowledgeFor', { name: sensorLabel(rule.sensor) })}
+              onClick={onAcknowledge}
+            >
+              {t('diagnostics.alerts.acknowledge')}
+            </Button>
+          </SettingRow>
+        )}
         <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
           <SensorPicker
             lookup={lookup}
