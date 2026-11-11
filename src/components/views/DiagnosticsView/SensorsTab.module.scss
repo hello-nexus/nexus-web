@@ -57,7 +57,9 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  padding-bottom: var(--space-sm);
+  // The padding spans the flex gap under the block (pulled back by the negative margin), so scrolled editor rows never show in it.
+  padding-bottom: var(--space-md);
+  margin-bottom: calc(-1 * var(--space-md));
   background: var(--bg-elevated);
 
   @media (max-width: 720px) {
