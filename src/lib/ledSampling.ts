@@ -95,7 +95,7 @@ const linearToSrgb = (l: number) => {
   return Math.round(clamp(v, 0, 1) * 255);
 };
 
-/** Combines the pixels of one LED's read into a color. Mirrors the service combiner; change them together. */
+/** Combines the pixels of one LED's read into a color. Standard and ignore-black match the service exactly; vivid can differ by 1 (the service uses 16-bit linear tables). */
 export function combinePixels(f: SampleFrame, ix0: number, iy0: number, ix1: number, iy1: number, mode: ColorSamplingMode = 'standard'): [number, number, number] {
   let n = 0, r = 0, g = 0, b = 0;
   let kn = 0, kr = 0, kg = 0, kb = 0;
@@ -136,7 +136,7 @@ export function sampleSpot(f: SampleFrame, s: LedSample, mode?: ColorSamplingMod
   return combinePixels(f, ix0, iy0, ix1, iy1, mode);
 }
 
-/** The whole cell's plain mean: the read under full-frame sampling, where the cell is a slice of the pattern. */
+/** The whole cell combined by mode: the read under full-frame sampling, where the cell is a slice of the pattern. */
 export function sampleBox(f: SampleFrame, s: LedSample, mode?: ColorSamplingMode): [number, number, number] {
   const ix0 = clamp(Math.floor(s.sx - s.halfW), 0, f.w - 1);
   const iy0 = clamp(Math.floor(s.sy - s.halfH), 0, f.h - 1);

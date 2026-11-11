@@ -2895,7 +2895,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               )}
             </div>
             <div className={styles.saveGroup}>
-              {zoneCard && zoneCard.sampling !== undefined && (
+              {zoneCard && zoneCard.colorSampling !== undefined && (
                 <ColorSamplingSelect
                   id={zoneCard.id}
                   value={zoneCard.colorSampling ?? 'standard'}
