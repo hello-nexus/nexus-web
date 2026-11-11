@@ -34,7 +34,7 @@ vi.mock('../../../../hooks/useSensors', async importOriginal => {
   };
 });
 vi.mock('../../../../hooks/useSensorExtras', () => ({
-  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
+  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], fanSensors: [], embeddedControllers: [], memoryModules: [] }),
 }));
 
 function Harness(props: Omit<React.ComponentProps<typeof SensorPicker>, 'lookup'>) {

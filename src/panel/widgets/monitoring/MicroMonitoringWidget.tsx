@@ -17,6 +17,7 @@ import {
   displayLabel,
   labelForDevice,
   percentForSensor,
+  isSavedSensorMissing,
   resolveSensor,
   staticMaxForDevice,
 } from './MonitoringWidget';
@@ -76,6 +77,7 @@ export function bottomLabelForDevice(
     case 'memoryModule': return t('monitoring.detailed.memoryModule');
     case 'battery': return t('monitoring.detailed.battery');
     case 'cooler': return t('monitoring.detailed.cooler');
+    case 'fanSensors': return t('monitoring.detailed.fanSensors');
     case 'psu': return t('monitoring.detailed.psu');
     case 'embeddedController': return t('monitoring.detailed.ec');
     case 'network': return 'Network';
@@ -231,12 +233,14 @@ interface MicroRowProps {
 }
 
 function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, align, scale, fixedMin, fixedMax, valueColor, valueColorReverse, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat, monitoringWholeNumbers }: MicroRowProps) {
+  const { t } = useTranslation();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat, sensor.type, monitoringWholeNumbers) : '-';
   const sensorDisplayName = sensorCaptionName(device, sensors, sensor) ?? '';
-  const autoLabel = prefixed
+  const sensorMissing = isSavedSensorMissing(device, effectiveSensorName, sensor);
+  const autoLabel = sensorMissing ? t('monitoring.sensorMissing') : prefixed
     ? labelForDevice(device, sensorDisplayName || effectiveSensorName)
     : bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
   const label = displayLabel(labelMode, labelOverride, autoLabel);

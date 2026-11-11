@@ -69,6 +69,7 @@ const mockExtras = {
   coolers: [],
   psus: [],
   nvmeStorage: [],
+  fanSensors: [],
   embeddedControllers: [],
   memoryModules: [
     { id: '/memory/dimm/0', name: 'Test DIMM', sensors: [

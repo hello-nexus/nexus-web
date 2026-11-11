@@ -123,6 +123,7 @@ export function extrasSensorsForDevice(device: DeviceKey, extras: SensorExtras):
     case 'memoryModule': return extras.memoryModules.flatMap(c => c.sensors ?? []);
     case 'battery': return extras.batteries.flatMap(c => c.sensors ?? []);
     case 'cooler': return extras.coolers.flatMap(c => c.sensors ?? []);
+    case 'fanSensors': return extras.fanSensors.flatMap(c => c.sensors ?? []);
     case 'psu': return extras.psus.flatMap(c => c.sensors ?? []);
     case 'embeddedController': return extras.embeddedControllers.flatMap(c => c.sensors ?? []);
     default: return [];

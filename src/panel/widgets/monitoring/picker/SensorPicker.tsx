@@ -87,7 +87,7 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
         className={styles.sensor}
         value={sensorValue}
         options={sensorOptions}
-        placeholder={t('lighting.sensor.unavailable')}
+        placeholder={sensor && !listed ? t('monitoring.sensorMissing') : t('lighting.sensor.unavailable')}
         onChange={next => {
           if (automatic && next === AUTOMATIC_VALUE) {
             automatic.onSelect();

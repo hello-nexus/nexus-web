@@ -37,7 +37,7 @@ vi.mock('../../../../hooks/useSensors', async importOriginal => {
   };
 });
 vi.mock('../../../../hooks/useSensorExtras', () => ({
-  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
+  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], fanSensors: [], embeddedControllers: [], memoryModules: [] }),
 }));
 
 const binding = { category: 'quick', sensor: 'summary/cpu-temp', min: 30, max: 90 };

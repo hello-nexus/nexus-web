@@ -283,7 +283,7 @@ describe('cooling curve temperature bands', () => {
 });
 
 describe('curve source whose sensor is not listed', () => {
-  it('keeps the saved id selected as Not available instead of showing another sensor', async () => {
+  it('keeps the saved id selected as Sensor missing instead of showing another sensor', async () => {
     const onChange = vi.fn();
     const curve: CurveDef = { ...newCurve('curve-test'), sourceId: 'corsair:ch1:temp' };
     const { findByText, queryByText } = render(
@@ -292,7 +292,7 @@ describe('curve source whose sensor is not listed', () => {
           onChange={onChange} onDelete={() => {}} />
       </I18nProvider>,
     );
-    await findByText('Not available');
+    await findByText('Sensor missing');
     expect(queryByText(/CPU Package/)).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
   });
