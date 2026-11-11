@@ -124,6 +124,39 @@ describe('PresetToolbar duplicate-name validation (rename)', () => {
   });
 });
 
+describe('PresetToolbar reserved names', () => {
+  it('blocks a create or rename onto a reserved name, without case', () => {
+    render(<PresetToolbar {...defaultProps({ activeId: 'a', reservedNames: ['Flat'] })} />);
+    openCreatePrompt();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'flat' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('lighting.layoutPresets.duplicateName');
+    expect(screen.getByRole('button', { name: 'lighting.layoutPresets.new' })).toBeDisabled();
+  });
+
+  it('blocks a rename onto a reserved name', () => {
+    render(<PresetToolbar {...defaultProps({ activeId: 'a', reservedNames: ['Flat'] })} />);
+    openRenamePrompt();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'FLAT' } });
+    expect(screen.getByRole('button', { name: 'lighting.layoutPresets.rename' })).toBeDisabled();
+  });
+});
+
+describe('PresetToolbar inline save and header', () => {
+  it('opens the new-preset prompt from the inline save button, unless disabled', () => {
+    const { rerender } = render(<PresetToolbar {...defaultProps({ inlineSave: { label: 'Save now' } })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save now' }));
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    rerender(<PresetToolbar {...defaultProps({ inlineSave: { label: 'Save now', disabled: true } })} />);
+    expect(screen.getByRole('button', { name: 'Save now' })).toBeDisabled();
+  });
+
+  it('puts a group header over the presets', () => {
+    render(<PresetToolbar {...defaultProps({ presetsHeader: 'Custom presets', builtins: [{ id: 'x', label: 'Stock' }] })} />);
+    const labels = [...screen.getByTestId('preset-select').querySelectorAll('option')].map(o => o.textContent);
+    expect(labels.slice(0, 4)).toEqual(['Stock', 'Custom presets', 'My Preset', 'Other Preset']);
+  });
+});
+
 describe('PresetToolbar create modal (New preset / Duplicate current)', () => {
   it('titles the create modal with the createTitle key and the rename modal with namePrompt', () => {
     render(<PresetToolbar {...defaultProps({ activeId: 'a' })} />);

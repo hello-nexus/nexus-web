@@ -839,6 +839,8 @@ export interface BrightnessScheduleResponse extends BrightnessSchedule {
   sunDay: number;
   location: BrightnessScheduleLocation | null;
   sun: BrightnessScheduleSun;
+  /** Whether lighting master brightness follows the schedule; the service always resolves it. */
+  lightingFollows: boolean;
 }
 // A field left out keeps its stored value; location null selects Auto.
 export interface BrightnessScheduleUpdate extends BrightnessSchedule {
@@ -846,6 +848,7 @@ export interface BrightnessScheduleUpdate extends BrightnessSchedule {
   location?: BrightnessScheduleLocation | null;
   sunNight?: number;
   sunDay?: number;
+  lightingFollows?: boolean;
 }
 
 export const fetchBrightnessSchedule = () =>
@@ -1375,3 +1378,23 @@ export const fetchIdleDim = () => fetchService<IdleDimState>('/lighting/idle-dim
 
 export const setIdleDim = (settings: IdleDimSettings) =>
   postService('/lighting/idle-dim', settings);
+
+/**
+ * One device's place in the brightness schedule. Key is the surface's stable
+ * id: "y70", "corsair-lcd", or a display id. levelPercent is the schedule's
+ * level capping the device now (100 while it does not follow); appliedPercent is
+ * the lower of its slider and that level, null when the slider is unknown.
+ */
+export interface ScheduleFollowDevice {
+  key: string;
+  follows: boolean;
+  levelPercent: number;
+  appliedPercent: number | null;
+}
+
+/** A device the list does not mention does not follow the schedule. */
+export const fetchScheduleFollowDevices = () =>
+  fetchService<{ devices: ScheduleFollowDevice[] }>('/lighting/brightness-schedule/devices');
+
+export const setScheduleFollowDevice = (key: string, follows: boolean) =>
+  postService<ScheduleFollowDevice | ApiEnvelope>('/lighting/brightness-schedule/devices', { key, follows });

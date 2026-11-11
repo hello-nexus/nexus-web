@@ -57,7 +57,7 @@ import { zoneCardSelectionHoldable } from './page/ZoneCard';
 import { useTranslation } from '../../../lib/i18n';
 import { isPaletteKey } from '../../../types/lightingPalette';
 import {
-  staticLookPin, colorPin, animatePin, MIRROR_PIN, MEDIA_PIN, selectionPin, pinGridKey, pinHex, pinStripPick, pickerMarks, pinnedNamesByEffect, pinModeTargetLabel, pinTargetLabel, clearLegacyLightingKeys, SELECTED_DEVICES_STORAGE_KEY,
+  staticLookPin, colorPin, animatePin, MIRROR_PIN, MEDIA_PIN, selectionPin, pinGridKey, pinHex, pinStripPick, pickerMarks, pinnedNamesByEffect, pinModeTargetLabel, pinTargetLabel, clearLegacyLightingKeys, SELECTED_DEVICES_STORAGE_KEY, selectionWithoutUnpinned,
 } from './pins';
 import type { WidgetProps } from '../types';
 import styles from './LightingPage.module.scss';
@@ -591,7 +591,12 @@ function useImmersiveAnimateState(): {
     pinSource: globalPin?.name ?? null,
     pinDisabledReason: globalPin ? undefined : t('lighting.pin.disabledUnavailable'),
     pinTargetName: (pin: Pin) => pinModeTargetLabel(pin, t),
-    onSetPin: (ids, pinned) => { if (!pinned) void applyPins(ids, null); else if (globalPin) void applyPins(ids, globalPin.pin); },
+    onSetPin: (ids, pinned) => {
+      if (pinned) { if (globalPin) void applyPins(ids, globalPin.pin); return; }
+      void applyPins(ids, null);
+      const left = selectionWithoutUnpinned(selectedIds, null, ids, devices.map(d => d.id));
+      if (left) onSetSelection(left.ids, left.primary);
+    },
   };
 
   const pinnedDevices = useMemo(() => {

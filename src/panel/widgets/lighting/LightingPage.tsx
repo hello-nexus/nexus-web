@@ -82,7 +82,7 @@ import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersis
 import {
   staticLookPin, colorPin, animatePin, MIRROR_PIN, MEDIA_PIN, pinGridKey, pinHex, pinSignature, type Pins,
   pickerMarks, pinMode, pinnedNamesByEffect, pinModeTargetLabel, pinTargetLabel, pressReach, engineReaches, selectAllEligible, tabPressChangesNothing, clearLegacyLightingKeys,
-  SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
+  SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY, selectionWithoutUnpinned,
 } from './pins';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
@@ -2180,7 +2180,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const unpinAll = useCallback(() => {
     const ids = Object.keys(pins);
     if (ids.length > 0) void applyPins(ids, null);
-  }, [applyPins, pins]);
+    // An empty selection means all devices, so the next pick pins none of them again.
+    setSelectedDeviceIds(new Set());
+    setPrimaryDeviceId(null);
+    setCanvasFocus(null);
+  }, [applyPins, pins, setSelectedDeviceIds, setPrimaryDeviceId, setCanvasFocus]);
 
   // Over visibleDevices, which the show-uncontrolled filter does not touch, so
   // hidden uncontrolled cards count; zero-LED and device-page cards do not.
@@ -2761,9 +2765,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return body && tabs ? new DOMRect(body.left, tabs.bottom, body.width, body.bottom - tabs.bottom) : null;
   }, []);
   const handleSetPin = useCallback((ids: string[], pinned: boolean) => {
-    if (!pinned) { void applyPins(ids, null); return; }
+    if (!pinned) {
+      void applyPins(ids, null);
+      // A stacked card moves with its stack, so the whole stack leaves the selection.
+      const left = selectionWithoutUnpinned(
+        selectedDeviceIds, primaryDeviceId, [...withStacked(deviceStacksRef.current, ids)], orderedDevices.map(d => d.id),
+      );
+      if (left) {
+        setSelectedDeviceIds(left.ids);
+        setPrimaryDeviceId(left.primary);
+        // An explicit canvas focus drops the devices that left the selection; null follows the selection.
+        setCanvasFocus(prev => {
+          const kept = prev && new Set([...prev].filter(id => left.ids.has(id)));
+          return kept && kept.size > 0 ? kept : null;
+        });
+      }
+      return;
+    }
     if (globalPin) void applyPins(ids, globalPin.pin);
-  }, [applyPins, globalPin]);
+  }, [applyPins, globalPin, selectedDeviceIds, primaryDeviceId, orderedDevices, setSelectedDeviceIds, setPrimaryDeviceId, setCanvasFocus]);
   // A Mirror or Media pick with cards selected gives just them the shared source.
   const handleSelectionPick = useMemo(() => {
     if (selectedDeviceIds.size === 0 || (viewMode !== 'screen' && viewMode !== 'gif')) return undefined;

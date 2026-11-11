@@ -8,6 +8,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { Notice } from '../../../components/common/Notice/Notice';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../ServiceRequired';
+import { DisplayBrightnessRow } from './DisplayBrightnessRow';
 import { DisplayDetailHeader } from './DisplayDetailHeader';
 import { MonitorMap } from './MonitorMap';
 import { identifyPayload, IDENTIFY_SHOWN_MS } from './identifyPayload';
@@ -184,6 +185,11 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                   onChange={next => void toggleDdc(selected, next)}
                 />
               </div>
+              )}
+
+              {/* A panel-owned display is covered by its own device page, under the same key. */}
+              {!selected.isY70 && !selected.ownedByDevicePanel && selected.ddcEnabled && (
+                <DisplayBrightnessRow key={selected.id} displayId={selected.id} />
               )}
 
               {!selected.isY70 && !selected.ownedByDevicePanel && !selected.assignedPanelDeviceId && (!topology?.hostingSupported || !selected.hostingSupported) && (

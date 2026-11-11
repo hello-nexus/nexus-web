@@ -140,7 +140,7 @@
 // Transparent side padding keeps the border box under that threshold while
 // the content box object-fit paints into, and the native video compositing,
 // are unchanged. The panel screenshot zeroes it for the rasterize
-// (PanelEmbedFrame unpadVideosForCapture).
+// (PanelEmbedFrame unpadVideosForCapture, keyed on data-wakelock-pad).
 .backgroundMediaVideo {
   box-sizing: content-box;
   padding: 0 100%;

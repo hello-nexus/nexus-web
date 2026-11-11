@@ -697,6 +697,33 @@ describe('resolveSensor - id-keyed lookup', () => {
   });
 });
 
+describe('resolveSensor - psu fallback skips power monitors', () => {
+  const mk = (id: string, name: string) => ({ id, name, type: 'Power', value: 10, units: 'W', formatted: '10 W', parent: { id: 'p', name: 'P' } });
+  const meter = mk('/gpu-powermonitor/0/power/0', 'Total Power');
+  const psuSensor = mk('/psu/0/power/0', 'PSU Output');
+  const sensors = {
+    summary: [], cpu: [], gpu: [], memory: [], storage: [], storageComponents: {}, storageSensors: [],
+    motherboard: [], motherboardModel: '', cpuModel: '', gpuModel: '', gpuModels: [], gpuComponents: [], memoryTotal: '',
+  };
+  const extrasOf = (list: ReturnType<typeof mk>[]) => ({
+    batteries: [], nics: [], coolers: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [],
+    psus: [{ id: 'psu', name: 'PSU', sensors: list }],
+  });
+
+  it('skips a leading power monitor and falls back to the first real PSU sensor', () => {
+    expect(resolveSensor(sensors, [], [], 'psu', '', undefined, extrasOf([meter, psuSensor]))?.id).toBe('/psu/0/power/0');
+  });
+
+  it('returns undefined when only power monitors remain', () => {
+    expect(resolveSensor(sensors, [], [], 'psu', '', undefined, extrasOf([meter]))).toBeUndefined();
+    expect(resolveSensor(sensors, [], [], 'psu', '/missing/id', undefined, extrasOf([meter]))).toBeUndefined();
+  });
+
+  it('still resolves an explicitly picked power monitor by exact id', () => {
+    expect(resolveSensor(sensors, [], [], 'psu', '/gpu-powermonitor/0/power/0', undefined, extrasOf([meter, psuSensor]))?.id).toBe('/gpu-powermonitor/0/power/0');
+  });
+});
+
 describe('MonitoringWidget - per-slot label modes', () => {
   function widgetWith(config: Record<string, PanelConfigValue>): PanelWidget {
     return {

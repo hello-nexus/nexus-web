@@ -17,29 +17,6 @@
   min-height: 2.6rem;
 }
 
-// The schedule clock beside the master slider's label; opens the schedule
-// editor. Accent-tinted while the schedule is on.
-.scheduleMarker {
-  display: inline-flex;
-  margin-left: 0.25rem;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  color: var(--text);
-  cursor: pointer;
-  transition: color var(--ease-fast) ease, background var(--ease-fast) ease;
-
-  &:hover:not([aria-disabled]) { color: var(--accent); }
-  &[data-active] {
-    color: var(--accent);
-    background: var(--accent-soft);
-  }
-  &:focus-visible { @include focus-ring; }
-  &[aria-disabled] { cursor: default; }
-}
-
 .body {
   display: grid;
   // Device rail | tabs + content | effect dock. Both side columns match

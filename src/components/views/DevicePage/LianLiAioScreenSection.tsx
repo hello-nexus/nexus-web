@@ -12,6 +12,7 @@ import {
   type LianLiAioScreen,
   type LianLiAioScreenPatch,
 } from '../../../api/lianli-wireless';
+import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -51,6 +52,8 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
     }
   }, [mac]);
 
+  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding(`slv3-aio:${mac.toUpperCase()}`, true);
+
   if (!screen) return null;
 
   const readings: [ReadingKey, Parameters<typeof t>[0]][] = [
@@ -80,6 +83,8 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
   const showNative = !(usbConnected && nexusWidgets);
 
   return (
+    <>
+    {scheduleModal}
     <SettingsSection
       title={t('devices.lianli-wireless.aioScreen.title')}
       boxClassName={styles.sectionBox}
@@ -119,6 +124,7 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
         editable
         trackFill
         label={t('devices.lianli-wireless.aioScreen.brightness')}
+        schedule={scheduleBinding ?? undefined}
         value={screen.brightness}
         min={0}
         max={100}
@@ -185,5 +191,6 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
       ))}
       </>)}
     </SettingsSection>
+    </>
   );
 }

@@ -62,7 +62,6 @@ import { largeChromeGrid, previewChromeGrid, forcedGridOf, isSingleWidgetSurface
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
-  fetchDisplays,
   fetchDisplayTopology,
   fetchXeneonEdgeSettings,
   launchTouchSetupWizard,
@@ -105,6 +104,9 @@ import { TroubleshootLink } from '../../common/TroubleshootLink/TroubleshootLink
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { rotationCrossesClass, tileTransposed } from '../../../panel/engine/tileOrientation';
 import { normalizeRotation, resolveRecordRotation, resolveSupportedRotations, rotationOptions, type PanelRotation } from './panelRotation';
+import { useDdcBrightness } from '../../../hooks/useDdcBrightness';
+import { useDeviceScheduleBinding } from '../../../hooks/useDeviceScheduleBinding';
+import { type BrightnessScheduleBinding } from '../../common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
@@ -197,9 +199,7 @@ const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFl
 // the page can tell apart "unplugged", "enumerated but adb wedged", and
 // "Windows deferred the USB reset" without a full reload.
 const QSERIES_LINK_POLL_INTERVAL_MS = 5_000;
-// Monitor DDC/CI can answer minutes after host boot; the host scan retries for about 15 minutes.
-export const DDC_PROBE_MS = 12_000;
-const DDC_PROBE_TIMEOUT_MS = 20 * 60_000;
+export { DDC_PROBE_MS } from '../../../hooks/useDdcBrightness';
 // After a manual repair, poll faster and give up once the recovery pass has
 // had a realistic chance to bring adb back.
 const QSERIES_LINK_REPAIR_POLL_INTERVAL_MS = 3_000;
@@ -514,32 +514,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   }, [glassSurface, device?.family, device?.previewSize, device?.previewDpi, device?.previewDpr]);
   // Promoted monitors with a DDC/CI-capable display get a brightness-only
   // settings tab wired to the generic /displays brightness endpoint.
-  const [ddcBrightness, setDdcBrightness] = useState<number | null>(null);
   const ddcDisplayId = device?.displayId ?? null;
-  useEffect(() => {
-    if (!ddcDisplayId) return;
-    let cancelled = false;
-    let timer: number | undefined;
-    const deadline = Date.now() + DDC_PROBE_TIMEOUT_MS;
-    const probe = () => {
-      fetchDisplays().then(list => {
-        if (cancelled) return;
-        const display = list?.displays.find(d => d.id === ddcDisplayId);
-        if (display?.brightnessControl.supported) {
-          setDdcBrightness(display.brightnessControl.current ?? 50);
-          return;
-        }
-        if (Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
-      }).catch(() => {
-        if (!cancelled && Date.now() < deadline) timer = window.setTimeout(probe, DDC_PROBE_MS);
-      });
-    };
-    probe();
-    return () => {
-      cancelled = true;
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
-  }, [ddcDisplayId]);
+  const { value: ddcBrightness, setValue: setDdcBrightness } = useDdcBrightness(ddcDisplayId);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
   // Rotation and the monitor-reserve guard exist only on hosts that
   // implement them (rotation: Windows, macOS; reserve: Windows).
@@ -585,6 +561,15 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   // same PATCH as the mounting toggles below rather than its own endpoint.
   const [recordSupportsBrightness, setRecordSupportsBrightness] = useState(false);
   const isDimmableLcdPanel = recordSupportsBrightness && !isSimulated;
+  // The one brightness slider on this page that rides the schedule: the Y70's, a
+  // DDC display's, the Xeneon Edge's top Brightness (its display id), or a
+  // dimmable streamed LCD's (its panel record id).
+  const scheduleKey = supportsDisplayControls || supportsAutoLaunch ? 'y70'
+    : ddcSupported ? ddcDisplayId
+      : isXeneonEdgePanel && device?.displayId ? device.displayId
+        : isDimmableLcdPanel && device?.panelRecordId ? `panel-lcd:${device.panelRecordId}`
+          : null;
+  const { binding: scheduleBinding, modal: scheduleModal } = useDeviceScheduleBinding(scheduleKey, true);
   // Streamed cooler LCDs (e.g. the Aftershock Glacier Matrix) whose driver can
   // hand the screen to Windows as a virtual monitor. While on, the service
   // streams the desktop instead of Nexus content and the Widgets/Theme/
@@ -1831,7 +1816,10 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   })()}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (
                     <MonitorSettingsPanel
+                      schedule={scheduleBinding ?? undefined}
                       brightness={ddcSupported ? (ddcBrightness ?? 50) : null}
+                      // A drag moves local state only; the release writes once.
+                      onBrightnessPreview={setDdcBrightness}
                       onBrightness={(value) => {
                         setDdcBrightness(value);
                         if (ddcDisplayId) void setDisplayBrightness(ddcDisplayId, value).catch(() => {});
@@ -1892,6 +1880,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   )}
                   {activeTab === 'settings' && (supportsDisplayControls || supportsAutoLaunch) && (
                     <SettingsPanel
+                      schedule={scheduleBinding ?? undefined}
                       brightness={brightness}
                       onBrightness={pushBrightness}
                       orientation={orientation}
@@ -1963,6 +1952,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                       variant={device?.firmwareType !== device?.sourceId ? device?.firmwareType : undefined}
                     />
                   )}
+                  {activeTab === 'settings' && scheduleModal}
                   {activeTab === 'settings' && glassSurface === 'q60' && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <MonitorSettingsPanel
@@ -2021,6 +2011,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   )}
                   {activeTab === 'settings' && isDimmableLcdPanel && (
                     <MonitorSettingsPanel
+                      schedule={scheduleBinding ?? undefined}
                       brightness={recordLcdBrightness}
                       onBrightnessPreview={setRecordLcdBrightness}
                       onBrightness={(value) => {
@@ -2322,7 +2313,6 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                 // the record fetch fills liveCanvas.
                 canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
                 gridDpi={previewGridDpi}
-                brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
@@ -2731,6 +2721,8 @@ function OrientationSelectRow({ value, onChange, options }: OrientationSelectRow
 // reused for the Q-series hub, which only ever supplies orientation.
 
 interface MonitorSettingsPanelProps {
+  /** Binds the brightness slider to the universal schedule; omitted hides the sun. */
+  schedule?: BrightnessScheduleBinding;
   brightness: number | null;
   onBrightness: (v: number) => void;
   // Live value during a drag. Given one, the row persists on commit only - a
@@ -2780,6 +2772,7 @@ interface MonitorSettingsPanelProps {
 }
 
 function MonitorSettingsPanel({
+  schedule,
   brightness, onBrightness, onBrightnessPreview,
   orientation, onOrientation, orientationOptions,
   screenOff, onScreenOffToggle,
@@ -2816,6 +2809,7 @@ function MonitorSettingsPanel({
           editable
           trackFill
           label={t('devices.y70.brightness')}
+          schedule={schedule}
           value={brightness}
           min={0}
           max={100}
@@ -2838,6 +2832,8 @@ function MonitorSettingsPanel({
           editable
           trackFill
           label={t(labelKey)}
+          // The service scales the top Brightness register, not Backlight.
+          schedule={brightness === null && key === 'brightness' ? schedule : undefined}
           value={xeneonSettings[key]}
           min={min}
           max={max}
@@ -2953,6 +2949,8 @@ function TroubleshootingRow({ page }: { page: 'q-series-panels' | 'y70-touch' })
 }
 
 interface SettingsPanelProps {
+  /** Binds the brightness slider to the universal schedule; omitted hides the sun. */
+  schedule?: BrightnessScheduleBinding;
   brightness: number;
   onBrightness: (v: number) => void;
   orientation: Y70Orientation;
@@ -2990,6 +2988,7 @@ interface SettingsPanelProps {
 }
 
 function SettingsPanel({
+  schedule,
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
   forceOrientation, onForceOrientationToggle,
@@ -3065,6 +3064,7 @@ function SettingsPanel({
             editable
             trackFill
             label={t('devices.y70.brightness')}
+            schedule={schedule}
             value={brightness}
             min={0}
             max={100}
