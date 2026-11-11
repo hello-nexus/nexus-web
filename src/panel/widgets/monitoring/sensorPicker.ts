@@ -26,7 +26,7 @@ export interface SensorOption {
 export const DEVICE_OPTION_KEYS: readonly DeviceKey[] = [
   'quick', 'cpu', 'gpu', 'gpu2', 'igpu', 'memory', 'memoryModule', 'motherboard',
   'storage', 'smart', 'network', 'fps',
-  'battery', 'cooler', 'psu', 'embeddedController',
+  'battery', 'cooler', 'fanSensors', 'psu', 'embeddedController',
 ];
 
 export const CATEGORY_LABEL_KEYS: Record<DeviceKey, string> = {
@@ -46,6 +46,7 @@ export const CATEGORY_LABEL_KEYS: Record<DeviceKey, string> = {
   fps: 'monitoring.settings.category.fps',
   battery: 'monitoring.settings.category.battery',
   cooler: 'monitoring.settings.category.cooler',
+  fanSensors: 'monitoring.settings.category.fanSensors',
   psu: 'monitoring.settings.category.psu',
   embeddedController: 'monitoring.settings.category.embeddedController',
 };
@@ -109,6 +110,7 @@ export function sensorsForDevice(
     case 'memoryModule':
     case 'battery':
     case 'cooler':
+    case 'fanSensors':
     case 'psu':
     case 'embeddedController':
       options = extrasSensorsForDevice(device, extras).map(s => ({

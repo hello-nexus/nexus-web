@@ -12,6 +12,8 @@ export interface SensorExtras {
   batteries: ExtrasComponent[];
   nics: ExtrasComponent[];
   coolers: ExtrasComponent[];
+  /** Temperature probes built into fans (iCUE LINK QX); empty unless such a fan is connected. */
+  fanSensors: ExtrasComponent[];
   psus: ExtrasComponent[];
   nvmeStorage: ExtrasComponent[];
   embeddedControllers: ExtrasComponent[];
@@ -22,7 +24,7 @@ export interface SensorExtras {
 // helper (e.g. MonitoringWidget.resolveSensor) have a stable default instead
 // of each re-declaring the same empty-array literal.
 export const EMPTY_SENSOR_EXTRAS: SensorExtras = {
-  batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [],
+  batteries: [], nics: [], coolers: [], fanSensors: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [],
 };
 const EMPTY = EMPTY_SENSOR_EXTRAS;
 
@@ -42,6 +44,7 @@ export function useSensorExtras(enabled: boolean): SensorExtras {
       batteries: frame.batteries ?? [],
       nics: frame.nics ?? [],
       coolers: frame.coolers ?? [],
+      fanSensors: frame.fanSensors ?? [],
       psus: frame.psus ?? [],
       nvmeStorage: frame.nvmeStorage ?? [],
       embeddedControllers: frame.embeddedControllers ?? [],

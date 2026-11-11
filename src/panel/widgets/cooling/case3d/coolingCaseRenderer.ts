@@ -4,16 +4,19 @@ import {
 } from 'three';
 import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseBox, type CaseLayout } from '../../../../lib/cooling/caseLayout';
+import { caseExtents, fanGeometries, RADIATOR_PICK_KEY, sceneLayout, type CaseLayout } from '../../../../lib/cooling/caseLayout';
 import { fanRadii } from '../../../../lib/cooling/fanGeometry';
 import type { FanDirection } from '../../../../lib/cooling/pressureModel';
 import type { PickModifiers } from '../../../../lib/cooling/fanSelection';
 import { advanceRotor, ROTOR_BLADES, type RotorSpin } from '../../../../lib/cooling/rotorSpin';
 import { buildCase, coolingPalette, disposeGroup, type Palette } from '../../../../lib/scene/pcScene';
+import { projectToCanvas } from './anchorProjection';
+import { fanRingFrame } from './fanRing';
 import { DEV_TOOLS } from '../../../../lib/devTools';
 import { FlowLayer, type FlowColors, type FlowOptions } from '../../../../lib/cooling/flow/flowLayer';
 import type { FlowInput } from '../../../../lib/cooling/flow/gridScene';
 import { NO_TEMPS, type ComponentTemps, type HeatAnchor } from '../../../../lib/cooling/flow/heatModel';
+
 
 export interface CaseSceneState {
   layout: CaseLayout;
@@ -108,14 +111,6 @@ export function ringMaterial(color: Color, opacity: number, radius: number, simu
   return simulated ? new LineDashedMaterial({ ...base, dashSize: radius * 0.2, gapSize: radius * 0.14 }) : new LineBasicMaterial(base);
 }
 
-/**
- * A card's fan slot box spans the whole card, so its center is inside the card's solid, which hides a ring drawn there.
- * The distance along the ring axis from the box center to the card face the fan draws air in through; 0 for every other slot, whose box is the fan itself.
- */
-export function ringFaceShift(slotKey: string, thickness: number, into: number): number {
-  return slotKey.startsWith('gpu:') && into !== 0 ? -Math.sign(into) * (thickness / 2) : 0;
-}
-
 function ringGeometry(radius: number, axis: 'x' | 'y' | 'z'): BufferGeometry {
   const pts: number[] = [];
   for (let i = 0; i < RING_SEGMENTS; i++) {
@@ -127,12 +122,6 @@ function ringGeometry(radius: number, axis: 'x' | 'y' | 'z'): BufferGeometry {
   const g = new BufferGeometry();
   g.setAttribute('position', new Float32BufferAttribute(pts, 3));
   return g;
-}
-
-function ringAxisOf(box: CaseBox): 'x' | 'y' | 'z' {
-  if (box.fans) return box.fans.axis;
-  const [x, y, z] = box.size;
-  return x <= y && x <= z ? 'x' : y <= z ? 'y' : 'z';
 }
 
 const ROTOR_DOTS = 12;
@@ -214,13 +203,8 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
     const h = canvas.clientHeight;
     for (const set of anchorSets.values()) {
       for (const a of set.anchors) {
-        const v = scratch.set(a.at[0], a.at[1], a.at[2]).project(camera);
-        const x = (v.x * 0.5 + 0.5) * w;
-        const y = (-v.y * 0.5 + 0.5) * h;
         const entry = set.projected[a.key] ?? (set.projected[a.key] = { x: 0, y: 0, visible: false });
-        entry.x = x;
-        entry.y = y;
-        entry.visible = v.z < 1 && x >= 0 && x <= w && y >= 0 && y <= h;
+        projectToCanvas(camera, a.at, w, h, scratch, entry);
       }
       set.onProject(set.projected);
     }
@@ -323,21 +307,15 @@ export function createCaseRenderer(canvas: HTMLCanvasElement, onPick: PickHandle
       const color = dir === 'intake' ? intake : exhaust;
       const chosen = state.active === slot.key || !!state.selected?.has(slot.key);
       const emphasised = state.highlighted.has(slot.key) || chosen;
-      const center = new Vector3(box.min[0] + box.size[0] / 2, box.min[1] + box.size[1] / 2, box.min[2] + box.size[2] / 2);
+      const { boxCenter: center, axis, axisIndex, faceShift } = fanRingFrame(slot, box);
       const given = slot.axis ? new Vector3(...slot.axis) : null;
-      const localGiven = given?.clone().applyAxisAngle(AXES.y, -(box.rotationY ?? 0));
-      const axis = localGiven
-        ? (['x', 'y', 'z'] as const).reduce((best, k) => (Math.abs(localGiven[k]) > Math.abs(localGiven[best]) ? k : best), 'x' as 'x' | 'y' | 'z')
-        : ringAxisOf(box);
       const diameter = box.fans?.diameter ?? Math.max(...box.size);
       const group = new Group();
       group.position.copy(center);
       group.rotation.y = box.rotationY ?? 0;
       const opacity = occupied ? FAN_OPACITY : EMPTY_FAN_OPACITY;
-      const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
       const frameMm = Math.min(...box.size.filter((_, i) => i !== axisIndex));
       const radii = fanRadii(frameMm);
-      const faceShift = ringFaceShift(slot.key, box.size[axisIndex], localGiven ? localGiven[axis] : 0);
       // Tip ring and hub ring: the air moves through the open ring between them.
       // The tip and hub rings are the fan's own lines, as ever; a chosen fan adds the centre dot and the arrow.
       for (const r of [radii.tip, radii.hub * 0.85]) {
