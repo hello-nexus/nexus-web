@@ -32,7 +32,7 @@ interface SensorsTabProps {
   onAlertDismissed: () => void;
 }
 
-/** The tracked sensors: a list on the left and, for the selected sensor, a detail pane with its recorded history (limits drawn as lines) and settings; an Add action and a banner per active alert. */
+/** The tracked sensors: the selected sensor's recorded history (limits drawn as lines) at full width, then a list on the left and the selected sensor's settings on the right; an Add action and a banner per active alert. */
 export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }: SensorsTabProps) {
   const { t } = useTranslation();
   const { push } = useToast();
@@ -128,6 +128,11 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
           />
         );
       })}
+      {selectedRule && (
+        <div data-testid="sensor-history" data-rule-id={selectedRule.id}>
+          <SensorHistorySection history={history} rule={selectedRule} />
+        </div>
+      )}
       <div className={styles.split}>
         <div className={styles.listPane}>
           <span className={styles.addRow}>
@@ -145,9 +150,6 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
         </div>
         {selectedRule && (
           <div className={styles.detail} data-testid="sensor-detail" data-rule-id={selectedRule.id}>
-            <div className={styles.stickyGraph}>
-              <SensorHistorySection history={history} rule={selectedRule} />
-            </div>
             <Card>
               <div data-testid="sensor-settings">
                 <SensorAlertRuleSettings

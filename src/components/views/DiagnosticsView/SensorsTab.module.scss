@@ -26,7 +26,7 @@
   background: var(--surface);
 }
 
-// List on the left, detail pane taking the rest; stacked on a narrow content area.
+// Under the graph: list on the left, settings taking the rest; stacked on a narrow content area.
 .split {
   display: grid;
   grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
@@ -49,20 +49,4 @@
   flex-direction: column;
   gap: var(--space-md);
   min-width: 0;
-}
-
-// The graph with its range picker and seek bar stays docked at the top of the
-// scrolling tab while the editor scrolls under it. Opaque so rows never show through.
-.stickyGraph {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  // The padding spans the flex gap under the block (pulled back by the negative margin), so scrolled editor rows never show in it.
-  padding-bottom: var(--space-md);
-  margin-bottom: calc(-1 * var(--space-md));
-  background: var(--bg-elevated);
-
-  @media (max-width: 720px) {
-    position: static;
-  }
 }

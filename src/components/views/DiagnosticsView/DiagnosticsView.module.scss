@@ -309,6 +309,11 @@
   }
 }
 
+// Cooling: a little more air between the history chart and the GPU/Fans titles.
+.diagSplitCooling {
+  margin-top: var(--space-sm);
+}
+
 // System's two halves are unrelated blocks, so they get more air than
 // Cooling's paired GPU/Fans columns.
 .diagSplitWide {

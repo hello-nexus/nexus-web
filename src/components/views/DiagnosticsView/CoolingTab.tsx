@@ -43,7 +43,7 @@ export function CoolingTab({ cooling, gpu, coolingHistory, episodes, serviceOnli
     <>
       <GuardTripNotice serviceOnline={serviceOnline} onOpenCooling={onOpenCooling} onDismissed={onGuardTripDismissed} />
       <CoolingHistorySection history={coolingHistory} episodes={episodes} />
-      <div className={styles.diagSplit}>
+      <div className={`${styles.diagSplit} ${styles.diagSplitCooling}`}>
         <GpuSection
           data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh}
           heading={t('diagnostics.kind.gpu')}
