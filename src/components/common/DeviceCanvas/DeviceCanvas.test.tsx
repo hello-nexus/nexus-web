@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, minimizeInto } from './DeviceCanvas';
-import { clearLedFrame } from '../../../lib/ledFrameStore';
+import { clearLedFrame, publishLedFrame } from '../../../lib/ledFrameStore';
 import { canvasLabelName } from '../../../lib/canvasLabelName';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
@@ -125,6 +125,67 @@ describe('DeviceCanvas', () => {
     );
     const polys = [...container.querySelectorAll<SVGElement>('polygon')];
     expect(polys.map(p => p.style.stroke)).toEqual(['', 'rgb(255, 0, 0)']);
+  });
+
+  describe('live LED dot colors', () => {
+    const leds = { a: [{ index: 0, u: 0.2, v: 0.5 }, { index: 1, u: 0.8, v: 0.5 }] } as never;
+    const mount = (device: LightingDevice) => render(
+      <DeviceCanvas
+        devices={[device]}
+        selectedIds={new Set(['a'])}
+        selectedDeviceLeds={leds}
+        primaryDeviceId={null}
+        onSelectDevice={vi.fn()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    const dots = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>(`.${styles.ledDot}`)];
+    const bytes = new Uint8Array([10, 20, 30, 40, 50, 60]);
+
+    it('takes the streamed color per LED', () => {
+      publishLedFrame(null, 0, 0, new Map([[3, bytes]]));
+      const { container } = mount({ ...dragDevice('a', 'A'), frameIndex: 3 });
+      expect(dots(container).map(d => d.style.background)).toEqual(['rgb(10, 20, 30)', 'rgb(40, 50, 60)']);
+      expect(dots(container).every(d => d.classList.contains(styles.ledDotLive))).toBe(true);
+    });
+
+    it('follows later frames without re-rendering, and goes grey when the bytes stop', () => {
+      const px = new Uint8Array(12);
+      publishLedFrame(px, 2, 2, new Map([[3, bytes]]));
+      const { container } = mount({ ...dragDevice('a', 'A'), frameIndex: 3 });
+      act(() => { publishLedFrame(px, 2, 2, new Map([[3, new Uint8Array([1, 2, 3, 4, 5, 6])]])); });
+      return new Promise<void>(resolve => requestAnimationFrame(() => {
+        expect(dots(container)[0].style.background).toBe('rgb(1, 2, 3)');
+        act(() => { clearLedFrame(); });
+        requestAnimationFrame(() => {
+          expect(dots(container)[0].style.background).toBe('');
+          expect(dots(container)[0].classList.contains(styles.ledDotLive)).toBe(false);
+          resolve();
+        });
+      }));
+    });
+
+    it('stays grey with no frame index, no bytes for the device, or an index past the bytes', () => {
+      publishLedFrame(null, 0, 0, new Map([[3, new Uint8Array([10, 20, 30])]]));
+      const none = mount(dragDevice('a', 'A'));
+      expect(dots(none.container).map(d => d.style.background)).toEqual(['', '']);
+      none.unmount();
+      const other = mount({ ...dragDevice('a', 'A'), frameIndex: 4 });
+      expect(dots(other.container).map(d => d.style.background)).toEqual(['', '']);
+      other.unmount();
+      const short = mount({ ...dragDevice('a', 'A'), frameIndex: 3 });
+      expect(dots(short.container).map(d => d.style.background)).toEqual(['rgb(10, 20, 30)', '']);
+    });
+
+    it('a locked LED keeps its lock color without bytes, and the stream wins when present', () => {
+      const locked = { ...dragDevice('a', 'A'), ledColors: [{ index: 1, color: '#ff0000' }] } as unknown as LightingDevice;
+      const first = mount(locked);
+      expect(dots(first.container).map(d => d.style.background)).toEqual(['', 'rgb(255, 0, 0)']);
+      first.unmount();
+      publishLedFrame(null, 0, 0, new Map([[3, bytes]]));
+      const second = mount({ ...locked, frameIndex: 3 });
+      expect(dots(second.container)[1].style.background).toBe('rgb(40, 50, 60)');
+    });
   });
 
   it('draws no frames or names when asked to hide them', () => {

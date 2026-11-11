@@ -95,10 +95,10 @@ describe('DeviceLedStrip', () => {
       expect(ctx.fillRect).not.toHaveBeenCalled();
     });
 
-    it('applies the device brightness', () => {
+    it('does not dim the bytes again: they already carry the brightness', () => {
       publishLedFrame(null, 0, 0, new Map([[7, bytes]]));
       render(<DeviceLedStrip device={{ ...withIndex, brightness: 50 }} />);
-      expect(lastImage()[0]).toBe(128);
+      expect(lastImage()[0]).toBe(255);
     });
 
     it('reads a matrix device in wiring order, evenly across its LEDs', () => {
