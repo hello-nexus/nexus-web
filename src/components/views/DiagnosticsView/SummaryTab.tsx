@@ -25,7 +25,7 @@ interface SummaryTabProps {
   onRefreshAll: () => void;
   now: number;
   onNavigate: (kind: DiagnosticsKind) => void;
-  /** Opens the Sensors tab on this sensor alert's card. */
+  /** Opens the Watchlist tab on this sensor alert's card. */
   onOpenAlert: (ruleId: string) => void;
   downloading: boolean;
   downloadingReport: boolean;

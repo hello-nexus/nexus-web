@@ -11,7 +11,7 @@ export const SENSOR_HISTORY_QUERY = 'sensorAlert';
 /** The chart plots the whole range the picker names, so the window fills the strip. */
 export const SENSOR_HISTORY_OPTIONS: MetricHistoryOptions = { fillBox: true };
 
-/** The Sensors tab's anchor id for a rule's list row, which Summary rows scroll to. */
+/** The Watchlist tab's anchor id for a rule's list row, which Summary rows scroll to. */
 export function sensorCardAnchor(ruleId: string): string {
   return `sensor-card-${ruleId}`;
 }

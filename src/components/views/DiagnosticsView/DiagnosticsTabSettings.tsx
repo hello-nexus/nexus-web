@@ -29,12 +29,12 @@ export const TAB_TOGGLES: Partial<Record<DiagnosticsKind, readonly ToggleSpec[]>
   cooling: [
     { labelKey: 'diagnostics.monitorComponent.cooling', setting: 'diagnosticsComponentCooling' },
     { labelKey: 'diagnostics.notify.cooling', setting: 'diagnosticsNotifyCooling', notify: true },
+    { labelKey: 'diagnostics.notify.gpuThrottle', setting: 'diagnosticsNotifyGpuThrottle', notify: true },
   ],
   system: [
     { labelKey: 'diagnostics.monitorComponent.gpu', setting: 'diagnosticsComponentGpu' },
     { labelKey: 'diagnostics.monitorComponent.system', setting: 'diagnosticsComponentSystem' },
     { labelKey: 'diagnostics.notify.systemDevices', setting: 'diagnosticsNotifySystemDevices', notify: true },
-    { labelKey: 'diagnostics.notify.gpuThrottle', setting: 'diagnosticsNotifyGpuThrottle', notify: true },
   ],
 };
 

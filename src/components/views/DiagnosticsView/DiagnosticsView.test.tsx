@@ -40,7 +40,7 @@ vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
   useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: mockRefreshHealth }),
 }));
 
-// Sensor alert rules and states for the Summary list and the Sensors tab, which read the same hook.
+// Sensor alert rules and states for the Summary list and the Watchlist tab, which read the same hook.
 const mockAlerts = vi.hoisted(() => ({
   rules: [] as unknown[], states: [] as unknown[], acknowledge: vi.fn(async () => true),
 }));
@@ -723,7 +723,7 @@ describe('DiagnosticsView tabs', () => {
     }
   });
 
-  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Sensors tab', () => {
+  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Watchlist tab', () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
@@ -742,7 +742,7 @@ describe('DiagnosticsView tabs', () => {
     mockAlerts.states = [];
   });
 
-  it('Dismiss on a Sensors tab banner acknowledges the alert and force-refreshes health', async () => {
+  it('Dismiss on a Watchlist tab banner acknowledges the alert and force-refreshes health', async () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,

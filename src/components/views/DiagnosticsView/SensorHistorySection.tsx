@@ -26,7 +26,7 @@ interface SensorHistorySectionProps {
 }
 
 /**
- * The Sensors tab's history block, composed like the Cooling tab's temperature history (header with
+ * The Watchlist tab's history block, composed like the Cooling tab's temperature history (header with
  * live badge, chart, range picker and seek bar) but plotting the one selected sensor in its own unit
  * with its alert limits as dashed lines. The plain wheel scrolls the page; Ctrl/Cmd+wheel or pinch zooms.
  */

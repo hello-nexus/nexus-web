@@ -2822,7 +2822,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SensorAlertRuleSettings', category: 'cards',
     filePath: 'src/components/views/DiagnosticsView/SensorAlertRuleSettings.tsx',
-    description: 'The settings of one tracked sensor, shown under its graph on the Sensors tab: the sensor picker, below/above switches, a RangeSlider for the normal range, raise and clear delays, severity, notification, Health and repeat options, and Delete.',
+    description: 'The settings of one tracked sensor, shown beside the Watchlist list: the sensor picker, an open-ended RangeSlider for the normal range (a knob on its track end means no limit), the raise delay, severity, the desktop notification switch, and Delete or Restore default.',
     notes: 'No live preview - it reads live sensors through useSensorLookup and writes through useSensorAlerts.',
   },
   {

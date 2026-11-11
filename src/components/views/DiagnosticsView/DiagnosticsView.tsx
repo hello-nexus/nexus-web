@@ -90,7 +90,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
   const [now, setNow] = useState(() => Date.now());
-  // The sensor card a Summary row asked to show; the Sensors tab scrolls to and shines it, then clears this.
+  // The sensor card a Summary row asked to show; the Watchlist tab scrolls to and shines it, then clears this.
   const [focusSensorId, setFocusSensorId] = useState<string | null>(null);
   useEffect(() => { setNow(Date.now()); }, [health]);
 

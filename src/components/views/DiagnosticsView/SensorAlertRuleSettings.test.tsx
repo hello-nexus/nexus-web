@@ -45,10 +45,10 @@ function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState }
 beforeEach(() => { h.tempUnit = 'c'; });
 
 describe('SensorAlertRuleSettings', () => {
-  it('hides the picker, the lower knob and Delete for a built-in and offers Restore default', () => {
+  it('hides the picker and Delete for a built-in, shows both knobs, and offers Restore default', () => {
     renderEditor(builtInRule);
     expect(screen.queryByTestId('sensor-picker')).toBeNull();
-    expect(screen.queryByRole('slider', { name: 'diagnostics.alerts.lowKnob' })).toBeNull();
+    expect(screen.getByRole('slider', { name: 'diagnostics.alerts.lowKnob' })).toHaveAttribute('data-unset', 'true');
     expect(screen.queryByTestId('sensor-delete')).toBeNull();
     expect(screen.getByTestId('sensor-restore')).toBeInTheDocument();
   });
@@ -75,21 +75,20 @@ describe('SensorAlertRuleSettings', () => {
     expect([knob().min, knob().max]).toEqual(['140', '221']);
   });
 
-  it('clamps a typed built-in limit to the service bound instead of showing a value the service refuses', () => {
-    const { onSave, container } = renderEditor(builtInRule);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
-    const field = container.querySelector('input[type="number"]') as HTMLInputElement;
-    fireEvent.change(field, { target: { value: '150' } });
-    fireEvent.keyDown(field, { key: 'Enter' });
-    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ high: 105 }));
-  });
-
   const typeInto = (container: HTMLElement, knob: 'lowKnob' | 'highKnob', value: string) => {
     fireEvent.click(screen.getByRole('button', { name: `diagnostics.alerts.${knob}` }));
     const field = container.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(field, { target: { value } });
     fireEvent.keyDown(field, { key: 'Enter' });
   };
+
+  it('lets a built-in take a lower limit and clear its upper limit like a custom rule', () => {
+    const { onSave, container } = renderEditor(builtInRule);
+    typeInto(container, 'lowKnob', '70');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: 70, high: 80 }));
+    typeInto(container, 'highKnob', '150');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ high: null }));
+  });
 
   it('reads a limit typed at or past the end of the track as no limit', () => {
     const { onSave, container } = renderEditor(userRule);

@@ -9,13 +9,13 @@ import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor, stateLabe
 import styles from './SensorAlertsList.module.scss';
 
 interface SensorAlertsListProps {
-  /** Opens the Sensors tab on this rule's card. */
+  /** Opens the Watchlist tab on this rule's card. */
   onOpenRule: (ruleId: string) => void;
 }
 
 /**
  * Read-only roll-up of the configured sensor alerts for the Summary tab: one row per rule with its
- * live value and state. A row opens the rule on the Sensors tab, where it is edited and dismissed. Renders nothing until the list has loaded with at least one rule.
+ * live value and state. A row opens the rule on the Watchlist tab, where it is edited and dismissed. Renders nothing until the list has loaded with at least one rule.
  */
 export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
   const { t } = useTranslation();

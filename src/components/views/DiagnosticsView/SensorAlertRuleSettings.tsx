@@ -69,14 +69,13 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   if (wanted.min !== bounds.min || wanted.max !== bounds.max) setBounds(wanted);
   const shown = displayBounds(bounds, type, tempUnit);
 
-  // A built-in has only an upper limit (the service drops a lower one and needs an upper). A custom sensor
-  // has both knobs; a knob parked on its end of the track means no limit on that side.
-  const lowOn = !builtIn && rule.low !== null;
-  const highOn = builtIn || rule.high !== null;
+  // Both knobs always show; a knob parked on its end of the track means no limit on that side.
+  const lowOn = rule.low !== null;
+  const highOn = rule.high !== null;
   const step = stepFor(type);
   const lowShownValue = rule.low !== null ? snapDisplay(toDisplay(rule.low, type, tempUnit), type) : null;
   const highShownValue = rule.high !== null ? snapDisplay(toDisplay(rule.high, type, tempUnit), type) : null;
-  const track = builtIn ? shown : padBounds(shown, lowShownValue, highShownValue, step);
+  const track = padBounds(shown, lowShownValue, highShownValue, step);
   const fmt = (v: number) => formatDisplayValue(v, type, tempUnit, numberFormat, monitoringWholeNumbers);
 
   const edit = (patch: Partial<SensorAlertRule>, write: boolean) => {
@@ -87,10 +86,6 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   };
 
   const setRange = ([lo, hi]: [number, number], write: boolean) => {
-    if (builtIn) {
-      edit({ high: fromDisplay(hi, type, tempUnit) }, write);
-      return;
-    }
     edit({
       low: lo <= track.min ? null : fromDisplay(lo, type, tempUnit),
       high: hi >= track.max ? null : fromDisplay(hi, type, tempUnit),
@@ -129,7 +124,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         <RangeSlider
           orientation={STACKED}
           editable
-          openEnded={!builtIn}
+          openEnded
           label={t('diagnostics.alerts.validRange')}
           value={[
             lowShownValue ?? track.min,

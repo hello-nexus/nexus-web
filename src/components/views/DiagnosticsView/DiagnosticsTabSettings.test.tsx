@@ -12,16 +12,24 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe('DiagnosticsTabSettings', () => {
-  it('puts GPU and system monitoring and the device and throttle notifications on the System tab', () => {
+  it('puts GPU and system monitoring and the device problem notification on the System tab', () => {
     mockSettings = { diagnosticsNotificationsEnabled: true, diagnosticsComponentGpu: true, diagnosticsComponentSystem: true };
     update.mockClear();
     render(<DiagnosticsTabSettings tab="system" />);
     expect(screen.getAllByRole('switch').map(el => el.getAttribute('aria-label'))).toEqual([
       'diagnostics.monitorComponent.gpu', 'diagnostics.monitorComponent.system',
-      'diagnostics.notify.systemDevices', 'diagnostics.notify.gpuThrottle',
+      'diagnostics.notify.systemDevices',
     ]);
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.monitorComponent.gpu' }));
     expect(update).toHaveBeenCalledWith({ diagnosticsComponentGpu: false });
+  });
+
+  it('puts the GPU throttle notification on the Cooling tab, where its alert opens', () => {
+    mockSettings = { diagnosticsNotificationsEnabled: true };
+    update.mockClear();
+    render(<DiagnosticsTabSettings tab="cooling" />);
+    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.notify.gpuThrottle' }));
+    expect(update).toHaveBeenCalledWith({ diagnosticsNotifyGpuThrottle: true });
   });
 
   it.each([
