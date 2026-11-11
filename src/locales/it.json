@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "Subito",
   "diagnostics.alerts.delays": "Ritardi",
   "diagnostics.alerts.deleteConfirm": "Eliminare l'avviso per {name}?",
+  "diagnostics.alerts.deleteFailed": "Impossibile eliminare l'avviso.",
   "diagnostics.alerts.enabledFor": "Attiva l'avviso per {name}",
   "diagnostics.alerts.highKnob": "Limite superiore",
   "diagnostics.alerts.limitNote": "Fino a {max} avvisi.",

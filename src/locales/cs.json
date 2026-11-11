@@ -1949,6 +1949,7 @@
   "diagnostics.alerts.delay.instant": "Okamžitě",
   "diagnostics.alerts.delays": "Prodlevy",
   "diagnostics.alerts.deleteConfirm": "Smazat upozornění pro {name}?",
+  "diagnostics.alerts.deleteFailed": "Upozornění se nepodařilo smazat.",
   "diagnostics.alerts.enabledFor": "Zapnout upozornění pro {name}",
   "diagnostics.alerts.highKnob": "Horní mez",
   "diagnostics.alerts.limitNote": "Nejvýše {max} upozornění.",

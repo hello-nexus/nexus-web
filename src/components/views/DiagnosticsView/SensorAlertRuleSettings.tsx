@@ -20,6 +20,7 @@ import {
   delayLabel,
   displayBounds,
   formatAlertValue,
+  formatDisplayValue,
   fromDisplay,
   seedBound,
   snapDisplay,
@@ -68,7 +69,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   const highOn = rule.high !== null;
   const lowNative = rule.low ?? hidden.low ?? seedBound('low', type, live, bounds, rule.high);
   const highNative = rule.high ?? hidden.high ?? seedBound('high', type, live, bounds, rule.low);
-  const fmt = (v: number) => formatAlertValue(fromDisplay(v, type, tempUnit), type, tempUnit, numberFormat, monitoringWholeNumbers);
+  const fmt = (v: number) => formatDisplayValue(v, type, tempUnit, numberFormat, monitoringWholeNumbers);
 
   const edit = (patch: Partial<SensorAlertRule>, write: boolean) => {
     const next = { ...rule, ...patch };
@@ -213,6 +214,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         title={t('common.delete')}
         message={t('diagnostics.alerts.deleteConfirm', { name: sensorLabel(rule.sensor) })}
         confirmLabel={t('common.delete')}
+        destructive
         onConfirm={() => { setConfirmOpen(false); onDelete(); }}
         onCancel={() => setConfirmOpen(false)}
       />

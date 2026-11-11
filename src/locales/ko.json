@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "즉시",
   "diagnostics.alerts.delays": "지연",
   "diagnostics.alerts.deleteConfirm": "{name} 알림을 삭제할까요?",
+  "diagnostics.alerts.deleteFailed": "알림을 삭제하지 못했습니다.",
   "diagnostics.alerts.enabledFor": "{name} 알림 사용",
   "diagnostics.alerts.highKnob": "상한",
   "diagnostics.alerts.limitNote": "최대 {max}개까지 가능합니다.",

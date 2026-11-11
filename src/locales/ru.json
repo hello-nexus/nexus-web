@@ -1949,6 +1949,7 @@
   "diagnostics.alerts.delay.instant": "Сразу",
   "diagnostics.alerts.delays": "Задержки",
   "diagnostics.alerts.deleteConfirm": "Удалить оповещение для {name}?",
+  "diagnostics.alerts.deleteFailed": "Не удалось удалить оповещение.",
   "diagnostics.alerts.enabledFor": "Включить оповещение для {name}",
   "diagnostics.alerts.highKnob": "Верхняя граница",
   "diagnostics.alerts.limitNote": "Не более {max} оповещений.",

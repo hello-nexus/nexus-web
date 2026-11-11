@@ -1224,6 +1224,24 @@ describe('useMetricHistory', () => {
       expect(points[points.length - 1].t).toBe(NOW + 2000);
     });
 
+    it('does not subscribe to the push topic, which would be filtered out', async () => {
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      expect(capturedTailPush).toBeNull();
+    });
+
+    it('skips a tail poll tick while the previous tail fetch is still in flight', async () => {
+      const hang = new Promise<Result>(() => {});
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(q => (
+        q.maxPoints === 50 ? hang : Promise.resolve({ data: alertResp([]), mocked: false, unsupported: false })
+      ));
+      renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));
+      await advance(0);
+      await advance(15000);
+      expect(fetcher.mock.calls.filter(([q]) => q.maxPoints === 50)).toHaveLength(1);
+    });
+
     it('does not call the monitoring source, and with fillBox the chart window is the whole strip', async () => {
       const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
       const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));

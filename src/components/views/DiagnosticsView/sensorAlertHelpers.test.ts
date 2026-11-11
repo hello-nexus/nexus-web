@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -38,6 +38,12 @@ describe('temperature unit conversion', () => {
     expect(formatAlertValue(9.5, 'Current', 'c', 'dot')).toBe('9.5 A');
     expect(formatAlertValue(1200, 'Fan', 'c', 'dot')).toBe('1,200 RPM');
     expect(formatAlertValue(40, 'Load', 'c', 'dot')).toBe('40%');
+  });
+
+  it('formats a display-unit value without converting it again', () => {
+    expect(formatDisplayValue(175, 'Temperature', 'f', 'dot')).toBe('175°F');
+    expect(formatDisplayValue(80, 'Temperature', 'c', 'dot')).toBe('80°C');
+    expect(formatDisplayValue(9.5, 'Current', 'f', 'dot')).toBe('9.5 A');
   });
 });
 

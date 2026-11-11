@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "Sofort",
   "diagnostics.alerts.delays": "Verzögerungen",
   "diagnostics.alerts.deleteConfirm": "Warnung für {name} löschen?",
+  "diagnostics.alerts.deleteFailed": "Die Warnung konnte nicht gelöscht werden.",
   "diagnostics.alerts.enabledFor": "Warnung für {name} aktivieren",
   "diagnostics.alerts.highKnob": "Obergrenze",
   "diagnostics.alerts.limitNote": "Bis zu {max} Warnungen.",

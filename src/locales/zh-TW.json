@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "立即",
   "diagnostics.alerts.delays": "延遲",
   "diagnostics.alerts.deleteConfirm": "刪除 {name} 的提醒?",
+  "diagnostics.alerts.deleteFailed": "無法刪除提醒。",
   "diagnostics.alerts.enabledFor": "啟用 {name} 的提醒",
   "diagnostics.alerts.highKnob": "上限",
   "diagnostics.alerts.limitNote": "最多 {max} 則提醒。",

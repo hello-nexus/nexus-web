@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "Direct",
   "diagnostics.alerts.delays": "Vertragingen",
   "diagnostics.alerts.deleteConfirm": "De waarschuwing voor {name} verwijderen?",
+  "diagnostics.alerts.deleteFailed": "De waarschuwing kon niet worden verwijderd.",
   "diagnostics.alerts.enabledFor": "Waarschuwing voor {name} inschakelen",
   "diagnostics.alerts.highKnob": "Bovengrens",
   "diagnostics.alerts.limitNote": "Maximaal {max} waarschuwingen.",

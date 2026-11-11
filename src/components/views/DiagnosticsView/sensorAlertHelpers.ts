@@ -97,7 +97,11 @@ const WHOLE_NUMBER_TYPES = new Set(['Temperature', 'Power', 'Load', 'Control', '
 
 /** A value with its unit, in the user's temperature unit and number format; whole-number types drop decimals when asked. */
 export function formatAlertValue(value: number, type: string, tempUnit: TempUnit, numberFormat: NumberFormat, wholeNumbers = false): string {
-  const shown = toDisplay(value, type, tempUnit);
+  return formatDisplayValue(toDisplay(value, type, tempUnit), type, tempUnit, numberFormat, wholeNumbers);
+}
+
+/** Formats a value already in the display unit, with its unit suffix. */
+export function formatDisplayValue(shown: number, type: string, tempUnit: TempUnit, numberFormat: NumberFormat, wholeNumbers = false): string {
   const spec = specOf(type);
   const decimals = wholeNumbers && WHOLE_NUMBER_TYPES.has(type) ? 0 : spec.decimals;
   const text = formatNumber(shown, numberFormat, { maximumFractionDigits: decimals });

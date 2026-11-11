@@ -91,6 +91,7 @@ beforeEach(() => {
   h.atLimit = false;
   h.add.mockResolvedValue({ result: 'created', rule: rule('new') });
   h.acknowledge.mockResolvedValue(true);
+  h.remove.mockResolvedValue(true);
 });
 
 describe('SensorsTab', () => {
@@ -182,6 +183,15 @@ describe('SensorsTab', () => {
     expect(h.remove).toHaveBeenCalledWith('r1');
   });
 
+  it('toasts when the delete fails', async () => {
+    h.rules = [rule('r1')];
+    h.remove.mockResolvedValue(false);
+    render(<SensorsTab {...props()} />);
+    fireEvent.click(screen.getByTestId('sensor-edit-toggle'));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-delete' })); });
+    expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.deleteFailed' });
+  });
+
   describe('active alert banner', () => {
     const active = (id: string, over: Partial<SensorAlertState> = {}) => state(id, {
       state: 'active', direction: 'above', value: 10, extreme: 10.1, since: '2026-11-10T21:09:00', ...over,
@@ -257,6 +267,17 @@ describe('SensorsTab', () => {
     render(<SensorsTab {...q} />);
     expect(h.scroll).not.toHaveBeenCalled();
     expect(q.onFocused).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the focus scroll until the history has loaded', () => {
+    h.rules = [rule('r1')];
+    const p = props({ focusRuleId: 'r1', history: history({ loading: true }) });
+    const { rerender } = render(<SensorsTab {...p} />);
+    expect(h.scroll).not.toHaveBeenCalled();
+    expect(p.onFocused).not.toHaveBeenCalled();
+    rerender(<SensorsTab {...p} history={history({ loading: false })} />);
+    expect(h.scroll).toHaveBeenCalledWith('sensor-card-r1');
+    expect(p.onFocused).toHaveBeenCalledTimes(1);
   });
 
   it('puts the card anchor where the scroller looks', async () => {

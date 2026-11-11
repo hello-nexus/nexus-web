@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "Anında",
   "diagnostics.alerts.delays": "Gecikmeler",
   "diagnostics.alerts.deleteConfirm": "{name} için uyarı silinsin mi?",
+  "diagnostics.alerts.deleteFailed": "Uyarı silinemedi.",
   "diagnostics.alerts.enabledFor": "{name} için uyarıyı etkinleştir",
   "diagnostics.alerts.highKnob": "Üst sınır",
   "diagnostics.alerts.limitNote": "En fazla {max} uyarı.",

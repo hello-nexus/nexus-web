@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "Subite",
   "diagnostics.alerts.delays": "Ritarts",
   "diagnostics.alerts.deleteConfirm": "Eliminâ l'avîs di {name}?",
+  "diagnostics.alerts.deleteFailed": "Impussibil eliminâ l'avîs.",
   "diagnostics.alerts.enabledFor": "Ative l'avîs di {name}",
   "diagnostics.alerts.highKnob": "Limit superiôr",
   "diagnostics.alerts.limitNote": "Fin a {max} avîs.",

@@ -660,11 +660,11 @@ export function useMetricHistory(
 
   useEffect(() => {
     if (!pollsTail || !tailActive) return undefined;
-    const timer = window.setInterval(() => runTailGapFill(), TAIL_POLL_MS);
+    const timer = window.setInterval(() => { if (!tailInFlightRef.current) runTailGapFill(); }, TAIL_POLL_MS);
     return () => window.clearInterval(timer);
   }, [pollsTail, tailActive, runTailGapFill]);
 
-  useTopicCallback('monitoring/history-tail', tailActive, (raw) => {
+  useTopicCallback('monitoring/history-tail', tailActive && !pollsTail, (raw) => {
     const payload = raw as MetricHistoryResponse | null;
     if (!payload) return;
     const relevant = payload.series.filter(s => seriesMatchesQuery(s, seriesQueryRef.current));

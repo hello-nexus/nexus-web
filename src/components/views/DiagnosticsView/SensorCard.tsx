@@ -12,7 +12,7 @@ import { Toggle } from '../../common/Toggle/Toggle';
 import type { useSensorLookup } from '../../../panel/widgets/monitoring/picker/SensorPicker';
 import { xTickFormatForWindow } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
-import { formatAlertValue, fromDisplay, rowState, sensorLabel, stateColor } from './sensorAlertHelpers';
+import { formatAlertValue, formatDisplayValue, rowState, sensorLabel, stateColor } from './sensorAlertHelpers';
 import { sensorCardAnchor, sensorChartThresholds, sensorYDomain, toSensorChartSeries } from './sensorHistoryHelpers';
 import styles from './SensorsTab.module.scss';
 
@@ -48,7 +48,7 @@ export function SensorCard({ rule, state, live, history, lookup, editing, onTogg
   const yDomain = useMemo(() => sensorYDomain(line, thresholds), [line, thresholds]);
   const windowMs = history.domain[1] - history.domain[0];
   const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat, dateFormat), [windowMs, timeFormat, dateFormat]);
-  const valueFormat = (v: number) => formatAlertValue(fromDisplay(v, type, tempUnit), type, tempUnit, numberFormat, monitoringWholeNumbers);
+  const valueFormat = (v: number) => formatDisplayValue(v, type, tempUnit, numberFormat, monitoringWholeNumbers);
 
   return (
     <div data-search-anchor={sensorCardAnchor(rule.id)} data-testid="sensor-card" data-rule-id={rule.id}>

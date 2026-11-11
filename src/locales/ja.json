@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "即時",
   "diagnostics.alerts.delays": "遅延",
   "diagnostics.alerts.deleteConfirm": "{name} のアラートを削除しますか?",
+  "diagnostics.alerts.deleteFailed": "アラートを削除できませんでした。",
   "diagnostics.alerts.enabledFor": "{name} のアラートを有効にする",
   "diagnostics.alerts.highKnob": "上限",
   "diagnostics.alerts.limitNote": "最大 {max} 件までです。",

@@ -1940,6 +1940,7 @@
   "diagnostics.alerts.delay.instant": "Imediatamente",
   "diagnostics.alerts.delays": "Atrasos",
   "diagnostics.alerts.deleteConfirm": "Eliminar o alerta de {name}?",
+  "diagnostics.alerts.deleteFailed": "Não foi possível eliminar o alerta.",
   "diagnostics.alerts.enabledFor": "Ativar o alerta de {name}",
   "diagnostics.alerts.highKnob": "Limite superior",
   "diagnostics.alerts.limitNote": "Até {max} alertas.",

@@ -94,11 +94,13 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
     </Button>
   );
 
+  // Charts grow once history lands, so the scroll waits for it to avoid landing above the target's final position.
+  const historySettled = !history.loading || !history.supported || history.error;
   useEffect(() => {
-    if (!focusRuleId || !loaded) return;
+    if (!focusRuleId || !loaded || !historySettled) return;
     if (rules.some(r => r.id === focusRuleId)) requestSearchScroll(sensorCardAnchor(focusRuleId));
     onFocused();
-  }, [focusRuleId, loaded, rules, onFocused]);
+  }, [focusRuleId, loaded, historySettled, rules, onFocused]);
 
   const windowEnd = history.domain[1];
   const windowMs = windowEnd - history.domain[0];
@@ -193,7 +195,7 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
             onToggleEditing={() => toggleEditing(rule.id)}
             onPreview={alerts.preview}
             onSave={next => alerts.save(next, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
-            onDelete={() => { void alerts.remove(rule.id); }}
+            onDelete={() => { void alerts.remove(rule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
           />
         ))}
       </div>
