@@ -103,11 +103,6 @@
   flex-wrap: wrap;
 }
 
-// The on/off switches at the top of a tab keep a gap to the content below.
-.tabSettings {
-  margin-bottom: var(--space-lg);
-}
-
 // ── Component health grid ──
 
 // The status strip sits above the tile grid with the grid's own gap between them.
@@ -334,44 +329,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.coolingRow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.8rem;
-  background: var(--surface);
-  border-radius: var(--radius);
-}
-
-// A stalled fan's row reads as a danger callout.
-.coolingRowStalled {
-  border: 1px solid var(--bad);
-  background: color-mix(in srgb, var(--bad) 12%, transparent);
-}
-
-.coolingName {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
-  color: var(--text);
-  font-weight: var(--weight-heading);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.coolingMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  font-family: var(--font-mono);
-  flex-shrink: 0;
 }
 
 // ── Temperature history ──

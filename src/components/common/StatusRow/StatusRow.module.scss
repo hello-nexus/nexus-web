@@ -1,0 +1,68 @@
+@use '../../../styles/text' as *;
+
+// The shared Card supplies the surface and the selected treatment; this only trims its inset
+// so the row's own name button is the click target.
+.card {
+  padding: 0;
+  min-width: 0;
+}
+
+.dimmed .name,
+.dimmed .value {
+  color: var(--text-dim);
+}
+
+.danger {
+  border-color: var(--bad);
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  min-width: 0;
+}
+
+// Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
+.name {
+  @include text-button;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--text);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+button.name {
+  cursor: pointer;
+}
+
+.status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  text-align: right;
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.note {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+}

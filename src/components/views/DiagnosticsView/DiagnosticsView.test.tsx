@@ -57,7 +57,6 @@ vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ Sensor
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
 
 // The per-tab switches need the UI settings provider and have their own suite.
-vi.mock('./DiagnosticsTabSettings', () => ({ DiagnosticsTabSettings: ({ tab }: { tab: string }) => <div data-testid={`tab-settings-${tab}`} /> }));
 
 vi.mock('../../../hooks/useThermalGuard', () => ({
   useThermalGuard: () => ({
@@ -713,14 +712,6 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByRole('tab', { name: /diagnostics.tab.summary/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('tab', { name: /diagnostics.tab.settings/ })).not.toBeInTheDocument();
     expect(onTabChange).toHaveBeenCalledWith('summary');
-  });
-
-  it('shows the monitoring and notification switches at the top of the Storage, Memory, Cooling and System tabs', () => {
-    for (const tab of ['storage', 'memory', 'cooling', 'system']) {
-      const { unmount } = renderDiagnosticsView({ tab, onTabChange: vi.fn() });
-      expect(screen.getByTestId(`tab-settings-${tab}`)).toBeInTheDocument();
-      unmount();
-    }
   });
 
   it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Watchlist tab', () => {

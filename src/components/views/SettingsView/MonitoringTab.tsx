@@ -3,7 +3,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
-import { DiagnosticsNotificationsSection, DiagnosticsResetSection } from './DiagnosticsSettingsSections';
+import { DiagnosticsHealthChecksSection, DiagnosticsNotificationsSection, DiagnosticsResetSection } from './DiagnosticsSettingsSections';
 import { SmartPollSection } from './SmartPollSection';
 import { RamTemperatureSection } from './RamTemperatureSection';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -64,6 +64,8 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
       <RamTemperatureSection serviceOnline={serviceOnline} />
 
       <SmartPollSection serviceOnline={serviceOnline} />
+
+      <DiagnosticsHealthChecksSection />
 
       <DiagnosticsNotificationsSection />
 

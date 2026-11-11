@@ -1,5 +1,3 @@
-@use '../../../styles/text' as *;
-
 .list {
   list-style: none;
   margin: 0;
@@ -11,62 +9,4 @@
 
 .row {
   min-width: 0;
-
-  &[data-state='disabled'] .name,
-  &[data-state='disabled'] .value {
-    color: var(--text-dim);
-  }
-}
-
-// The shared Card supplies the surface and the selected treatment; this only trims its inset
-// so the row's own button is the click target.
-.card {
-  padding: 0;
-}
-
-.body {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding-right: var(--space-sm);
-}
-
-.select {
-  @include text-button;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-xs);
-  padding: var(--space-sm);
-  background: none;
-  border: 0;
-  text-align: left;
-  color: var(--text);
-  cursor: pointer;
-}
-
-// Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
-.name {
-  max-width: 100%;
-  overflow-wrap: break-word;
-  word-break: normal;
-}
-
-.meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
-.value {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.toggle {
-  flex-shrink: 0;
-  display: inline-flex;
 }

@@ -184,10 +184,9 @@ export interface UiSettingsValue {
  *  DiagnosticsSettings defaults (TemperatureInsights.cs). Used for the
  *  pre-hydrate seed below and by the Settings tab's Reset action. */
 export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
-  // Master switch off by default; every category on, so turning notifications
-  // on alerts for all of them without extra setup. Mirrors the service
-  // DiagnosticsNotifications defaults.
-  notificationsEnabled: false,
+  // Master switch and every category on by default, so a new install alerts
+  // without extra setup. Mirrors the service DiagnosticsNotifications defaults.
+  notificationsEnabled: true,
   notifyStorageHealth: true,
   notifyCooling: true,
   notifyMemoryTest: true,

@@ -42,10 +42,13 @@
 .listPane {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: var(--space-md);
+  min-width: 0;
 }
 
+// Both columns' headers share this row height (the Add button sets it), so the first cards line up.
 .groupHeader {
+  min-height: var(--size-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;

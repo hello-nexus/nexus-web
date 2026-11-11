@@ -45,7 +45,7 @@ vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => ({ cpu: [], gpu: [], gpuComponents: [] }),
 }));
 
-vi.mock('./DiagnosticsSettingsSections', () => ({ DiagnosticsNotificationsSection: () => null, DiagnosticsResetSection: () => null }));
+vi.mock('./DiagnosticsSettingsSections', () => ({ DiagnosticsHealthChecksSection: () => null, DiagnosticsNotificationsSection: () => null, DiagnosticsResetSection: () => null }));
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, string>) => (

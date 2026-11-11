@@ -8,8 +8,12 @@ import { useToast } from '../../common/Toast/Toast';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingGroup, SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { COOLDOWN_OPTIONS_MINUTES, durationOptions } from '../DiagnosticsView/notificationCooldown';
+
+type BoolKey = {
+  [K in keyof UiSettingsValue]: UiSettingsValue[K] extends boolean ? K : never;
+}[keyof UiSettingsValue];
 
 const DEFAULT_PATCH: Partial<UiSettingsValue> = {
   diagnosticsNotificationsEnabled: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationsEnabled,
@@ -29,33 +33,79 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
   // own device card.
 };
 
-/** Desktop notifications for diagnostics: one switch for health checks and sensor alerts, and the cooldown between repeat alerts. The per-check switches live on their diagnostics tabs. */
+const HEALTH_CHECKS: readonly { labelKey: string; setting: BoolKey }[] = [
+  { labelKey: 'diagnostics.monitorComponent.gpu', setting: 'diagnosticsComponentGpu' },
+  { labelKey: 'diagnostics.monitorComponent.storage', setting: 'diagnosticsComponentStorage' },
+  { labelKey: 'diagnostics.monitorComponent.ram', setting: 'diagnosticsComponentRam' },
+  { labelKey: 'diagnostics.monitorComponent.cooling', setting: 'diagnosticsComponentCooling' },
+  { labelKey: 'diagnostics.monitorComponent.system', setting: 'diagnosticsComponentSystem' },
+];
+
+const NOTIFY_CHECKS: readonly { labelKey: string; setting: BoolKey }[] = [
+  { labelKey: 'diagnostics.notify.storage', setting: 'diagnosticsNotifyStorageHealth' },
+  { labelKey: 'diagnostics.notify.cooling', setting: 'diagnosticsNotifyCooling' },
+  { labelKey: 'diagnostics.notify.gpuThrottle', setting: 'diagnosticsNotifyGpuThrottle' },
+  { labelKey: 'diagnostics.notify.memoryTest', setting: 'diagnosticsNotifyMemoryTest' },
+  { labelKey: 'diagnostics.notify.systemDevices', setting: 'diagnosticsNotifySystemDevices' },
+];
+
+/** Which components the health checks watch. */
+export function DiagnosticsHealthChecksSection() {
+  const { t } = useTranslation();
+  const { settings, update } = useUiSettings();
+  return (
+    <SettingsSection title={t('settings.diagnosticsHealthChecks.title')}>
+      {HEALTH_CHECKS.map(spec => (
+        <SettingToggle
+          key={spec.setting}
+          label={t(spec.labelKey)}
+          checked={settings[spec.setting]}
+          onChange={v => update({ [spec.setting]: v })}
+        />
+      ))}
+    </SettingsSection>
+  );
+}
+
+/** Desktop notifications for diagnostics: the master switch, and beneath it (only while on) each check's switch and the cooldown between repeat alerts. */
 export function DiagnosticsNotificationsSection() {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
   const enabled = settings.diagnosticsNotificationsEnabled;
-  const cooldownOptions = durationOptions(t, COOLDOWN_OPTIONS_MINUTES).map(o => ({ ...o, disabled: !enabled }));
+  const cooldownOptions = durationOptions(t, COOLDOWN_OPTIONS_MINUTES);
   return (
     <SettingsSection title={t('settings.diagnosticsNotifications.title')}>
-      <SettingToggle
-        label={t('settings.diagnosticsNotifications.health.label')}
-        description={t('settings.diagnosticsNotifications.health.description')}
-        checked={enabled}
-        onChange={v => update({ diagnosticsNotificationsEnabled: v })}
-      />
-      <SettingRow
-        label={t('diagnostics.settings.notifications.cooldown.label')}
-        description={t('diagnostics.settings.notifications.cooldown.description')}
-        disabled={!enabled}
-        wrapControl
-      >
-        <ChipGroup
-          ariaLabel={t('diagnostics.settings.notifications.cooldown.label')}
-          activeKey={String(settings.diagnosticsNotificationCooldownMinutes)}
-          onChange={key => update({ diagnosticsNotificationCooldownMinutes: Number(key) })}
-          options={cooldownOptions}
+      <SettingGroup>
+        <SettingToggle
+          label={t('settings.diagnosticsNotifications.health.label')}
+          checked={enabled}
+          onChange={v => update({ diagnosticsNotificationsEnabled: v })}
         />
-      </SettingRow>
+        {enabled && NOTIFY_CHECKS.map(spec => (
+          <SettingToggle
+            key={spec.setting}
+            nested
+            label={t(spec.labelKey)}
+            checked={settings[spec.setting]}
+            onChange={v => update({ [spec.setting]: v })}
+          />
+        ))}
+        {enabled && (
+          <SettingRow
+            nested
+            label={t('diagnostics.settings.notifications.cooldown.label')}
+            description={t('diagnostics.settings.notifications.cooldown.description')}
+            wrapControl
+          >
+            <ChipGroup
+              ariaLabel={t('diagnostics.settings.notifications.cooldown.label')}
+              activeKey={String(settings.diagnosticsNotificationCooldownMinutes)}
+              onChange={key => update({ diagnosticsNotificationCooldownMinutes: Number(key) })}
+              options={cooldownOptions}
+            />
+          </SettingRow>
+        )}
+      </SettingGroup>
     </SettingsSection>
   );
 }

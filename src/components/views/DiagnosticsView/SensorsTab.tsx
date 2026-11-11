@@ -155,7 +155,9 @@ export function SensorsTab({ history, focusRuleId, onFocused, onAlertDismissed }
         </div>
         {selectedRule && (
           <div className={styles.detail} data-testid="sensor-detail" data-rule-id={selectedRule.id}>
-            <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
+            <div className={styles.groupHeader}>
+              <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
+            </div>
             <Card>
               <div data-testid="sensor-settings">
                 <SensorAlertRuleSettings

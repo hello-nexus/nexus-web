@@ -7,6 +7,8 @@ import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
+import { StatusRow } from '../components/common/StatusRow/StatusRow';
+import { Badge } from '../components/common/Badge/Badge';
 import { Coachmark } from '../components/common/Coachmark/Coachmark';
 import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
@@ -1471,6 +1473,16 @@ function PreviewEndTaskButton() {
         <span>iCUE</span>
         <EndTaskButton conflictId="preview-icue" />
       </div>
+    </div>
+  );
+}
+
+function PreviewStatusRow() {
+  return (
+    <div className={styles.previewStack}>
+      <StatusRow name="CPU Package" value="45 C" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} selected onSelect={() => {}} />
+      <StatusRow name="GPU Hot Spot" toggle={<Toggle checked={false} onChange={() => {}} ariaLabel="Enabled" />} dimmed onSelect={() => {}} />
+      <StatusRow name="Pump" value="1,108 RPM 31%" chip={<Badge label="Stalled" color="var(--bad)" />} danger toggle={<Toggle checked onChange={() => {}} ariaLabel="Monitor" />} />
     </div>
   );
 }
@@ -3096,6 +3108,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
     description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids); `fillHeight` fills the parent height and scrolls the body on its own instead of content-sizing (an inline detail sidebar); `selected` is the rail selected-item treatment (accent border + accent-soft fill, the lighting / cooling device cards); `role`/`ariaLabel` name the root as a landmark.', Preview: PreviewCard,
+  },
+  {
+    name: 'StatusRow', category: 'cards',
+    filePath: 'src/components/common/StatusRow/StatusRow.tsx',
+    description: 'List row for a monitored thing, built on Card: name on the left, the reading with its status chip stacked beneath it and right-aligned, then the on/off switch at the far right. A row with no reading (switched off) shows name and switch only. Used by the Diagnostics Watchlist and the Cooling fans list.', Preview: PreviewStatusRow,
   },
   {
     name: 'DomainGlyph', category: 'cards',

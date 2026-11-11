@@ -26,7 +26,6 @@ import { MemorySection } from './MemorySection';
 import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
-import { DiagnosticsTabSettings } from './DiagnosticsTabSettings';
 import { SensorsTab } from './SensorsTab';
 import { SENSOR_HISTORY_OPTIONS, SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
 import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
@@ -241,7 +240,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     <div className={styles.diagnostics}>
       <ViewHeader title={t('diagnostics.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
       <div className={`${styles.tabContent} pageBody`}>
-        <DiagnosticsTabSettings tab={tab} />
         {renderTab()}
       </div>
     </div>

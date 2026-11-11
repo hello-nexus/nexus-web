@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import classNames from 'classnames';
-import { Droplet, Fan } from 'lucide-react';
+import { Fan } from 'lucide-react';
 import { useIgnoredComponents, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
+import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { Badge } from '../../common/Badge/Badge';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
@@ -50,26 +50,24 @@ export function CoolingSection({ data, loading, error, onRefresh, heading }: Coo
             const id = `cooling:${device.id}`;
             const ignored = isIgnored(id);
             return (
-              <div
+              <StatusRow
                 key={device.id}
-                className={classNames(styles.coolingRow, !ignored && device.status === 'stalled' && styles.coolingRowStalled)}
-              >
-                <span className={styles.coolingName}>
-                  {device.type === 'pump' ? <Droplet size={14} aria-hidden /> : <Fan size={14} aria-hidden />}
-                  {device.name}
-                </span>
-                <span className={styles.coolingMeta}>
-                  <span>{device.rpm !== null ? `${formatNumber(device.rpm, numberFormat)} RPM` : UNAVAILABLE}</span>
-                  <span>{device.targetDutyPercent !== null ? localizeNumbers(`${device.targetDutyPercent}%`, numberFormat) : UNAVAILABLE}</span>
-                  {ignored
-                    ? <Badge label={t('diagnostics.monitor.off')} color="var(--text-dim)" />
-                    : <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />}
-                  {!ignored && device.sinceUtc && device.status !== 'ok' && (
-                    <span>{t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}</span>
-                  )}
-                  <MonitorToggle monitored={!ignored} onChange={() => toggle(id)} />
-                </span>
-              </div>
+                name={device.name}
+                dimmed={ignored}
+                danger={!ignored && device.status === 'stalled'}
+                value={ignored ? undefined : (
+                  <>
+                    {device.rpm !== null ? `${formatNumber(device.rpm, numberFormat)} RPM` : UNAVAILABLE}
+                    {' '}
+                    {device.targetDutyPercent !== null ? localizeNumbers(`${device.targetDutyPercent}%`, numberFormat) : UNAVAILABLE}
+                  </>
+                )}
+                chip={ignored ? undefined : <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />}
+                note={!ignored && device.sinceUtc && device.status !== 'ok'
+                  ? t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })
+                  : undefined}
+                toggle={<MonitorToggle monitored={!ignored} onChange={() => toggle(id)} />}
+              />
             );
           })}
         </div>

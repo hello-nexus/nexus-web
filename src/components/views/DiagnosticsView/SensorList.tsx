@@ -2,7 +2,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
-import { Card } from '../../common/Card/Card';
+import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { formatAlertValue, isBuiltIn, rowState, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
@@ -43,32 +43,23 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
             data-rule-id={rule.id}
             data-search-anchor={sensorCardAnchor(rule.id)}
           >
-            <Card compact interactive selected={selected} disableInteractiveRole onClick={() => onSelect(rule.id)} className={styles.card}>
-              <div className={styles.body}>
-                <button type="button" className={styles.select} aria-pressed={selected} onClick={e => { e.stopPropagation(); onSelect(rule.id); }}>
-                  <span className={styles.name}>{name}</span>
-                  {rule.enabled && (
-                    <span className={styles.meta}>
-                      {notReported ? (
-                        <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
-                      ) : (
-                        <>
-                          <span className={styles.value}>
-                            {reading !== null ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading')}
-                          </span>
-                          <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />
-                        </>
-                      )}
-                    </span>
-                  )}
-                </button>
-                {!notReported && (
-                  <span className={styles.toggle} role="presentation" onClick={e => e.stopPropagation()}>
-                    <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name })} />
-                  </span>
-                )}
-              </div>
-            </Card>
+            <StatusRow
+              name={name}
+              selected={selected}
+              dimmed={!rule.enabled}
+              onSelect={() => onSelect(rule.id)}
+              value={rule.enabled && !notReported
+                ? (reading !== null ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading'))
+                : undefined}
+              chip={rule.enabled
+                ? (notReported
+                  ? <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
+                  : <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />)
+                : undefined}
+              toggle={notReported ? undefined : (
+                <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name })} />
+              )}
+            />
           </li>
         );
       })}

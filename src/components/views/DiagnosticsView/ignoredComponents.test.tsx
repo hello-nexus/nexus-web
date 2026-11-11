@@ -82,7 +82,7 @@ describe('per-device ignore wiring', () => {
     render(<CoolingSection data={cooling} loading={false} error={false} onRefresh={() => {}} />);
     expect(screen.queryByText('diagnostics.cooling.status.stalled')).not.toBeInTheDocument();
     expect(screen.queryByText(/diagnostics.cooling.since/)).not.toBeInTheDocument();
-    expect(screen.getByText('diagnostics.monitor.off')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'diagnostics.monitor.label' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('a GPU card uses its NVML ordinal as the id', () => {
