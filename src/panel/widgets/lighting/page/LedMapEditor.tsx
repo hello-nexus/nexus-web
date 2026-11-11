@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square,
-  Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot, ExternalLink,
+  Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot, ExternalLink, Sun,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
@@ -42,6 +42,8 @@ import {
   SAME_POSITION_EPSILON, type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type ReceivedLed, type StagedPartition,
 } from './zoneUtils';
 import { shouldConsumeEditorEscape } from './ledMapEscape';
+import { useEffectiveBrightness } from './useEffectiveBrightness';
+import type { BrightnessCauseKind } from './effectiveBrightness';
 import { SettingsBlock } from '../../../../components/common/SettingsSection/SettingsSection';
 import { capScaleToBounds, dominantScale } from '../../../../lib/aspectResize';
 import styles from './LedMapEditor.module.scss';
@@ -101,6 +103,12 @@ function onSamePoint(a: { u: number; v: number }, b: { u: number; v: number }): 
 // A Lian Li port device's ring segment holds one LED ring per fan, so dividing
 // the segment's LED count by the per-fan ring size recovers the fan count.
 const LIANLI_LEDS_PER_FAN = 16;
+
+const BRIGHTNESS_CAUSE_NAME: Record<BrightnessCauseKind, string> = {
+  device: 'lighting.ledMap.brightnessDevice',
+  schedule: 'lighting.ledMap.brightnessSchedule',
+  master: 'lighting.settings.brightnessLabel',
+};
 
 type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
 
@@ -360,6 +368,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     [structure, offsets, devices],
   );
   const liveDotRef = useLiveLedDots();
+  const effectiveBrightnessInfo = useEffectiveBrightness(zoneCard?.brightness);
 
   // Enabled-LED count per zone for the chip labels, tracking the staged
   // editor state live as the user parks / restores LEDs.
@@ -2853,16 +2862,37 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               and Save on the right. Fixed height so the restore button appearing does not
               grow the modal under the pointer. */}
           <div className={styles.hintRow}>
-            {removedCount > 0 ? (
-              <button
-                type="button"
-                className={styles.modeBtn}
-                onClick={handleRestoreAll}
-              >
-                <ListRestart size={13} aria-hidden />
-                {t(pluralKey('lighting.ledMap.restoreRemovedCount', language, removedCount), { count: removedCount })}
-              </button>
-            ) : <span />}
+            <div className={styles.hintLeft}>
+              {removedCount > 0 && (
+                <button
+                  type="button"
+                  className={styles.modeBtn}
+                  onClick={handleRestoreAll}
+                >
+                  <ListRestart size={13} aria-hidden />
+                  {t(pluralKey('lighting.ledMap.restoreRemovedCount', language, removedCount), { count: removedCount })}
+                </button>
+              )}
+              {effectiveBrightnessInfo !== null && effectiveBrightnessInfo.level < 100 && (
+                <HoverTooltip
+                  side="top"
+                  body={(
+                    <ul className={styles.brightnessCauses}>
+                      {effectiveBrightnessInfo.causes.map(c => (
+                        <li key={c.kind}>
+                          {t('lighting.ledMap.brightnessCause', { name: t(BRIGHTNESS_CAUSE_NAME[c.kind]), level: c.level })}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                >
+                  <span className={styles.brightnessNotice} role="status" tabIndex={0}>
+                    <Sun size={14} aria-hidden />
+                    {t('lighting.ledMap.brightnessDimmed')}
+                  </span>
+                </HoverTooltip>
+              )}
+            </div>
             <div className={styles.saveGroup}>
               {zoneCard && zoneCard.sampling !== undefined && (
                 <SamplingModeSelect

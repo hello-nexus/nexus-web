@@ -526,6 +526,27 @@
 }
 
 // Under the canvas: what was removed on the left, Save on the right.
+.hintLeft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: var(--space-sm) var(--space-xl);
+}
+
+.brightnessNotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.brightnessCauses {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
 .hintRow {
   display: flex;
   align-items: center;
