@@ -8,10 +8,10 @@ import { toDisplay } from './sensorAlertHelpers';
 /** The history source ignores the series filter; the kind token keeps the monitoring push topic's frames out of the chart. */
 export const SENSOR_HISTORY_QUERY = 'sensorAlert';
 
-/** Every card plots the whole range the picker names, so the chart window fills the strip. */
+/** The chart plots the whole range the picker names, so the window fills the strip. */
 export const SENSOR_HISTORY_OPTIONS: MetricHistoryOptions = { fillBox: true };
 
-/** The Sensors tab's anchor id for a rule's card, which Summary rows scroll to. */
+/** The Sensors tab's anchor id for a rule's list row, which Summary rows scroll to. */
 export function sensorCardAnchor(ruleId: string): string {
   return `sensor-card-${ruleId}`;
 }
@@ -55,4 +55,9 @@ export function sensorYDomain(
   const max = Math.max(...values);
   const pad = (max - min || Math.abs(max) || 1) * Y_PADDING_FRACTION;
   return [min - pad, max + pad];
+}
+
+/** The picked sensor while it still exists, else the first one in the list (null with no rules), so a deleted selection falls back instead of dangling. */
+export function resolveSelectedId(rules: readonly SensorAlertRule[], picked: string | null): string | null {
+  return picked !== null && rules.some(r => r.id === picked) ? picked : (rules[0]?.id ?? null);
 }

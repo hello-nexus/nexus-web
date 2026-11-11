@@ -338,6 +338,20 @@ describe('TimeSeriesChart', () => {
       expect(onWheelZoom.mock.calls[0][1]).toBeLessThan(1);
     });
 
+    it('with wheelZoomNeedsModifier, a plain wheel scrolls the page and Ctrl or Cmd plus wheel zooms', () => {
+      const onWheelZoom = vi.fn(() => true);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} wheelZoomNeedsModifier />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
+      expect(onWheelZoom).not.toHaveBeenCalled();
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, ctrlKey: true })).toBe(false);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, metaKey: true })).toBe(false);
+      expect(onWheelZoom).toHaveBeenCalledTimes(2);
+    });
+
     it('lets mostly horizontal wheel motion (a trackpad pan) through untouched', () => {
       const onWheelZoom = vi.fn(() => true);
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);

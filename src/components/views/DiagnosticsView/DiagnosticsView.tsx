@@ -60,11 +60,11 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
 
   const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
-    { key: 'sensors', label: t('diagnostics.tab.sensors'), icon: <ChartLine size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
     { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
+    { key: 'sensors', label: t('diagnostics.tab.sensors'), icon: <ChartLine size={14} /> },
     { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
   ] as const;
 

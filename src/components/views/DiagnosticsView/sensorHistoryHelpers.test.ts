@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MetricHistorySeries } from '../../../api/monitoringHistory';
 import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
-import { sensorCardAnchor, sensorChartThresholds, sensorYDomain, toSensorChartSeries } from './sensorHistoryHelpers';
+import { resolveSelectedId, sensorCardAnchor, sensorChartThresholds, sensorYDomain, toSensorChartSeries } from './sensorHistoryHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
   id: 'r1', enabled: true,
@@ -59,5 +59,19 @@ describe('sensorYDomain', () => {
 describe('sensorCardAnchor', () => {
   it('prefixes the rule id', () => {
     expect(sensorCardAnchor('r1')).toBe('sensor-card-r1');
+  });
+});
+
+describe('resolveSelectedId', () => {
+  const rules = [rule({ id: 'a' }), rule({ id: 'b' })];
+  it('keeps a picked sensor that still exists', () => {
+    expect(resolveSelectedId(rules, 'b')).toBe('b');
+  });
+  it('falls back to the first sensor when nothing is picked or the pick is gone', () => {
+    expect(resolveSelectedId(rules, null)).toBe('a');
+    expect(resolveSelectedId(rules, 'gone')).toBe('a');
+  });
+  it('is null with no sensors', () => {
+    expect(resolveSelectedId([], 'a')).toBeNull();
   });
 });

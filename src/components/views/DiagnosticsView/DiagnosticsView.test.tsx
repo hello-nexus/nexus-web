@@ -53,7 +53,7 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
 }));
 
 // The Summary list reads live values through the sensor lookup; none here, so a row falls back to the state value.
-vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
+vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ SensorPicker: () => null, useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
 
 // The Settings tab needs the UI settings provider; the deep link test only checks that it is the tab shown.
@@ -807,8 +807,8 @@ describe('DiagnosticsView tabs', () => {
     for (const platform of ['windows', '']) {
       const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
       expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-        'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
-        'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
+        'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
+        'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors', 'diagnostics.tab.settings',
       ]);
       unmount();
     }
@@ -818,16 +818,16 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'linux' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.storage',
-      'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
+      'diagnostics.tab.summary', 'diagnostics.kind.storage',
+      'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.sensors', 'diagnostics.tab.settings',
     ]);
   });
 
-  it('keeps only Summary/Sensors/Cooling/Settings on macos', () => {
+  it('keeps only Summary/Cooling/Sensors/Settings on macos', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'macos' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.cooling', 'diagnostics.tab.settings',
+      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.sensors', 'diagnostics.tab.settings',
     ]);
   });
 

@@ -1,17 +1,7 @@
-@use '../../../styles/text' as *;
-
 .root {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-}
-
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
 }
 
 .addRow {
@@ -26,62 +16,6 @@
   color: var(--text-dim);
 }
 
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.rangeSelect {
-  flex-shrink: 0;
-}
-
-.resetRange {
-  @include text-button;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  color: var(--text-dim);
-  background: var(--surface);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease;
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--accent);
-  }
-}
-
-.brush {
-  flex: 1;
-  min-width: 0;
-}
-
-.cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.cardHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.value {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.muted {
-  color: var(--text-dim);
-}
-
 .messageBox {
   display: flex;
   align-items: center;
@@ -92,9 +26,41 @@
   background: var(--surface);
 }
 
-// The settings rows sit under the graph, set off by a rule.
-.settings {
-  margin-top: var(--space-md);
-  padding-top: var(--space-sm);
-  border-top: var(--border-width) solid var(--border);
+// List on the left, detail pane taking the rest; stacked on a narrow content area.
+.split {
+  display: grid;
+  grid-template-columns: minmax(15rem, 17.5rem) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.listPane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+// The graph with its range picker and seek bar stays docked at the top of the
+// scrolling tab while the editor scrolls under it. Opaque so rows never show through.
+.stickyGraph {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: var(--space-sm);
+  background: var(--bg-elevated);
+
+  @media (max-width: 720px) {
+    position: static;
+  }
 }

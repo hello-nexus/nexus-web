@@ -176,16 +176,16 @@ export function resolveSectionState(opts: {
   return 'content';
 }
 
-export type DiagnosticsTab = 'summary' | 'sensors' | 'storage' | 'memory' | 'cooling' | 'system' | 'settings';
+export type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system' | 'sensors' | 'settings';
 
-const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'sensors', 'storage', 'memory', 'cooling', 'system', 'settings'];
+const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'storage', 'memory', 'cooling', 'system', 'sensors', 'settings'];
 
 // Windows Memory Diagnostic has no Linux equivalent; macOS exposes none of
 // SMART, PnP problems, or the Windows event log, so only Summary/Cooling/
 // Settings have real content there.
 const PLATFORM_DIAGNOSTICS_TABS: Record<string, readonly DiagnosticsTab[]> = {
-  linux: ['summary', 'sensors', 'storage', 'cooling', 'system', 'settings'],
-  macos: ['summary', 'sensors', 'cooling', 'settings'],
+  linux: ['summary', 'storage', 'cooling', 'system', 'sensors', 'settings'],
+  macos: ['summary', 'cooling', 'sensors', 'settings'],
 };
 
 /** Tab keys with real functionality on the given service platform; an unknown

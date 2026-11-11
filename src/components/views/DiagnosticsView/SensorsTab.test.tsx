@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
@@ -137,7 +137,7 @@ describe('SensorsTab', () => {
     expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.addFailed' });
   });
 
-  it('renders a card per rule with its current value, state, and the limit drawn as a chart line', () => {
+  it('lists a row per rule with its current value, state, and the limit drawn as a chart line', () => {
     h.rules = [rule('r1'), rule('r2', { enabled: false })];
     h.states = [state('r1', { state: 'active', direction: 'above' }), state('r2')];
     render(<SensorsTab {...props()} />);
@@ -146,7 +146,13 @@ describe('SensorsTab', () => {
     expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.state.disabled')).toBeInTheDocument();
     expect(h.chart.mock.calls[0][0]).toMatchObject({ thresholds: [{ value: 80, color: 'var(--bad)' }] });
+  });
+
+  it('says there is no history when the selected sensor has no recorded series', () => {
+    h.rules = [rule('r9')];
+    render(<SensorsTab {...props()} />);
     expect(screen.getByText('diagnostics.sensors.noHistory')).toBeInTheDocument();
+    expect(screen.queryByTestId('chart')).toBeNull();
   });
 
   it('converts the graph values, the limits and the reading to Fahrenheit', () => {
@@ -160,25 +166,47 @@ describe('SensorsTab', () => {
     expect(chart.thresholds[0].value).toBe(176);
   });
 
-  it('expands the card settings with the Edit toggle and collapses them again', () => {
-    h.rules = [rule('r1')];
+  it('shows the editor and graph of the first sensor by default, and the clicked sensor swaps them', () => {
+    h.rules = [rule('r1'), rule('r2')];
     render(<SensorsTab {...props()} />);
-    const toggle = screen.getByTestId('sensor-edit-toggle');
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByTestId('settings-stub')).toBeNull();
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByTestId('settings-stub')).toHaveTextContent('r1');
-    fireEvent.click(toggle);
-    expect(screen.queryByTestId('settings-stub')).toBeNull();
+    expect(screen.getByTestId('sensor-detail')).toHaveAttribute('data-rule-id', 'r1');
+    const rows = screen.getAllByTestId('sensor-row');
+    expect(rows[0]).toHaveAttribute('data-selected', 'true');
+    fireEvent.click(within(rows[1]).getByRole('button', { pressed: false }));
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r2');
+    expect(screen.getAllByTestId('sensor-row')[1]).toHaveAttribute('data-selected', 'true');
   });
 
-  it('writes the enabled switch and deletes from the card', () => {
+  it('plots one chart whose plain wheel scrolls the page and Ctrl/Cmd+wheel zooms', () => {
+    h.rules = [rule('r1'), rule('r2')];
+    render(<SensorsTab {...props()} />);
+    expect(screen.getAllByTestId('chart')).toHaveLength(1);
+    expect(h.chart.mock.calls[0][0]).toMatchObject({ wheelZoomNeedsModifier: true });
+  });
+
+  it('falls back to the first sensor after the selected one is deleted', () => {
+    h.rules = [rule('r1'), rule('r2')];
+    const { rerender } = render(<SensorsTab {...props()} />);
+    fireEvent.click(within(screen.getAllByTestId('sensor-row')[1]).getByRole('button', { pressed: false }));
+    h.rules = [rule('r1')];
+    rerender(<SensorsTab {...props()} />);
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r1');
+  });
+
+  it('selects a deep-linked sensor', () => {
+    h.rules = [rule('r1'), rule('r2')];
+    const p = props({ focusRuleId: 'r2' });
+    render(<SensorsTab {...p} />);
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r2');
+    expect(p.onFocused).toHaveBeenCalled();
+  });
+
+  it('writes the enabled switch and deletes from the editor', () => {
     h.rules = [rule('r1')];
     render(<SensorsTab {...props()} />);
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=CPU Sensor r1)' }));
     expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1', enabled: false }), expect.any(Function));
-    fireEvent.click(screen.getByTestId('sensor-edit-toggle'));
     fireEvent.click(screen.getByRole('button', { name: 'stub-delete' }));
     expect(h.remove).toHaveBeenCalledWith('r1');
   });
@@ -187,7 +215,6 @@ describe('SensorsTab', () => {
     h.rules = [rule('r1')];
     h.remove.mockResolvedValue(false);
     render(<SensorsTab {...props()} />);
-    fireEvent.click(screen.getByTestId('sensor-edit-toggle'));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-delete' })); });
     expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.deleteFailed' });
   });

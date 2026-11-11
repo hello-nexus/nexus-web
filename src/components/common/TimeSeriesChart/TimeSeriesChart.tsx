@@ -181,6 +181,10 @@ export interface TimeSeriesChartProps {
    *  false lets it fall through, e.g. once the window cannot zoom further.
    *  Mostly-horizontal wheel motion is never offered. */
   onWheelZoom?: (anchorT: number, factor: number) => boolean;
+  /** With onWheelZoom: a plain wheel scrolls the page and only Ctrl/Cmd+wheel
+   *  (which is also how a trackpad pinch arrives) zooms. Opt-in; off keeps the
+   *  plain wheel zooming. */
+  wheelZoomNeedsModifier?: boolean;
   /** Renders a thin event lane along the top of the chart, one marker per
    *  event. Omit (the default, `undefined`) to render no lane at all and
    *  keep the plot at its original layout, byte-identical to before this
@@ -244,7 +248,7 @@ const EVENT_CLUSTER_THRESHOLD_PX = EVENT_MARKER_SIZE;
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, thresholds, showLegend = true, domain, tooltipExtra, yDomain,
-  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom,
+  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom, wheelZoomNeedsModifier = false,
   events, onEventClick, onAddEventAt, renderEventTooltip,
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
@@ -533,6 +537,7 @@ export function TimeSeriesChart({
   useLayoutEffect(() => {
     wheelHandlerRef.current = (e: WheelEvent) => {
       if (!onWheelZoom || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || isDragging) return;
+      if (wheelZoomNeedsModifier && !e.ctrlKey && !e.metaKey) return;
       const svg = svgRef.current;
       if (!svg) return;
       const anchorT = pxToT(tToPx(e.clientX, svg.getBoundingClientRect()));

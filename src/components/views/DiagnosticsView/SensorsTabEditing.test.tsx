@@ -110,7 +110,10 @@ async function renderSection(rules: SensorAlertRule[], states: SensorAlertState[
   return utils;
 }
 
-const openFirst = () => fireEvent.click(screen.getAllByTestId('sensor-edit-toggle')[0]);
+// The first sensor is selected by default; clicking its row keeps the detail pane on it.
+// The live badge is also a status region, so the alert banner is found by its tone.
+const banner = () => document.querySelector('[role="status"][data-tone]');
+const openFirst = () => fireEvent.click(within(screen.getAllByTestId('sensor-row')[0]).getByRole('button', { pressed: true }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -122,8 +125,9 @@ beforeEach(() => {
 describe('SensorsTab editing', () => {
   it('lists each rule with its sensor name, live value and state chip', async () => {
     await renderSection([rule('r1')], [okState('r1', { state: 'pending' })]);
-    expect(screen.getByText('CPU Package')).toBeInTheDocument();
-    expect(screen.getByText('62°C')).toBeInTheDocument();
+    const row = within(screen.getByTestId('sensor-row'));
+    expect(row.getByText('CPU Package')).toBeInTheDocument();
+    expect(row.getByText('62°C')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.state.pending')).toBeInTheDocument();
   });
 
@@ -210,13 +214,13 @@ describe('SensorsTab editing', () => {
     const dialog = await screen.findByRole('alertdialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'common.delete' }));
     await waitFor(() => expect(h.deleteSensorAlert).toHaveBeenCalledWith('r1'));
-    await waitFor(() => expect(screen.queryByText('CPU Package')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('sensor-row')).toBeNull());
   });
 
   it('shows and edits Fahrenheit while storing Celsius', async () => {
     h.tempUnit = 'f';
     await renderSection([rule('r1', { high: 80 })]);
-    expect(screen.getByText('143.6°F')).toBeInTheDocument();
+    expect(within(screen.getByTestId('sensor-row')).getByText('143.6°F')).toBeInTheDocument();
     openFirst();
     expect(screen.getByRole('slider', { name: 'diagnostics.alerts.highKnob' })).toHaveValue('176');
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
@@ -254,10 +258,10 @@ describe('SensorsTab editing', () => {
     it('shows the banner for an active alert, and Dismiss acknowledges it, hides it and refreshes health', async () => {
       h.acknowledgeSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
       await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above', extreme: 86, since: '2026-11-10T21:09:00' })]);
-      expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'warning');
+      expect(banner()).toHaveAttribute('data-tone', 'warning');
       await act(async () => { fireEvent.click(screen.getByTestId('sensor-banner-dismiss')); });
       expect(h.acknowledgeSensorAlert).toHaveBeenCalledWith('r1');
-      expect(screen.queryByRole('status')).toBeNull();
+      expect(banner()).toBeNull();
       expect(onAlertDismissed).toHaveBeenCalledTimes(1);
     });
 
@@ -269,9 +273,9 @@ describe('SensorsTab editing', () => {
 
     it('raises the banner when a state frame turns the rule active', async () => {
       await renderSection([rule('r1', { severity: 'act' })], [okState('r1')]);
-      expect(screen.queryByRole('status')).toBeNull();
+      expect(banner()).toBeNull();
       await act(async () => { h.frame!({ states: [okState('r1', { state: 'active', direction: 'above' })] }); });
-      expect(screen.getByRole('status')).toHaveAttribute('data-tone', 'critical');
+      expect(banner()).toHaveAttribute('data-tone', 'critical');
     });
   });
 
@@ -283,7 +287,7 @@ describe('SensorsTab editing', () => {
       expect(screen.queryByTestId('sensor-add')).toBeNull();
       h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [] } });
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'diagnostics.retry' })); });
-      expect(screen.getByText('CPU Package')).toBeInTheDocument();
+      expect(screen.getByTestId('sensor-row')).toBeInTheDocument();
       expect(screen.queryByText('diagnostics.loadFailed')).toBeNull();
       expect(screen.getByTestId('sensor-add')).toBeEnabled();
     });
