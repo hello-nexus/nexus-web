@@ -658,7 +658,6 @@
   "cooling.pin.pinCount.other": "ピン留め（{count} 基）",
   "cooling.pin.pinDesc": "このファン独自の速度を維持",
   "cooling.pin.tip": "モードを切り替えても独自の速度を維持。クリックでピン留めを解除。",
-  "cooling.pin.tipAio": "初期設定でピン留め: クーラーは独自のカーブで動作。クリックでピン留めを解除。",
   "cooling.pin.tipGpu": "初期設定でピン留め: モードは GPU ではなく CPU 温度に従う。クリックでピン留めを解除。",
   "cooling.pin.tipPump": "初期設定でピン留め: ポンプ速度は設定のまま。クリックでピン留めを解除。",
   "cooling.pin.unpin": "ピン留めを解除",

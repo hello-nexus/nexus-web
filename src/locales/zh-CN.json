@@ -658,7 +658,6 @@
   "cooling.pin.pinCount.other": "固定（{count} 个风扇）",
   "cooling.pin.pinDesc": "保持此风扇自己的转速",
   "cooling.pin.tip": "切换模式时保持自己的转速。点击取消固定。",
-  "cooling.pin.tipAio": "默认固定：散热器按自己的曲线运行。点击取消固定。",
   "cooling.pin.tipGpu": "默认固定：模式跟随 CPU 温度，而非 GPU。点击取消固定。",
   "cooling.pin.tipPump": "默认固定：水泵转速保持设定值。点击取消固定。",
   "cooling.pin.unpin": "取消固定",

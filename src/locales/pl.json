@@ -664,7 +664,6 @@
   "cooling.pin.pinCount.other": "Przypnij ({count} wentylatorów)",
   "cooling.pin.pinDesc": "Zachowaj własną prędkość tego wentylatora",
   "cooling.pin.tip": "Zachowuje własną prędkość po zmianie trybu. Kliknij, aby odpiąć.",
-  "cooling.pin.tipAio": "Domyślnie przypięty: chłodzenie działa według własnej krzywej. Kliknij, aby odpiąć.",
   "cooling.pin.tipGpu": "Domyślnie przypięty: tryby podążają za temperaturą CPU, nie GPU. Kliknij, aby odpiąć.",
   "cooling.pin.tipPump": "Domyślnie przypięty: prędkość pompy pozostaje bez zmian. Kliknij, aby odpiąć.",
   "cooling.pin.unpin": "Odepnij",

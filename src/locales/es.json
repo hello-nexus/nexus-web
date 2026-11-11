@@ -658,7 +658,6 @@
   "cooling.pin.pinCount.other": "Fijar ({count} ventiladores)",
   "cooling.pin.pinDesc": "Mantener la velocidad propia de este ventilador",
   "cooling.pin.tip": "Mantiene su velocidad al cambiar de modo. Haz clic para desfijar.",
-  "cooling.pin.tipAio": "Fijado por defecto: el enfriador ejecuta su propia curva. Haz clic para desfijar.",
   "cooling.pin.tipGpu": "Fijado por defecto: los modos siguen la temperatura de la CPU, no la de la GPU. Haz clic para desfijar.",
   "cooling.pin.tipPump": "Fijado por defecto: la velocidad de la bomba se mantiene como está. Haz clic para desfijar.",
   "cooling.pin.unpin": "Desfijar",

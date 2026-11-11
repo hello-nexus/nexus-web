@@ -664,7 +664,6 @@
   "cooling.pin.pinCount.other": "Připnout ({count} ventilátorů)",
   "cooling.pin.pinDesc": "Ponechat vlastní otáčky tohoto ventilátoru",
   "cooling.pin.tip": "Při přepnutí režimu si ponechá vlastní otáčky. Kliknutím odepnete.",
-  "cooling.pin.tipAio": "Ve výchozím stavu připnuto: chladič používá vlastní křivku. Kliknutím odepnete.",
   "cooling.pin.tipGpu": "Ve výchozím stavu připnuto: režimy sledují teplotu CPU, ne GPU. Kliknutím odepnete.",
   "cooling.pin.tipPump": "Ve výchozím stavu připnuto: otáčky čerpadla zůstávají, jak jsou nastavené. Kliknutím odepnete.",
   "cooling.pin.unpin": "Odepnout",

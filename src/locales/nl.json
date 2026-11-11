@@ -658,7 +658,6 @@
   "cooling.pin.pinCount.other": "Vastzetten ({count} ventilatoren)",
   "cooling.pin.pinDesc": "Eigen snelheid van deze ventilator behouden",
   "cooling.pin.tip": "Behoudt zijn eigen snelheid bij het wisselen van modus. Klik om los te maken.",
-  "cooling.pin.tipAio": "Standaard vastgezet: de koeler draait zijn eigen curve. Klik om los te maken.",
   "cooling.pin.tipGpu": "Standaard vastgezet: modi volgen de CPU-temperatuur, niet de GPU. Klik om los te maken.",
   "cooling.pin.tipPump": "Standaard vastgezet: pomptoerental blijft zoals ingesteld. Klik om los te maken.",
   "cooling.pin.unpin": "Losmaken",

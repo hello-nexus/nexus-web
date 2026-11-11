@@ -658,7 +658,6 @@
   "cooling.pin.pinCount.other": "고정({count}개)",
   "cooling.pin.pinDesc": "이 팬의 고유 속도 유지",
   "cooling.pin.tip": "모드를 전환해도 고유 속도를 유지. 클릭하여 고정 해제.",
-  "cooling.pin.tipAio": "기본으로 고정됨: 쿨러가 자체 커브로 동작. 클릭하여 고정 해제.",
   "cooling.pin.tipGpu": "기본으로 고정됨: 모드는 GPU가 아닌 CPU 온도를 따름. 클릭하여 고정 해제.",
   "cooling.pin.tipPump": "기본으로 고정됨: 펌프 속도는 설정값 유지. 클릭하여 고정 해제.",
   "cooling.pin.unpin": "고정 해제",

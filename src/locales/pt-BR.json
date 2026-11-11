@@ -658,7 +658,6 @@
   "cooling.pin.pinCount.other": "Fixar ({count} ventoinhas)",
   "cooling.pin.pinDesc": "Manter a velocidade própria desta ventoinha",
   "cooling.pin.tip": "Mantém a própria velocidade ao trocar de modo. Clique para desafixar.",
-  "cooling.pin.tipAio": "Fixada por padrão: o cooler segue a própria curva. Clique para desafixar.",
   "cooling.pin.tipGpu": "Fixada por padrão: os modos seguem a temperatura da CPU, não a da GPU. Clique para desafixar.",
   "cooling.pin.tipPump": "Fixada por padrão: a velocidade da bomba fica como definida. Clique para desafixar.",
   "cooling.pin.unpin": "Desafixar",
