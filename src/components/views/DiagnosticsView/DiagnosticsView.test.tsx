@@ -40,6 +40,25 @@ vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
   useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: mockRefreshHealth }),
 }));
 
+// Sensor alert rules and states for the Summary list and the Sensors tab, which read the same hook.
+const mockAlerts = vi.hoisted(() => ({
+  rules: [] as unknown[], states: [] as unknown[], acknowledge: vi.fn(async () => true),
+}));
+
+vi.mock('../../../hooks/useSensorAlerts', () => ({
+  useSensorAlerts: () => ({
+    rules: mockAlerts.rules, states: mockAlerts.states, loading: false, loaded: true, error: false, atLimit: false,
+    preview: vi.fn(), save: vi.fn(), add: vi.fn(), remove: vi.fn(), refresh: vi.fn(), acknowledge: mockAlerts.acknowledge,
+  }),
+}));
+
+// The Summary list reads live values through the sensor lookup; none here, so a row falls back to the state value.
+vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
+vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
+
+// The Settings tab needs the UI settings provider; the deep link test only checks that it is the tab shown.
+vi.mock('./SettingsTab', () => ({ SettingsTab: () => <div data-testid="settings-tab" /> }));
+
 vi.mock('../../../hooks/useThermalGuard', () => ({
   useThermalGuard: () => ({
     guard: mockGuardTrip.on
@@ -144,6 +163,36 @@ describe('ComponentHealthGrid domain tiles', () => {
     // reasonLabel falls back to the summary (no I18nProvider), so the label and
     // the summary line render the same text - assert at least one is present.
     expect(screen.getAllByText('GPU is throttling').length).toBeGreaterThan(0);
+  });
+
+  it('ignores an alerts component so the grid stays four tiles', () => {
+    const components: DiagnosticsComponent[] = [
+      {
+        id: 'alert:r1', kind: 'alerts', name: 'CPU Package', status: 'act',
+        reasons: [{ code: 'sensorAlert', severity: 'act', summary: 'CPU Package above 90', detail: '' }],
+      },
+    ];
+    render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
+    expect(screen.queryByText('CPU Package above 90')).toBeNull();
+  });
+
+  it('never shows the raw reason detail: no tooltip without params, a formatted one with them', () => {
+    const raw = 'cause=CPU reached its temperature limit active=False peakC=99.4';
+    const base = { id: 'cooling:thermal-guard', kind: 'cooling' as const, name: 'CPU thermal guard', status: 'act' as const };
+    const { rerender } = render(<ComponentHealthGrid onNavigate={() => {}} components={[
+      { ...base, reasons: [{ code: 'cooling.thermalGuardTrip', severity: 'act', summary: 'Thermal guard tripped', detail: raw }] },
+    ]} />);
+    expect(screen.queryByRole('button', { name: 'infoTooltip.ariaLabel' })).toBeNull();
+    rerender(<ComponentHealthGrid onNavigate={() => {}} components={[
+      { ...base, reasons: [{
+        code: 'cooling.thermalGuardTrip', severity: 'act', summary: 'Thermal guard tripped', detail: raw,
+        params: { cause: 'x', active: 'false', reason: 'limit', peakC: '99.4', escalated: 'false', at: '1794378489292' },
+      }] },
+    ]} />);
+    const trigger = screen.getByRole('button', { name: 'infoTooltip.ariaLabel' });
+    fireEvent.focus(trigger);
+    expect(document.body.textContent).not.toContain('active=False');
   });
 
   it('navigates to the matching tab when a tile is clicked', () => {
@@ -657,6 +706,69 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).not.toHaveBeenCalled();
   });
 
+  it('opens the Settings tab', () => {
+    renderDiagnosticsView({ tab: 'settings', onTabChange: vi.fn() });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.settings/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('settings-tab')).toBeInTheDocument();
+  });
+
+  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Sensors tab', () => {
+    mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
+    mockAlerts.rules = [{
+      id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
+      sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
+    }];
+    mockAlerts.states = [{ ruleId: 'r1', state: 'active', value: 95, since: null, extreme: 96, direction: 'above', acknowledged: false }];
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: null, onTabChange });
+
+    const row = screen.getByRole('button', { name: /CPU Package/ });
+    expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /acknowledge/ })).toBeNull();
+    fireEvent.click(row);
+    expect(onTabChange).toHaveBeenCalledWith('sensors');
+    mockAlerts.rules = [];
+    mockAlerts.states = [];
+  });
+
+  it('Dismiss on a Sensors tab banner acknowledges the alert and force-refreshes health', async () => {
+    mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
+    mockAlerts.rules = [{
+      id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
+      sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
+    }];
+    mockAlerts.states = [{ ruleId: 'r1', state: 'active', value: 95, since: null, extreme: 96, direction: 'above', acknowledged: false }];
+    mockRefreshHealth.mockClear();
+    renderDiagnosticsView({ tab: 'sensors', onTabChange: vi.fn() });
+
+    fireEvent.click(screen.getByTestId('sensor-banner-dismiss'));
+    await waitFor(() => expect(mockRefreshHealth).toHaveBeenCalledWith({ force: true }));
+    expect(mockAlerts.acknowledge).toHaveBeenCalledWith('r1');
+    mockAlerts.rules = [];
+    mockAlerts.states = [];
+  });
+
+  it('keeps alert components out of the Summary tiles while the overall badge still reflects them', () => {
+    mockHealth = {
+      generatedAt: new Date().toISOString(), supported: true, overall: 'act',
+      components: [{
+        id: 'alert:r1', kind: 'alerts', name: 'CPU Package', status: 'act',
+        reasons: [{ code: 'sensorAlert', severity: 'act', summary: 'CPU Package above 90', detail: '' }],
+      }],
+    };
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
+    expect(screen.queryByText('CPU Package above 90')).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
+    expect(screen.getByText('diagnostics.status.act')).toBeInTheDocument();
+  });
+
+  it('hides the sensor alerts list when no rules exist', () => {
+    mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
+    expect(screen.queryByText('diagnostics.alerts.title')).toBeNull();
+  });
+
   it('redirects a legacy ?tab=gpu deep link to the Cooling tab', () => {
     renderDiagnosticsView({ tab: 'gpu', onTabChange: vi.fn() });
 
@@ -695,7 +807,7 @@ describe('DiagnosticsView tabs', () => {
     for (const platform of ['windows', '']) {
       const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
       expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-        'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
+        'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
         'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
       ]);
       unmount();
@@ -706,16 +818,16 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'linux' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.storage',
+      'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.storage',
       'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
     ]);
   });
 
-  it('keeps only Summary/Cooling/Settings on macos', () => {
+  it('keeps only Summary/Sensors/Cooling/Settings on macos', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'macos' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.settings',
+      'diagnostics.tab.summary', 'diagnostics.tab.sensors', 'diagnostics.kind.cooling', 'diagnostics.tab.settings',
     ]);
   });
 

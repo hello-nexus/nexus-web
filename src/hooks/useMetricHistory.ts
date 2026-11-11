@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchMonitoringHistory, type MetricHistoryResponse, type MetricHistorySeries } from '../api/monitoringHistory';
+import { fetchMonitoringHistory, type MetricHistoryFetchResult, type MetricHistoryQuery, type MetricHistoryResponse, type MetricHistorySeries } from '../api/monitoringHistory';
 import { MonitoringHistoryCache, sliceToWindow } from '../lib/monitoringHistoryCache';
 import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 import {
@@ -28,6 +28,9 @@ const DRAG_FINE_REFRESH_MS = 180;
 const WHEEL_SETTLE_MS = 250;
 
 const LIVE_TAIL_POLL_MS = 1_000;
+const TAIL_POLL_MS = 5_000;
+// A tail fetch older than this no longer blocks the next one, so a never-settling fetch cannot stop polling.
+const TAIL_FLIGHT_MAX_AGE_MS = 30_000;
 const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
@@ -43,6 +46,8 @@ const TAIL_GAP_TOLERANCE_MS = 500;
 // round trip. Comfortably longer than LIVE_TAIL_POLL_MS so it never fires
 // mid-tick while the user is still actively watching a fresh window settle.
 const PREFETCH_IDLE_MS = 3_000;
+
+export type MetricHistoryFetcher = (query: MetricHistoryQuery) => Promise<MetricHistoryFetchResult>;
 
 export interface UseMetricHistoryResult {
   /** Decimated series over the current seek-bar STRIP - backs the
@@ -186,7 +191,22 @@ function seriesMatchesQuery(s: MetricHistorySeries, query: string): boolean {
  * scrub position. Seq-guarded like useDiagnosticsTemperatures - a stale
  * response for an outdated request is dropped.
  */
-export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetricHistoryResult {
+export interface MetricHistoryOptions {
+  /** The chart window is the whole range the picker names, not the default sixth of it. */
+  fillBox?: boolean;
+}
+
+export function useMetricHistory(
+  enabled: boolean,
+  seriesQuery: string,
+  fetcher: MetricHistoryFetcher = fetchMonitoringHistory,
+  options: MetricHistoryOptions = {},
+): UseMetricHistoryResult {
+  const fillBoxRef = useRef(options.fillBox ?? false);
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
+  // A custom source has no push topic, so its live edge is polled instead.
+  const pollsTail = fetcher !== fetchMonitoringHistory;
   // Bootstrapped from the client clock once (the lazy useState initializer
   // runs exactly once, unlike useRef's eager argument), purely to shape the
   // very first request window; every value used for chart time after that is
@@ -194,7 +214,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // guard below).
   const [bootstrapNow] = useState(() => Date.now());
   const nowRef = useRef(bootstrapNow);
-  const [viewport, setViewport] = useState<ViewportState>(() => initViewport(nowRef.current));
+  const [viewport, setViewport] = useState<ViewportState>(() => initViewport(nowRef.current, fillBoxRef.current));
   const viewportRef = useRef(viewport);
   useEffect(() => { viewportRef.current = viewport; }, [viewport]);
   const seriesQueryRef = useRef(seriesQuery);
@@ -223,11 +243,14 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
-  // True for the span between a runTailGapFill() call starting and its
-  // response committing - gates the reconnect effect below so it doesn't
-  // fire a redundant concurrent fetch while the bootstrap request (or a
-  // gap-detected one) is still in flight.
-  const tailInFlightRef = useRef(false);
+  // Start time and id of the newest runTailGapFill() fetch still awaiting its response; independent of
+  // tailSeqRef so a viewport fetch cannot strand it. Gates the reconnect and poll ticks against overlapping fetches.
+  const tailFlightStartRef = useRef<number | null>(null);
+  const tailFlightIdRef = useRef(0);
+  const tailBusy = useCallback(
+    () => tailFlightStartRef.current !== null && Date.now() - tailFlightStartRef.current < TAIL_FLIGHT_MAX_AGE_MS,
+    [],
+  );
   const lastLoadedTRef = useRef<number | null>(null);
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
@@ -323,7 +346,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const loadSilhouette = useCallback((from: number, to: number, query: string) => {
     const seq = ++silhouetteSeqRef.current;
     void (async () => {
-      const result = await fetchMonitoringHistory({ from, to, maxPoints: SILHOUETTE_MAX_POINTS, series: query });
+      const result = await fetcherRef.current({ from, to, maxPoints: SILHOUETTE_MAX_POINTS, series: query });
       if (!mountedRef.current || seq !== silhouetteSeqRef.current) return;
       if (result.data) {
         setSilhouette(result.data.series);
@@ -424,7 +447,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     const query = seriesQueryRef.current;
     const seq = ++viewportSeqRef.current;
     void (async () => {
-      const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
+      const result = await fetcherRef.current({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
       if (!mountedRef.current || seq !== viewportSeqRef.current || !result.data) return;
       fineSnapshotRef.current = result.data.series;
       if (!result.mocked) cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
@@ -447,7 +470,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     renderFromCacheOrSilhouette(from, to, query);
 
     void (async () => {
-      const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
+      const result = await fetcherRef.current({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
       if (!mountedRef.current || seq !== viewportSeqRef.current) return;
       if (result.data) {
         setSeries(result.data.series);
@@ -484,7 +507,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const prefetchWindow = useCallback((from: number, to: number, query: string) => {
     if (cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query)) return;
     void (async () => {
-      const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
+      const result = await fetcherRef.current({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
       if (!mountedRef.current || !result.data || result.mocked) return;
       cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
     })();
@@ -595,11 +618,18 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const seq = ++tailSeqRef.current;
-    tailInFlightRef.current = true;
+    const flight = ++tailFlightIdRef.current;
+    tailFlightStartRef.current = Date.now();
     void (async () => {
-      const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
-      if (!mountedRef.current || seq !== tailSeqRef.current) return;
-      tailInFlightRef.current = false;
+      let result: Awaited<ReturnType<typeof fetcherRef.current>> | null = null;
+      try {
+        result = await fetcherRef.current({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
+      } catch {
+        result = null;
+      } finally {
+        if (tailFlightIdRef.current === flight) tailFlightStartRef.current = null;
+      }
+      if (!result || !mountedRef.current || seq !== tailSeqRef.current) return;
       if (!result.data) return;
       const tail = result.data.series;
       const t = newestT(tail);
@@ -636,11 +666,17 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const socketConnected = useMultiplex()?.connected ?? false;
   const prevSocketConnectedRef = useRef(socketConnected);
   useEffect(() => {
-    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailInFlightRef.current) runTailGapFill();
+    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailBusy()) runTailGapFill();
     prevSocketConnectedRef.current = socketConnected;
-  }, [tailActive, socketConnected, runTailGapFill]);
+  }, [tailActive, socketConnected, runTailGapFill, tailBusy]);
 
-  useTopicCallback('monitoring/history-tail', tailActive, (raw) => {
+  useEffect(() => {
+    if (!pollsTail || !tailActive) return undefined;
+    const timer = window.setInterval(() => { if (!tailBusy()) runTailGapFill(); }, TAIL_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [pollsTail, tailActive, runTailGapFill, tailBusy]);
+
+  useTopicCallback('monitoring/history-tail', tailActive && !pollsTail, (raw) => {
     const payload = raw as MetricHistoryResponse | null;
     if (!payload) return;
     const relevant = payload.series.filter(s => seriesMatchesQuery(s, seriesQueryRef.current));
@@ -665,7 +701,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setDragging(false);
     clearDragTimers();
     setViewport(prev => {
-      const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
+      const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current, fillBox: fillBoxRef.current });
       // A wide preset (e.g. 7d) picked on a shorter-retention install must
       // not leave the strip past what the server actually keeps.
       return viewportReducer(next, { type: 'retentionClamp', retentionMs: retentionDaysRef.current * DAY_MS, now: nowRef.current });

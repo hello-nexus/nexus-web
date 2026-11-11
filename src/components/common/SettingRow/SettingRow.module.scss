@@ -111,6 +111,23 @@
   color: var(--text);
 }
 
+// Opt-in (nested prop): a row that refines the row above it. Indented, tighter at the top, secondary label.
+.row.nested {
+  padding-top: 0;
+  padding-inline-start: var(--space-lg);
+
+  .label {
+    font-size: var(--type-small);
+    color: var(--text-dim);
+  }
+}
+
+// One component's rows (a toggle and its nested refinements) as a single unit between the section's hairlines.
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
 // Optional accent glyph before the label text (e.g. the relay satellite).
 // Inline so it sits on the label's baseline without changing row layout.
 .labelIcon {

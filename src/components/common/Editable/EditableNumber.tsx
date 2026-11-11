@@ -25,9 +25,11 @@ export interface EditableNumberProps {
   /** For a slider whose value is not what the user reads (an index shown as a label): the field edits
    *  `toEntry(value)` and a typed number goes through `fromEntry` before the clamp and snap. */
   entryMap?: { toEntry: (value: number) => number; fromEntry: (typed: number) => number };
+  /** A typed value is not clamped to min/max, for a caller that widens its range to fit. */
+  unbounded?: boolean;
 }
 
-export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel, disabled, mixed = false, mixedLabel, entryMap }: EditableNumberProps) {
+export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel, disabled, mixed = false, mixedLabel, entryMap, unbounded = false }: EditableNumberProps) {
   const fmt = format ?? ((v: number) => String(v));
   const editable = useEditable<number>({
     // NaN never equals a typed number, so a mixed edit always commits.
@@ -39,7 +41,7 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
       const typed = Number(draft);
       if (!Number.isFinite(typed)) return null;
       const parsed = entryMap ? entryMap.fromEntry(typed) : typed;
-      const clamped = Math.max(min, Math.min(max, parsed));
+      const clamped = unbounded ? parsed : Math.max(min, Math.min(max, parsed));
       // Snap to `step` so a free-typed value (e.g. 0.37 on a 0.1-step slider)
       // commits to the same grid the range input + slider display use;
       // otherwise the stored value sits off-grid from what formatValue shows.
@@ -74,8 +76,8 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
       <input
         type="number"
         className={`${styles.input} ${styles.inputNumber} ${className ?? ''}`}
-        min={entryMap ? entryMap.toEntry(min) : min}
-        max={entryMap ? entryMap.toEntry(max) : max}
+        min={unbounded ? undefined : entryMap ? entryMap.toEntry(min) : min}
+        max={unbounded ? undefined : entryMap ? entryMap.toEntry(max) : max}
         step={entryMap ? undefined : step}
         aria-label={ariaLabel}
         placeholder={mixed ? mixedLabel : undefined}
