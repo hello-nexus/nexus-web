@@ -127,6 +127,8 @@ export class CanvasSession {
   /** Pointers whose down was withheld; their remaining events are withheld too. */
   private readonly withheld = new Set<number>();
   private generation = 0;
+  /** In-flight renderer net-fetch requests by renderer-side id. */
+  private readonly netAborts = new Map<number, AbortController>();
 
   private readonly spec: CanvasSpec;
   private stopPacingWatch: (() => void) | null = null;
@@ -360,6 +362,9 @@ export class CanvasSession {
       case 'net-fetch':
         void this.serveNetFetch(worker, m.id, m.url);
         return;
+      case 'net-abort':
+        this.netAborts.get(m.id)?.abort();
+        return;
       case 'rejection':
         console.error(`[canvas:${this.spec.appId}] unhandled rejection`, m.message);
         reportAppError(this.spec.appId, 'unhandled-rejection', m.message);
@@ -414,10 +419,13 @@ export class CanvasSession {
   /** Relays a renderer's https GET through the service proxy, which enforces the manifest's net.fetch hosts. */
   private async serveNetFetch(worker: Worker, id: number, url: unknown): Promise<void> {
     let result: unknown = null;
+    const abort = new AbortController();
+    this.netAborts.set(id, abort);
     if (typeof url === 'string') {
-      try { result = await proxyFetch(this.spec.appId, { url, method: 'GET' }, []); } catch { result = null; }
+      try { result = await proxyFetch(this.spec.appId, { url, method: 'GET' }, [], abort.signal); } catch { result = null; }
     }
-    if (worker === this.worker) worker.postMessage({ type: 'net-result', id, result } satisfies HostToRenderer);
+    this.netAborts.delete(id);
+    if (worker === this.worker && !abort.signal.aborted) worker.postMessage({ type: 'net-result', id, result } satisfies HostToRenderer);
   }
 
   private teardownWorker(): void {
@@ -426,6 +434,8 @@ export class CanvasSession {
     const worker = this.worker;
     this.worker = null;
     this.booted = false;
+    for (const a of this.netAborts.values()) a.abort();
+    this.netAborts.clear();
     // Pointers of the dead worker must not reach a new renderer without their down.
     this.forwarded.clear();
     this.withheld.clear();

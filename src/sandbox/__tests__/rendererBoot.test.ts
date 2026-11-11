@@ -10,7 +10,7 @@ function bootedGlobal(script: string): Record<string, unknown> & { self: Record<
   const posts: unknown[] = [];
   const listeners: Array<(ev: { data: unknown }) => void> = [];
   const sandbox: Record<string, unknown> = {
-    URL, Promise, TypeError, Request, Response, Object, atob,
+    URL, Promise, TypeError, Request, Response, Object, atob, DOMException, EventTarget, AbortController,
     fetch: (input: unknown) => { calls.push((input as { url?: string }).url ?? String(input)); return Promise.resolve({ ok: true }); },
     createImageBitmap: () => 1,
     WebAssembly: {},
@@ -135,6 +135,33 @@ describe('rendererBootScript', () => {
     const res = await pending;
     expect(res.ok).toBe(false);
     expect(await res.text()).toBe('nope');
+  });
+
+  it('rejects a body the proxy truncated at its cap instead of returning partial bytes', async () => {
+    const g = bootedGlobal(rendererBootScript());
+    const pending = probe(g, 'fetch("https://tiles.example.com/big")');
+    (g.__deliver as (d: unknown) => void)({
+      type: 'net-result', id: 1,
+      result: { ok: false, status: 200, statusText: 'OK', headers: {}, bodyBase64: 'AAEC', error: 'response exceeded 4194304-byte cap; truncated' },
+    });
+    await expect(pending).rejects.toBeInstanceOf(TypeError);
+  });
+
+  it('rejects with AbortError and sends nothing when the signal is already aborted', async () => {
+    const g = bootedGlobal(rendererBootScript());
+    await expect(probe(g, '(() => { const c = new AbortController(); c.abort(); return fetch("https://tiles.example.com/a", { signal: c.signal }); })()'))
+      .rejects.toMatchObject({ name: 'AbortError' });
+    expect(g.__posts as unknown[]).toHaveLength(0);
+  });
+
+  it('aborts an in-flight request: relays net-abort, rejects, ignores the late result', async () => {
+    const g = bootedGlobal(rendererBootScript());
+    probe(g, 'globalThis.__c = new AbortController(); globalThis.__p = fetch("https://tiles.example.com/a", { signal: __c.signal });');
+    expect(g.__posts as unknown[]).toHaveLength(1);
+    probe(g, '__c.abort()');
+    await expect(probe(g, '__p')).rejects.toMatchObject({ name: 'AbortError' });
+    expect(g.__posts).toEqual([{ type: 'net-fetch', id: 1, url: 'https://tiles.example.com/a' }, { type: 'net-abort', id: 1 }]);
+    expect(() => (g.__deliver as (d: unknown) => void)({ type: 'net-result', id: 1, result: { ok: true, status: 200, headers: {} } })).not.toThrow();
   });
 
   it('does not let the guard be replaced', () => {

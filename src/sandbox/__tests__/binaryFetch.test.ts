@@ -38,6 +38,13 @@ describe('widget nexus.net.fetch Response', () => {
     expect(new Uint8Array(buf)).toEqual(bytes);
   });
 
+  it('decodes binary bodies as text only when text() asks', async () => {
+    const w = widgetWorker();
+    const pending = w.run('nexus.net.fetch("https://a.example.com/b")');
+    w.deliver({ type: 'nexus.reply', id: w.posts[0].id, result: { ok: true, status: 200, headers: {}, bodyBase64: Buffer.from('hi there').toString('base64') } });
+    expect(await (await pending).text()).toBe('hi there');
+  });
+
   it('keeps text(), json() and arrayBuffer() working for text and JSON envelopes', async () => {
     const w = widgetWorker();
     const t = w.run('nexus.net.fetch("https://a.example.com/t")');

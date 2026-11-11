@@ -79,6 +79,9 @@ const FETCH_GUARD = `${B64_BYTES}
 const _realFetch = self.fetch;
 const _post = self.postMessage.bind(self);
 const _Response = Response;
+const _DOMException = DOMException;
+const _addAbort = EventTarget.prototype.addEventListener;
+const _signalGetter = Object.getOwnPropertyDescriptor(Request.prototype, "signal").get;
 const _netPending = new Map();
 let _netId = 1;
 self.addEventListener("message", (ev) => {
@@ -87,12 +90,19 @@ self.addEventListener("message", (ev) => {
   const done = _netPending.get(d.id);
   if (done) { _netPending.delete(d.id); done(d.result); }
 });
-function _netFetch(url) {
+function _netFetch(url, signal) {
   return new Promise((resolve, reject) => {
     const id = _netId++;
+    const abort = () => {
+      if (!_netPending.delete(id)) return;
+      _post({ type: "net-abort", id });
+      reject(new _DOMException("The operation was aborted.", "AbortError"));
+    };
+    if (signal.aborted) { reject(new _DOMException("The operation was aborted.", "AbortError")); return; }
+    _apply(_addAbort, signal, ["abort", abort, { once: true }]);
     _netPending.set(id, (r) => {
       try {
-        if (!r || !r.status) throw new TypeError("refused");
+        if (!r || !r.status || (r.ok !== true && r.error)) throw new TypeError("refused");
         const bodiless = r.status === 204 || r.status === 205 || r.status === 304;
         const body = bodiless ? null
           : typeof r.bodyBase64 === "string" ? _b64Bytes(r.bodyBase64)
@@ -119,7 +129,7 @@ function _guardedFetch(input, init) {
     const scheme = _apply(_lower, _apply(_slice, _apply(_urlGetter, req, []), [0, 5]), []);
     if (scheme === "https") {
       if (req.method !== "GET") throw new TypeError("blocked");
-      return _netFetch(_apply(_urlGetter, req, []));
+      return _netFetch(_apply(_urlGetter, req, []), _apply(_signalGetter, req, []));
     }
     if (scheme !== "blob:" && scheme !== "data:") throw new TypeError("blocked");
   } catch (_) { return Promise.reject(new TypeError("Failed to fetch")); }
@@ -310,19 +320,24 @@ const nexus = {
         // size cap arrives as), so text() must read both. A binary content
         // type arrives as base64 in \`bodyBase64\`, read back by arrayBuffer().
         const r = res || {};
-        const bin = typeof r.bodyBase64 === "string" ? _b64Bytes(r.bodyBase64) : null;
-        const raw = bin ? new TextDecoder().decode(bin) : typeof r.bodyText === "string" ? r.bodyText : (typeof r.body === "string" ? r.body : null);
+        const bin = () => (typeof r.bodyBase64 === "string" ? _b64Bytes(r.bodyBase64) : null);
+        const raw = () => {
+          const b = bin();
+          if (b) return new TextDecoder().decode(b);
+          return typeof r.bodyText === "string" ? r.bodyText : (typeof r.body === "string" ? r.body : null);
+        };
         return {
           ok: r.ok === true,
           status: r.status || 0,
           statusText: r.statusText || "",
           headers: r.headers || {},
           async arrayBuffer() {
-            const b = bin || new TextEncoder().encode(raw !== null ? raw : (r.body ? JSON.stringify(r.body) : ""));
+            const text = raw();
+            const b = bin() || new TextEncoder().encode(text !== null ? text : (r.body ? JSON.stringify(r.body) : ""));
             return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
           },
-          async text() { return raw !== null ? raw : (r.body ? JSON.stringify(r.body) : ""); },
-          async json() { return r.body && typeof r.body === "object" ? r.body : JSON.parse(raw || "null"); },
+          async text() { const t = raw(); return t !== null ? t : (r.body ? JSON.stringify(r.body) : ""); },
+          async json() { return r.body && typeof r.body === "object" ? r.body : JSON.parse(raw() || "null"); },
         };
       });
     },

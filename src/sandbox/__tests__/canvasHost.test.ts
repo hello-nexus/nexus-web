@@ -434,8 +434,21 @@ describe('net-fetch relay', () => {
     proxyFetch.mockResolvedValue(envelope);
     worker.emit({ type: 'net-fetch', id: 7, url: 'https://tiles.example.com/1/2/3.pbf' });
     await flush();
-    expect(proxyFetch).toHaveBeenCalledWith('com.test.app', { url: 'https://tiles.example.com/1/2/3.pbf', method: 'GET' }, []);
+    expect(proxyFetch).toHaveBeenCalledWith('com.test.app', { url: 'https://tiles.example.com/1/2/3.pbf', method: 'GET' }, [], expect.any(AbortSignal));
     expect(worker.sent('net-result')).toEqual([{ type: 'net-result', id: 7, result: envelope }]);
+  });
+
+  it('aborts the proxy request on net-abort and sends no reply', async () => {
+    const { worker } = await readySession();
+    let signal: AbortSignal | undefined;
+    proxyFetch.mockImplementation((_a, _r, _h, sig: AbortSignal) => { signal = sig; return new Promise((resolve) => { sig.addEventListener('abort', () => resolve(null)); }); });
+    worker.emit({ type: 'net-fetch', id: 3, url: 'https://tiles.example.com/x' });
+    await flush();
+    expect(signal?.aborted).toBe(false);
+    worker.emit({ type: 'net-abort', id: 3 });
+    await flush();
+    expect(signal?.aborted).toBe(true);
+    expect(worker.sent('net-result')).toHaveLength(0);
   });
 
   it('replies null when the proxy throws or the url is not a string', async () => {

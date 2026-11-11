@@ -337,7 +337,11 @@ The `Response` offers `ok`, `status`, `headers`, `text()`, `json()` and
 `arrayBuffer()`. A binary content type (anything but text, JSON, XML or
 script) arrives byte-exact through `arrayBuffer()`; a binary body is capped at
 4 MiB (text and JSON at 1 MiB), and the proxy allows 300 requests per minute
-per app.
+per app, with at most a few in flight at once. The 4 MiB figure holds when the
+panel talks to the service directly. A panel connected through the relay
+receives at most about 750 KB of binary body, and one on a WebRTC data channel
+about 190 KB (base64 inflates the body by a third); a larger response fails
+with HTTP 413 there.
 
 ### `useDispatch()`
 
@@ -1099,8 +1103,10 @@ The renderer worker has `OffscreenCanvas`, WebGL, `createImageBitmap`,
 `data:` URLs (so engines can decode embedded images) and GET requests to
 `https` hosts listed in `capabilities.net.fetch`, relayed through the same
 host proxy as `request` (`arrayBuffer()` returns binary bodies byte-exact, up
-to the proxy's 4 MiB binary cap; a request to an unlisted host, or on a host older
-than this feature, rejects or returns a non-ok response). Every other URL is
+to the proxy's 4 MiB binary cap, or about 750 KB through the relay and 190 KB
+over WebRTC; a request to an unlisted host, a body cut at the cap, or a host
+older than this feature rejects with a `TypeError`, and an aborted request
+rejects with `AbortError` and cancels the host request). Every other URL is
 rejected, and there is no other network. `readAsset` is the way to load bundle files and is
 scoped to this app. It goes through the app asset route, which serves only
 `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.ico`, `.svg`, `.nxpack` and `.key`

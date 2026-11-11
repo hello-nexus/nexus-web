@@ -74,6 +74,7 @@ export type RendererToHost =
   | { type: 'read-asset'; id: number; path: string }
   /** Posted by the worker's fetch guard for an https GET; never by renderer code. */
   | { type: 'net-fetch'; id: number; url: string }
+  | { type: 'net-abort'; id: number }
   | { type: 'error'; message: string }
   | { type: 'rejection'; message: string };
 
