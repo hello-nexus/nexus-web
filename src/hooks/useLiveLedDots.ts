@@ -26,14 +26,24 @@ export function paintLiveLed(dot: Dot, frame: LedFrame): void {
   dot.applied = bg;
 }
 
+interface RefEntry {
+  source: LiveLedSource | undefined;
+  ref: RefCallback<HTMLElement>;
+}
+
+const sameSource = (a: LiveLedSource | undefined, b: LiveLedSource | undefined) =>
+  a === b || (a !== undefined && b !== undefined && a.frameIndex === b.frameIndex && a.index === b.index);
+
 /**
  * Live dot colors from the output frame, written straight onto the elements:
  * routing frames through state would re-render the host at frame rate. Call the
- * returned function per dot as its `ref`; it is re-created each render on
- * purpose, so a changed source repaints at once.
+ * returned function per dot as its `ref`. The ref is stable per key, so a
+ * re-render never detaches a dot or rewrites its style; a changed source is
+ * applied in place and repaints at once.
  */
 export function useLiveLedDots(): (key: string | number, source: LiveLedSource | undefined) => RefCallback<HTMLElement> {
   const dotsRef = useRef(new Map<string | number, Dot>());
+  const entriesRef = useRef(new Map<string | number, RefEntry>());
   const latestRef = useRef<LedFrame | null>(null);
 
   useEffect(() => {
@@ -44,10 +54,29 @@ export function useLiveLedDots(): (key: string | number, source: LiveLedSource |
     });
   }, []);
 
-  return (key, source) => el => {
-    if (!el) { dotsRef.current.delete(key); return; }
-    const dot: Dot = { el, source, applied: null };
-    dotsRef.current.set(key, dot);
-    if (latestRef.current) paintLiveLed(dot, latestRef.current);
+  return (key, source) => {
+    const entry = entriesRef.current.get(key);
+    if (!entry) {
+      const made: RefEntry = {
+        source,
+        ref: el => {
+          if (!el) { dotsRef.current.delete(key); return; }
+          const dot: Dot = { el, source: made.source, applied: null };
+          dotsRef.current.set(key, dot);
+          if (latestRef.current) paintLiveLed(dot, latestRef.current);
+        },
+      };
+      entriesRef.current.set(key, made);
+      return made.ref;
+    }
+    if (!sameSource(entry.source, source)) {
+      entry.source = source;
+      const dot = dotsRef.current.get(key);
+      if (dot) {
+        dot.source = source;
+        if (latestRef.current) paintLiveLed(dot, latestRef.current);
+      }
+    }
+    return entry.ref;
   };
 }

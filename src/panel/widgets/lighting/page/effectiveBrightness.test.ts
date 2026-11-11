@@ -22,11 +22,23 @@ describe('effectiveBrightness', () => {
 });
 
 describe('brightnessCauses', () => {
-  it('lists only the controls below full, in tooltip order', () => {
-    expect(brightnessCauses({ master: 90, schedule: 45, device: 80, scales: false })).toEqual([
-      { kind: 'device', level: 80 }, { kind: 'schedule', level: 45 }, { kind: 'master', level: 90 },
-    ]);
-    expect(brightnessCauses({ master: 100, schedule: null, device: 100, scales: false })).toEqual([]);
+  it('lists only the control that binds when master does not scale', () => {
+    expect(brightnessCauses({ master: 90, schedule: 45, device: 80, scales: false })).toEqual([{ kind: 'schedule', level: 45 }]);
     expect(brightnessCauses({ master: 100, schedule: 45, device: 100, scales: false })).toEqual([{ kind: 'schedule', level: 45 }]);
+    expect(brightnessCauses({ master: 100, schedule: null, device: 100, scales: false })).toEqual([]);
+    expect(brightnessCauses({ master: 90, schedule: null, device: 40, scales: false })).toEqual([{ kind: 'device', level: 40 }]);
+  });
+
+  it('lists every binder on a tie', () => {
+    expect(brightnessCauses({ master: 50, schedule: 50, device: 50, scales: false })).toEqual([
+      { kind: 'device', level: 50 }, { kind: 'schedule', level: 50 }, { kind: 'master', level: 50 },
+    ]);
+  });
+
+  it('lists the device plus the binding cap when master scales', () => {
+    expect(brightnessCauses({ master: 90, schedule: 45, device: 80, scales: true })).toEqual([
+      { kind: 'device', level: 80 }, { kind: 'schedule', level: 45 },
+    ]);
+    expect(brightnessCauses({ master: 60, schedule: null, device: 100, scales: true })).toEqual([{ kind: 'master', level: 60 }]);
   });
 });

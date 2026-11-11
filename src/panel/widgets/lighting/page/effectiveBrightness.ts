@@ -25,12 +25,19 @@ export type BrightnessCauseKind = 'device' | 'schedule' | 'master';
 
 export interface BrightnessCause { kind: BrightnessCauseKind; level: number }
 
-/** The controls currently below full, in the order the tooltip lists them. */
-export function brightnessCauses({ master, schedule, device }: BrightnessInputs): BrightnessCause[] {
-  const all: BrightnessCause[] = [
-    { kind: 'device', level: device },
-    { kind: 'schedule', level: schedule ?? 100 },
-    { kind: 'master', level: master },
-  ];
-  return all.filter(c => c.level < 100);
+/**
+ * The controls that set the result, in the order the tooltip lists them. Master
+ * and schedule are both caps on the same level, so whichever is lower binds (a
+ * tie lists both). Without scaling the device joins the same min; with scaling
+ * it multiplies, so it counts whenever it is below full.
+ */
+export function brightnessCauses({ master, schedule, device, scales }: BrightnessInputs): BrightnessCause[] {
+  const sched = schedule ?? 100;
+  const cap = Math.min(master, sched);
+  const target = scales ? cap : Math.min(device, cap);
+  const causes: BrightnessCause[] = [];
+  if (scales ? device < 100 : device === target && device < 100) causes.push({ kind: 'device', level: device });
+  if (sched === cap && cap < 100 && (scales || cap === target)) causes.push({ kind: 'schedule', level: sched });
+  if (master === cap && cap < 100 && (scales || cap === target)) causes.push({ kind: 'master', level: master });
+  return causes;
 }

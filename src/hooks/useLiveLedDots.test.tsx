@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLedFrame, publishLedFrame } from '../lib/ledFrameStore';
 import { useLiveLedDots, type LiveLedSource } from './useLiveLedDots';
 
+const seenRefs: unknown[] = [];
+
 function Dots({ sources }: { sources: (LiveLedSource | undefined)[] }) {
   const ref = useLiveLedDots();
-  return <>{sources.map((s, i) => <div key={i} data-testid={`d${i}`} ref={ref(i, s)} />)}</>;
+  return <>{sources.map((s, i) => { const r = ref(i, s); seenRefs.push(r); return <div key={i} data-testid={`d${i}`} ref={r} />; })}</>;
 }
 
 const frame = (bytes: number[]) => publishLedFrame(null, 0, 0, new Map([[3, new Uint8Array(bytes)]]));
@@ -45,5 +47,23 @@ describe('useLiveLedDots', () => {
     await tick();
     rerender(<Dots sources={[{ frameIndex: 3, index: 1 }]} />);
     expect(getByTestId('d0').style.background).toBe('rgb(9, 9, 9)');
+  });
+
+  it('writes no style on a re-render with an unchanged frame and source', async () => {
+    frame([5, 6, 7]);
+    const sources = [{ frameIndex: 3, index: 0 }];
+    const { getByTestId, rerender } = render(<Dots sources={sources} />);
+    await tick();
+    const el = getByTestId('d0');
+    const observer = new MutationObserver(() => {});
+    observer.observe(el, { attributes: true });
+    seenRefs.length = 0;
+    rerender(<Dots sources={[{ frameIndex: 3, index: 0 }]} />);
+    rerender(<Dots sources={[{ frameIndex: 3, index: 0 }]} />);
+    expect(new Set(seenRefs).size).toBe(1);
+    expect(observer.takeRecords()).toHaveLength(0);
+    observer.disconnect();
+    expect(getByTestId('d0')).toBe(el);
+    expect(el.style.background).toBe('rgb(5, 6, 7)');
   });
 });

@@ -1,7 +1,6 @@
 import { useBrightnessSchedule } from '../../../../hooks/useBrightnessSchedule';
-import { useMasterScalesDevices } from '../../../../hooks/useMasterScalesDevices';
 import { brightnessCauses, effectiveBrightness, type BrightnessCause } from './effectiveBrightness';
-import { useGlobalBrightness } from './useGlobalBrightness';
+import { useGlobalBrightnessState } from './useGlobalBrightness';
 
 /**
  * What scales one lighting device's output right now: the resulting percent and
@@ -10,15 +9,14 @@ import { useGlobalBrightness } from './useGlobalBrightness';
  * minute in step with the service.
  */
 export function useEffectiveBrightness(deviceBrightness: number | undefined): { level: number; causes: BrightnessCause[] } | null {
-  const master = useGlobalBrightness();
-  const scales = useMasterScalesDevices(true);
+  const { percent: master, scales } = useGlobalBrightnessState();
   const { schedule, current, lightingFollows } = useBrightnessSchedule(true);
   if (master === null) return null;
   const inputs = {
     master,
     schedule: schedule?.enabled && lightingFollows ? current : null,
     device: deviceBrightness ?? 100,
-    scales: scales.on === true,
+    scales,
   };
   return { level: effectiveBrightness(inputs), causes: brightnessCauses(inputs) };
 }
