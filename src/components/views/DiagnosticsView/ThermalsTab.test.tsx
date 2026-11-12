@@ -170,8 +170,8 @@ describe('ThermalsTab', () => {
     expect(screen.getAllByTestId('chart')).toHaveLength(1);
     // The switched-off entry keeps its reading, with no chip.
     expect(screen.getAllByText('62°C')).toHaveLength(2);
-    expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
-    expect(screen.queryByText('diagnostics.alerts.state.disabled')).toBeNull();
+    expect(screen.getByText('diagnostics.status.act')).toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.status.ok')).toBeNull();
     expect(h.chart.mock.calls.at(-1)![0]).toMatchObject({ thresholds: [{ value: 80, color: 'var(--bad)' }] });
   });
 

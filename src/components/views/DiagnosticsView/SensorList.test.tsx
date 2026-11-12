@@ -36,13 +36,13 @@ describe('SensorList', () => {
     const rows = screen.getAllByTestId('sensor-row');
     expect(rows[0]).toHaveTextContent('monitoring.settings.category.cpuSensor r1 (Temperature)');
     expect(rows[0]).toHaveTextContent('62°C');
-    expect(rows[0]).toHaveTextContent('diagnostics.alerts.state.pending');
+    expect(rows[0]).toHaveTextContent('diagnostics.status.pending');
     expect(rows[0]).toHaveAttribute('data-selected', 'true');
     // A switched-off sensor (alerts off) keeps its name and reading, but shows no status chip and is not dimmed.
     expect(rows[1]).toHaveTextContent('monitoring.settings.category.cpuSensor r2 (Temperature)');
     expect(rows[1]).toHaveTextContent('50°C');
     expect(rows[1].firstElementChild!.className).not.toMatch(/dimmed/);
-    expect(rows[1]).not.toHaveTextContent('diagnostics.alerts.state');
+    expect(rows[1]).not.toHaveTextContent(/diagnostics\.status\./);
     expect(rows[1]).toHaveAttribute('data-selected', 'false');
 
     fireEvent.click(rows[1].querySelector('button[aria-pressed]')!);
@@ -63,7 +63,7 @@ describe('SensorList', () => {
     for (const row of screen.getAllByTestId('sensor-row')) {
       expect(row).toHaveTextContent('diagnostics.sensors.notReported');
       expect(row.querySelector('[role="switch"]')).toBeNull();
-      expect(row).not.toHaveTextContent('diagnostics.alerts.state');
+      expect(row).not.toHaveTextContent(/diagnostics\.status\./);
       expect(row).not.toHaveTextContent('diagnostics.alerts.noReading');
     }
   });
@@ -96,7 +96,7 @@ describe('SensorList', () => {
     for (const row of screen.getAllByTestId('sensor-row')) {
       expect(row.querySelector('[role="switch"]')).toBeNull();
       expect(row).not.toHaveTextContent('diagnostics.sensors.notReported');
-      expect(row).not.toHaveTextContent('diagnostics.alerts.state');
+      expect(row).not.toHaveTextContent(/diagnostics\.status\./);
       expect(row).not.toHaveTextContent('diagnostics.alerts.noReading');
     }
   });
@@ -119,7 +119,7 @@ describe('SensorList', () => {
     );
     const rows = screen.getAllByTestId('sensor-row');
     expect(rows[0]).toHaveTextContent('41°C');
-    expect(rows[0]).not.toHaveTextContent('diagnostics.alerts.state');
+    expect(rows[0]).not.toHaveTextContent(/diagnostics\.status\./);
     // Not reported shows its chip whether alerts are on or off.
     expect(rows[1]).toHaveTextContent('diagnostics.sensors.notReported');
   });

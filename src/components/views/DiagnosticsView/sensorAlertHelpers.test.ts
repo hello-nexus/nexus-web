@@ -222,8 +222,14 @@ describe('padBounds', () => {
 
 describe('stateLabelKey', () => {
   it('words an unavailable sensor as not reported, never as a fault', () => {
-    expect(stateLabelKey('unavailable')).toBe('diagnostics.sensors.notReported');
-    expect(stateLabelKey('ok')).toBe('diagnostics.alerts.state.ok');
+    expect(stateLabelKey('unavailable', rule())).toBe('diagnostics.sensors.notReported');
+    expect(stateLabelKey('ok', rule())).toBe('diagnostics.status.ok');
+    expect(stateLabelKey('pending', rule())).toBe('diagnostics.status.pending');
+  });
+
+  it('shows an active alert as its rule level', () => {
+    expect(stateLabelKey('active', rule())).toBe('diagnostics.status.watch');
+    expect(stateLabelKey('active', rule({ severity: 'act' }))).toBe('diagnostics.status.act');
   });
 });
 

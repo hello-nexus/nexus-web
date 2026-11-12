@@ -34,31 +34,46 @@ export function statusLabelKey(status: DiagnosticsStatus): string {
   return `diagnostics.status.${status}`;
 }
 
-export function driveStatusColor(status: DiagnosticsDriveStatus): string {
+/** A drive's SMART verdict on the shared three-level ladder. */
+export function driveStatusLevel(status: DiagnosticsDriveStatus): DiagnosticsStatus {
   switch (status) {
-    case 'good': return 'var(--good)';
-    case 'caution': return 'var(--warn)';
-    case 'warning': return 'var(--warn)';
-    case 'bad': return 'var(--bad)';
-    default: return 'var(--text-dim)';
+    case 'good': return 'ok';
+    case 'caution':
+    case 'warning': return 'watch';
+    case 'bad': return 'act';
+    default: return 'unknown';
   }
+}
+
+export function driveStatusColor(status: DiagnosticsDriveStatus): string {
+  return statusColor(driveStatusLevel(status));
 }
 
 export function driveStatusLabelKey(status: DiagnosticsDriveStatus): string {
-  return `diagnostics.driveStatus.${status}`;
+  return statusLabelKey(driveStatusLevel(status));
 }
 
-export function coolingStatusColor(status: CoolingDeviceStatus): string {
+/** A cooling device's state on the shared three-level ladder. */
+export function coolingStatusLevel(status: CoolingDeviceStatus): DiagnosticsStatus {
   switch (status) {
-    case 'ok': return 'var(--good)';
-    case 'suspect': return 'var(--warn)';
-    case 'stalled': return 'var(--bad)';
-    default: return 'var(--text-dim)';
+    case 'ok': return 'ok';
+    case 'suspect': return 'watch';
+    case 'stalled': return 'act';
+    default: return 'unknown';
   }
 }
 
+export function coolingStatusColor(status: CoolingDeviceStatus): string {
+  return statusColor(coolingStatusLevel(status));
+}
+
 export function coolingStatusLabelKey(status: CoolingDeviceStatus): string {
-  return `diagnostics.cooling.status.${status}`;
+  return statusLabelKey(coolingStatusLevel(status));
+}
+
+/** The specific wording behind a fan's level chip; null when the level says it all. */
+export function coolingDetailKey(status: CoolingDeviceStatus): string | null {
+  return status === 'suspect' || status === 'stalled' ? `diagnostics.cooling.status.${status}` : null;
 }
 
 export function incidentSeverityColor(severity: DiagnosticsIncidentSeverity): string {

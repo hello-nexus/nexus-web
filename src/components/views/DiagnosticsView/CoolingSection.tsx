@@ -9,7 +9,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
+import { coolingDetailKey, coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
 import { MonitorToggle } from './MonitorToggle';
 import styles from './DiagnosticsView.module.scss';
 
@@ -63,8 +63,14 @@ export function CoolingSection({ data, loading, error, onRefresh, heading }: Coo
                   </>
                 )}
                 chip={ignored ? undefined : <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />}
-                note={!ignored && device.sinceUtc && device.status !== 'ok'
-                  ? t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })
+                note={!ignored && device.status !== 'ok'
+                  ? (
+                    <>
+                      {coolingDetailKey(device.status) && t(coolingDetailKey(device.status) ?? '')}
+                      {coolingDetailKey(device.status) && device.sinceUtc && <br />}
+                      {device.sinceUtc && t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}
+                    </>
+                  )
                   : undefined}
                 toggle={<MonitorToggle monitored={!ignored} onChange={() => toggle(id)} />}
               />
