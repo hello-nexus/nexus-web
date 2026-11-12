@@ -289,8 +289,8 @@ describe('Revealing the selected entry', () => {
 });
 
 describe('A search deep link to a watchlist entry', () => {
-  const linked = (linkedRuleId: string | null) => (
-    <ThermalsHarness history={sensorHistory} coolingHistory={coolingHistory} onAlertDismissed={vi.fn()} linkedRuleId={linkedRuleId} />
+  const linked = (linkedRuleId: string | null, linkNavKey?: object) => (
+    <ThermalsHarness history={sensorHistory} coolingHistory={coolingHistory} onAlertDismissed={vi.fn()} linkedRuleId={linkedRuleId} linkNavKey={linkNavKey} />
   );
   const loadsHeader = () => within(screen.getAllByTestId('watchlist-group').find(g => g.getAttribute('data-group') === 'loads')!)
     .getByRole('button', { name: 'diagnostics.thermals.group.loads' });
@@ -316,6 +316,14 @@ describe('A search deep link to a watchlist entry', () => {
     expect(pressed()).toEqual(['u1']);
     rerender(linked('l2'));
     expect(pressed()).toEqual(['u1']);
+  });
+
+  it('applies again when the same entry is opened by a new navigation after another pick', () => {
+    const { rerender } = render(linked('l2', {}));
+    fireEvent.click(rowButton('u1'));
+    expect(pressed()).toEqual(['u1']);
+    rerender(linked('l2', {}));
+    expect(pressed()).toEqual(['l2']);
   });
 
   it('opens with nothing selected when the entry no longer exists', () => {

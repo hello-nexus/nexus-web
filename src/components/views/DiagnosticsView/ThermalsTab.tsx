@@ -70,6 +70,8 @@ interface ThermalsTabProps {
   onSelectionChange: (next: ThermalsSelection) => void;
   /** An entry a search result asked for; selected and revealed once the list has loaded. */
   linkedRuleId?: string | null;
+  /** Changes on every navigation, so opening the same link again re-applies it. */
+  linkNavKey?: unknown;
   /** Called after an alert was dismissed, so the Health summary refreshes. */
   onAlertDismissed: () => void;
 }
@@ -81,7 +83,7 @@ interface ThermalsTabProps {
  */
 export function ThermalsTab({
   coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
-  selection, onSelectionChange, onAlertDismissed, linkedRuleId,
+  selection, onSelectionChange, onAlertDismissed, linkedRuleId, linkNavKey,
 }: ThermalsTabProps) {
   const { t, language } = useTranslation();
   const { push } = useToast();
@@ -189,9 +191,9 @@ export function ThermalsTab({
       setQuery('');
       onSelectionChange(selectRule(selection, linked));
     }
-    // Keyed on the link, so later picks are not overridden; the selection is replaced, not read.
+    // Keyed on the link and the navigation, so later picks are not overridden; the selection is replaced, not read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedRuleId, loaded]);
+  }, [linkedRuleId, linkNavKey, loaded]);
   const toggleGroup = (g: string) => setCollapsedGroups(prev => {
     const next = new Set(prev);
     if (!next.delete(g)) next.add(g);

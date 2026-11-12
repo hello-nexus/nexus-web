@@ -40,6 +40,8 @@ interface DiagnosticsViewProps {
   onTabChange: (tab: string) => void;
   /** Opens the Cooling page; without it the notice link is a plain href. */
   onOpenCooling?: () => void;
+  /** Changes on every navigation; see DiagnosticsPage. */
+  navKey?: unknown;
 }
 
 const INCIDENT_WINDOW_DAYS = 30;
@@ -51,7 +53,7 @@ const INCIDENT_WINDOW_DAYS = 30;
 // effect requires.
 const COOLING_EPISODES_QUERY: DiagnosticsTemperatureQuery = { hours: 168 };
 
-export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: routeTab, onTabChange, onOpenCooling }: DiagnosticsViewProps) {
+export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: routeTab, onTabChange, onOpenCooling, navKey }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
   // A search result opens the Sensors tab with one watchlist entry: the route tab reads `cooling:<id>`.
@@ -206,6 +208,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           selection={thermalsSelection}
           onSelectionChange={setThermalsSelection}
           linkedRuleId={linkedRuleId}
+          linkNavKey={navKey}
           onAlertDismissed={() => refreshHealth({ force: true })}
           onGuardTripDismissed={() => {
             refreshHealth({ force: true });
