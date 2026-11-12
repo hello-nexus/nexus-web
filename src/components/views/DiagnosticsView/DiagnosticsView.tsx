@@ -55,7 +55,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   const { t } = useTranslation();
   const { push } = useToast();
   // A search result opens the Sensors tab with one watchlist entry: the route tab reads `cooling:<id>`.
-  const { tab: urlTab, ruleId: linkedRuleId } = parseWatchlistLink(routeTab);
+  const { tab: urlTab, ruleId: linkedRuleId } = routeTab?.startsWith('cooling:') ? parseWatchlistLink(routeTab) : { tab: routeTab, ruleId: null };
 
   const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
@@ -157,9 +157,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     refreshSystem({ force: true });
   }, [refreshHealth, refreshSystem]);
 
-  // The tab applied the link (or found no such entry): the route settles on the plain tab.
-  const handleLinkHandled = useCallback(() => onTabChange('cooling'), [onTabChange]);
-
   const [downloading, setDownloading] = useState(false);
   const handleDownload = useCallback(async () => {
     setDownloading(true);
@@ -209,7 +206,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           selection={thermalsSelection}
           onSelectionChange={setThermalsSelection}
           linkedRuleId={linkedRuleId}
-          onLinkHandled={handleLinkHandled}
           onAlertDismissed={() => refreshHealth({ force: true })}
           onGuardTripDismissed={() => {
             refreshHealth({ force: true });

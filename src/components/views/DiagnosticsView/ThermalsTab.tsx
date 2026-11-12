@@ -68,9 +68,8 @@ interface ThermalsTabProps {
   /** Chart group and the entry picked, owned by DiagnosticsView so they survive tab switches. */
   selection: ThermalsSelection;
   onSelectionChange: (next: ThermalsSelection) => void;
-  /** An entry a search result asked for; selected and revealed once the list loads, then `onLinkHandled` runs. */
+  /** An entry a search result asked for; selected and revealed once the list has loaded. */
   linkedRuleId?: string | null;
-  onLinkHandled?: () => void;
   /** Called after an alert was dismissed, so the Health summary refreshes. */
   onAlertDismissed: () => void;
 }
@@ -82,7 +81,7 @@ interface ThermalsTabProps {
  */
 export function ThermalsTab({
   coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
-  selection, onSelectionChange, onAlertDismissed, linkedRuleId, onLinkHandled,
+  selection, onSelectionChange, onAlertDismissed, linkedRuleId,
 }: ThermalsTabProps) {
   const { t, language } = useTranslation();
   const { push } = useToast();
@@ -184,16 +183,15 @@ export function ThermalsTab({
   }, [selectionKey, selectedRule !== undefined]);
   // A search deep link takes the same reveal as an added entry: clear the search, select it (which reopens its group and scrolls the list). An entry deleted meanwhile leaves nothing selected.
   useEffect(() => {
-    if (!linkedRuleId || (!loaded && !error)) return;
+    if (!linkedRuleId || !loaded) return;
     const linked = rules.find(r => r.id === linkedRuleId);
     if (linked) {
       setQuery('');
       onSelectionChange(selectRule(selection, linked));
     }
-    onLinkHandled?.();
-    // Runs once per link, when the list is known; the selection is replaced, not read.
+    // Keyed on the link, so later picks are not overridden; the selection is replaced, not read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedRuleId, loaded, error]);
+  }, [linkedRuleId, loaded]);
   const toggleGroup = (g: string) => setCollapsedGroups(prev => {
     const next = new Set(prev);
     if (!next.delete(g)) next.add(g);

@@ -898,7 +898,7 @@ const diagnostics: SearchSource = (ctx) => [
 // Diagnostics > Sensors watchlist entries, found by their name or their sensor and device names.
 const watchlist: SearchSource = (ctx) =>
   (ctx.live.sensorAlerts ?? []).map((rule) => {
-    const { title, subtitle } = rowTitles(rule, ctx.t);
+    const { title, subtitle } = rowTitles(rule, ctx.t, undefined, ctx.settings.language);
     return go(`watchlist:${rule.id}`, {
       title: subtitle ? `${title}: ${subtitle}` : title,
       subtitle: `${ctx.t('diagnostics.title')} › ${ctx.t('diagnostics.tab.thermals')}`,
