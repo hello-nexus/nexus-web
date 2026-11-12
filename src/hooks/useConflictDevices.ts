@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { setConflictWhitelisted, type DetectedConflict } from '../api/conflicts';
 import { fetchLightingDevices, setLightingDeviceControlled, type LightingDevice } from '../api/lighting';
+import { commonNamePrefix } from '../panel/widgets/lighting/page/deviceBlocks';
 import { visibleLightingCards } from '../lib/lightingVisibility';
 import { useDevices, type DeviceListItem } from './useDevices';
 
@@ -28,14 +29,8 @@ const LIGHTING_POLL_MS = 3000;
 export function lightingGroupName(cards: readonly LightingDevice[], deviceId: string): string {
   const whole = cards.find(c => c.id === deviceId);
   if (whole) return whole.name;
-  // Zone cards are named "<device> - <zone>"; show the device once, not every header.
-  const first = cards[0].name;
-  const sep = first.lastIndexOf(' - ');
-  if (sep > 0) {
-    const prefix = first.slice(0, sep);
-    if (cards.every(c => c.name.startsWith(prefix))) return prefix;
-  }
-  return first;
+  // Zone cards are named "<device> - <zone>"; show the shared prefix once, never a chain's product name.
+  return commonNamePrefix([...cards]) || cards[0].name;
 }
 
 function lightingGroupOwner(cards: readonly LightingDevice[]): ConflictDeviceOwner {

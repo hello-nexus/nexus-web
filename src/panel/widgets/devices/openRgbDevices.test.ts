@@ -30,6 +30,32 @@ describe('groupOpenRgbDevices', () => {
     expect(rows.find(r => r.deviceId === 'openrgb-b')!.cardIds).toEqual(['openrgb-b']);
   });
 
+  it('names a motherboard row after the device when a header carries a fan chain', () => {
+    const jaf = (n: number) => card({
+      id: `openrgb-s-7E482604210A-0:z${n}`,
+      deviceId: 'openrgb-s-7E482604210A-0',
+      parentDeviceId: 'openrgb-s-7E482604210A-0',
+      name: 'MSI MYSTIC LIGHT - JAF - Lian Li UNIFan SL120 Infinity',
+    });
+    const rows = groupOpenRgbDevices([
+      jaf(0), jaf(1), jaf(2), jaf(3),
+      card({ id: 'j1', deviceId: 'openrgb-s-7E482604210A-0', parentDeviceId: 'openrgb-s-7E482604210A-0', name: 'MSI MYSTIC LIGHT - JARGB 1' }),
+      card({ id: 'j2', deviceId: 'openrgb-s-7E482604210A-0', parentDeviceId: 'openrgb-s-7E482604210A-0', name: 'MSI MYSTIC LIGHT - JARGB 2' }),
+      card({ id: 'io', deviceId: 'openrgb-s-7E482604210A-0', parentDeviceId: 'openrgb-s-7E482604210A-0', name: 'MSI MYSTIC LIGHT - IO Shield' }),
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe('MSI MYSTIC LIGHT');
+  });
+
+  it('names a group of only chain cards after the header', () => {
+    const rows = groupOpenRgbDevices([0, 1, 2, 3].map(n => card({
+      id: `openrgb-s-7E482604210A-0:z${n}`,
+      parentDeviceId: 'openrgb-s-7E482604210A-0',
+      name: 'MSI MYSTIC LIGHT - JAF - Lian Li UNIFan SL120 Infinity',
+    })));
+    expect(rows[0].name).toBe('MSI MYSTIC LIGHT - JAF');
+  });
+
   it('collapses a motherboard with per-port deviceIds into one row', () => {
     const rows = groupOpenRgbDevices([
       card({ id: 'mb-0', deviceId: 'port-0', parentDeviceId: 'openrgb-0', name: 'Z790 - ARGB 1', controlled: false }),

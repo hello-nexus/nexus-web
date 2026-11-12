@@ -185,7 +185,7 @@ function zoneBlocksOf(devices: LightingDevice[], shapeSplits?: ReadonlyMap<strin
 // under "B850I - ARGB_V2_2 - QX Fan 1"), capped so each zone keeps at least its
 // own last segment. Hardware names, not shown ones: a renamed zone would break
 // the run.
-function commonNamePrefix(zones: LightingDevice[]): string {
+export function commonNamePrefix(zones: LightingDevice[]): string {
   const parts = zones.map(z => (z.originalName ?? z.name).split(' - '));
   const max = Math.min(...parts.map(p => p.length)) - 1;
   const shared: string[] = [];
