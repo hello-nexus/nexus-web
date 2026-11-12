@@ -9,6 +9,7 @@ import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { fetchSystemVolume, type SystemVolumeState } from '../api/system';
 import { getTrackingStatus } from '../hooks/useScreenTimeBrowse';
 import { getUpdateStatus } from '../api/update';
+import { fetchSensorAlerts, type SensorAlertRule } from '../api/diagnosticsAlerts';
 
 /** Live service state behind the palette's stateful entries (toggles that
  *  show their current position, per-device rows). Every field is null until
@@ -28,6 +29,8 @@ export interface SearchLiveState {
   volume: SystemVolumeState | null;
   /** Whether the service installs updates itself (it always does on Windows). */
   canAutoInstall: boolean | null;
+  /** The Diagnostics watchlist, built-in and user sensor alert rules. */
+  sensorAlerts: SensorAlertRule[] | null;
 }
 
 export const EMPTY_LIVE_STATE: SearchLiveState = {
@@ -42,6 +45,7 @@ export const EMPTY_LIVE_STATE: SearchLiveState = {
   cloud: null,
   volume: null,
   canAutoInstall: null,
+  sensorAlerts: null,
 };
 
 /**
@@ -68,7 +72,8 @@ export function useSearchLiveState(enabled: boolean): SearchLiveState {
       OFFICIAL_BUILD ? fetchCloudAccounts().catch(() => null) : Promise.resolve(null),
       fetchSystemVolume().catch(() => null),
       OFFICIAL_BUILD ? getUpdateStatus().catch(() => null) : Promise.resolve(null),
-    ]).then(([music, telemetry, tracking, brightness, lightingDevices, smartLights, obs, discord, cloud, volume, update]) => {
+      fetchSensorAlerts().catch(() => null),
+    ]).then(([music, telemetry, tracking, brightness, lightingDevices, smartLights, obs, discord, cloud, volume, update, alerts]) => {
       if (cancelled) return;
       setState({
         musicReactive: music ? music.enabled : null,
@@ -82,6 +87,7 @@ export function useSearchLiveState(enabled: boolean): SearchLiveState {
         cloud: cloud ?? null,
         volume: volume ?? null,
         canAutoInstall: update ? update.canAutoInstall : null,
+        sensorAlerts: alerts?.ok && alerts.data ? alerts.data.rules : null,
       });
     });
     return () => { cancelled = true; };

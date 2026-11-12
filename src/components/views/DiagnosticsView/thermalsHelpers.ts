@@ -67,6 +67,20 @@ export function visibleSelection(
   return selected && sections.some(s => s.rules.some(r => r.id === selected.id)) ? selected : undefined;
 }
 
+/** The Sensors tab's route key; a search result appends the entry to open: `cooling:<id>`. */
+const THERMALS_TAB = 'cooling';
+
+export function watchlistLink(ruleId: string): string {
+  return `${THERMALS_TAB}:${encodeURIComponent(ruleId)}`;
+}
+
+/** Splits a route tab into the tab key and the linked entry id (null when the tab names none or is malformed). */
+export function parseWatchlistLink(tab: string | null): { tab: string | null; ruleId: string | null } {
+  const at = tab?.indexOf(':') ?? -1;
+  if (!tab || at < 0) return { tab, ruleId: null };
+  try { return { tab: tab.slice(0, at), ruleId: decodeURIComponent(tab.slice(at + 1)) || null }; } catch { return { tab: tab.slice(0, at), ruleId: null }; }
+}
+
 /** Built-in watchlist ids read `builtin:<chart series id>`. */
 const BUILTIN_ID_PREFIX = 'builtin:';
 

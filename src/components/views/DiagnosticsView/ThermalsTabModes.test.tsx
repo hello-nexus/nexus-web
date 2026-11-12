@@ -286,6 +286,37 @@ describe('Revealing the selected entry', () => {
   });
 });
 
+describe('A search deep link to a watchlist entry', () => {
+  const linked = (linkedRuleId: string | null, onLinkHandled = vi.fn()) => (
+    <ThermalsHarness history={sensorHistory} coolingHistory={coolingHistory} onAlertDismissed={vi.fn()} linkedRuleId={linkedRuleId} onLinkHandled={onLinkHandled} />
+  );
+  const loadsHeader = () => within(screen.getAllByTestId('watchlist-group').find(g => g.getAttribute('data-group') === 'loads')!)
+    .getByRole('button', { name: 'diagnostics.thermals.group.loads' });
+
+  it('selects the entry, clears the search and reopens its collapsed group', () => {
+    const onLinkHandled = vi.fn();
+    const { rerender } = render(linked(null, onLinkHandled));
+    fireEvent.click(loadsHeader());
+    expect(loadsHeader()).toHaveAttribute('aria-expanded', 'false');
+    const search = screen.getByRole('textbox', { name: 'diagnostics.sensors.search' });
+    fireEvent.change(search, { target: { value: 'u1' } });
+    rerender(linked('l2', onLinkHandled));
+    expect(search).toHaveValue('');
+    expect(loadsHeader()).toHaveAttribute('aria-expanded', 'true');
+    expect(rowButton('l2')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('l2');
+    expect(onLinkHandled).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens with nothing selected when the entry no longer exists', () => {
+    const onLinkHandled = vi.fn();
+    render(linked('deleted-meanwhile', onLinkHandled));
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+    expect(screen.getAllByTestId('sensor-row').some(r => r.querySelector('button[aria-pressed="true"]'))).toBe(false);
+    expect(onLinkHandled).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Search and the selected entry', () => {
   it('shows the deselected empty state while search hides the selected entry, and restores it on clear', () => {
     renderTab();

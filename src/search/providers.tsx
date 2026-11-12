@@ -3,7 +3,7 @@ import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
   SlidersHorizontal, UserRound, FlaskConical, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutDashboard, Crosshair,
-  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
+  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText, Gauge,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import {
@@ -32,6 +32,8 @@ import {
   openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport, downloadSupportBundle,
 } from '../api/diagnostics';
 import { postService } from '../api/service';
+import { rowTitles } from '../components/views/DiagnosticsView/sensorAlertHelpers';
+import { watchlistLink } from '../components/views/DiagnosticsView/thermalsHelpers';
 import type { UpdateMode, UpdateChannel } from '../api/update';
 import { canSwitchChannel, requestChannelSwitch } from '../lib/channelSwitch';
 import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
@@ -893,6 +895,19 @@ const diagnostics: SearchSource = (ctx) => [
   ] : []),
 ];
 
+// Diagnostics > Sensors watchlist entries, found by their name or their sensor and device names.
+const watchlist: SearchSource = (ctx) =>
+  (ctx.live.sensorAlerts ?? []).map((rule) => {
+    const { title, subtitle } = rowTitles(rule, ctx.t);
+    return go(`watchlist:${rule.id}`, {
+      title: subtitle ? `${title}: ${subtitle}` : title,
+      subtitle: `${ctx.t('diagnostics.title')} › ${ctx.t('diagnostics.tab.thermals')}`,
+      icon: <Gauge size={18} />,
+      keywords: [rule.sensor.name, rule.sensor.parentName, rule.source?.hardwareName ?? ''].filter(Boolean),
+      to: () => ctx.host.goView('diagnostics', watchlistLink(rule.id)),
+    });
+  });
+
 // ── Registry ────────────────────────────────────────────────────────────────
 // Add a source here to add a category of results. Order is cosmetic - entries
 // are ranked by relevance, not source order.
@@ -902,7 +917,7 @@ export const SOURCES: SearchSource[] = [
   cooling, lightingModes, lightingEffects, lightingExtras, lightingDeviceActions,
   smartLightsSource, appearance, updatePrefs,
   actions, quickOpens, remoteAccess, settingsToggles, privacyToggles,
-  integrations, systemMedia, accountExtra, diagnostics,
+  integrations, systemMedia, accountExtra, diagnostics, watchlist,
 ];
 
 /** Every source's entries for the current context, flattened. */

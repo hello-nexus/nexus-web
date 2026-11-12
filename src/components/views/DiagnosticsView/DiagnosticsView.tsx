@@ -24,7 +24,7 @@ import { MemorySection } from './MemorySection';
 import { ThermalsTab } from './ThermalsTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
-import { INITIAL_THERMALS_SELECTION, type ThermalsSelection } from './thermalsHelpers';
+import { INITIAL_THERMALS_SELECTION, parseWatchlistLink, type ThermalsSelection } from './thermalsHelpers';
 import { SENSOR_HISTORY_OPTIONS, SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
 import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
@@ -51,9 +51,11 @@ const INCIDENT_WINDOW_DAYS = 30;
 // effect requires.
 const COOLING_EPISODES_QUERY: DiagnosticsTemperatureQuery = { hours: 168 };
 
-export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange, onOpenCooling }: DiagnosticsViewProps) {
+export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: routeTab, onTabChange, onOpenCooling }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
+  // A search result opens the Sensors tab with one watchlist entry: the route tab reads `cooling:<id>`.
+  const { tab: urlTab, ruleId: linkedRuleId } = parseWatchlistLink(routeTab);
 
   const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
@@ -155,6 +157,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     refreshSystem({ force: true });
   }, [refreshHealth, refreshSystem]);
 
+  // The tab applied the link (or found no such entry): the route settles on the plain tab.
+  const handleLinkHandled = useCallback(() => onTabChange('cooling'), [onTabChange]);
+
   const [downloading, setDownloading] = useState(false);
   const handleDownload = useCallback(async () => {
     setDownloading(true);
@@ -203,6 +208,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           onOpenCooling={onOpenCooling}
           selection={thermalsSelection}
           onSelectionChange={setThermalsSelection}
+          linkedRuleId={linkedRuleId}
+          onLinkHandled={handleLinkHandled}
           onAlertDismissed={() => refreshHealth({ force: true })}
           onGuardTripDismissed={() => {
             refreshHealth({ force: true });

@@ -720,6 +720,14 @@ describe('DiagnosticsView tabs', () => {
     expect(screen.getByRole('tab', { name: /diagnostics.tab.thermals/ })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('opens the Thermals tab for a watchlist deep link, then settles the route on the plain tab', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: 'cooling:missing', onTabChange });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.thermals/ })).toHaveAttribute('aria-selected', 'true');
+    expect(onTabChange).toHaveBeenCalledWith('cooling');
+  });
+
   it('redirects a legacy ?tab=sensors deep link to the Thermals tab and corrects the url', () => {
     const onTabChange = vi.fn();
     renderDiagnosticsView({ tab: 'sensors', onTabChange });
