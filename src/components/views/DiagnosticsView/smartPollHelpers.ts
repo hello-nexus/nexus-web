@@ -76,19 +76,24 @@ const normalizeName = (name: string) => name.trim().toLowerCase().replace(/\s+/g
 /**
  * Pairs Diagnostics drives with the poll list. The two services key a drive
  * differently (serial versus hardware path), so the pairing is by model name,
- * one-to-one in list order for identical models. An unmatched drive gets none.
+ * and only when the name is unique in both lists: with identical models the
+ * two orders may disagree, so an ambiguous or unmatched drive gets none.
  */
 export function pairPollDrives(
   drives: ReadonlyArray<{ id: string; name: string }>, pollDrives: SmartPollDrive[],
 ): Map<string, SmartPollDrive> {
-  const pool = new Map<string, SmartPollDrive[]>();
-  for (const p of pollDrives) {
-    const key = normalizeName(p.name);
-    pool.set(key, [...(pool.get(key) ?? []), p]);
-  }
+  const count = (names: string[]) => {
+    const out = new Map<string, number>();
+    for (const n of names) out.set(n, (out.get(n) ?? 0) + 1);
+    return out;
+  };
+  const driveCounts = count(drives.map(d => normalizeName(d.name)));
+  const pollCounts = count(pollDrives.map(p => normalizeName(p.name)));
   const out = new Map<string, SmartPollDrive>();
   for (const d of drives) {
-    const match = pool.get(normalizeName(d.name))?.shift();
+    const key = normalizeName(d.name);
+    if (driveCounts.get(key) !== 1 || pollCounts.get(key) !== 1) continue;
+    const match = pollDrives.find(p => normalizeName(p.name) === key);
     if (match) out.set(d.id, match);
   }
   return out;

@@ -48,7 +48,7 @@ export function SummaryTab({
 }: SummaryTabProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers: wholeNumbers } = useUnitPrefs();
-  const { rules, states } = useSensorAlerts(true);
+  const { rules, states } = useSensorAlerts(true, true);
   const details = useMemo(() => {
     const ctx = { t, language, tempUnit, numberFormat, wholeNumbers };
     return {

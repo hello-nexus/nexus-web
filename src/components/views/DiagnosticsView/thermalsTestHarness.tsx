@@ -6,15 +6,13 @@ import { INITIAL_THERMALS_SELECTION, type ThermalsSelection } from './thermalsHe
 interface HarnessProps {
   history: UseMetricHistoryResult;
   coolingHistory?: UseMetricHistoryResult;
-  focusRuleId: string | null;
-  onFocused: () => void;
   onAlertDismissed: () => void;
   initialSelection?: ThermalsSelection;
   onSelection?: (next: ThermalsSelection) => void;
 }
 
 /** ThermalsTab with its selection state owned locally, as DiagnosticsView owns it; `history` feeds the Custom sensors chart. */
-export function ThermalsHarness({ history, coolingHistory, focusRuleId, onFocused, onAlertDismissed, initialSelection, onSelection }: HarnessProps) {
+export function ThermalsHarness({ history, coolingHistory, onAlertDismissed, initialSelection, onSelection }: HarnessProps) {
   const [selection, setSelection] = useState<ThermalsSelection>(initialSelection ?? INITIAL_THERMALS_SELECTION);
   return (
     <ThermalsTab
@@ -25,8 +23,6 @@ export function ThermalsHarness({ history, coolingHistory, focusRuleId, onFocuse
       onGuardTripDismissed={() => {}}
       selection={selection}
       onSelectionChange={next => { setSelection(next); onSelection?.(next); }}
-      focusRuleId={focusRuleId}
-      onFocused={onFocused}
       onAlertDismissed={onAlertDismissed}
     />
   );

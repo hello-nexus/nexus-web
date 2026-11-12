@@ -9,7 +9,6 @@ import { useMetricHistory } from '../../../hooks/useMetricHistory';
 import {
   downloadDiagnosticsReport,
   downloadSupportBundle,
-  fetchDiagnosticsCooling,
   fetchDiagnosticsIncidents,
   fetchDiagnosticsMemory,
   fetchDiagnosticsSmart,
@@ -88,13 +87,10 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
   const [now, setNow] = useState(() => Date.now());
-  // The sensor card a Summary row asked to show; the Watchlist tab scrolls to and shines it, then clears this.
-  const [focusSensorId, setFocusSensorId] = useState<string | null>(null);
   useEffect(() => { setNow(Date.now()); }, [health]);
 
   const smart = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSmart);
   const memory = useDiagnosticsResource(serviceOnline, fetchDiagnosticsMemory);
-  const cooling = useDiagnosticsResource(serviceOnline, fetchDiagnosticsCooling);
   const system = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSystem);
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
 
@@ -126,9 +122,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   }, []);
 
   const anyMocked = healthMocked || smart.mocked || memory.mocked
-    || cooling.mocked || system.mocked || incidents.mocked || temperatures.mocked;
+    || system.mocked || incidents.mocked || temperatures.mocked;
   const anyLoading = healthLoading || smart.loading || memory.loading
-    || cooling.loading || system.loading || incidents.loading;
+    || system.loading || incidents.loading;
 
   // useDiagnosticsResource returns a new object every render; pulling out
   // `refresh` (stable via the hook's own useCallback) keeps these two
@@ -136,7 +132,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // per-render object.
   const { refresh: refreshSmart } = smart;
   const { refresh: refreshMemory } = memory;
-  const { refresh: refreshCooling } = cooling;
   const { refresh: refreshSystem } = system;
   const { refresh: refreshIncidents } = incidents;
   const { refresh: refreshTemperatures } = temperatures;
@@ -146,12 +141,11 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     refreshHealth({ force: true });
     refreshSmart({ force: true });
     refreshMemory({ force: true });
-    refreshCooling();
     refreshSystem({ force: true });
     refreshIncidents();
     refreshTemperatures();
     retryCoolingHistory();
-  }, [refreshHealth, refreshSmart, refreshMemory, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures, retryCoolingHistory]);
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshSystem, refreshIncidents, refreshTemperatures, retryCoolingHistory]);
 
   // Clearing the Windows event logs invalidates the health overview and the
   // System section's 30-day counts in addition to Incidents itself (which
@@ -209,13 +203,10 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           onOpenCooling={onOpenCooling}
           selection={thermalsSelection}
           onSelectionChange={setThermalsSelection}
-          focusRuleId={focusSensorId}
-          onFocused={() => setFocusSensorId(null)}
           onAlertDismissed={() => refreshHealth({ force: true })}
           onGuardTripDismissed={() => {
             refreshHealth({ force: true });
-            refreshCooling();
-          }}
+                  }}
         />
       );
       case 'system': return (

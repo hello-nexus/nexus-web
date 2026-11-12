@@ -41,12 +41,13 @@ export function sensorsDetail(
   if (rules.length === 0) return null;
   const lines: string[] = [];
   const off = rules.filter(r => !r.enabled).length;
-  if (off < rules.length) lines.push(ctx.t('diagnostics.summary.sensors.allInRange'));
+  const alerting = states.some(s => s.state === 'active');
+  if (off < rules.length && !alerting) lines.push(ctx.t('diagnostics.summary.sensors.allInRange'));
   for (const kind of KEY_READINGS) {
     const rule = rules.find(r => r.builtIn === kind);
     const state = rule ? states.find(s => s.ruleId === rule.id) : undefined;
     if (!rule || state?.value == null || state.state === 'unavailable') continue;
-    lines.push(`${rowTitles(rule, ctx.t).title}: ${formatAlertValue(state.value, rule.sensor.type, ctx.tempUnit, ctx.numberFormat, ctx.wholeNumbers)}`);
+    lines.push(`${rowTitles(rule, ctx.t, undefined, ctx.language).title}: ${formatAlertValue(state.value, rule.sensor.type, ctx.tempUnit, ctx.numberFormat, ctx.wholeNumbers)}`);
   }
   if (off > 0) lines.push(ctx.t('diagnostics.summary.sensors.alertsOff', { count: off }));
   return { count: countLine(ctx, 'diagnostics.summary.count.sensors', rules.length), lines };

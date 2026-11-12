@@ -92,8 +92,8 @@ const loads = [rule('l1', {}, 'Load'), rule('l2', {}, 'Load')];
 
 const renderTab = (initial = INITIAL_THERMALS_SELECTION) => render(
   <ThermalsHarness
-    history={sensorHistory} coolingHistory={coolingHistory} focusRuleId={null}
-    onFocused={vi.fn()} onAlertDismissed={vi.fn()} initialSelection={initial}
+    history={sensorHistory} coolingHistory={coolingHistory}
+    onAlertDismissed={vi.fn()} initialSelection={initial}
   />,
 );
 

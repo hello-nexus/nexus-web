@@ -46,14 +46,16 @@ describe('smart poll per-drive helpers', () => {
     expect(effectiveSeconds(state, ssd)).toBe(1);
   });
 
-  it('pairs by model name one-to-one, ignoring case and spacing', () => {
-    const twin: SmartPollDrive = { ...ssd, id: '/nvme/1' };
-    const map = pairPollDrives(
-      [{ id: 'storage:a', name: ' ssd' }, { id: 'storage:b', name: 'SSD' }, { id: 'storage:c', name: 'Other' }],
-      [ssd, twin],
-    );
+  it('pairs a uniquely named drive, ignoring case and spacing', () => {
+    const map = pairPollDrives([{ id: 'storage:a', name: ' ssd' }, { id: 'storage:c', name: 'Other' }], [ssd]);
     expect(map.get('storage:a')?.id).toBe('/nvme/0');
-    expect(map.get('storage:b')?.id).toBe('/nvme/1');
     expect(map.has('storage:c')).toBe(false);
+  });
+
+  it('pairs no drive whose model name is ambiguous in either list', () => {
+    const twin: SmartPollDrive = { ...ssd, id: '/nvme/1' };
+    expect(pairPollDrives([{ id: 'storage:a', name: 'SSD' }, { id: 'storage:b', name: 'SSD' }], [ssd, twin]).size).toBe(0);
+    expect(pairPollDrives([{ id: 'storage:a', name: 'SSD' }], [ssd, twin]).size).toBe(0);
+    expect(pairPollDrives([{ id: 'storage:a', name: 'SSD' }, { id: 'storage:b', name: 'SSD' }], [ssd]).size).toBe(0);
   });
 });

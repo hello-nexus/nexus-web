@@ -396,13 +396,13 @@ describe('UiSettingsProvider - debounced write merge', () => {
     });
     await flush();
 
-    await act(async () => { captured.ctx!.update({ diagnosticsSensorNotifications: false }); });
-    await act(async () => { captured.ctx!.update({ diagnosticsSensorCooldownMinutes: 120 }); });
+    await act(async () => { captured.ctx!.update({ diagnosticsNotificationsEnabled: false }); });
+    await act(async () => { captured.ctx!.update({ diagnosticsNotificationCooldownMinutes: 120 }); });
     await act(async () => { await new Promise(r => setTimeout(r, 300)); });
 
     expect(h.savePreferences).toHaveBeenCalledTimes(1);
     expect(h.savePreferences).toHaveBeenCalledWith({
-      diagnostics: { notifications: { sensorAlerts: false, sensorCooldownMinutes: 120 } },
+      diagnostics: { notifications: { enabled: false, cooldownMinutes: 120 } },
     });
   });
 });

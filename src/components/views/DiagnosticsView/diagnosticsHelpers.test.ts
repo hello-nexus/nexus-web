@@ -212,7 +212,7 @@ describe('aggregateDomainTiles', () => {
     expect(cooling?.reasons).toContain(gpuReason);
   });
 
-  it('grades the Cooling tile by active Watchlist alerts without listing their lines', () => {
+  it('grades the Cooling tile by active Watchlist alerts and carries their reasons', () => {
     const alertReason: DiagnosticsReason = { code: 'alerts.sensorThreshold', severity: 'act', summary: 'CPU above 40', detail: 'd' };
     const tiles = aggregateDomainTiles([
       comp('cooling', 'ok'),
@@ -221,7 +221,8 @@ describe('aggregateDomainTiles', () => {
     ]);
     const cooling = tiles.find(t => t.domain === 'cooling');
     expect(cooling?.status).toBe('act');
-    expect(cooling?.reasons).toEqual([]);
+    expect(cooling?.reasons).toEqual([alertReason]);
+    expect(aggregateDomainTiles([comp('cooling', 'ok'), { id: 'alert:1', kind: 'alerts', name: 'CPU', status: 'act', reasons: [alertReason] }], { alertReasons: false }).find(t => t.domain === 'cooling')?.reasons).toEqual([]);
     expect(aggregateDomainTiles([comp('cooling', 'ok'), comp('alerts', 'watch')]).find(t => t.domain === 'cooling')?.status).toBe('watch');
   });
 

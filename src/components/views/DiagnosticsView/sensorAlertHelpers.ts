@@ -4,6 +4,7 @@ import { CATEGORY_LABEL_KEYS } from '../../../panel/widgets/monitoring/sensorPic
 import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 import type { DeviceKey } from '../../../panel/widgets/monitoring/perfSlots';
 import type { Language } from '../../../lib/settings';
+import { pluralKey } from '../../../lib/pluralKey';
 import { statusColor, statusLabelKey } from './diagnosticsHelpers';
 import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
 
@@ -377,11 +378,11 @@ export function findTrackedRule(rules: readonly SensorAlertRule[], sensor: Senso
 }
 
 /** A built-in's subtitle: the exact reading behind it. */
-function sourceSubtitle(source: SensorAlertRule['source'], t: (key: string, vars?: Record<string, string | number>) => string): string | undefined {
+function sourceSubtitle(source: SensorAlertRule['source'], t: (key: string, vars?: Record<string, string | number>) => string, language: Language): string | undefined {
   if (!source) return undefined;
   if (source.kind === 'drive') return t('diagnostics.sensors.source.drive');
   if (source.kind === 'channel') return t('diagnostics.sensors.source.channel');
-  if (source.kind === 'average') return source.sensors.length > 0 ? t('diagnostics.sensors.source.average', { count: source.sensors.length }) : undefined;
+  if (source.kind === 'average') return source.sensors.length > 0 ? t(pluralKey('diagnostics.sensors.source.average', language, source.sensors.length), { count: source.sensors.length }) : undefined;
   return source.sensor?.name || undefined;
 }
 
@@ -410,13 +411,14 @@ export function rowTitles(
   rule: SensorAlertRule,
   t: (key: string, vars?: Record<string, string | number>) => string,
   pickerLabel?: (sensor: SensorRef) => string | undefined,
+  language: Language = 'en',
 ): { title: string; subtitle: string | undefined } {
   if (isBuiltIn(rule)) {
     // A fan reads like a temperature: the device it belongs to, then the fan's own name.
     const fan = rule.sensor.type === 'Fan' ? rule.source?.sensor : null;
     const device = fan ? (fan.parentName || rule.source?.hardwareName) : undefined;
     if (fan && device && device !== fan.name) return { title: device, subtitle: fan.name };
-    const subtitle = sourceSubtitle(rule.source, t);
+    const subtitle = sourceSubtitle(rule.source, t, language);
     return { title: rule.sensor.name, subtitle: subtitle === rule.sensor.name ? undefined : subtitle };
   }
   const { category, name, parentName } = rule.sensor;

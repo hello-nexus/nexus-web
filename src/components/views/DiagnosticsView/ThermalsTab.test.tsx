@@ -9,7 +9,6 @@ const h = vi.hoisted(() => ({
   rules: [] as unknown[],
   states: [] as unknown[],
   loaded: true,
-  scroll: vi.fn(),
   chart: vi.fn(),
   atLimit: false,
   add: vi.fn(),
@@ -36,7 +35,6 @@ vi.mock('./SensorAlertRuleSettings', () => ({
     <div data-testid="settings-stub">{rule.id}<button type="button" onClick={() => onToggleEnabled(!rule.enabled)}>stub-toggle</button><button type="button" onClick={onDelete}>stub-delete</button><button type="button" onClick={onRestoreDefault}>stub-restore</button></div>
   ),
 }));
-vi.mock('../../../search/scroll', () => ({ requestSearchScroll: h.scroll }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
   useUnitPrefs: () => ({ monitoringTempUnit: h.tempUnit, numberFormat: 'dot', timeFormat: '24h', monitoringWholeNumbers: false, dateFormat: 'system' }),
@@ -82,7 +80,7 @@ const state = (ruleId: string, over: Partial<SensorAlertState> = {}): SensorAler
   { ruleId, state: 'ok', value: 62, since: null, extreme: null, direction: null, acknowledged: false, ...over }
 );
 
-const props = (over = {}) => ({ history: history(), focusRuleId: null, onFocused: vi.fn(), onAlertDismissed: vi.fn(), ...over });
+const props = (over = {}) => ({ history: history(), onAlertDismissed: vi.fn(), ...over });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -226,14 +224,6 @@ describe('ThermalsTab', () => {
     rerender(<SensorsTab {...props()} />);
     expect(screen.queryByTestId('settings-stub')).toBeNull();
     expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
-  });
-
-  it('selects a deep-linked sensor', () => {
-    h.rules = [rule('r1'), rule('r2')];
-    const p = props({ focusRuleId: 'r2' });
-    render(<SensorsTab {...p} />);
-    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r2');
-    expect(p.onFocused).toHaveBeenCalled();
   });
 
   it('writes the enabled switch from the settings panel and deletes from the editor', () => {
@@ -381,31 +371,6 @@ describe('ThermalsTab', () => {
       await act(async () => {});
       expect(p.onAlertDismissed).not.toHaveBeenCalled();
     });
-  });
-
-  it('scrolls to the focused card and reports it handled, dropping an unknown id without scrolling', () => {
-    h.rules = [rule('r1')];
-    const p = props({ focusRuleId: 'r1' });
-    const { unmount } = render(<SensorsTab {...p} />);
-    expect(h.scroll).toHaveBeenCalledWith('sensor-card-r1');
-    expect(p.onFocused).toHaveBeenCalledTimes(1);
-    unmount();
-    h.scroll.mockClear();
-    const q = props({ focusRuleId: 'gone' });
-    render(<SensorsTab {...q} />);
-    expect(h.scroll).not.toHaveBeenCalled();
-    expect(q.onFocused).toHaveBeenCalledTimes(1);
-  });
-
-  it('holds the focus scroll until the history has loaded', () => {
-    h.rules = [rule('r1')];
-    const p = props({ focusRuleId: 'r1', history: history({ loading: true }) });
-    const { rerender } = render(<SensorsTab {...p} />);
-    expect(h.scroll).not.toHaveBeenCalled();
-    expect(p.onFocused).not.toHaveBeenCalled();
-    rerender(<SensorsTab {...p} history={history({ loading: false })} />);
-    expect(h.scroll).toHaveBeenCalledWith('sensor-card-r1');
-    expect(p.onFocused).toHaveBeenCalledTimes(1);
   });
 
   it('puts the card anchor where the scroller looks', async () => {

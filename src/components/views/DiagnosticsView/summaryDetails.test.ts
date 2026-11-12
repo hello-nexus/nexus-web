@@ -19,6 +19,10 @@ describe('sensorsDetail', () => {
   it('is null with an empty watchlist', () => {
     expect(sensorsDetail([], [], ctx)).toBeNull();
   });
+  it('drops All in range while any alert is active', () => {
+    const d = sensorsDetail([rule('a', { builtIn: 'cpuTemp' })], [state('a', { value: 95, state: 'active' })], ctx)!;
+    expect(d.lines).not.toContain('diagnostics.summary.sensors.allInRange');
+  });
   it('counts entries, names the CPU and GPU readings and the alerts-off total', () => {
     const rules = [rule('a', { builtIn: 'cpuTemp' }), rule('b', { builtIn: 'gpuTemp' }), rule('c', { enabled: false })];
     const d = sensorsDetail(rules, [state('a', { value: 61 }), state('b', { value: 40 }), state('c', { state: 'off' })], ctx)!;
