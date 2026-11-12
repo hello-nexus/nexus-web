@@ -52,9 +52,14 @@
 }
 
 // The one selected treatment: accent border over a faint accent fill, held
-// through hover. Include it inside the selected modifier's own block.
+// through hover. Include it inside the selected modifier's own block. The
+// resting and :hover rules are separate on purpose: the hover guard rewrites a
+// :hover selector with :where(), which Chromium 83 cannot parse, and a shared
+// selector list would drop the resting selected state along with it.
 @mixin interactive-selected {
-  &,
+  border-color: var(--accent);
+  background: var(--accent-soft);
+
   &:hover {
     border-color: var(--accent);
     background: var(--accent-soft);

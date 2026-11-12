@@ -281,6 +281,12 @@
     content: none;
   }
 
+  // Same for a hovered card, whose border would double the hairline.
+  &:hover::before,
+  &:hover + &::before {
+    content: none;
+  }
+
   &.profileCardActive {
     cursor: default;
     @include interactive-selected;

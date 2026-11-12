@@ -1165,6 +1165,12 @@
     border-style: dashed;
   }
 
+  &.deviceCardNeedsBinding {
+    cursor: pointer;
+
+    &:hover { border-color: var(--warn-line); }
+  }
+
   // Dim the device name + meta when the toggle is off. The card itself keeps
   // full opacity so the state chip naming the reason stays legible.
   &.deviceCardPoweredOff {
@@ -1259,9 +1265,11 @@
 
 .deviceCardStackHeaderSelectable {
   cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast);
+  transition: background var(--ease-fast);
 
-  @include interactive-hover;
+  // Fill only: the header's outline is open at the bottom and a selected zone
+  // owns its own border, so a hover border here would draw a second outline.
+  &:hover { background: var(--surface-hover); }
 }
 
 // Any zone under the header selected: the fill only, so the selected zone's
