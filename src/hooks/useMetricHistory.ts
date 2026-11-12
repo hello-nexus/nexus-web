@@ -622,11 +622,11 @@ export function useMetricHistory(
   // of margin - a multi-tick gap needs the fetch to reach at least as far as
   // the frame that revealed it, not just one tick past the last known point.
   const runTailGapFill = useCallback((minTo?: number) => {
-    // With nothing loaded yet the base follows the wall clock: a source that was empty at the first fetch (a sensor just added) would otherwise poll the same stale window forever.
-    const base = lastLoadedTRef.current ?? Math.max(nowRef.current, Date.now());
+    // With nothing loaded yet, only the upper edge moves, by the time elapsed since mount (a clock delta, so a client/PC clock offset cancels). The lower edge stays on the server time base, so a source that was empty at the first fetch (a sensor just added) is caught up to without ever requesting a window the server has not reached.
+    const base = lastLoadedTRef.current ?? nowRef.current + Math.max(0, Date.now() - bootstrapNow);
     // A pull-only source polls every TAIL_POLL_MS, so the window must reach a couple of its own polls past the last point or the live edge falls further behind the wall clock on every poll.
     const to = Math.max(base, minTo ?? base) + (pollsTail ? TAIL_POLL_MS : LIVE_TAIL_POLL_MS) * 2;
-    const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+    const from = (lastLoadedTRef.current ?? nowRef.current - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const windowSeconds = Math.max(0, to - from) / 1000;
     // Fetch the hole at the step the viewport is drawn at (1s before its first response). Merging a coarser
     // response would leave minute-spaced points in front of per-second ones (dots and a bridging line), and a
@@ -661,7 +661,7 @@ export function useMetricHistory(
       bumpNow(tail);
       if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
     })();
-  }, [bumpNow, pollsTail]);
+  }, [bumpNow, pollsTail, bootstrapNow]);
 
   // Subscribed regardless of `following`/drag phase - this is what keeps
   // nowRef (the server time base) advancing while the user browses a

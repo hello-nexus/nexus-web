@@ -13,7 +13,6 @@ const ALLOWED = new Set([
   'components/common/ImportCenter/ImportCenter.tsx',
   'components/common/SettingsSection/SettingsSection.tsx',
   'components/views/DiagnosticsView/CoolingHistorySection.tsx',
-  'components/views/DiagnosticsView/CoolingSection.tsx',
   'components/views/DiagnosticsView/IncidentCounts.tsx',
   'components/views/DiagnosticsView/IncidentsSection.tsx',
   'components/views/DiagnosticsView/ThermalsTab.tsx',

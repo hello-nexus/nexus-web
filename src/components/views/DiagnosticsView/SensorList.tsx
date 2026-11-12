@@ -30,7 +30,7 @@ interface SensorListProps {
 
 /** The tracked sensors, one row each: name, live value, dim reading and state chip. A row selects the sensor for the detail pane; the enabled switch lives in that pane. */
 export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onSelect }: SensorListProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   return (
     <ul className={styles.list}>
@@ -42,7 +42,7 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
         const unreported = isNotReported(st);
         const reading = unreported ? null : (liveOf(rule) ?? st?.value ?? null);
         const selected = rule.id === selectedId;
-        const { title: name, subtitle } = rowTitles(rule, t, pickerLabel);
+        const { title: name, subtitle } = rowTitles(rule, t, pickerLabel, language);
         // A sensor the PC does not report has nothing to show: the chip alone says so. A switched-off sensor
         // (alerts off) still shows its reading and is charted; it only has no status chip.
         const BuiltInIcon = rule.builtIn ? (BUILT_IN_ICONS[rule.builtIn] ?? (rule.sensor.type === 'Fan' ? Fan : null)) : null;

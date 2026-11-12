@@ -247,7 +247,8 @@ export function domainTitleKey(domain: DiagnosticsKind): string {
   return domain === 'cooling' ? 'diagnostics.tab.thermals' : `diagnostics.kind.${domain}`;
 }
 
-export function aggregateDomainTiles(components: DiagnosticsComponent[]): DomainTile[] {
+/** `alertReasons: false` grades the tile by Watchlist alerts without listing their lines, for a surface that words alerts itself. */
+export function aggregateDomainTiles(components: DiagnosticsComponent[], { alertReasons = true }: { alertReasons?: boolean } = {}): DomainTile[] {
   return DOMAIN_TILE_KINDS.map(({ domain, kinds }) => {
     const members = components.filter(c => kinds.includes(c.kind));
     const measured = members.filter(m => m.status !== 'unknown');
@@ -255,9 +256,9 @@ export function aggregateDomainTiles(components: DiagnosticsComponent[]): Domain
     for (const member of measured) {
       if (STATUS_SEVERITY_RANK[member.status] > STATUS_SEVERITY_RANK[status]) status = member.status;
     }
-    // Watchlist alerts grade the tile but their lines stay in the alerts list below it.
+    // Watchlist alert reasons name the alerting sensor on the card, like any other fault.
     const reasons = members
-      .filter(m => m.kind !== 'alerts')
+      .filter(m => alertReasons || m.kind !== 'alerts')
       .flatMap(m => m.reasons)
       .sort((a, b) => STATUS_SEVERITY_RANK[b.severity] - STATUS_SEVERITY_RANK[a.severity]);
     return { domain, status, reasons };

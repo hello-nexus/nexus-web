@@ -49,7 +49,7 @@ const history = {
   setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), onChartWheelZoom: vi.fn(), backToLive: vi.fn(), stepSeconds: 1,
 } as unknown as UseMetricHistoryResult;
 const onAlertDismissed = vi.fn();
-const tab = () => <SensorsTab history={history} focusRuleId={null} onFocused={vi.fn()} onAlertDismissed={onAlertDismissed} />;
+const tab = () => <SensorsTab history={history} onAlertDismissed={onAlertDismissed} />;
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({

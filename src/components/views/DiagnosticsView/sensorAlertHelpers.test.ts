@@ -294,7 +294,8 @@ describe('findTrackedRule and rowTitles', () => {
     const builtIn = (source?: SensorAlertRule['source']) => mk('builtin:x', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp', source);
     expect(rowTitles(builtIn(), t)).toEqual({ title: 'AMD Ryzen', subtitle: undefined });
     expect(rowTitles(builtIn({ kind: 'sensor', sensor: pkg, sensors: [], hardwareName: 'CPU' }), t).subtitle).toBe('Package');
-    expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg, pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average(2)');
+    expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg, pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average.other(2)');
+    expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average.one(1)');
     expect(rowTitles(builtIn({ kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' }), t).subtitle).toBe('diagnostics.sensors.source.drive');
     expect(rowTitles(builtIn({ kind: 'channel', sensor: null, sensors: [], hardwareName: 'Fan' }), t).subtitle).toBe('diagnostics.sensors.source.channel');
   });

@@ -170,8 +170,6 @@ export interface UiSettingsValue {
   diagnosticsNotifySystemDevices: boolean;
   diagnosticsNotifyGpuThrottle: boolean;
   diagnosticsNotificationCooldownMinutes: number;
-  diagnosticsSensorNotifications: boolean;
-  diagnosticsSensorCooldownMinutes: number;
   diagnosticsComponentSystem: boolean;
   diagnosticsIgnoredComponents: string[];
 }
@@ -284,8 +282,6 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     diagnosticsNotifySystemDevices: DIAGNOSTICS_SETTINGS_DEFAULTS.notifySystemDevices,
     diagnosticsNotifyGpuThrottle: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyGpuThrottle,
     diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
-    diagnosticsSensorNotifications: DIAGNOSTICS_SETTINGS_DEFAULTS.sensorNotifications,
-    diagnosticsSensorCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.sensorCooldownMinutes,
     diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
     diagnosticsIgnoredComponents: DIAGNOSTICS_SETTINGS_DEFAULTS.ignoredComponents,
   };
@@ -436,8 +432,6 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.diagnosticsNotifySystemDevices !== undefined) notifications.systemDevices = patch.diagnosticsNotifySystemDevices;
   if (patch.diagnosticsNotifyGpuThrottle !== undefined) notifications.gpuThrottle = patch.diagnosticsNotifyGpuThrottle;
   if (patch.diagnosticsNotificationCooldownMinutes !== undefined) notifications.cooldownMinutes = patch.diagnosticsNotificationCooldownMinutes;
-  if (patch.diagnosticsSensorNotifications !== undefined) notifications.sensorAlerts = patch.diagnosticsSensorNotifications;
-  if (patch.diagnosticsSensorCooldownMinutes !== undefined) notifications.sensorCooldownMinutes = patch.diagnosticsSensorCooldownMinutes;
   const components: Partial<DiagnosticsComponentPrefs> = {};
   if (patch.diagnosticsComponentSystem !== undefined) components.system = patch.diagnosticsComponentSystem;
   const diagnostics: PreferencesPatch['diagnostics'] = {};
@@ -559,8 +553,6 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     diagnosticsNotifySystemDevices: server.diagnostics?.notifications?.systemDevices ?? base.diagnosticsNotifySystemDevices,
     diagnosticsNotifyGpuThrottle: server.diagnostics?.notifications?.gpuThrottle ?? base.diagnosticsNotifyGpuThrottle,
     diagnosticsNotificationCooldownMinutes: server.diagnostics?.notifications?.cooldownMinutes ?? base.diagnosticsNotificationCooldownMinutes,
-    diagnosticsSensorNotifications: server.diagnostics?.notifications?.sensorAlerts ?? base.diagnosticsSensorNotifications,
-    diagnosticsSensorCooldownMinutes: server.diagnostics?.notifications?.sensorCooldownMinutes ?? base.diagnosticsSensorCooldownMinutes,
     diagnosticsComponentSystem: server.diagnostics?.components?.system ?? base.diagnosticsComponentSystem,
     diagnosticsIgnoredComponents: server.diagnostics?.ignoredComponents ?? base.diagnosticsIgnoredComponents,
   };

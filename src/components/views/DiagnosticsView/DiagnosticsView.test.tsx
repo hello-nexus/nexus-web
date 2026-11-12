@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
-import { CoolingSection } from './CoolingSection';
 import { DiagnosticsView } from './DiagnosticsView';
 import { IncidentsSection } from './IncidentsSection';
 import { IncidentCounts } from './IncidentCounts';
@@ -16,7 +15,6 @@ import { useMetricHistory } from '../../../hooks/useMetricHistory';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
 import type {
   DiagnosticsComponent,
-  DiagnosticsCoolingResponse,
   DiagnosticsCounts30d,
   DiagnosticsHealth,
   DiagnosticsIncident,
@@ -166,7 +164,7 @@ describe('ComponentHealthGrid domain tiles', () => {
     expect(screen.getAllByText('GPU is throttling').length).toBeGreaterThan(0);
   });
 
-  it('ignores an alerts component so the grid stays four tiles', () => {
+  it('folds an alerts component into the Sensors tile as a reason, keeping four tiles', () => {
     const components: DiagnosticsComponent[] = [
       {
         id: 'alert:r1', kind: 'alerts', name: 'CPU Package', status: 'act',
@@ -175,7 +173,7 @@ describe('ComponentHealthGrid domain tiles', () => {
     ];
     render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
     expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
-    expect(screen.queryByText('CPU Package above 90')).toBeNull();
+    expect(screen.getAllByText('CPU Package above 90').length).toBeGreaterThan(0);
   });
 
   it('never shows the raw reason detail: no tooltip without params, a formatted one with them', () => {
@@ -501,29 +499,6 @@ describe('domain sections render without their outer kind title', () => {
     expect(screen.queryByText('nullh')).not.toBeInTheDocument();
   });
 
-  it('CoolingSection omits the outer "Cooling" title but still renders device rows', () => {
-    const data: DiagnosticsCoolingResponse = {
-      supported: true,
-      devices: [{ id: 'cooling:fan1', name: 'Fan 1', type: 'fan', rpm: 1000, targetDutyPercent: 50, status: 'ok', sinceUtc: null }],
-    };
-    render(<CoolingSection data={data} loading={false} error={false} onRefresh={() => {}} />);
-
-    expect(screen.queryByText('diagnostics.kind.cooling')).not.toBeInTheDocument();
-    expect(screen.getByText('Fan 1')).toBeInTheDocument();
-  });
-
-  it('CoolingSection falls back to "-" for a device with no rpm or duty reading', () => {
-    const data: DiagnosticsCoolingResponse = {
-      supported: true,
-      devices: [{ id: 'cooling:fan1', name: 'Fan 1', type: 'fan', rpm: null, targetDutyPercent: null, status: 'unknown', sinceUtc: null }],
-    };
-    render(<CoolingSection data={data} loading={false} error={false} onRefresh={() => {}} />);
-
-    expect(screen.getByText('Fan 1')).toBeInTheDocument();
-    expect(screen.queryByText('null RPM')).not.toBeInTheDocument();
-    expect(screen.queryByText('null%')).not.toBeInTheDocument();
-  });
-
   it('MemorySection omits the outer "Memory" title but still renders module rows', () => {
     const data: DiagnosticsMemoryResponse = {
       supported: true,
@@ -708,7 +683,7 @@ describe('DiagnosticsView tabs', () => {
     mockAlerts.states = [];
   });
 
-  it('grades the Thermals tile by alert components without listing their lines, matching the overall badge', () => {
+  it('grades the Thermals tile by alert components and names the alerting sensor instead of All in range', () => {
     mockHealth = {
       generatedAt: new Date().toISOString(), supported: true, overall: 'act',
       components: [{
@@ -716,10 +691,21 @@ describe('DiagnosticsView tabs', () => {
         reasons: [{ code: 'sensorAlert', severity: 'act', summary: 'CPU Package above 90', detail: '' }],
       }],
     };
-    renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
-    expect(screen.queryByText('CPU Package above 90')).toBeNull();
-    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
-    expect(screen.getAllByText('diagnostics.status.act')).toHaveLength(2);
+    mockAlerts.rules = [{
+      id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
+      sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
+    }];
+    mockAlerts.states = [{ ruleId: 'r1', state: 'active', value: 95, since: null, extreme: 96, direction: 'above', acknowledged: false }];
+    try {
+      renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
+      expect(screen.queryByText('diagnostics.summary.sensors.allInRange')).toBeNull();
+      expect(screen.getAllByText('CPU Package above 90').length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
+      expect(screen.getAllByText('diagnostics.status.act')).toHaveLength(2);
+    } finally {
+      mockAlerts.rules = [];
+      mockAlerts.states = [];
+    }
   });
 
   it('hides the sensor alerts list when no rules exist', () => {

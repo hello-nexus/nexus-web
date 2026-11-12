@@ -68,7 +68,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
   }
 
   const worst = worstReason(health.components);
-  const tiles = aggregateDomainTiles(health.components);
+  const tiles = aggregateDomainTiles(health.components, { alertReasons: false });
   const alertComponents = health.components.filter(c => c.kind === 'alerts' && c.status !== 'ok');
   const worstAlert = alertComponents.find(c => c.status === 'act') ?? alertComponents[0];
   const worstOwner = worst ? health.components.find(c => c.reasons.includes(worst)) : undefined;

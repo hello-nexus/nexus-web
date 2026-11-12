@@ -9,7 +9,6 @@ import {
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
-import { requestSearchScroll } from '../../../search/scroll';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
@@ -33,7 +32,7 @@ import { toCoolingTempChartSeries } from './coolingHistoryHelpers';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { GuardTripNotice } from './GuardTripNotice';
 import { SensorList } from './SensorList';
-import { sensorCardAnchor, sensorYDomain } from './sensorHistoryHelpers';
+import { sensorYDomain } from './sensorHistoryHelpers';
 import {
   deselect,
   GROUP_ICON,
@@ -69,23 +68,20 @@ interface ThermalsTabProps {
   /** Chart group and the entry picked, owned by DiagnosticsView so they survive tab switches. */
   selection: ThermalsSelection;
   onSelectionChange: (next: ThermalsSelection) => void;
-  /** A card to scroll to and shine once the rules have loaded (set by a Summary row). */
-  focusRuleId: string | null;
-  onFocused: () => void;
   /** Called after an alert was dismissed, so the Health summary refreshes. */
   onAlertDismissed: () => void;
 }
 
 /**
  * Every thermal in one place: a full-width chart of one unit group (Thermals, Loads, Voltages, ...), then the
- * watchlist on the left and the selected entry's settings on the right, then the fans. Selecting a watchlist
+ * watchlist on the left and the selected entry's settings on the right. Selecting a watchlist
  * entry shows its group, and a chart legend item selects its entry; selecting it again clears the pick.
  */
 export function ThermalsTab({
   coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
-  selection, onSelectionChange, focusRuleId, onFocused, onAlertDismissed,
+  selection, onSelectionChange, onAlertDismissed,
 }: ThermalsTabProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { push } = useToast();
   const alerts = useSensorAlerts(true, true);
   const { rules, states, loaded, error, loading, refresh } = alerts;
@@ -97,9 +93,6 @@ export function ThermalsTab({
   // A second pick of the selected entry clears it.
   const toggleSelect = (rule: SensorAlertRule) => onSelectionChange(rule.id === selectedId ? deselect(selection) : selectRule(selection, rule));
   const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
-  // The focus effect reads the latest selection without re-running on every selection change.
-  const selectionRef = useRef(selection);
-  useEffect(() => { selectionRef.current = selection; });
   // Re-snapshot "now" when the states change, so render stays pure.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [states]);
@@ -144,7 +137,7 @@ export function ThermalsTab({
   const pickerLabel = (sensor: SensorRef) => sensorsForDevice(sensors, networkSensors, extras, sensor.category as DeckMonitoringCategory)
     .find(o => o.value === sensor.id || o.sensorName === sensor.id)?.label;
   const entryName = (rule: SensorAlertRule) => {
-    const { title, subtitle } = rowTitles(rule, t, pickerLabel);
+    const { title, subtitle } = rowTitles(rule, t, pickerLabel, language);
     return subtitle ? `${title}: ${subtitle}` : title;
   };
   const [query, setQuery] = useState('');
@@ -153,7 +146,7 @@ export function ThermalsTab({
     .map(section => ({
       ...section,
       rules: needle
-        ? section.rules.filter(r => { const { title, subtitle } = rowTitles(r, t, pickerLabel); return `${title} ${subtitle ?? ''}`.toLowerCase().includes(needle); })
+        ? section.rules.filter(r => { const { title, subtitle } = rowTitles(r, t, pickerLabel, language); return `${title} ${subtitle ?? ''}`.toLowerCase().includes(needle); })
         : section.rules,
     }))
     .filter(section => section.rules.length > 0);
@@ -248,22 +241,6 @@ export function ThermalsTab({
       {t('diagnostics.sensors.add')}
     </Button>
   );
-
-  // Charts grow once history lands, so the scroll waits for it to avoid landing above the target's final position.
-  const activeHistory = chartHistory;
-  const historySettled = !activeHistory.loading || !activeHistory.supported || activeHistory.error;
-  const focusedRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!focusRuleId) { focusedRef.current = null; return; }
-    if (!loaded || !historySettled || focusedRef.current === focusRuleId) return;
-    focusedRef.current = focusRuleId;
-    const target = rules.find(r => r.id === focusRuleId);
-    if (target) {
-      onSelectionChange(selectRule(selectionRef.current, target));
-      requestSearchScroll(sensorCardAnchor(focusRuleId));
-    }
-    onFocused();
-  }, [focusRuleId, loaded, historySettled, rules, onSelectionChange, onFocused]);
 
   const groupToggle = groups.length > 1 ? (
     <ChipGroup
