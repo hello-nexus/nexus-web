@@ -16,9 +16,16 @@ vi.mock('../../../hooks/useUiSettings', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../hooks/useUiSettings')>();
   return {
     ...actual,
+    useUiSettings: () => ({ settings: { smartPollSeconds: {}, smartPollDefaultSeconds: 30, smartPollPerDrive: false }, update: vi.fn() }),
     useIgnoredComponents: () => ({ isIgnored: (id: string) => h.ignored.has(id), toggle: h.toggle }),
   };
 });
+
+vi.mock('../../../api/smartPoll', async importActual => ({
+  ...(await importActual<typeof import('../../../api/smartPoll')>()),
+  fetchSmartPoll: () => Promise.resolve(null),
+}));
+vi.mock('../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: () => {} }));
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),

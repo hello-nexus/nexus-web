@@ -178,11 +178,11 @@ describe('ThermalsTab editing', () => {
     expect(h.updateSensorAlert.mock.calls[0][0]).toMatchObject({ id: 'r1', low: 30, high: 80, severity: 'watch', notifyDesktop: true, showInHealth: true });
   });
 
-  it('writes the severity and the enabled switch', async () => {
+  it('writes the Urgent switch as severity and the enabled switch', async () => {
     await renderSection([rule('r1')]);
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=CPU Package)' }));
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', enabled: false })));
-    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' }));
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', severity: 'act' })));
   });
 
@@ -321,7 +321,7 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
-      fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' }));
       expect(h.updateSensorAlert).toHaveBeenCalledTimes(1);
       await act(async () => { first.resolve(ok(rule('r1'))); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
@@ -335,7 +335,7 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
-      fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' }));
       await act(async () => { first.resolve({ ok: false, status: 400, data: null }); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
       expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ severity: 'act', showInHealth: true });
@@ -350,7 +350,7 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
-      fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
+      fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' }));
       utils.unmount();
       await act(async () => { first.resolve(ok(rule('r1'))); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));

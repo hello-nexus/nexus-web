@@ -25,6 +25,7 @@ import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRu
 import { Card } from '../../common/Card/Card';
 import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
+import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import { toCoolingTempChartSeries } from './coolingHistoryHelpers';
@@ -124,7 +125,11 @@ export function ThermalsTab({
     addingRef.current = true;
     const { category, sensor } = firstSensor;
     const res = await alerts.add(defaultRule(sensorRefOf(category, sensor), sensor.value)).finally(() => { addingRef.current = false; });
-    if (res.rule) select(res.rule);
+    if (res.rule) {
+      // A search that would hide the new entry is cleared so it shows (and the selected-but-hidden state never applies to a fresh add).
+      setQuery('');
+      select(res.rule);
+    }
     else if (res.result === 'tracked') {
       const existing = (res.ruleId ? rules.find(r => r.id === res.ruleId) : undefined) ?? findTracked(sensorRefOf(category, sensor));
       if (existing) setTrackedBy(existing);
@@ -151,6 +156,39 @@ export function ThermalsTab({
     }))
     .filter(section => section.rules.length > 0);
   const detailRule = visibleSelection(selectedRule, sections);
+  // Collapsed unit groups. Searching shows every match, and picking a sensor (a chart click, a deep link) reopens its group.
+  const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(() => new Set());
+  // Keyed on the group too, so a sensor change that re-sorts the entry into another group reopens that group as well.
+  const selectedGroup = groupedRules(rules).find(s => s.rules.some(r => r.id === selectedId))?.group;
+  const selectionKey = `${selectedId ?? ''}|${selectedGroup ?? ''}`;
+  const [seenSelectionKey, setSeenSelectionKey] = useState(selectionKey);
+  if (selectionKey !== seenSelectionKey) {
+    setSeenSelectionKey(selectionKey);
+    if (selectedGroup && collapsedGroups.has(selectedGroup)) {
+      const next = new Set(collapsedGroups);
+      next.delete(selectedGroup);
+      setCollapsedGroups(next);
+    }
+  }
+  // Keeps a newly added or re-sorted entry inside the list's own scroll box. Scoped to that scroller, so the page never jumps.
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = listScrollRef.current;
+    if (!box || !selectedId) return;
+    const row = Array.from(box.querySelectorAll<HTMLElement>('[data-rule-id]')).find(el => el.dataset.ruleId === selectedId);
+    if (!row) return;
+    const rowRect = row.getBoundingClientRect();
+    const boxRect = box.getBoundingClientRect();
+    if (rowRect.top < boxRect.top) box.scrollTop -= boxRect.top - rowRect.top;
+    else if (rowRect.bottom > boxRect.bottom) box.scrollTop += rowRect.bottom - boxRect.bottom;
+    // Only a change of the selected entry or its group moves the list, not every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionKey, selectedRule !== undefined]);
+  const toggleGroup = (g: string) => setCollapsedGroups(prev => {
+    const next = new Set(prev);
+    if (!next.delete(g)) next.add(g);
+    return next;
+  });
 
   // The chart's lines. Thermals draws the device temperatures plus the custom temperature entries; every other
   // group draws its entries' recorded lines.
@@ -185,7 +223,6 @@ export function ThermalsTab({
     pickerLabel,
     liveOf: (rule: SensorAlertRule) => resolve(rule.sensor.category, rule.sensor.id)?.value ?? null,
     onSelect: (id: string) => { const rule = rules.find(r => r.id === id); if (rule) toggleSelect(rule); },
-    onToggleEnabled: (rule: SensorAlertRule, enabled: boolean) => alerts.save({ ...rule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') })),
   };
   const restoreBuiltIn = (id: string) => { void alerts.resetBuiltIns(id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); }); };
   const note = alerts.atLimit
@@ -249,15 +286,21 @@ export function ThermalsTab({
               </div>
               <SearchInput value={query} onChange={setQuery} placeholder={t('diagnostics.sensors.search')} />
             </div>
-            <div className={styles.listScroll}>
+            <div className={styles.listScroll} ref={listScrollRef} data-testid="watchlist-scroll">
               {sections.length === 0 ? (
                 <div className={styles.messageBox}>
                   <EmptyState compact icon={<SearchX size={22} />} title={t('diagnostics.sensors.noMatches')} />
                 </div>
               ) : sections.map(section => (
-                <div key={section.group} className={styles.section} data-testid="watchlist-group" data-group={section.group}>
-                  <span className={styles.sectionTitle}>{t(groupLabelKey(section.group))}</span>
-                  <SensorList rules={section.rules} {...listProps} />
+                <div key={section.group} data-testid="watchlist-group" data-group={section.group}>
+                  <CollapsibleSection
+                    compact
+                    title={t(groupLabelKey(section.group))}
+                    open={needle !== '' || !collapsedGroups.has(section.group)}
+                    onToggle={() => toggleGroup(section.group)}
+                  >
+                    <SensorList rules={section.rules} {...listProps} />
+                  </CollapsibleSection>
                 </div>
               ))}
               <button
@@ -291,6 +334,7 @@ export function ThermalsTab({
                     findTracked={sensor => findTracked(sensor, detailRule.id)}
                     onTracked={setTrackedBy}
                     onDelete={() => { void alerts.remove(detailRule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
+                    onToggleEnabled={enabled => alerts.save({ ...detailRule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
                     state={stateOf(detailRule.id)}
                     onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
                   />

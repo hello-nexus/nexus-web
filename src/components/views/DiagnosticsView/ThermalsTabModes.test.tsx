@@ -117,7 +117,7 @@ describe('Thermals group buttons', () => {
   it('shows a button per group that has an entry, Thermals first, and none when only Thermals exists', () => {
     const { unmount } = renderTab();
     const labels = screen.getAllByRole('radio').map(r => r.textContent);
-    expect(labels).toEqual(['diagnostics.tab.thermals', 'diagnostics.thermals.group.loads']);
+    expect(labels).toEqual(['diagnostics.thermals.group.thermals', 'diagnostics.thermals.group.loads']);
     unmount();
     h.rules = [cpu, gpu];
     renderTab();
@@ -215,7 +215,7 @@ describe('Watchlist sections and search', () => {
     renderTab();
     const sections = screen.getAllByTestId('watchlist-group');
     expect(sections.map(sec => sec.getAttribute('data-group'))).toEqual(['thermals', 'loads']);
-    expect(within(sections[0]).getByText('diagnostics.tab.thermals')).toBeInTheDocument();
+    expect(within(sections[0]).getByText('diagnostics.thermals.group.thermals')).toBeInTheDocument();
     const ids = screen.getAllByTestId('sensor-row').map(r => r.getAttribute('data-rule-id'));
     expect(ids).toEqual(['builtin:cpu-temp', 'builtin:gpu-temp:0', 'u1', 'u2', 'l1', 'l2']);
     expect(screen.getAllByTestId('sensor-add')).toHaveLength(1);
@@ -230,6 +230,53 @@ describe('Watchlist sections and search', () => {
     fireEvent.change(search, { target: { value: 'zzz' } });
     expect(screen.queryAllByTestId('sensor-row')).toHaveLength(0);
     expect(screen.getByText('diagnostics.sensors.noMatches')).toBeInTheDocument();
+  });
+});
+
+describe('Watchlist group collapsing', () => {
+  const header = (group: string) => within(screen.getAllByTestId('watchlist-group').find(g => g.getAttribute('data-group') === group)!)
+    .getByRole('button', { name: 'diagnostics.thermals.group.' + group });
+
+  it('starts every group expanded and collapses and reopens one with its header', () => {
+    renderTab();
+    expect(header('loads')).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(header('loads'));
+    expect(header('loads')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getAllByTestId('sensor-row').map(r => r.getAttribute('data-rule-id'))).toEqual(['builtin:cpu-temp', 'builtin:gpu-temp:0', 'u1', 'u2']);
+    fireEvent.click(header('loads'));
+    expect(screen.getAllByTestId('sensor-row')).toHaveLength(6);
+  });
+
+  it('shows a collapsed group\'s matches while searching', () => {
+    renderTab();
+    fireEvent.click(header('loads'));
+    fireEvent.change(screen.getByRole('textbox', { name: 'diagnostics.sensors.search' }), { target: { value: 'l2' } });
+    expect(screen.getAllByTestId('sensor-row').map(r => r.getAttribute('data-rule-id'))).toEqual(['l2']);
+  });
+});
+
+describe('Revealing the selected entry', () => {
+  it('reopens a collapsed group and scrolls the list scroller, not the page, to the picked row', () => {
+    renderTab();
+    const groupHeader = () => within(screen.getAllByTestId('watchlist-group').find(g => g.getAttribute('data-group') === 'thermals')!)
+      .getByRole('button', { name: 'diagnostics.thermals.group.thermals' });
+    fireEvent.click(groupHeader());
+    expect(groupHeader()).toHaveAttribute('aria-expanded', 'false');
+    const box = screen.getByTestId('watchlist-scroll');
+    let top = 0;
+    Object.defineProperty(box, 'scrollTop', { get: () => top, set: (v: number) => { top = v; }, configurable: true });
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this === box) return { top: 0, bottom: 100, left: 0, right: 0, width: 0, height: 100, x: 0, y: 0, toJSON: () => ({}) };
+      if (this.dataset.ruleId === 'builtin:gpu-temp:0') return { top: 150, bottom: 190, left: 0, right: 0, width: 0, height: 40, x: 0, y: 150, toJSON: () => ({}) };
+      return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
+    });
+    try {
+      fireEvent.click(screen.getByTestId('legend-gpu-temp:0'));
+      expect(groupHeader()).toHaveAttribute('aria-expanded', 'true');
+      expect(top).toBe(90);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

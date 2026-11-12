@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ClipboardList, HardDrive, MemoryStick, ShieldCheck, Thermometer } from 'lucide-react';
+import { ClipboardList, HardDrive, Gauge, MemoryStick, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -60,7 +60,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
-    { key: 'cooling', label: t('diagnostics.tab.thermals'), icon: <Thermometer size={14} /> },
+    { key: 'cooling', label: t('diagnostics.tab.thermals'), icon: <Gauge size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
   ] as const;
 
@@ -232,7 +232,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   return (
     <div className={styles.diagnostics}>
       <ViewHeader title={t('diagnostics.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
-      <div className={`${styles.tabContent} pageBody`}>
+      <div className={`${styles.tabContent} ${tab === 'cooling' ? styles.tabContentFill : ''} pageBody`}>
         {renderTab()}
       </div>
     </div>

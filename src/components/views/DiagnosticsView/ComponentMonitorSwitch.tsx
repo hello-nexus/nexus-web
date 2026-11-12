@@ -4,7 +4,7 @@ import { Toggle } from '../../common/Toggle/Toggle';
 import styles from './DiagnosticsView.module.scss';
 
 interface ComponentMonitorSwitchProps {
-  setting: 'diagnosticsComponentRam' | 'diagnosticsComponentSystem';
+  setting: 'diagnosticsComponentSystem';
   labelKey: string;
 }
 

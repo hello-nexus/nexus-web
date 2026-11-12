@@ -23,7 +23,6 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
   diagnosticsNotifySystemDevices: DIAGNOSTICS_SETTINGS_DEFAULTS.notifySystemDevices,
   diagnosticsNotifyGpuThrottle: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyGpuThrottle,
   diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
-  diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
   diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
   // Per-device ignores are deliberately not reset: the confirm copy promises
   // limits, notifications and monitoring, and each ignore is undone on its

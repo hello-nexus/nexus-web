@@ -1,7 +1,7 @@
 // Pure mapping/formatting helpers for the diagnostics view + widget. Kept
 // side-effect-free (no i18n context, no fetch) so they're covered directly
 // by diagnosticsHelpers.test.ts instead of through component rendering.
-import { HardDrive, MemoryStick, ShieldCheck, Thermometer, type LucideIcon } from 'lucide-react';
+import { Gauge, HardDrive, MemoryStick, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
@@ -195,7 +195,7 @@ export function visibleDiagnosticsTabs(platform: string): readonly DiagnosticsTa
 }
 
 /** One summary tile per hardware domain, aggregating the server's per-device
- *  health.components into a fixed 2x2: Storage / Memory / Cooling / System.
+ *  health.components into a fixed 2x2: Sensors (cooling) / Storage / Memory / System.
  *  GPU and the Watchlist alerts fold into Cooling (its temperature already lives in the Cooling tab's
  *  chart; its throttle is a thermal/power signal). Tile status is the worst of
  *  its MEASURED members by STATUS_SEVERITY_RANK; an 'unknown' member is a probe
@@ -212,22 +212,22 @@ export interface DomainTile {
 }
 
 const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly DiagnosticsKind[] }[] = [
+  { domain: 'cooling', kinds: ['cooling', 'gpu', 'alerts'] },
   { domain: 'storage', kinds: ['storage'] },
   { domain: 'memory', kinds: ['memory'] },
-  { domain: 'cooling', kinds: ['cooling', 'gpu', 'alerts'] },
   { domain: 'system', kinds: ['system'] },
 ];
 
 // Same glyph the domain's own tab uses, so a tile reads as the tab it opens.
-// Cooling folds GPU in; the tab is Thermals, so it takes that tab's Thermometer icon.
+// Cooling folds GPU in; the tab is Sensors, so it takes that tab's Gauge icon.
 export const DOMAIN_ICON: Partial<Record<DiagnosticsKind, LucideIcon>> = {
   storage: HardDrive,
   memory: MemoryStick,
-  cooling: Thermometer,
+  cooling: Gauge,
   system: ShieldCheck,
 };
 
-/** The tile's title key: the cooling domain is titled like its tab, Thermals. */
+/** The tile's title key: the cooling domain is titled like its tab, Sensors. */
 export function domainTitleKey(domain: DiagnosticsKind): string {
   return domain === 'cooling' ? 'diagnostics.tab.thermals' : `diagnostics.kind.${domain}`;
 }

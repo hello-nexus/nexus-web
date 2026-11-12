@@ -10,12 +10,12 @@ vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) 
 
 describe('ComponentMonitorSwitch', () => {
   it('shows the stored value and writes the matching component field', () => {
-    mockSettings = { diagnosticsComponentRam: true };
+    mockSettings = { diagnosticsComponentSystem: true };
     update.mockClear();
-    render(<ComponentMonitorSwitch setting="diagnosticsComponentRam" labelKey="diagnostics.monitorComponent.ram" />);
-    const toggle = screen.getByRole('switch', { name: 'diagnostics.monitorComponent.ram' });
+    render(<ComponentMonitorSwitch setting="diagnosticsComponentSystem" labelKey="diagnostics.monitorComponent.system" />);
+    const toggle = screen.getByRole('switch', { name: 'diagnostics.monitorComponent.system' });
     expect(toggle).toBeChecked();
     fireEvent.click(toggle);
-    expect(update).toHaveBeenCalledWith({ diagnosticsComponentRam: false });
+    expect(update).toHaveBeenCalledWith({ diagnosticsComponentSystem: false });
   });
 });

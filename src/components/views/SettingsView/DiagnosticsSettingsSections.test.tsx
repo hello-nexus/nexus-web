@@ -54,7 +54,6 @@ describe('DiagnosticsResetSection', () => {
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'cooling.settings.reset' }));
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       diagnosticsNotificationsEnabled: true,
-      diagnosticsComponentRam: true,
       diagnosticsComponentSystem: true,
     }));
     for (const dropped of ['diagnosticsComponentGpu', 'diagnosticsComponentStorage', 'diagnosticsComponentCooling']) expect(update.mock.calls[0][0]).not.toHaveProperty(dropped);

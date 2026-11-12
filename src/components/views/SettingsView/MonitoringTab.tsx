@@ -15,9 +15,10 @@ export interface MonitoringTabProps {
   settings: NexusSettings;
   updateGeneral: (patch: Partial<NexusSettings['general']>) => void;
   serviceOnline: boolean;
+  onOpenDevices?: () => void;
 }
 
-export function MonitoringTab({ settings, updateGeneral, serviceOnline }: MonitoringTabProps) {
+export function MonitoringTab({ settings, updateGeneral, serviceOnline, onOpenDevices }: MonitoringTabProps) {
   const { t } = useTranslation();
   const { settings: ui, update } = useUiSettings();
 
@@ -61,7 +62,7 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
 
       <MonitoringEventsSettings />
 
-      <RamTemperatureSection serviceOnline={serviceOnline} />
+      <RamTemperatureSection serviceOnline={serviceOnline} onOpenDevices={onOpenDevices} />
 
       <SmartPollSection serviceOnline={serviceOnline} />
 

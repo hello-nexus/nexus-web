@@ -38,7 +38,7 @@ export function groupsPresent(rules: readonly SensorAlertRule[]): ThermalGroup[]
 
 /** Locale keys: the button label and the chart title for a group (Thermals keeps its existing keys). */
 export function groupLabelKey(group: ThermalGroup): string {
-  return group === 'thermals' ? 'diagnostics.tab.thermals' : `diagnostics.thermals.group.${group}`;
+  return group === 'thermals' ? 'diagnostics.thermals.group.thermals' : `diagnostics.thermals.group.${group}`;
 }
 export function groupTitleKey(group: ThermalGroup): string {
   return group === 'thermals' ? 'diagnostics.temperature.title' : `diagnostics.thermals.history.${group}`;

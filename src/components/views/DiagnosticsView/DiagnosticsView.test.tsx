@@ -54,7 +54,7 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ SensorPicker: () => null, useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
-  useUiSettings: () => ({ settings: { diagnosticsComponentRam: true, diagnosticsComponentSystem: true }, update: vi.fn() }),
+  useUiSettings: () => ({ settings: { diagnosticsComponentSystem: true }, update: vi.fn() }),
 }));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal => ({ ...(await importOriginal<object>()), sensorsForDevice: () => [] }));
 
@@ -144,11 +144,11 @@ function renderSystem(data: DiagnosticsSystemResponse | null) {
 }
 
 describe('ComponentHealthGrid domain tiles', () => {
-  it('always renders four domain tiles in storage/memory/cooling/system order', () => {
+  it('always renders four domain tiles in cooling/storage/memory/system order', () => {
     render(<ComponentHealthGrid components={[]} onNavigate={() => {}} />);
     const titles = screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent);
     expect(titles).toEqual([
-      'diagnostics.kind.storage', 'diagnostics.kind.memory', 'diagnostics.tab.thermals', 'diagnostics.kind.system',
+      'diagnostics.tab.thermals', 'diagnostics.kind.storage', 'diagnostics.kind.memory', 'diagnostics.kind.system',
     ]);
   });
 
@@ -538,6 +538,23 @@ describe('domain sections render without their outer kind title', () => {
 
     expect(screen.queryByText('diagnostics.kind.memory')).not.toBeInTheDocument();
     expect(screen.getByText('DIMM_A1')).toBeInTheDocument();
+  });
+
+  it('MemorySection has no monitor switch and always shows the meta row and test action', () => {
+    const data: DiagnosticsMemoryResponse = {
+      supported: true,
+      modules: [{ slot: 'DIMM_A1', sizeBytes: 1000, maxSpeedMts: 6000, configuredSpeedMts: 6000, manufacturer: 'Test', partNumber: 'PN1' }],
+      xmpLikelyActive: null, lastTest: null, testScheduled: false,
+    };
+    render(
+      <ToastProvider>
+        <MemorySection data={data} loading={false} error={false} onRefresh={() => {}} />
+      </ToastProvider>,
+    );
+
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getByText(/diagnostics\.memory\.lastTest/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'diagnostics.memory.runTest' })).toBeInTheDocument();
   });
 
   // A DIMM reporting every field as unknown: the parser emits null for each.

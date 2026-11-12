@@ -22,9 +22,8 @@ const state = (ruleId: string, over: Partial<SensorAlertState> = {}): SensorAler
 );
 
 describe('SensorList', () => {
-  it('shows name, live value and state chip, marks the selection, and reports select and enabled changes', () => {
+  it('shows name, live value and state chip, marks the selection, and reports select changes', () => {
     const onSelect = vi.fn();
-    const onToggleEnabled = vi.fn();
     render(
       <SensorList
         rules={[rule('r1'), rule('r2', { enabled: false })]}
@@ -32,7 +31,6 @@ describe('SensorList', () => {
         selectedId="r1"
         liveOf={r => (r.id === 'r1' ? 62 : null)}
         onSelect={onSelect}
-        onToggleEnabled={onToggleEnabled}
       />,
     );
     const rows = screen.getAllByTestId('sensor-row');
@@ -40,7 +38,7 @@ describe('SensorList', () => {
     expect(rows[0]).toHaveTextContent('62°C');
     expect(rows[0]).toHaveTextContent('diagnostics.alerts.state.pending');
     expect(rows[0]).toHaveAttribute('data-selected', 'true');
-    // A switched-off sensor keeps its name and switch and hides its value and chip.
+    // A switched-off sensor keeps its name and hides its value and chip.
     expect(rows[1]).toHaveTextContent('monitoring.settings.category.cpuSensor r2 (Temperature)');
     expect(rows[1]).not.toHaveTextContent('50°C');
     expect(rows[1]).not.toHaveTextContent('diagnostics.alerts.state');
@@ -48,11 +46,10 @@ describe('SensorList', () => {
 
     fireEvent.click(rows[1].querySelector('button[aria-pressed]')!);
     expect(onSelect).toHaveBeenCalledWith('r2');
-    fireEvent.click(rows[1].querySelector('[role="switch"]')!);
-    expect(onToggleEnabled).toHaveBeenCalledWith(expect.objectContaining({ id: 'r2' }), true);
+    expect(rows[1].querySelector('[role="switch"]')).toBeNull();
   });
 
-  it('shows only a NOT REPORTED chip, with no switch, status or reading text, for a sensor the PC does not report', () => {
+  it('shows only a NOT REPORTED chip, with no status or reading text, for a sensor the PC does not report', () => {
     render(
       <SensorList
         rules={[rule('b1', { builtIn: 'ramTemp' }), rule('u1')]}
@@ -60,7 +57,6 @@ describe('SensorList', () => {
         selectedId={null}
         liveOf={() => null}
         onSelect={vi.fn()}
-        onToggleEnabled={vi.fn()}
       />,
     );
     for (const row of screen.getAllByTestId('sensor-row')) {
@@ -71,7 +67,22 @@ describe('SensorList', () => {
     }
   });
 
-  it('shows only the switch for a sensor just switched on with no reading yet, never NOT REPORTED', () => {
+  it('shows no reading for a not-reported sensor even when the live list still carries a value', () => {
+    render(
+      <SensorList
+        rules={[rule('f1', { builtIn: 'fanSpeed' })]}
+        states={[state('f1', { state: 'unavailable', value: null })]}
+        selectedId={null}
+        liveOf={() => 0}
+        onSelect={vi.fn()}
+      />,
+    );
+    const row = screen.getByTestId('sensor-row');
+    expect(row).toHaveTextContent('diagnostics.sensors.notReported');
+    expect(row).not.toHaveTextContent('0');
+  });
+
+  it('shows no chip for a sensor just switched on with no reading yet, never NOT REPORTED', () => {
     render(
       <SensorList
         rules={[rule('b1', { builtIn: 'cpuTemp' }), rule('u1')]}
@@ -79,11 +90,10 @@ describe('SensorList', () => {
         selectedId={null}
         liveOf={() => null}
         onSelect={vi.fn()}
-        onToggleEnabled={vi.fn()}
       />,
     );
     for (const row of screen.getAllByTestId('sensor-row')) {
-      expect(row.querySelector('[role="switch"]')).not.toBeNull();
+      expect(row.querySelector('[role="switch"]')).toBeNull();
       expect(row).not.toHaveTextContent('diagnostics.sensors.notReported');
       expect(row).not.toHaveTextContent('diagnostics.alerts.state');
       expect(row).not.toHaveTextContent('diagnostics.alerts.noReading');
@@ -91,15 +101,15 @@ describe('SensorList', () => {
   });
 
   it('uses the shared Card selected treatment for the selected row', () => {
-    render(<SensorList rules={[rule('r1')]} states={[state('r1')]} selectedId="r1" liveOf={() => 50} onSelect={vi.fn()} onToggleEnabled={vi.fn()} />);
+    render(<SensorList rules={[rule('r1')]} states={[state('r1')]} selectedId="r1" liveOf={() => 50} onSelect={vi.fn()} />);
     const card = screen.getByTestId('sensor-row').firstElementChild as HTMLElement;
     expect(card.className).toMatch(/selected/);
   });
 
-  it('keeps the switch on a switched-off built-in the PC does not report, with no chip', () => {
-    render(<SensorList rules={[rule('b1', { builtIn: 'ramTemp', enabled: false })]} states={[]} selectedId={null} liveOf={() => null} onSelect={vi.fn()} onToggleEnabled={vi.fn()} />);
+  it('renders a switched-off built-in the PC does not report dimmed, with no chip', () => {
+    render(<SensorList rules={[rule('b1', { builtIn: 'ramTemp', enabled: false })]} states={[]} selectedId={null} liveOf={() => null} onSelect={vi.fn()} />);
     const row = screen.getByTestId('sensor-row');
-    expect(row.querySelector('[role="switch"]')).not.toBeNull();
+    expect(row.querySelector('[role="switch"]')).toBeNull();
     expect(row).not.toHaveTextContent('diagnostics.sensors.notReported');
   });
 });

@@ -5,6 +5,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  // Fills the tab content column so the watchlist can take the height left under the chart; never shorter than its content, so a tall settings panel scrolls the page instead of clipping.
+  flex: 1 0 auto;
 }
 
 .note {
@@ -27,10 +29,16 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-lg);
-  align-items: start;
+  // Takes the height left in the page; the list scrolls inside it and a taller settings panel overflows into the page scroll.
+  flex: 1 1 0;
+  min-height: 20rem;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
 
   @media (max-width: 600px) {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    flex: 0 0 auto;
   }
 }
 
@@ -39,6 +47,7 @@
   flex-direction: column;
   gap: var(--space-md);
   min-width: 0;
+  min-height: 0;
 }
 
 // The header and search stay put; only the grouped rows scroll.
@@ -53,9 +62,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  max-height: max(20rem, 55vh);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  // The end gap lives inside the scrolling content, so the scrollbar runs to the bottom edge (same as the Lighting device rail).
+  padding-bottom: 1rem;
   @include scrollbar-visible;
+
+  @media (max-width: 600px) {
+    max-height: 24rem;
+  }
 }
 
 // Both columns' headers share this row height, so the first cards line up.
@@ -73,15 +89,8 @@
   flex-direction: column;
   gap: var(--space-md);
   min-width: 0;
+  // When the panel is taller than the row it spills into the page scroll; this keeps the end gap.
+  padding-bottom: 1rem;
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
 
-.sectionTitle {
-  @include text-label;
-  color: var(--text-dim);
-}

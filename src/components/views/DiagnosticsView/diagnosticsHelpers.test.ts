@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { Thermometer } from 'lucide-react';
+import { Gauge } from 'lucide-react';
 import { DOMAIN_ICON, domainTitleKey } from './diagnosticsHelpers';
 import { describe, expect, it } from 'vitest';
 import en from '../../../locales/en.json';
@@ -173,8 +173,8 @@ describe('aggregateDomainTiles', () => {
   const comp = (kind: DiagnosticsComponent['kind'], status: DiagnosticsComponent['status'], reasons: DiagnosticsReason[] = []): DiagnosticsComponent =>
     ({ id: `${kind}:x`, kind, name: kind, status, reasons });
 
-  it('always returns the four domains in storage/memory/cooling/system order', () => {
-    expect(aggregateDomainTiles([]).map(t => t.domain)).toEqual(['storage', 'memory', 'cooling', 'system']);
+  it('always returns the four domains in cooling/storage/memory/system order', () => {
+    expect(aggregateDomainTiles([]).map(t => t.domain)).toEqual(['cooling', 'storage', 'memory', 'system']);
   });
 
   it('marks a domain with no component as unknown, an unflagged domain as ok', () => {
@@ -299,9 +299,9 @@ describe('visibleDiagnosticsTabs', () => {
 });
 
 describe('cooling domain tile', () => {
-  it('is titled and iconed like the Thermals tab', () => {
+  it('is titled and iconed like the Sensors tab', () => {
     expect(domainTitleKey('cooling')).toBe('diagnostics.tab.thermals');
     expect(domainTitleKey('storage')).toBe('diagnostics.kind.storage');
-    expect(DOMAIN_ICON.cooling).toBe(Thermometer);
+    expect(DOMAIN_ICON.cooling).toBe(Gauge);
   });
 });

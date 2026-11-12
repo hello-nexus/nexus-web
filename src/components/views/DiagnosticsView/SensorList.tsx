@@ -4,8 +4,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
-import { Toggle } from '../../common/Toggle/Toggle';
-import { formatAlertValue, rowState, rowTitles, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
+import { formatAlertValue, rowState, rowTitles, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorList.module.scss';
 
@@ -27,11 +26,10 @@ interface SensorListProps {
   /** The sensor dropdown label the picker lists for a stored sensor, when it needs live data. */
   pickerLabel?: (sensor: SensorRef) => string | undefined;
   onSelect: (id: string) => void;
-  onToggleEnabled: (rule: SensorAlertRule, enabled: boolean) => void;
 }
 
-/** The tracked sensors, one row each: name, live value, state chip and the enabled switch. A row selects the sensor for the detail pane. */
-export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onSelect, onToggleEnabled }: SensorListProps) {
+/** The tracked sensors, one row each: name, live value, dim reading and state chip. A row selects the sensor for the detail pane; the enabled switch lives in that pane. */
+export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onSelect }: SensorListProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   return (
@@ -39,14 +37,17 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
       {rules.map(rule => {
         const st = states.find(s => s.ruleId === rule.id);
         const kind = rowState(rule, st);
-        const reading = liveOf(rule) ?? st?.value ?? null;
+        // The service's verdict wins: it nulls the value of a sensor it judged unreported, while the picker's
+        // live list can still carry a stale 0 for the same entry, which would show as a reading beside NOT REPORTED.
+        const unreported = rule.enabled && kind === 'unavailable';
+        const reading = unreported ? null : (liveOf(rule) ?? st?.value ?? null);
         const selected = rule.id === selectedId;
         const { title: name, subtitle } = rowTitles(rule, t, pickerLabel);
-        // An enabled sensor the PC does not report has nothing to switch or grade: the chip alone says so.
-        // A switched-off sensor shows its name and switch only.
+        // An enabled sensor the PC does not report has nothing to grade: the chip alone says so.
+        // A switched-off sensor shows its name, dimmed, with no reading or chip.
         const BuiltInIcon = rule.builtIn ? (BUILT_IN_ICONS[rule.builtIn] ?? (rule.sensor.type === 'Fan' ? Fan : null)) : null;
-        // Not reported is the service's verdict after its grace period; a sensor just switched on shows its switch alone until a reading arrives.
-        const notReported = rule.enabled && reading === null && kind === 'unavailable';
+        // Not reported is the service's verdict after its grace period; a sensor just switched on shows no chip until a reading arrives.
+        const notReported = unreported;
         const awaiting = rule.enabled && reading === null && !notReported;
         return (
           <li
@@ -73,9 +74,6 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
                   ? <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
                   : <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />)
                 : undefined}
-              toggle={notReported ? undefined : (
-                <Toggle checked={rule.enabled} onChange={enabled => onToggleEnabled(rule, enabled)} ariaLabel={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })} />
-              )}
             />
           </li>
         );

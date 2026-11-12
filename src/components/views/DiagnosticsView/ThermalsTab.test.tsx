@@ -32,8 +32,8 @@ vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal =
   sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'cpu' ? [{ value: 'cpu/temp/0', type: 'Temperature' }] : []),
 }));
 vi.mock('./SensorAlertRuleSettings', () => ({
-  SensorAlertRuleSettings: ({ rule, onDelete, onRestoreDefault }: { rule: { id: string }; onDelete: () => void; onRestoreDefault: () => void }) => (
-    <div data-testid="settings-stub">{rule.id}<button type="button" onClick={onDelete}>stub-delete</button><button type="button" onClick={onRestoreDefault}>stub-restore</button></div>
+  SensorAlertRuleSettings: ({ rule, onDelete, onRestoreDefault, onToggleEnabled }: { rule: { id: string; enabled: boolean }; onDelete: () => void; onRestoreDefault: () => void; onToggleEnabled: (enabled: boolean) => void }) => (
+    <div data-testid="settings-stub">{rule.id}<button type="button" onClick={() => onToggleEnabled(!rule.enabled)}>stub-toggle</button><button type="button" onClick={onDelete}>stub-delete</button><button type="button" onClick={onRestoreDefault}>stub-restore</button></div>
   ),
 }));
 vi.mock('../../../search/scroll', () => ({ requestSearchScroll: h.scroll }));
@@ -104,6 +104,17 @@ describe('ThermalsTab', () => {
     await act(async () => { fireEvent.click(screen.getByTestId('sensor-add')); });
     expect(h.add).toHaveBeenCalledTimes(1);
     expect(h.add.mock.calls[0][0]).toMatchObject({ sensor: { category: 'cpu', id: 'cpu/temp/0', type: 'Temperature' }, low: null });
+  });
+
+  it('clears a search that would hide a freshly added sensor', async () => {
+    // A different sensor, so the picker still has an untracked one to add.
+    h.rules = [rule('r1', { sensor: { category: 'cpu', id: 'cpu/temp/9', name: 'Other', type: 'Temperature', parentName: 'CPU' } })];
+    render(<SensorsTab {...props()} />);
+    const search = screen.getByRole('textbox', { name: 'diagnostics.sensors.search' });
+    fireEvent.change(search, { target: { value: 'zzz' } });
+    expect(screen.queryAllByTestId('sensor-row')).toHaveLength(0);
+    await act(async () => { fireEvent.click(screen.getAllByTestId('sensor-add')[0]); });
+    expect(search).toHaveValue('');
   });
 
   it('puts Add sensor at the top of the tab, disabled with the limit text at the rule limit', () => {
@@ -216,10 +227,11 @@ describe('ThermalsTab', () => {
     expect(p.onFocused).toHaveBeenCalled();
   });
 
-  it('writes the enabled switch and deletes from the editor', () => {
+  it('writes the enabled switch from the settings panel and deletes from the editor', () => {
     h.rules = [rule('r1')];
     render(<SensorsTab {...props()} />);
-    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=CPU Sensor r1)' }));
+    expect(screen.getByTestId('sensor-row').querySelector('[role="switch"]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' }));
     expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1', enabled: false }), expect.any(Function));
     fireEvent.click(screen.getByRole('button', { name: 'stub-delete' }));
     expect(h.remove).toHaveBeenCalledWith('r1');

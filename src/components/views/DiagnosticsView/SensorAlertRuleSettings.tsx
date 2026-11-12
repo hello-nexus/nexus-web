@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import type { SensorAlertRule, SensorAlertSeverity, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
+import type { SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { Button } from '../../common/Button/Button';
-import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { RangeSlider } from '../../common/Slider/RangeSlider';
@@ -47,6 +46,8 @@ interface SensorAlertRuleSettingsProps {
   /** Writes the full rule. */
   onSave: (rule: SensorAlertRule) => void;
   onDelete: () => void;
+  /** Switches the entry on or off; for a fan built-in this is its per-fan health check. */
+  onToggleEnabled: (enabled: boolean) => void;
   /** The rule's live state, the only reading source for a built-in. */
   state?: SensorAlertState;
   /** Writes a built-in back to its factory values. */
@@ -56,8 +57,8 @@ interface SensorAlertRuleSettingsProps {
   onTracked?: (existing: SensorAlertRule) => void;
 }
 
-/** The editable settings of one tracked sensor: the sensor, its alert limits, delays, severity and delivery options. Shown inside the sensor's card. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, state, onRestoreDefault, findTracked, onTracked }: SensorAlertRuleSettingsProps) {
+/** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Shown inside the sensor's card. */
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -96,12 +97,13 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   };
 
   const outsideTone = rule.severity === 'act' ? BAD : WARN;
-  const severityOptions: Array<{ key: SensorAlertSeverity; label: string }> = [
-    { key: 'watch', label: t('diagnostics.incidents.severity.warning') },
-    { key: 'act', label: t('diagnostics.incidents.severity.critical') },
-  ];
   return (
     <>
+      <SettingToggle
+        label={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })}
+        checked={rule.enabled}
+        onChange={onToggleEnabled}
+      />
       {!builtIn && (
         <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
           <SensorPicker
@@ -161,14 +163,12 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
           onChange={v => edit({ raiseAfterSeconds: Number(v) }, true)}
         />
       </SettingRow>
-      <SettingRow label={t('diagnostics.alerts.severity')} description={t('diagnostics.alerts.severityHint')}>
-        <ChipGroup
-          ariaLabel={t('diagnostics.alerts.severity')}
-          activeKey={rule.severity}
-          onChange={key => edit({ severity: key as SensorAlertSeverity }, true)}
-          options={severityOptions}
-        />
-      </SettingRow>
+      <SettingToggle
+        label={t('diagnostics.alerts.urgent')}
+        description={t('diagnostics.alerts.urgentDescription')}
+        checked={rule.severity === 'act'}
+        onChange={urgent => edit({ severity: urgent ? 'act' : 'watch' }, true)}
+      />
       <SettingToggle
         label={t('diagnostics.alerts.notifyDesktop')}
         checked={rule.notifyDesktop}

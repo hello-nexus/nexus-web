@@ -36,15 +36,46 @@ const lookup = { resolve: () => undefined } as unknown as Parameters<typeof Sens
 
 function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState } = {}) {
   const onSave = vi.fn();
+  const onToggleEnabled = vi.fn();
   const view = render(
-    <SensorAlertRuleSettings rule={rule} lookup={lookup} onPreview={vi.fn()} onSave={onSave} onDelete={vi.fn()} onRestoreDefault={vi.fn()} {...extra} />,
+    <SensorAlertRuleSettings rule={rule} lookup={lookup} onPreview={vi.fn()} onSave={onSave} onDelete={vi.fn()} onToggleEnabled={onToggleEnabled} onRestoreDefault={vi.fn()} {...extra} />,
   );
-  return { onSave, ...view };
+  return { onSave, onToggleEnabled, ...view };
 }
 
 beforeEach(() => { h.tempUnit = 'c'; });
 
 describe('SensorAlertRuleSettings', () => {
+  it('leads with the enabled switch and reports the new state', () => {
+    const { onToggleEnabled } = renderEditor({ ...userRule, enabled: false });
+    const sw = screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=CPU Package)' });
+    expect(sw).not.toBeChecked();
+    fireEvent.click(sw);
+    expect(onToggleEnabled).toHaveBeenCalledWith(true);
+    // First row of the panel, ahead of the picker and the limits.
+    expect(document.querySelector('[role="switch"]')).toBe(sw);
+  });
+
+  it('maps the Urgent switch to severity act and watch, with no severity chooser', () => {
+    const { onSave, unmount } = renderEditor(userRule);
+    expect(screen.queryByRole('radio')).toBeNull();
+    const urgent = screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' });
+    expect(urgent).not.toBeChecked();
+    fireEvent.click(urgent);
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ severity: 'act' }));
+    unmount();
+    const second = renderEditor({ ...userRule, severity: 'act' });
+    const on = screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' });
+    expect(on).toBeChecked();
+    fireEvent.click(on);
+    expect(second.onSave).toHaveBeenLastCalledWith(expect.objectContaining({ severity: 'watch' }));
+  });
+
+  it('shows the enabled switch for a built-in too', () => {
+    renderEditor(builtInRule);
+    expect(screen.getByRole('switch', { name: /diagnostics.alerts.enabledFor/ })).toBeChecked();
+  });
+
   it('hides the picker and Delete for a built-in, shows both knobs, and offers Restore default', () => {
     renderEditor(builtInRule);
     expect(screen.queryByTestId('sensor-picker')).toBeNull();

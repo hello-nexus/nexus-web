@@ -23,6 +23,7 @@ interface SettingsViewProps {
   onTabChange: (tab: string) => void;
   // Opens a deck's editor on a key or dial, from a Hotkeys row.
   onOpenDeckEditor?: (target: DeckEditorTarget) => void;
+  onOpenDevices?: () => void;
 }
 
 export type SettingsTabKey = 'general' | 'appearance' | 'lighting-cooling' | 'monitoring' | 'hotkeys' | 'privacy';
@@ -46,7 +47,7 @@ function isValidTab(key: string): key is SettingsTabKey {
 
 // Profiles live on their own page (the top-bar profile menu) and the developer
 // Dev Tools page hangs off the top-bar "..." menu; neither is a Settings tab.
-export function SettingsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange, onOpenDeckEditor }: SettingsViewProps) {
+export function SettingsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange, onOpenDeckEditor, onOpenDevices }: SettingsViewProps) {
   const { t } = useTranslation();
   // All server persistence + local mirror + theme/accent application goes
   // through this hook. No fetchPreferences/savePreferences in this file.
@@ -138,7 +139,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       case 'lighting-cooling':
         return <LightingCoolingTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
       case 'monitoring':
-        return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} />;
+        return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} onOpenDevices={onOpenDevices} />;
       case 'hotkeys':
         return <HotkeysTab serviceOnline={serviceOnline} onOpenDeckEditor={onOpenDeckEditor} />;
       case 'privacy':
