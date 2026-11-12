@@ -34,6 +34,8 @@ const LCD_MODES: { value: KrakenState['lcdMode']; labelKey: string }[] = [
 ];
 
 const LCD_ROTATIONS = [0, 90, 180, 270];
+// Round panels also take the diagonal steps; the service rejects them for any other shape.
+const LCD_ROTATIONS_ROUND = [0, 45, 90, 135, 180, 225, 270, 315];
 
 /**
  * The Kraken's hardware options: cooling readout, the LCD's own display controls,
@@ -241,7 +243,7 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
               label={t('devices.nzxt-kraken.screenRotation')}
               value={String(state?.lcdOrientation ?? 0)}
               onChange={v => { void commitLcd({ orientation: Number(v) }); }}
-              options={LCD_ROTATIONS.map(deg => ({
+              options={(state?.lcdRound ? LCD_ROTATIONS_ROUND : LCD_ROTATIONS).map(deg => ({
                 value: String(deg),
                 label: localizeNumbers(`${deg}°`, numberFormat),
               }))}

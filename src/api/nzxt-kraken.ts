@@ -18,7 +18,10 @@ export interface KrakenState {
   lcdWidth: number;
   lcdHeight: number;
   lcdBrightness: number;
+  /** Degrees clockwise; 45 steps only when `lcdRound`. */
   lcdOrientation: number;
+  /** True when the panel takes 45 degree rotation steps. Absent on older services. */
+  lcdRound?: boolean;
   lcdMode: 'liquid' | 'image' | 'off';
   /** Absent/null = on. */
   lcdSleepWhenLocked?: boolean | null;

@@ -117,6 +117,28 @@ describe('KrakenDevicePage', () => {
   });
 });
 
+describe('KrakenDevicePage - screen rotation', () => {
+  const rotationOptions = async () => {
+    await act(async () => { render(<KrakenDevicePage />); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /devices\.nzxt-kraken\.screenRotation/ })); });
+    return screen.getAllByRole('option').map(o => o.textContent);
+  };
+
+  it('offers the 45 degree steps on a round panel', async () => {
+    mockGetKrakenState.mockResolvedValue({ ...connectedState, lcdRound: true, lcdOrientation: 135 });
+    expect(await rotationOptions()).toEqual(['0°', '45°', '90°', '135°', '180°', '225°', '270°', '315°']);
+  });
+
+  it('keeps quarter turns only when the panel is not round', async () => {
+    mockGetKrakenState.mockResolvedValue({ ...connectedState, lcdRound: false });
+    expect(await rotationOptions()).toEqual(['0°', '90°', '180°', '270°']);
+  });
+
+  it('keeps quarter turns only against a service that does not report the shape', async () => {
+    expect(await rotationOptions()).toEqual(['0°', '90°', '180°', '270°']);
+  });
+});
+
 describe('KrakenDevicePage - GIF screen', () => {
   const pick = async (file: File) => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
