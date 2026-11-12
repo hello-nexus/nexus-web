@@ -83,7 +83,7 @@ const rule = (id: string, over: Partial<SensorAlertRule> = {}, type = 'Temperatu
   id, enabled: true,
   sensor: { category: 'cpu', id, name: id, type, parentName: '' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-  notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn: null, ...over,
+  notifyDesktop: false, notifyMobile: false, showInHealth: true, repeatMinutes: 0, builtIn: null, ...over,
 });
 const cpu = rule('builtin:cpu-temp', { builtIn: 'cpuTemp' });
 const gpu = rule('builtin:gpu-temp:0', { builtIn: 'gpuTemp' });

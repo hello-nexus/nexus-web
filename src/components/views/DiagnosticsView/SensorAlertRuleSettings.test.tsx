@@ -2,8 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
+import { onPairPhoneRequest } from '../../../app/pairPhoneRequest';
 
-const h = vi.hoisted(() => ({ tempUnit: 'c' as 'c' | 'f' }));
+const h = vi.hoisted(() => ({ tempUnit: 'c' as 'c' | 'f', sentry: vi.fn() }));
+
+vi.mock('../../../api/sentry', () => ({ fetchSentry: () => h.sentry() }));
 
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
@@ -26,7 +29,7 @@ const userRule: SensorAlertRule = {
   id: 'r1', enabled: true,
   sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-  notifyDesktop: true, showInHealth: true, repeatMinutes: 0, builtIn: null,
+  notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0, builtIn: null,
 };
 const builtInRule: SensorAlertRule = {
   ...userRule, id: 'builtin-cpu', builtIn: 'cpuTemp',
@@ -43,7 +46,7 @@ function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState }
   return { onSave, onToggleEnabled, ...view };
 }
 
-beforeEach(() => { h.tempUnit = 'c'; });
+beforeEach(() => { h.tempUnit = 'c'; h.sentry.mockReset(); h.sentry.mockResolvedValue({ alertPhones: 2 }); });
 
 describe('SensorAlertRuleSettings', () => {
   it('leads with the enabled switch and reports the new state', () => {
@@ -188,5 +191,46 @@ describe('SensorAlertRuleSettings', () => {
   it('marks a built-in at the state value, the only reading source it has', () => {
     renderEditor(builtInRule, { state: { ruleId: 'builtin-cpu', state: 'ok', value: 61, acknowledged: false } });
     expect(screen.getByText('61°C')).toBeInTheDocument();
+  });
+
+  describe('mobile notifications', () => {
+    it('sits directly under Desktop notification and saves notifyMobile', () => {
+      const { onSave } = renderEditor(userRule);
+      const switches = screen.getAllByRole('switch').map(el => el.getAttribute('aria-label') ?? el.textContent);
+      const desktop = screen.getByRole('switch', { name: /diagnostics.alerts.notifyDesktop/ });
+      const mobile = screen.getByRole('switch', { name: /diagnostics.alerts.notifyMobile/ });
+      expect(switches.length).toBeGreaterThan(2);
+      const all = screen.getAllByRole('switch');
+      expect(all.indexOf(mobile)).toBe(all.indexOf(desktop) + 1);
+      expect(mobile).not.toBeChecked();
+      fireEvent.click(mobile);
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ notifyMobile: true }));
+    });
+
+    it('shows the paired phone count', async () => {
+      renderEditor(userRule);
+      expect(await screen.findByText('diagnostics.alerts.phonesPaired.other(count=2)')).toBeInTheDocument();
+    });
+
+    it('with no phones paired, offers Pair remote and opens the flow', async () => {
+      h.sentry.mockResolvedValue({ alertPhones: 0 });
+      const opened = vi.fn();
+      const off = onPairPhoneRequest(opened);
+      renderEditor(userRule);
+      expect(await screen.findByText(/diagnostics.alerts.noPhonesPaired/)).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('pair-remote-link'));
+      expect(screen.getByTestId('pair-remote-link')).toHaveTextContent('phonePair.title');
+      expect(opened).toHaveBeenCalledTimes(1);
+      off();
+    });
+
+    it('shows no phone text when the status read fails', async () => {
+      h.sentry.mockRejectedValue(new Error('offline'));
+      renderEditor(userRule);
+      await Promise.resolve();
+      expect(screen.queryByText(/diagnostics.alerts.noPhonesPaired/)).toBeNull();
+      expect(screen.queryByTestId('pair-remote-link')).toBeNull();
+      expect(screen.queryByText(/phonesPaired/)).toBeNull();
+    });
   });
 });

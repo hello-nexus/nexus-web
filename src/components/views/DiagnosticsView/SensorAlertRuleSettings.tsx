@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
+import { requestPairPhone } from '../../../app/pairPhoneRequest';
+import { useAlertPhones } from './useAlertPhones';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { Button } from '../../common/Button/Button';
@@ -62,6 +65,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const phones = useAlertPhones();
   const type = rule.sensor.type;
   const builtIn = isBuiltIn(rule);
   const live = builtIn ? (state?.value ?? null) : (lookup.resolve(rule.sensor.category, rule.sensor.id)?.value ?? null);
@@ -173,6 +177,20 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         label={t('diagnostics.alerts.notifyDesktop')}
         checked={rule.notifyDesktop}
         onChange={notifyDesktop => edit({ notifyDesktop }, true)}
+      />
+      <SettingToggle
+        label={t('diagnostics.alerts.notifyMobile')}
+        description={phones === null ? undefined : phones > 0 ? t(pluralKey('diagnostics.alerts.phonesPaired', language, phones), { count: phones }) : (
+          <>
+            {t('diagnostics.alerts.noPhonesPaired')}
+            {' '}
+            <Button type="button" tone="ghost" size="sm" data-testid="pair-remote-link" onClick={requestPairPhone}>
+              {t('phonePair.title')}
+            </Button>
+          </>
+        )}
+        checked={rule.notifyMobile}
+        onChange={notifyMobile => edit({ notifyMobile }, true)}
       />
       <SettingRow>
         {builtIn ? (

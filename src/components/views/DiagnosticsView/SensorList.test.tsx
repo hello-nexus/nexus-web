@@ -15,7 +15,7 @@ const rule = (id: string, over: Partial<SensorAlertRule> = {}): SensorAlertRule 
   id, enabled: true,
   sensor: { category: 'cpu', id: 'cpu/temp/0', name: `Sensor ${id}`, type: 'Temperature', parentName: 'CPU' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-  notifyDesktop: true, showInHealth: true, repeatMinutes: 0, ...over,
+  notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0, ...over,
 });
 const state = (ruleId: string, over: Partial<SensorAlertState> = {}): SensorAlertState => (
   { ruleId, state: 'ok', value: 50, since: null, extreme: null, direction: null, acknowledged: false, ...over }

@@ -42,6 +42,7 @@ export interface SensorAlertRule {
   clearAfterSeconds: number;
   severity: SensorAlertSeverity;
   notifyDesktop: boolean;
+  notifyMobile: boolean;
   showInHealth: boolean;
   repeatMinutes: number;
   builtIn: BuiltInSensorKind | null;

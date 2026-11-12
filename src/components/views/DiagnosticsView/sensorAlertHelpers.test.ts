@@ -8,7 +8,7 @@ const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
   id: 'r1', enabled: true,
   sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-  notifyDesktop: true, showInHealth: true, repeatMinutes: 0, ...over,
+  notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0, ...over,
 });
 
 const state = (over: Partial<SensorAlertState> = {}): SensorAlertState => ({
@@ -238,7 +238,7 @@ describe('ruleLabel', () => {
 describe('findTrackedRule and rowTitles', () => {
   const mk = (id: string, sensor: Partial<SensorAlertRule['sensor']>, builtIn: SensorAlertRule['builtIn'] = null, source?: SensorAlertRule['source']): SensorAlertRule => ({
     id, enabled: true, sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU', ...sensor },
-    low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch', notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn, source,
+    low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch', notifyDesktop: false, notifyMobile: false, showInHealth: true, repeatMinutes: 0, builtIn, source,
   });
   const t = (key: string, vars?: Record<string, string | number>) => (vars ? `${key}(${vars.count})` : key);
   const pkg = { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU' };

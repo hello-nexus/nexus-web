@@ -96,7 +96,7 @@ const rule = (id: string, over: Partial<SensorAlertRule> = {}): SensorAlertRule 
   id, enabled: true,
   sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-  notifyDesktop: true, showInHealth: true, repeatMinutes: 0, ...over,
+  notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0, ...over,
 });
 
 const okState = (ruleId: string, over: Partial<SensorAlertState> = {}): SensorAlertState => ({
@@ -178,7 +178,7 @@ describe('ThermalsTab editing', () => {
     fireEvent.change(field, { target: { value: '30' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(1));
-    expect(h.updateSensorAlert.mock.calls[0][0]).toMatchObject({ id: 'r1', low: 30, high: 80, severity: 'watch', notifyDesktop: true, showInHealth: true });
+    expect(h.updateSensorAlert.mock.calls[0][0]).toMatchObject({ id: 'r1', low: 30, high: 80, severity: 'watch', notifyDesktop: true, notifyMobile: false, showInHealth: true });
   });
 
   it('writes the Urgent switch as severity and the enabled switch', async () => {
@@ -328,7 +328,7 @@ describe('ThermalsTab editing', () => {
       expect(h.updateSensorAlert).toHaveBeenCalledTimes(1);
       await act(async () => { first.resolve(ok(rule('r1'))); });
       await waitFor(() => expect(h.updateSensorAlert).toHaveBeenCalledTimes(2));
-      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ notifyDesktop: false, showInHealth: true, severity: 'act' });
+      expect(h.updateSensorAlert.mock.calls[1][0]).toMatchObject({ notifyDesktop: false, notifyMobile: false, showInHealth: true, severity: 'act' });
     });
 
     it('sends the newest edit after a refused write instead of dropping it', async () => {

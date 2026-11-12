@@ -94,6 +94,7 @@ import { fireSearchSignal } from '../search/signals';
 import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
+import { onPairPhoneRequest } from './pairPhoneRequest';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { FeaturesOnboardingScreen } from '../components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen';
 import { HyteOnboardingScreen } from '../components/common/HyteOnboardingScreen/HyteOnboardingScreen';
@@ -764,6 +765,7 @@ export function Dashboard() {
     setManualOverride(prev => (collapsed ? true : prev === true ? null : prev));
   }, []);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
+  useEffect(() => onPairPhoneRequest(() => setPairPhoneOpen(true)), []);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [startedInstall, setStartedInstall] = useState(false);

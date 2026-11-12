@@ -12,7 +12,7 @@ export function watchlistFixture(count: number): SensorAlertRule[] {
       enabled: i % 5 !== 0,
       sensor: { category: builtIn ? 'builtin' : 'motherboard', id: `s${i}`, name: `${type} sensor ${i}`, type, parentName: '' },
       low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-      notifyDesktop: false, showInHealth: true, repeatMinutes: 0,
+      notifyDesktop: false, notifyMobile: false, showInHealth: true, repeatMinutes: 0,
       builtIn: builtIn ? (type === 'Fan' ? 'fanSpeed' : 'cpuTemp') : null,
     } satisfies SensorAlertRule;
   });

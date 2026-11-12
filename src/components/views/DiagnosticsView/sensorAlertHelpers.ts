@@ -191,6 +191,7 @@ export function defaultRule(sensor: SensorRef, observed: number | null): NewSens
     clearAfterSeconds: DEFAULT_CLEAR_SECONDS,
     severity: 'watch',
     notifyDesktop: true,
+    notifyMobile: false,
     showInHealth: true,
     repeatMinutes: 0,
   };
