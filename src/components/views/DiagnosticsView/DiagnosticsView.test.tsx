@@ -144,7 +144,7 @@ describe('ComponentHealthGrid domain tiles', () => {
     render(<ComponentHealthGrid components={[]} onNavigate={() => {}} />);
     const titles = screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent);
     expect(titles).toEqual([
-      'diagnostics.kind.storage', 'diagnostics.kind.memory', 'diagnostics.kind.cooling', 'diagnostics.kind.system',
+      'diagnostics.kind.storage', 'diagnostics.kind.memory', 'diagnostics.tab.thermals', 'diagnostics.kind.system',
     ]);
   });
 

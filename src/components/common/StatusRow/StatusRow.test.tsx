@@ -82,4 +82,11 @@ describe('StatusRow', () => {
       client.mockRestore();
     }
   });
+
+  it('wraps the chip in its own line and keeps the icon in a padded slot', () => {
+    const { container } = render(<StatusRow name="CPU" icon={<svg data-testid="ic" />} value="45 C" chip={<span>OK</span>} />);
+    const chipLine = container.querySelector('[class*="chipLine"]');
+    expect(chipLine?.textContent).toBe('OK');
+    expect(container.querySelector('[class*="icon"]')).toContainElement(screen.getByTestId('ic'));
+  });
 });

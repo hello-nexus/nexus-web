@@ -27,12 +27,14 @@ import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
 import { SensorHistorySection } from './SensorHistorySection';
 import { CoolingHistorySection } from './CoolingHistorySection';
+import { toCoolingTempChartSeries } from './coolingHistoryHelpers';
 import { CoolingSection } from './CoolingSection';
 import { GuardTripNotice } from './GuardTripNotice';
 import { SensorList } from './SensorList';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import {
   builtInSeriesId,
+  builtInOutOfRangeBands,
   builtInThresholds,
   resolveThermals,
   ruleForSeries,
@@ -101,6 +103,11 @@ export function ThermalsTab({
   useEffect(() => {
     if (customGone) onSelectionChange(selectMode(selection, 'all'));
   }, [customGone, selection, onSelectionChange]);
+
+  const rangeBands = useMemo(
+    () => builtInOutOfRangeBands(rules, toCoolingTempChartSeries(coolingHistory.series)),
+    [rules, coolingHistory.series],
+  );
 
   // The first sensor the picker would list: new rules start on it.
   const firstSensor = useMemo(() => {
@@ -300,6 +307,7 @@ export function ThermalsTab({
             headerControl={modeToggle}
             activeSeriesId={builtInSeriesId(selectedRule)}
             thresholds={builtInThresholds(selectedRule)}
+            rangeBands={rangeBands}
             onSeriesSelect={seriesId => { const rule = ruleForSeries(rules, seriesId); if (rule) select(rule); }}
           />
         </div>

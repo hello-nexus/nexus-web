@@ -47,7 +47,7 @@ describe('DiagnosticsWidget', () => {
     expect(screen.getAllByRole('img').map(el => el.getAttribute('aria-label'))).toEqual([
       'diagnostics.kind.storage: diagnostics.status.ok',
       'diagnostics.kind.memory: diagnostics.status.ok',
-      'diagnostics.kind.cooling: diagnostics.status.ok',
+      'diagnostics.tab.thermals: diagnostics.status.ok',
       'diagnostics.kind.system: diagnostics.status.ok',
     ]);
   });
@@ -57,7 +57,7 @@ describe('DiagnosticsWidget', () => {
     renderWidget('4x2', onSectionNavigate);
     const buttons = screen.getAllByRole('button');
     expect(buttons).toHaveLength(4);
-    fireEvent.click(screen.getByText('diagnostics.kind.cooling'));
+    fireEvent.click(screen.getByText('diagnostics.tab.thermals'));
     expect(onSectionNavigate).toHaveBeenCalledWith('diagnostics', { tab: 'cooling' });
   });
 

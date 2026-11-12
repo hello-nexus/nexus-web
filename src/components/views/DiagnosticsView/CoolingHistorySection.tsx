@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { Fan, Thermometer, ZoomOut } from 'lucide-react';
-import { TimeSeriesChart, type ChartRibbonSpec, type TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
+import { TimeSeriesChart, type ChartRibbonSpec, type TimeSeriesBand, type TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../common/TimelineBrush/TimelineBrush';
 import { Select } from '../../common/Select/Select';
@@ -33,6 +33,8 @@ export interface CoolingHistorySectionProps {
   /** The highlighted line, with its limit lines in `thresholds`. */
   activeSeriesId?: string | null;
   thresholds?: readonly TimeSeriesThreshold[];
+  /** Where lines leave their watchlist limits, drawn with the episode bands. */
+  rangeBands?: readonly TimeSeriesBand[];
   onSeriesSelect?: (seriesId: string) => void;
 }
 
@@ -44,7 +46,7 @@ const CHART_HEIGHT = 246;
  * temperature episodes as bands and average fan speed (RPM) as a band
  * underneath, a range picker, and a seek-bar. Heads the Thermals tab.
  */
-export function CoolingHistorySection({ history, episodes, headerControl, activeSeriesId, thresholds, onSeriesSelect }: CoolingHistorySectionProps) {
+export function CoolingHistorySection({ history, episodes, headerControl, activeSeriesId, thresholds, rangeBands, onSeriesSelect }: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat, timeFormat, dateFormat } = useUnitPrefs();
 
@@ -64,7 +66,7 @@ export function CoolingHistorySection({ history, episodes, headerControl, active
     [monitoringTempUnit, numberFormat],
   );
 
-  const bands = useMemo(() => (episodes ?? []).map(episodeBand), [episodes]);
+  const bands = useMemo(() => [...(episodes ?? []).map(episodeBand), ...(rangeBands ?? [])], [episodes, rangeBands]);
 
   // Docked on the same row as the tooltip's own timestamp header - the
   // fan-speed band has no per-series avg/max tooltip row of its own (it

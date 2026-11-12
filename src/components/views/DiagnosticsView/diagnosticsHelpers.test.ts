@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { Thermometer } from 'lucide-react';
+import { DOMAIN_ICON, domainTitleKey } from './diagnosticsHelpers';
 import { describe, expect, it } from 'vitest';
 import en from '../../../locales/en.json';
 import {
@@ -280,5 +282,13 @@ describe('visibleDiagnosticsTabs', () => {
 
   it('keeps only Summary/Sensors/Cooling on macos (no SMART/PnP/event-log diagnostics)', () => {
     expect(visibleDiagnosticsTabs('macos')).toEqual(['summary', 'cooling']);
+  });
+});
+
+describe('cooling domain tile', () => {
+  it('is titled and iconed like the Thermals tab', () => {
+    expect(domainTitleKey('cooling')).toBe('diagnostics.tab.thermals');
+    expect(domainTitleKey('storage')).toBe('diagnostics.kind.storage');
+    expect(DOMAIN_ICON.cooling).toBe(Thermometer);
   });
 });

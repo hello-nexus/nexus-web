@@ -93,7 +93,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   twitch: ['nova_streams', 'pixel_kat', 'that last round was clean'],
   // The mocked t() returns keys, so each 4x2 block's domain name surfaces as
   // its raw 'diagnostics.kind.*' key.
-  diagnostics: ['diagnostics.kind.cooling', 'diagnostics.status.ok'],
+  diagnostics: ['diagnostics.tab.thermals', 'diagnostics.status.ok'],
   // The mocked t() returns keys, so the fixture's machineName surfaces as the
   // idle 'transfer.sendTo' status line rather than 'Nexus-PC' itself.
   transfer: ['transfer.photo', 'transfer.clipboard', 'transfer.sendTo'],

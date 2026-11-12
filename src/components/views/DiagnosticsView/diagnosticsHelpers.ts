@@ -1,7 +1,7 @@
 // Pure mapping/formatting helpers for the diagnostics view + widget. Kept
 // side-effect-free (no i18n context, no fetch) so they're covered directly
 // by diagnosticsHelpers.test.ts instead of through component rendering.
-import { Fan, HardDrive, MemoryStick, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { HardDrive, MemoryStick, ShieldCheck, Thermometer, type LucideIcon } from 'lucide-react';
 import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
@@ -219,13 +219,18 @@ const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly Dia
 ];
 
 // Same glyph the domain's own tab uses, so a tile reads as the tab it opens.
-// Cooling folds GPU in, so it takes the Cooling tab's Fan icon.
+// Cooling folds GPU in; the tab is Thermals, so it takes that tab's Thermometer icon.
 export const DOMAIN_ICON: Partial<Record<DiagnosticsKind, LucideIcon>> = {
   storage: HardDrive,
   memory: MemoryStick,
-  cooling: Fan,
+  cooling: Thermometer,
   system: ShieldCheck,
 };
+
+/** The tile's title key: the cooling domain is titled like its tab, Thermals. */
+export function domainTitleKey(domain: DiagnosticsKind): string {
+  return domain === 'cooling' ? 'diagnostics.tab.thermals' : `diagnostics.kind.${domain}`;
+}
 
 export function aggregateDomainTiles(components: DiagnosticsComponent[]): DomainTile[] {
   return DOMAIN_TILE_KINDS.map(({ domain, kinds }) => {

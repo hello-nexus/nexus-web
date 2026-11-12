@@ -1,6 +1,6 @@
 // Pure selection and chart-linking logic for the Thermals tab (ThermalsTab).
 import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
-import type { TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
+import type { TimeSeriesBand, TimeSeriesPoint, TimeSeriesSeries, TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { isBuiltIn } from './sensorAlertHelpers';
 
 export type ThermalsMode = 'all' | 'custom';
@@ -69,4 +69,50 @@ export function builtInThresholds(rule: SensorAlertRule | undefined): TimeSeries
   return [rule.low, rule.high]
     .filter((v): v is number => v !== null)
     .map(value => ({ value, color }));
+}
+
+/**
+ * The stretches where a line sits outside its limits (above `high` or below `low`) as chart bands, the
+ * same translucent bands the sustained-high episodes use. A run of consecutive out-of-range points spans
+ * its first to last point; a lone point widens by half the gap to its neighbours so it stays visible.
+ */
+export function outOfRangeBands(
+  points: readonly TimeSeriesPoint[],
+  low: number | null,
+  high: number | null,
+  color: string,
+): TimeSeriesBand[] {
+  if (low === null && high === null) return [];
+  const out = (p: TimeSeriesPoint) => (high !== null && p.avg > high) || (low !== null && p.avg < low);
+  const bands: TimeSeriesBand[] = [];
+  let i = 0;
+  while (i < points.length) {
+    if (!out(points[i])) { i++; continue; }
+    let j = i;
+    while (j + 1 < points.length && out(points[j + 1])) j++;
+    let startT = points[i].t;
+    let endT = points[j].t;
+    if (i === j) {
+      const before = i > 0 ? points[i].t - points[i - 1].t : null;
+      const after = i + 1 < points.length ? points[i + 1].t - points[i].t : null;
+      const half = Math.min(before ?? Infinity, after ?? Infinity) / 2;
+      if (Number.isFinite(half)) { startT -= half; endT += half; }
+    }
+    bands.push({ startT, endT, color });
+    i = j + 1;
+  }
+  return bands;
+}
+
+/** Out-of-range bands for every enabled built-in entry whose series is drawn, each against its own limits (Celsius, the chart's unit). */
+export function builtInOutOfRangeBands(
+  rules: readonly SensorAlertRule[],
+  series: readonly TimeSeriesSeries[],
+): TimeSeriesBand[] {
+  return rules.flatMap(rule => {
+    const id = builtInSeriesId(rule);
+    const line = id === null ? undefined : series.find(s => s.id === id);
+    if (!line || !rule.enabled) return [];
+    return outOfRangeBands(line.points, rule.low, rule.high, rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)');
+  });
 }

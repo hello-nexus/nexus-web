@@ -3,7 +3,9 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import {
   INITIAL_THERMALS_SELECTION,
   builtInSeriesId,
+  builtInOutOfRangeBands,
   builtInThresholds,
+  outOfRangeBands,
   resolveThermals,
   ruleForSeries,
   selectMode,
@@ -75,5 +77,36 @@ describe('chart linking', () => {
     ]);
     expect(builtInThresholds(cpu)).toEqual([{ value: 80, color: 'var(--warn)' }]);
     expect(builtInThresholds(fan)).toEqual([]);
+  });
+});
+
+describe('outOfRangeBands', () => {
+  const pt = (t: number, avg: number) => ({ t, avg, max: avg });
+  it('spans each run above high or below low and skips in-range stretches', () => {
+    const points = [pt(0, 50), pt(10, 85), pt(20, 90), pt(30, 50), pt(40, 3), pt(50, 50)];
+    expect(outOfRangeBands(points, 5, 80, 'c')).toEqual([
+      { startT: 10, endT: 20, color: 'c' },
+      { startT: 35, endT: 45, color: 'c' },
+    ]);
+  });
+  it('widens a lone point by half the gap to its neighbours', () => {
+    expect(outOfRangeBands([pt(0, 50), pt(10, 90), pt(30, 50)], null, 80, 'c')).toEqual([{ startT: 5, endT: 15, color: 'c' }]);
+  });
+  it('draws nothing without limits and treats the limit itself as in range', () => {
+    expect(outOfRangeBands([pt(0, 99)], null, null, 'c')).toEqual([]);
+    expect(outOfRangeBands([pt(0, 80), pt(10, 80)], null, 80, 'c')).toEqual([]);
+  });
+});
+
+describe('builtInOutOfRangeBands', () => {
+  const line = { id: 'cpu-temp', name: 'CPU', color: 'x', points: [{ t: 0, avg: 50, max: 50 }, { t: 10, avg: 95, max: 95 }, { t: 20, avg: 96, max: 96 }] };
+  it('bands each enabled built-in against its own limits in its severity tone', () => {
+    expect(builtInOutOfRangeBands([cpu], [line])).toEqual([{ startT: 10, endT: 20, color: 'var(--warn)' }]);
+    expect(builtInOutOfRangeBands([{ ...cpu, severity: 'act' }], [line])[0].color).toBe('var(--bad)');
+  });
+  it('draws nothing for a disabled entry, a custom sensor, or an entry with no drawn series', () => {
+    expect(builtInOutOfRangeBands([{ ...cpu, enabled: false }], [line])).toEqual([]);
+    expect(builtInOutOfRangeBands([fan], [line])).toEqual([]);
+    expect(builtInOutOfRangeBands([gpu], [line])).toEqual([]);
   });
 });

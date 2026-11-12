@@ -13,7 +13,8 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { RANGE_OPTIONS, formatBrushEdgeLabels, formatSelectedFrameTime, xTickFormatForWindow } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
-import { formatDisplayValue, ruleLabel } from './sensorAlertHelpers';
+import { formatDisplayValue, ruleLabel, toDisplay } from './sensorAlertHelpers';
+import { outOfRangeBands } from './thermalsHelpers';
 import { sensorChartThresholds, sensorYDomain, toSensorChartSeries } from './sensorHistoryHelpers';
 import cooling from './CoolingHistorySection.module.scss';
 
@@ -41,6 +42,11 @@ export function SensorHistorySection({ history, rule, headerControl, legend }: S
 
   const line = useMemo(() => toSensorChartSeries(history.series, rule, tempUnit, ruleLabel(rule)), [history.series, rule, tempUnit]);
   const thresholds = useMemo(() => sensorChartThresholds(rule, tempUnit), [rule, tempUnit]);
+  const rangeBands = useMemo(() => {
+    if (!line || !rule.enabled) return [];
+    const limit = (v: number | null) => (v === null ? null : toDisplay(v, type, tempUnit));
+    return outOfRangeBands(line.points, limit(rule.low), limit(rule.high), rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)');
+  }, [line, rule, type, tempUnit]);
   const yDomain = useMemo(() => sensorYDomain(line, thresholds), [line, thresholds]);
 
   const windowEnd = history.domain[1];
@@ -93,6 +99,7 @@ export function SensorHistorySection({ history, rule, headerControl, legend }: S
           avgLabel={t('diagnostics.temperature.avg')}
           maxLabel={t('diagnostics.temperature.max')}
           thresholds={thresholds}
+          bands={rangeBands}
           yDomain={yDomain}
           onRangeSelect={history.onChartDragSelect}
           onWheelZoom={history.onChartWheelZoom}

@@ -101,7 +101,7 @@ export function StatusRow({ name, subtitle, icon, value, chip, note, toggle, onS
         <NameBlock name={name} subtitle={subtitle} onSelect={onSelect} selected={selected} />
         {hasStatus && (
           <span className={styles.status}>
-            {chip}
+            {chip !== undefined && <span className={styles.chipLine}>{chip}</span>}
             {value !== undefined && <span className={styles.value}>{value}</span>}
             {note !== undefined && <span className={styles.note}>{note}</span>}
           </span>

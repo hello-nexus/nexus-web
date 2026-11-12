@@ -30,6 +30,8 @@
   flex-shrink: 0;
   display: inline-flex;
   color: var(--text-dim);
+  // Air on both sides so a kind icon is not cramped against the edge and the name.
+  padding-inline: var(--space-xs);
 }
 
 // Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
@@ -42,7 +44,8 @@
 }
 
 .name {
-  @include text-button;
+  // The label size of a standard settings row (SettingRow).
+  @include text-body;
   display: block;
   min-width: 0;
   background: none;
@@ -69,6 +72,7 @@
 .subtitle {
   display: block;
   font-size: var(--type-small);
+  line-height: 1.25;
   color: var(--text-dim);
   text-align: left;
   white-space: nowrap;
@@ -85,14 +89,23 @@ button.name {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--space-xs);
   text-align: right;
   white-space: nowrap;
+}
+
+// The chip's line matches the name line's height, so the two sit level.
+.chipLine {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: calc(var(--type-body) * 1.5);
 }
 
 .value {
   flex-shrink: 0;
   font-size: var(--type-small);
+  // The same line height as the subtitle, so the reading sits level with it.
+  line-height: 1.25;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

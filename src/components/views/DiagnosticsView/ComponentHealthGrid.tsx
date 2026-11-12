@@ -7,7 +7,7 @@ import { DomainGlyph } from '../../common/DomainGlyph/DomainGlyph';
 import type { DiagnosticsComponent, DiagnosticsKind } from '../../../api/diagnostics';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { reasonDetailText } from './reasonDetail';
-import { aggregateDomainTiles, DOMAIN_ICON, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
+import { aggregateDomainTiles, DOMAIN_ICON, domainTitleKey, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface ComponentHealthGridProps {
@@ -37,7 +37,7 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
             interactive
             dashHover
             icon={Icon && <Icon size={18} />}
-            title={t(`diagnostics.kind.${tile.domain}`)}
+            title={t(domainTitleKey(tile.domain))}
             actions={<Badge label={t(statusLabelKey(tile.status))} color={statusColor(tile.status)} />}
             onClick={() => onNavigate(tile.domain)}
           >
