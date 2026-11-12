@@ -7,7 +7,7 @@ export function useAlertPhones(): number | null {
   useEffect(() => {
     let cancelled = false;
     fetchSentry()
-      .then(state => { if (!cancelled) setPhones(state.alertPhones); })
+      .then(state => { if (!cancelled) setPhones(state?.alertPhones ?? null); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
