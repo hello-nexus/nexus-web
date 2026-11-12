@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
-import { onPairPhoneRequest } from '../../../app/pairPhoneRequest';
+import { announcePairPhoneClosed, onPairPhoneRequest } from '../../../app/pairPhoneRequest';
+import { MultiplexContext } from '../../../hooks/useMultiplexSocket';
 
 const h = vi.hoisted(() => ({ tempUnit: 'c' as 'c' | 'f', sentry: vi.fn() }));
 
@@ -209,15 +210,15 @@ describe('SensorAlertRuleSettings', () => {
 
     it('shows the paired phone count', async () => {
       renderEditor(userRule);
-      expect(await screen.findByText('diagnostics.alerts.phonesPaired.other(count=2)')).toBeInTheDocument();
+      expect(await screen.findByText('diagnostics.alerts.phonesAlertsOn.other(count=2)')).toBeInTheDocument();
     });
 
-    it('with no phones paired, offers Pair remote and opens the flow', async () => {
+    it('with no phone alerts on, offers Pair remote and opens the flow', async () => {
       h.sentry.mockResolvedValue({ alertPhones: 0 });
       const opened = vi.fn();
       const off = onPairPhoneRequest(opened);
       renderEditor(userRule);
-      expect(await screen.findByText(/diagnostics.alerts.noPhonesPaired/)).toBeInTheDocument();
+      expect(await screen.findByText(/diagnostics.alerts.noPhonesAlertsOn/)).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('pair-remote-link'));
       expect(screen.getByTestId('pair-remote-link')).toHaveTextContent('phonePair.title');
       expect(opened).toHaveBeenCalledTimes(1);
@@ -225,12 +226,51 @@ describe('SensorAlertRuleSettings', () => {
     });
 
     it('shows no phone text when the status read fails', async () => {
-      h.sentry.mockRejectedValue(new Error('offline'));
+      const rejected = Promise.reject(new Error('offline'));
+      h.sentry.mockReturnValue(rejected);
       renderEditor(userRule);
-      await Promise.resolve();
-      expect(screen.queryByText(/diagnostics.alerts.noPhonesPaired/)).toBeNull();
+      await act(async () => { await rejected.catch(() => {}); });
+      expect(screen.getByRole('switch', { name: /diagnostics.alerts.notifyMobile/ })).toBeInTheDocument();
+      expect(screen.queryByText(/diagnostics.alerts.noPhonesAlertsOn/)).toBeNull();
       expect(screen.queryByTestId('pair-remote-link')).toBeNull();
-      expect(screen.queryByText(/phonesPaired/)).toBeNull();
+      expect(screen.queryByText(/phonesAlertsOn/)).toBeNull();
+    });
+
+    describe('refreshing the count', () => {
+      const countNow = async () => { await act(async () => { await Promise.resolve(); }); };
+
+      it('re-reads when the Pair remote dialog closes', async () => {
+        renderEditor(userRule);
+        expect(await screen.findByText('diagnostics.alerts.phonesAlertsOn.other(count=2)')).toBeInTheDocument();
+        h.sentry.mockResolvedValue({ alertPhones: 1 });
+        act(() => { announcePairPhoneClosed(); });
+        expect(await screen.findByText('diagnostics.alerts.phonesAlertsOn.one(count=1)')).toBeInTheDocument();
+      });
+
+      it('re-reads when the window regains focus', async () => {
+        renderEditor(userRule);
+        await screen.findByText('diagnostics.alerts.phonesAlertsOn.other(count=2)');
+        h.sentry.mockResolvedValue({ alertPhones: 3 });
+        act(() => { window.dispatchEvent(new Event('focus')); });
+        expect(await screen.findByText('diagnostics.alerts.phonesAlertsOn.other(count=3)')).toBeInTheDocument();
+      });
+
+      it('re-reads on socket reconnect, not on the first connect state', async () => {
+        const down = { connected: false } as unknown as React.ContextType<typeof MultiplexContext>;
+        const up = { connected: true } as unknown as React.ContextType<typeof MultiplexContext>;
+        const tree = (ctx: typeof down) => (
+          <MultiplexContext.Provider value={ctx}>
+            <SensorAlertRuleSettings rule={userRule} lookup={lookup} onPreview={vi.fn()} onSave={vi.fn()} onDelete={vi.fn()} onToggleEnabled={vi.fn()} onRestoreDefault={vi.fn()} />
+          </MultiplexContext.Provider>
+        );
+        const view = render(tree(down));
+        await countNow();
+        expect(h.sentry).toHaveBeenCalledTimes(1);
+        h.sentry.mockResolvedValue({ alertPhones: 1 });
+        view.rerender(tree(up));
+        expect(await screen.findByText('diagnostics.alerts.phonesAlertsOn.one(count=1)')).toBeInTheDocument();
+        expect(h.sentry).toHaveBeenCalledTimes(2);
+      });
     });
   });
 });

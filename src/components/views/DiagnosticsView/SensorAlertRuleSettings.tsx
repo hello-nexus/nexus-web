@@ -180,9 +180,9 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
       />
       <SettingToggle
         label={t('diagnostics.alerts.notifyMobile')}
-        description={phones === null ? undefined : phones > 0 ? t(pluralKey('diagnostics.alerts.phonesPaired', language, phones), { count: phones }) : (
+        description={phones === null ? undefined : phones > 0 ? t(pluralKey('diagnostics.alerts.phonesAlertsOn', language, phones), { count: phones }) : (
           <>
-            {t('diagnostics.alerts.noPhonesPaired')}
+            {t('diagnostics.alerts.noPhonesAlertsOn')}
             {' '}
             <Button type="button" tone="ghost" size="sm" data-testid="pair-remote-link" onClick={requestPairPhone}>
               {t('phonePair.title')}

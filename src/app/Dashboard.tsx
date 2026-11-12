@@ -94,7 +94,7 @@ import { fireSearchSignal } from '../search/signals';
 import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
-import { onPairPhoneRequest } from './pairPhoneRequest';
+import { announcePairPhoneClosed, onPairPhoneRequest } from './pairPhoneRequest';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { FeaturesOnboardingScreen } from '../components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen';
 import { HyteOnboardingScreen } from '../components/common/HyteOnboardingScreen/HyteOnboardingScreen';
@@ -1282,7 +1282,7 @@ export function Dashboard() {
           connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
           remoteEnabled={remoteControlEnabled}
           onRemoteEnabledChange={setRemoteControlEnabled}
-          onClose={() => setPairPhoneOpen(false)}
+          onClose={() => { setPairPhoneOpen(false); announcePairPhoneClosed(); }}
         />
         {OFFICIAL_BUILD && (
           <AccountSignInModal
