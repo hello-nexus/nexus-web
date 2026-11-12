@@ -52,6 +52,10 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
 
 // The Summary list reads live values through the sensor lookup; none here, so a row falls back to the state value.
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ SensorPicker: () => null, useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
+vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
+  useUiSettings: () => ({ settings: { diagnosticsComponentRam: true, diagnosticsComponentSystem: true }, update: vi.fn() }),
+}));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal => ({ ...(await importOriginal<object>()), sensorsForDevice: () => [] }));
 
 // The per-tab switches need the UI settings provider and have their own suite.
