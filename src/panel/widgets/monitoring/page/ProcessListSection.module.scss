@@ -1,4 +1,5 @@
 @use '../../../../styles/text' as *;
+@use '../../../../styles/interactions' as *;
 @use '../../../../styles/scrollbar' as *;
 
 .root {
@@ -112,14 +113,19 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.35rem 0.4rem;
+  // The border is always present (transparent at rest) so the hover and
+  // selected reveal never reflows; the padding gives its width back.
+  padding: calc(0.35rem - var(--border-width)) calc(0.4rem - var(--border-width));
   margin: 0 -0.4rem;
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
 
-  &:hover,
+  @include interactive-hover;
+
   &:focus-visible {
-    background: var(--bg-card-hover);
+    background: var(--surface-hover);
   }
 
   &:focus-visible {
@@ -133,22 +139,11 @@
   }
 }
 
-// Shared so the border width and its own padding compensation below can
-// never drift apart.
-$row-selected-border-width: 2px;
-
-// The row matching MonitoringPage's own selectedProcess - an accent left
-// border plus a soft accent fill so it stays visually distinct from the
-// plain hover/focus background above, including while hovered/focused.
-.rowSelected {
-  background: var(--accent-soft);
-  border-left: $row-selected-border-width solid var(--accent);
-  padding-left: calc(0.4rem - #{$row-selected-border-width});
-
-  &:hover,
-  &:focus-visible {
-    background: var(--accent-soft);
-  }
+// The row matching MonitoringPage's own selectedProcess, held through hover
+// and focus.
+.rowSelected,
+.rowSelected:focus-visible {
+  @include interactive-selected;
 }
 
 // Row-clickable affordance (item 45): hidden until the row is hovered or
