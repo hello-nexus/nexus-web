@@ -7,8 +7,7 @@
   min-width: 0;
 }
 
-.dimmed .name,
-.dimmed .value {
+.dimmed .name {
   color: var(--text-dim);
 }
 
@@ -22,7 +21,7 @@
   gap: var(--space-sm);
   padding: var(--space-sm);
   min-width: 0;
-  // Every row matches the tallest layout (reading stacked over its chip), so rows with fewer parts do not shrink.
+  // Every row matches the tallest layout (chip stacked over its reading), so rows with fewer parts do not shrink.
   min-height: var(--status-row-min-height, 4.25rem);
   box-sizing: border-box;
 }
@@ -93,6 +92,8 @@ button.name {
 
 .value {
   flex-shrink: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

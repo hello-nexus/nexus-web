@@ -114,7 +114,7 @@ export function baseBounds(type: string, observed: number | null, low: number | 
   const seen = observed !== null && Number.isFinite(observed) ? observed : null;
   let bounds: Bounds;
   switch (type) {
-    case 'Temperature': bounds = { min: 0, max: 120 }; break;
+    case 'Temperature': bounds = { min: 20, max: 100 }; break;
     case 'Load': case 'Control': case 'Level': bounds = { min: 0, max: 100 }; break;
     case 'Current': bounds = { min: 0, max: Math.max(15, 2 * (seen ?? 0)) }; break;
     case 'Power': bounds = { min: 0, max: Math.max(100, 1.5 * (seen ?? 0)) }; break;
@@ -252,10 +252,10 @@ export function sensorLabel(sensor: SensorRef): string {
 
 /** Native bounds (Celsius) the service clamps a built-in's upper limit to. */
 const BUILT_IN_LIMIT_BOUNDS: Record<BuiltInSensorKind, Bounds> = {
-  cpuTemp: { min: 60, max: 105 },
-  gpuTemp: { min: 60, max: 105 },
-  storageTemp: { min: 40, max: 90 },
-  ramTemp: { min: 40, max: 90 },
+  cpuTemp: { min: 20, max: 100 },
+  gpuTemp: { min: 20, max: 100 },
+  storageTemp: { min: 20, max: 100 },
+  ramTemp: { min: 20, max: 100 },
 };
 
 /** A built-in component temperature rule: always present, can be turned off but not deleted. */

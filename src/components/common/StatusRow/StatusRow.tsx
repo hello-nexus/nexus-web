@@ -5,8 +5,9 @@ import styles from './StatusRow.module.scss';
 
 /*
  * One list row for a monitored thing: the name on the left (wraps at word
- * boundaries), the reading with its status chip stacked beneath it and
- * right-aligned, then the on/off switch at the far right. Built on the shared
+ * boundaries), the status chip level with the name and the dim reading
+ * beneath it level with the subtitle, right-aligned, then the on/off switch
+ * at the far right. Built on the shared
  * Card, so the selected treatment matches the app's other rails. Used by the
  * Watchlist and the Cooling fans list so both read identically.
  *
@@ -23,7 +24,7 @@ interface StatusRowProps {
   subtitle?: ReactNode;
   /** Leading icon before the name; omit for none. */
   icon?: ReactNode;
-  /** The reading, rendered above the chip. Omit for a switched-off row. */
+  /** The reading, a dim line under the chip. Omit for a switched-off row. */
   value?: ReactNode;
   chip?: ReactNode;
   /** Extra small line beneath the chip (e.g. how long a state has held). */
@@ -100,8 +101,8 @@ export function StatusRow({ name, subtitle, icon, value, chip, note, toggle, onS
         <NameBlock name={name} subtitle={subtitle} onSelect={onSelect} selected={selected} />
         {hasStatus && (
           <span className={styles.status}>
-            {value !== undefined && <span className={styles.value}>{value}</span>}
             {chip}
+            {value !== undefined && <span className={styles.value}>{value}</span>}
             {note !== undefined && <span className={styles.note}>{note}</span>}
           </span>
         )}

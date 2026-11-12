@@ -68,11 +68,11 @@ describe('SensorAlertRuleSettings', () => {
   it('bounds a built-in slider to the service limits in Celsius and in Fahrenheit', () => {
     const { unmount } = renderEditor(builtInRule);
     const knob = () => document.querySelector('input[data-range-knob="max"]') as HTMLInputElement;
-    expect([knob().min, knob().max]).toEqual(['60', '105']);
+    expect([knob().min, knob().max]).toEqual(['20', '100']);
     unmount();
     h.tempUnit = 'f';
     renderEditor(builtInRule);
-    expect([knob().min, knob().max]).toEqual(['140', '221']);
+    expect([knob().min, knob().max]).toEqual(['68', '212']);
   });
 
   const typeInto = (container: HTMLElement, knob: 'lowKnob' | 'highKnob', value: string) => {
@@ -107,8 +107,8 @@ describe('SensorAlertRuleSettings', () => {
 
   it('sets a lower limit by typing one, keeps low below high, and clears it by typing the track minimum', () => {
     const { onSave, container } = renderEditor(userRule);
-    typeInto(container, 'lowKnob', '20');
-    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: 20, high: 80 }));
+    typeInto(container, 'lowKnob', '30');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: 30, high: 80 }));
     typeInto(container, 'lowKnob', '95');
     const last = onSave.mock.calls.at(-1)![0] as SensorAlertRule;
     expect(last.low).not.toBeNull();
@@ -116,7 +116,7 @@ describe('SensorAlertRuleSettings', () => {
   });
 
   it('clears a limit when its field is emptied', () => {
-    const { onSave, container } = renderEditor({ ...userRule, low: 20 });
+    const { onSave, container } = renderEditor({ ...userRule, low: 30 });
     typeInto(container, 'lowKnob', '');
     expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: null, high: 80 }));
   });

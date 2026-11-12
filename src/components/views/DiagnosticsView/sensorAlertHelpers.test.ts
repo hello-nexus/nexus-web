@@ -49,7 +49,7 @@ describe('temperature unit conversion', () => {
 
 describe('slider bounds per type', () => {
   it('uses the fixed ranges for temperature and percent types', () => {
-    expect(baseBounds('Temperature', 50, null, 80)).toEqual({ min: 0, max: 120 });
+    expect(baseBounds('Temperature', 50, null, 80)).toEqual({ min: 20, max: 100 });
     for (const type of ['Load', 'Control', 'Level']) expect(baseBounds(type, 50, null, 80)).toEqual({ min: 0, max: 100 });
   });
 
@@ -69,7 +69,7 @@ describe('slider bounds per type', () => {
   });
 
   it('widens to include a limit typed beyond the range, and never shrinks', () => {
-    expect(baseBounds('Temperature', 50, null, 150)).toEqual({ min: 0, max: 150 });
+    expect(baseBounds('Temperature', 50, null, 150)).toEqual({ min: 20, max: 150 });
     expect(widenBounds({ min: 0, max: 120 }, [null, 130, -5])).toEqual({ min: -5, max: 130 });
     expect(widenBounds({ min: 0, max: 120 }, [40])).toEqual({ min: 0, max: 120 });
   });

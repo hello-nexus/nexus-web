@@ -3,15 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { StatusRow } from './StatusRow';
 
 describe('StatusRow', () => {
-  it('orders name, then the value above the chip, then the toggle', () => {
+  it('orders name, then the chip above the value, then the toggle', () => {
     const { container } = render(
       <StatusRow name="CPU Package" value="45 C" chip={<span>OK</span>} toggle={<button type="button">sw</button>} />,
     );
     const body = (container.firstChild as HTMLElement).firstChild!.firstChild as HTMLElement;
     const kids = Array.from(body.children).map(c => c.textContent);
-    expect(kids).toEqual(['CPU Package', '45 COK', 'sw']);
+    expect(kids).toEqual(['CPU Package', 'OK45 C', 'sw']);
     const status = body.children[1];
-    expect(Array.from(status.children).map(c => c.textContent)).toEqual(['45 C', 'OK']);
+    expect(Array.from(status.children).map(c => c.textContent)).toEqual(['OK', '45 C']);
   });
 
   it('shows name and toggle only when there is no reading', () => {
