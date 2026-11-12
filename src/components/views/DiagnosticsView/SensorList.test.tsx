@@ -71,6 +71,25 @@ describe('SensorList', () => {
     }
   });
 
+  it('shows only the switch for a sensor just switched on with no reading yet, never NOT REPORTED', () => {
+    render(
+      <SensorList
+        rules={[rule('b1', { builtIn: 'cpuTemp' }), rule('u1')]}
+        states={[]}
+        selectedId={null}
+        liveOf={() => null}
+        onSelect={vi.fn()}
+        onToggleEnabled={vi.fn()}
+      />,
+    );
+    for (const row of screen.getAllByTestId('sensor-row')) {
+      expect(row.querySelector('[role="switch"]')).not.toBeNull();
+      expect(row).not.toHaveTextContent('diagnostics.sensors.notReported');
+      expect(row).not.toHaveTextContent('diagnostics.alerts.state');
+      expect(row).not.toHaveTextContent('diagnostics.alerts.noReading');
+    }
+  });
+
   it('uses the shared Card selected treatment for the selected row', () => {
     render(<SensorList rules={[rule('r1')]} states={[state('r1')]} selectedId="r1" liveOf={() => 50} onSelect={vi.fn()} onToggleEnabled={vi.fn()} />);
     const card = screen.getByTestId('sensor-row').firstElementChild as HTMLElement;

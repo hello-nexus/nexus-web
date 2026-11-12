@@ -5,7 +5,7 @@ import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState } from '../..
 import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { Toggle } from '../../common/Toggle/Toggle';
-import { formatAlertValue, isBuiltIn, rowState, rowTitles, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
+import { formatAlertValue, rowState, rowTitles, ruleLabel, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorList.module.scss';
 
@@ -42,7 +42,9 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
         // An enabled sensor the PC does not report has nothing to switch or grade: the chip alone says so.
         // A switched-off sensor shows its name and switch only.
         const BuiltInIcon = rule.builtIn ? BUILT_IN_ICONS[rule.builtIn] : null;
-        const notReported = rule.enabled && reading === null && (isBuiltIn(rule) || kind === 'unavailable');
+        // Not reported is the service's verdict after its grace period; a sensor just switched on shows its switch alone until a reading arrives.
+        const notReported = rule.enabled && reading === null && kind === 'unavailable';
+        const awaiting = rule.enabled && reading === null && !notReported;
         return (
           <li
             key={rule.id}
@@ -60,10 +62,10 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
               selected={selected}
               dimmed={!rule.enabled}
               onSelect={() => onSelect(rule.id)}
-              value={rule.enabled && !notReported
-                ? (reading !== null ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers) : t('diagnostics.alerts.noReading'))
+              value={rule.enabled && reading !== null
+                ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers)
                 : undefined}
-              chip={rule.enabled
+              chip={rule.enabled && !awaiting
                 ? (notReported
                   ? <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
                   : <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />)
