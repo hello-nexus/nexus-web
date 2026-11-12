@@ -53,7 +53,7 @@ beforeEach(() => {
 describe('per-device ignore wiring', () => {
   it("a drive card's Monitor switch toggles its own health id and swaps its status badge for Not monitored", () => {
     const { rerender } = render(<StorageSection data={smart} loading={false} error={false} onRefresh={() => {}} />);
-    expect(screen.getByText('diagnostics.driveStatus.caution')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.status.watch')).toBeInTheDocument();
     const monitor = screen.getByRole('switch', { name: 'diagnostics.monitor.label' });
     expect(monitor).toHaveAttribute('aria-checked', 'true');
 
@@ -62,14 +62,14 @@ describe('per-device ignore wiring', () => {
 
     h.ignored.add('storage:Z52AFCNF');
     rerender(<StorageSection data={smart} loading={false} error={false} onRefresh={() => {}} />);
-    expect(screen.queryByText('diagnostics.driveStatus.caution')).not.toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.status.watch')).not.toBeInTheDocument();
     expect(screen.getByText('diagnostics.monitor.off')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'diagnostics.monitor.label' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('a cooling row prefixes the channel id the way DiagnosticsHealthModel does', () => {
     render(<CoolingSection data={cooling} loading={false} error={false} onRefresh={() => {}} />);
-    expect(screen.getByText('diagnostics.cooling.status.stalled')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.status.act')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.monitor.label' }));
     expect(h.toggle).toHaveBeenCalledWith('cooling:pump-1');
@@ -78,7 +78,7 @@ describe('per-device ignore wiring', () => {
   it('an ignored cooling row drops the stall badge and its since-label', () => {
     h.ignored.add('cooling:pump-1');
     render(<CoolingSection data={cooling} loading={false} error={false} onRefresh={() => {}} />);
-    expect(screen.queryByText('diagnostics.cooling.status.stalled')).not.toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.status.act')).not.toBeInTheDocument();
     expect(screen.queryByText(/diagnostics.cooling.since/)).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'diagnostics.monitor.label' })).toHaveAttribute('aria-checked', 'false');
   });

@@ -5,7 +5,10 @@ import { describe, expect, it } from 'vitest';
 import en from '../../../locales/en.json';
 import {
   aggregateDomainTiles,
+  coolingDetailKey,
   coolingStatusColor,
+  coolingStatusLabelKey,
+  driveStatusLabelKey,
   driveStatusColor,
   durationToken,
   formatBytes,
@@ -28,6 +31,21 @@ describe('statusColor', () => {
     expect(statusColor('watch')).toBe('var(--warn)');
     expect(statusColor('act')).toBe('var(--bad)');
     expect(statusColor('unknown')).toBe('var(--text-dim)');
+  });
+});
+
+describe('shared status ladder', () => {
+  it('maps drive and fan states onto the three levels', () => {
+    expect(driveStatusLabelKey('good')).toBe('diagnostics.status.ok');
+    expect(driveStatusLabelKey('caution')).toBe('diagnostics.status.watch');
+    expect(driveStatusLabelKey('warning')).toBe('diagnostics.status.watch');
+    expect(driveStatusLabelKey('bad')).toBe('diagnostics.status.act');
+    expect(driveStatusLabelKey('unknown')).toBe('diagnostics.status.unknown');
+    expect(coolingStatusLabelKey('ok')).toBe('diagnostics.status.ok');
+    expect(coolingStatusLabelKey('suspect')).toBe('diagnostics.status.watch');
+    expect(coolingStatusLabelKey('stalled')).toBe('diagnostics.status.act');
+    expect(coolingDetailKey('stalled')).toBe('diagnostics.cooling.status.stalled');
+    expect(coolingDetailKey('ok')).toBeNull();
   });
 });
 

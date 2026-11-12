@@ -131,14 +131,14 @@ describe('ThermalsTab editing', () => {
     const row = within(screen.getByTestId('sensor-row'));
     expect(row.getByText('Package (Temperature)')).toBeInTheDocument();
     expect(row.getByText('62°C')).toBeInTheDocument();
-    expect(screen.getByText('diagnostics.alerts.state.pending')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.status.pending')).toBeInTheDocument();
   });
 
   it('follows state frames from the websocket topic', async () => {
     await renderSection([rule('r1')], [okState('r1')]);
-    expect(screen.getByText('diagnostics.alerts.state.ok')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.status.ok')).toBeInTheDocument();
     await act(async () => { h.frame!({ states: [okState('r1', { state: 'active', direction: 'above' })] }); });
-    expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.status.watch')).toBeInTheDocument();
   });
 
   it('adds a rule on the first picker sensor with the upper limit at the reading times 1.2 and the lower limit off', async () => {
@@ -294,12 +294,12 @@ describe('ThermalsTab editing', () => {
     it('refetches after the socket reconnects, so a stale active state clears', async () => {
       h.connected = false;
       const utils = await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above' })]);
-      expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
+      expect(screen.getByText('diagnostics.status.watch')).toBeInTheDocument();
       h.fetchSensorAlerts.mockResolvedValue({ ok: true, status: 200, data: { rules: [rule('r1')], states: [okState('r1')] } });
       h.connected = true;
       await act(async () => { utils.rerender(tab()); });
       expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(2);
-      expect(screen.getByText('diagnostics.alerts.state.ok')).toBeInTheDocument();
+      expect(screen.getByText('diagnostics.status.ok')).toBeInTheDocument();
     });
 
     it('refetches when the window regains focus', async () => {

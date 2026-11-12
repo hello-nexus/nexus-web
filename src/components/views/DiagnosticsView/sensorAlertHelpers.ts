@@ -4,6 +4,7 @@ import { CATEGORY_LABEL_KEYS } from '../../../panel/widgets/monitoring/sensorPic
 import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 import type { DeviceKey } from '../../../panel/widgets/monitoring/perfSlots';
 import type { Language } from '../../../lib/settings';
+import { statusColor, statusLabelKey } from './diagnosticsHelpers';
 import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
 
 export interface AlertUnitPrefs { monitoringTempUnit: TempUnit; numberFormat: NumberFormat; monitoringWholeNumbers: boolean }
@@ -234,18 +235,23 @@ export function rowState(rule: SensorAlertRule, state: SensorAlertState | undefi
   return chipState(rule, state) ?? 'disabled';
 }
 
-/** Locale key of a state's chip. A sensor the PC does not report reads "Not reported", not as a fault. */
-export function stateLabelKey(kind: AlertRowState): string {
-  return kind === 'unavailable' ? 'diagnostics.sensors.notReported' : `diagnostics.alerts.state.${kind}`;
+/** Locale key of a state's chip. A sensor the PC does not report reads "Not reported", not as a fault; an active alert shows its level. */
+export function stateLabelKey(kind: Exclude<AlertRowState, 'disabled'>, rule: SensorAlertRule): string {
+  switch (kind) {
+    case 'unavailable': return 'diagnostics.sensors.notReported';
+    case 'pending': return 'diagnostics.status.pending';
+    case 'active': return statusLabelKey(rule.severity);
+    default: return statusLabelKey('ok');
+  }
 }
 
-/** Badge color of a state: ok good, pending warn, active in the rule's tone (watch warn, act bad), lost or disabled muted. */
+/** Badge color of a state: ok good, pending warn, active in the rule's level color, lost or disabled muted. */
 export function stateColor(kind: AlertRowState, rule: SensorAlertRule): string {
   switch (kind) {
-    case 'ok': return 'var(--good)';
-    case 'pending': return 'var(--warn)';
-    case 'active': return rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)';
-    default: return 'var(--text-dim)';
+    case 'ok': return statusColor('ok');
+    case 'pending': return statusColor('watch');
+    case 'active': return statusColor(rule.severity);
+    default: return statusColor('unknown');
   }
 }
 

@@ -72,7 +72,7 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
                 ? undefined
                 : notReported
                   ? <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
-                  : kind !== 'disabled' ? <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} /> : undefined}
+                  : kind !== 'disabled' ? <Badge label={t(stateLabelKey(kind, rule))} color={stateColor(kind, rule)} /> : undefined}
             />
           </li>
         );
