@@ -35,6 +35,14 @@ describe('ui-slider tone and thumbIcon', () => {
     expect(container.querySelector('svg')).not.toBeNull();
   });
 
+  it('sizes the thumb path to the custom knob, and leaves it alone otherwise', () => {
+    const a = render(<Slider value={50} min={0} max={100} orientation="bare" thumbIcon="clock" />);
+    expect((a.container.firstElementChild as HTMLElement).style.getPropertyValue('--slider-thumb-size')).toBe('24px');
+    a.unmount();
+    const b = render(<Slider value={50} min={0} max={100} orientation="bare" />);
+    expect((b.container.firstElementChild as HTMLElement).style.getPropertyValue('--slider-thumb-size')).toBe('');
+  });
+
   it('places the icon at the value along the knob travel', () => {
     const { container } = render(<Slider value={25} min={0} max={100} orientation="bare" thumbIcon="check" />);
     const node = container.querySelector('svg')!.parentElement as HTMLElement;

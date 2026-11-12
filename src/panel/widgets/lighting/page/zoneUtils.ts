@@ -139,6 +139,28 @@ export function zoneDeviceIndices(zone: { slices: ZoneSlice[] }, offsets: Map<nu
 }
 
 /**
+ * Where each device-space LED's live color sits in the output frame. A zone is
+ * one card, the frame section is that card's LEDs in zone-local order, so a
+ * device-space index resolves to its card's frame byte and its zone-local index.
+ * Zones whose card has no frame byte are absent (nothing is sent for them).
+ */
+export function liveLedSources(
+  zones: { id: string; slices: ZoneSlice[] }[],
+  offsets: Map<number, number>,
+  cards: { id: string; frameIndex?: number }[],
+): Map<number, { frameIndex: number; index: number }> {
+  const frameById = new Map<string, number>();
+  for (const c of cards) if (c.frameIndex !== undefined) frameById.set(c.id, c.frameIndex);
+  const out = new Map<number, { frameIndex: number; index: number }>();
+  for (const z of zones) {
+    const frameIndex = frameById.get(z.id);
+    if (frameIndex === undefined) continue;
+    zoneDeviceIndices(z, offsets).forEach((devIdx, index) => out.set(devIdx, { frameIndex, index }));
+  }
+  return out;
+}
+
+/**
  * Map device-space indices to the zone-local indices the per-card endpoints
  * (highlight, test pattern) speak. Indices outside the zone are dropped.
  */

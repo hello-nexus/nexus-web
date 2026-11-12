@@ -74,9 +74,10 @@
 .popover {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  width: 14rem;
-  padding: 0.6rem;
+  gap: 0.7rem;
+  width: 18.5rem;
+  max-width: 100%;
+  padding: 0.85rem;
 }
 
 .popoverTitle {
@@ -236,6 +237,44 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.live {
+  @include text-caption;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.liveDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.sourceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sourceLabel {
+  @include text-caption;
+  color: var(--text-dim);
 }
 
 .productName {

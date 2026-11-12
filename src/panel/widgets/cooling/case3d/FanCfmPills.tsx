@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
-import { declutterPills } from '../../../../lib/cooling/slotProduct';
 import type { CaseSceneRenderer, PointAnchor } from './coolingCaseRenderer';
 import styles from './FanCfmPills.module.scss';
 
@@ -13,11 +12,8 @@ export interface FanCfmPillsProps {
 }
 
 const OWNER = 'fan-cfm';
-// Roughly one pill's size on screen, so neighbors closer than this are pushed apart.
-const PILL_WIDTH_PX = 72;
-const PILL_HEIGHT_PX = 22;
 
-/** A small airflow pill on each fan that has its own product, riding on the fan in the canvas like the temperature labels. Positions are written straight to the elements each frame, and the pills take no pointer input, so fans stay pickable through them. */
+/** A small airflow pill on each fan that has its own product, riding on the fan in the canvas like the temperature labels. A pill is never nudged off its fan: a screen-space nudge moves with the camera and detaches the pill. Positions are written straight to the elements each frame, and the pills take no pointer input, so fans stay pickable through them. */
 export function FanCfmPills({ renderer, fans, cfm }: FanCfmPillsProps) {
   const { t } = useTranslation();
   const els = useRef(new Map<string, HTMLDivElement>());
@@ -25,13 +21,11 @@ export function FanCfmPills({ renderer, fans, cfm }: FanCfmPillsProps) {
   useEffect(() => {
     if (!renderer || fans.length === 0) return undefined;
     renderer.setAnchors(fans, positions => {
-      const shown = [...els.current.keys()].filter(key => positions[key]?.visible).map(key => ({ key, x: positions[key].x, y: positions[key].y }));
-      const offsets = declutterPills(shown, PILL_WIDTH_PX, PILL_HEIGHT_PX);
       for (const [key, el] of els.current) {
         const p = positions[key];
         if (!p || !p.visible) { el.style.visibility = 'hidden'; continue; }
         el.style.visibility = 'visible';
-        el.style.transform = `translate(${p.x}px, ${p.y + (offsets[key] ?? 0)}px) translate(-50%, -50%)`;
+        el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
       }
     }, OWNER);
     return () => renderer.setAnchors([], () => {}, OWNER);

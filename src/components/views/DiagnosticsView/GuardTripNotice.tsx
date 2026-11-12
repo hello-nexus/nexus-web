@@ -6,7 +6,7 @@ import { formatDateTime, hour12OptionFor } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { Button } from '../../common/Button/Button';
 import { InlineError } from '../../common/InlineError/InlineError';
-import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
+import { Notice, NoticeHeadline, NoticeSecondary } from '../../common/Notice/Notice';
 import styles from './GuardTripNotice.module.scss';
 
 // Matches the window the health component keeps a trip at watch.
@@ -58,11 +58,11 @@ export function GuardTripNoticeView({ guard, nowMs, dismissing = false, error, o
         <Button type="button" size="sm" disabled={dismissing} onClick={onDismiss}>{t('diagnostics.cooling.guardTrip.dismiss')}</Button>
       )}
     >
-      <span className={styles.headline}>
+      <NoticeHeadline>
         {active
           ? t('diagnostics.cooling.guardTrip.active')
           : t('diagnostics.cooling.guardTrip.ended', { time, peak: Math.round(trip.peakC) })}
-      </span>
+      </NoticeHeadline>
       <NoticeSecondary>{cause}</NoticeSecondary>
       {error && <InlineError>{error}</InlineError>}
     </Notice>

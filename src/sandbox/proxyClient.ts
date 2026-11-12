@@ -21,6 +21,7 @@ export async function proxyFetch(
   appId: string,
   req: ProxyRequest,
   allowedHosts: string[],
+  signal?: AbortSignal,
 ): Promise<unknown> {
   return postService('/apps-api/proxy', {
     appId,
@@ -29,5 +30,5 @@ export async function proxyFetch(
     headers: req.headers,
     body: req.body,
     allowedHosts,
-  });
+  }, signal);
 }

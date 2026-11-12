@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlobalBrightnessSlider } from './GlobalBrightnessSlider';
 
-// The master slider's label carries a clock that opens the brightness
-// schedule editor; while the schedule is on, it also names the cap.
+// The master slider's label carries a sun that opens a popover: the lighting
+// follow switch, the schedule's status and a way into the schedule editor.
 
 const api = vi.hoisted(() => ({
   fetchGlobalBrightness: vi.fn(),
@@ -37,33 +37,46 @@ describe('GlobalBrightnessSlider schedule marker', () => {
     api.fetchBrightnessSchedule.mockReset();
   });
 
-  it('offers the schedule while it is off and opens the editor in place', async () => {
+  it('offers the schedule while it is off and opens the editor from the popover', async () => {
     api.fetchBrightnessSchedule.mockResolvedValue(schedule(false, 40));
     render(<GlobalBrightnessSlider serviceOnline />);
     const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
-    await waitFor(() => expect(marker).not.toHaveAttribute('aria-disabled'));
     expect(marker).not.toHaveAttribute('data-active');
 
     fireEvent.pointerEnter(marker);
-    await waitFor(() => expect(screen.getByText('lighting.schedule.now.off')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('lighting.schedule.follow.notFollowing')).toBeInTheDocument());
 
     // Default prevented: the press leaves focus where it was.
     expect(fireEvent.mouseDown(marker)).toBe(false);
     fireEvent.click(marker);
+    expect(await screen.findByText('lighting.schedule.now.off')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'lighting.schedule.follow.label' })).toBeDisabled();
+
+    fireEvent.click(screen.getByText('lighting.schedule.follow.edit'));
     expect(await screen.findByText('lighting.schedule.enable.label')).toBeInTheDocument();
   });
 
-  it('names the cap when the schedule is below the slider', async () => {
+  it('turns the schedule on from the popover', async () => {
+    api.fetchBrightnessSchedule.mockResolvedValue(schedule(false, 40));
+    render(<GlobalBrightnessSlider serviceOnline />);
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.schedule.marker.title' }));
+    fireEvent.click(await screen.findByText('lighting.schedule.follow.turnOn'));
+    await waitFor(() => expect(api.setBrightnessSchedule).toHaveBeenCalledWith(expect.objectContaining({ enabled: true })));
+  });
+
+  it('accents the sun and states the level while the schedule is on and lighting follows', async () => {
     api.fetchBrightnessSchedule.mockResolvedValue(schedule(true, 40));
     render(<GlobalBrightnessSlider serviceOnline />);
     const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
     await waitFor(() => expect(marker).toHaveAttribute('data-active'));
 
     fireEvent.pointerEnter(marker);
-    await waitFor(() => expect(screen.getByText('lighting.schedule.marker.capping:{"level":40}')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('lighting.schedule.follow.following')).toBeInTheDocument());
+    fireEvent.click(marker);
+    expect(await screen.findByText('lighting.schedule.status.steady:{"level":40}')).toBeInTheDocument();
   });
 
-  it('caps by the sun curve instead of the user points while the shift applies', async () => {
+  it('uses the sun curve instead of the user points while the shift applies', async () => {
     api.fetchBrightnessSchedule.mockResolvedValue({
       ...schedule(true, 90),
       sun: {
@@ -74,8 +87,23 @@ describe('GlobalBrightnessSlider schedule marker', () => {
     render(<GlobalBrightnessSlider serviceOnline />);
     const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
     await waitFor(() => expect(marker).toHaveAttribute('data-active'));
-    fireEvent.pointerEnter(marker);
-    await waitFor(() => expect(screen.getByText('lighting.schedule.marker.capping:{"level":25}')).toBeInTheDocument());
+    fireEvent.click(marker);
+    expect(await screen.findByText('lighting.schedule.status.steady:{"level":25}')).toBeInTheDocument();
+  });
+
+  it('drops the accent when lighting stops following', async () => {
+    api.fetchBrightnessSchedule.mockResolvedValue(schedule(true, 100));
+    render(<GlobalBrightnessSlider serviceOnline />);
+    const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
+    await waitFor(() => expect(marker).toHaveAttribute('data-active'));
+    // The service echoes the new switch back with the full state.
+    api.setBrightnessSchedule.mockImplementationOnce(async (body: { lightingFollows?: boolean }) => (
+      { ...schedule(true, 100), lightingFollows: body.lightingFollows }
+    ));
+    fireEvent.click(marker);
+    fireEvent.click(await screen.findByRole('switch', { name: 'lighting.schedule.follow.label' }));
+    await waitFor(() => expect(api.setBrightnessSchedule).toHaveBeenCalledWith(expect.objectContaining({ lightingFollows: false })));
+    await waitFor(() => expect(marker).not.toHaveAttribute('data-active'));
   });
 
   it('keeps the label click and the accessible name on the range, not the clock', async () => {
@@ -88,14 +116,5 @@ describe('GlobalBrightnessSlider schedule marker', () => {
     fireEvent.click(screen.getByText('lighting.settings.brightnessLabel'));
     expect(screen.queryByText('lighting.schedule.enable.label')).toBeNull();
     expect(screen.getByRole('slider', { name: 'lighting.settings.brightnessLabel' })).toBeInTheDocument();
-  });
-
-  it('says what the schedule allows when it sits above the slider', async () => {
-    api.fetchBrightnessSchedule.mockResolvedValue(schedule(true, 100));
-    render(<GlobalBrightnessSlider serviceOnline />);
-    const marker = await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
-
-    fireEvent.pointerEnter(marker);
-    await waitFor(() => expect(screen.getByText('lighting.schedule.marker.allowing:{"level":100}')).toBeInTheDocument());
   });
 });

@@ -68,6 +68,7 @@ const mockExtras = vi.hoisted(() => ({
   coolers: [] as ExtrasComponentMock[],
   psus: [] as ExtrasComponentMock[],
   nvmeStorage: [] as ExtrasComponentMock[],
+  fanSensors: [],
   embeddedControllers: [] as ExtrasComponentMock[],
   memoryModules: [] as ExtrasComponentMock[],
 }));

@@ -238,6 +238,7 @@ const extrasState = {
   coolers: [] as ExtrasComponentMock[],
   psus: [] as ExtrasComponentMock[],
   nvmeStorage: [] as ExtrasComponentMock[],
+  fanSensors: [],
   embeddedControllers: [] as ExtrasComponentMock[],
   memoryModules: [
     { id: '/memory/dimm/0', name: 'Corsair - CMK16GX4M2B3200C16 (#0)', sensors: [

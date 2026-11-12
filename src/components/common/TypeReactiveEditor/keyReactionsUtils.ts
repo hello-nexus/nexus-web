@@ -1,4 +1,5 @@
 import type { KeyReactionBackground, KeyReactionColorMode, KeyReactionEffect } from '../../../api/keyReactive';
+import { deviceLedBytes } from '../../../lib/deviceLedBytes';
 
 /** Gallery order: the keyboard's onboard effects first, then the engine's own. */
 export const KEY_REACTION_EFFECTS: readonly KeyReactionEffect[] = [
@@ -37,8 +38,7 @@ export function liveLedBytes(
   frameIndex: number,
   ledCount: number,
 ): Uint8Array | null {
-  const bytes = devices?.get(frameIndex);
-  return bytes && ledCount > 0 && bytes.length >= ledCount * 3 ? bytes : null;
+  return deviceLedBytes(devices, frameIndex, ledCount);
 }
 
 /** Per-channel max, so a black LED still reads as the unlit base. */

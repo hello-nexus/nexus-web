@@ -1,3 +1,49 @@
+@use '../../../styles/scrollbar' as *;
+@use '../../../styles/interactions' as *;
+
+// Outer host: the scrolling strip plus the overflow arrows, which appear only
+// while the tabs exceed the available width.
+.host {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.hostFull {
+  display: flex;
+  width: 100%;
+}
+
+.scroller {
+  // Offset parent for the active-tab scroll math.
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  // Chromium 121+ ignores ::-webkit-scrollbar once the global scrollbar-width is set.
+  @include scrollbar-hidden;
+}
+
+// Block flex at natural width: an inline-flex nav would add descender space
+// under the tabs, and a shrinkable one would squeeze tabs instead of scrolling.
+.scroller .tabs:not(.fullWidth) {
+  display: flex;
+  width: max-content;
+}
+
+.hostFull .scroller {
+  flex: 1 1 auto;
+}
+
+.arrows {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 // Sidebar-item model: flat at rest, each tab rounds independently (no bar-end
 // rounding). The selected tab gets the --bg fill, brighter text, and an
 // accent-tinted icon - matching the sidebar nav rows.
@@ -37,6 +83,9 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  // Inset: the scroller's overflow would clip an outer ring.
+  &:focus-visible { @include focus-ring-inset; }
 }
 
 .active {

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import type { TimeSeriesSeries } from './timeSeriesChartUtils';
@@ -45,6 +45,15 @@ const baseProps = {
 };
 
 describe('TimeSeriesChart', () => {
+  it('draws a dashed line per threshold inside the value range and skips one outside it', () => {
+    const { container } = render(
+      <TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} thresholds={[{ value: 80, color: 'var(--bad)' }, { value: 500 }]} />,
+    );
+    const lines = [...container.querySelectorAll('line[stroke-dasharray]')];
+    expect(lines).toHaveLength(1);
+    expect(lines[0].getAttribute('stroke')).toBe('var(--bad)');
+  });
+
   it('renders one line path per series', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(1);
@@ -254,6 +263,14 @@ describe('TimeSeriesChart', () => {
     // makeSeries() sits at the epoch, so every hovered point is on a
     // different calendar day from Date.now(); the same-day case uses points
     // from the current hour instead.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2024, 5, 15, 12, 0, 0));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('stacks the calendar day under the time when the hovered point is not from today', () => {
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
       const svg = container.querySelector('svg')!;

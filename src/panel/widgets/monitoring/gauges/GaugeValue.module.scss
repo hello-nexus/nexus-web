@@ -13,3 +13,11 @@
 .line {
   white-space: nowrap;
 }
+
+// Hidden twin of the line holding the reserved reading; only measured.
+.twin {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}

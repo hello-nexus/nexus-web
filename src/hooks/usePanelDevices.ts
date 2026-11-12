@@ -228,6 +228,13 @@ export function usePanelDevices(
     void refresh();
   });
 
+  // A promoted monitor's displayAttached is stamped per request, and an
+  // unplug changes no record, so panel/device stays silent: the display
+  // topology push is the only signal that its row must leave or return.
+  useTopicCallback('displays', enabled, () => {
+    void refresh();
+  });
+
   // A push sent while the socket was down (a service restart) is lost, so each
   // reconnect re-seeds: a cooler LCD whose stream starts then would otherwise
   // stay missing from this instance's list.

@@ -216,6 +216,8 @@ export interface GeneralSettings {
   startupDelaySeconds: number;
   // Machine-level; server-mirrored under the preferences top-level readRamTemperatures field.
   readRamTemperatures: boolean;
+  // Machine-level; server-mirrored under the preferences top-level powerMonitorsEnabled field.
+  powerMonitorsEnabled: boolean;
   // Linux-only; server-mirrored under the preferences top-level amdGpuLighting field.
   amdGpuLighting: boolean;
   // Global feature switches (default on). Server-mirrored under the
@@ -286,6 +288,7 @@ export function getDefaultSettings(): NexusSettings {
       dateFormat: DEFAULT_DATE_FORMAT,
       startupDelaySeconds: 0,
       readRamTemperatures: true,
+      powerMonitorsEnabled: true,
       amdGpuLighting: false,
       featureLightingEnabled: true,
       featureCoolingEnabled: true,

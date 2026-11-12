@@ -9,13 +9,15 @@
 import { authFetchWithStatus, fetchServiceBlobWithHeaders } from './service';
 
 export type DiagnosticsStatus = 'ok' | 'watch' | 'act' | 'unknown';
-export type DiagnosticsKind = 'storage' | 'memory' | 'gpu' | 'cooling' | 'system';
+export type DiagnosticsKind = 'storage' | 'memory' | 'gpu' | 'cooling' | 'system' | 'alerts';
 
 export interface DiagnosticsReason {
   code: string;
   severity: DiagnosticsStatus;
   summary: string;
   detail: string;
+  /** Invariant-culture values per reason code; the only source of tooltip text, since detail is raw service text. */
+  params?: Record<string, string>;
 }
 
 export interface DiagnosticsComponent {
