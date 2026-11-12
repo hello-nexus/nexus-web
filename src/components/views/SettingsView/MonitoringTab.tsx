@@ -1,4 +1,4 @@
-import { Activity, Stethoscope, Zap } from 'lucide-react';
+import { Activity, HardDrive, Stethoscope, Zap } from 'lucide-react';
 import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -61,6 +61,19 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
       <MonitoringEventsSettings />
 
       <RamTemperatureSection serviceOnline={serviceOnline} />
+
+      <SettingsSection title={t('settings.driveActivity.title')}>
+        <SettingToggle
+          label={t('settings.driveActivity.label')}
+          description={t('settings.driveActivity.description')}
+          icon={<HardDrive />}
+          iconLeading="subtle"
+          anchorId="set-live-drive-activity"
+          checked={ui.liveDriveActivity}
+          onChange={v => update({ liveDriveActivity: v })}
+          disabled={!serviceOnline}
+        />
+      </SettingsSection>
 
       <SmartPollSection serviceOnline={serviceOnline} />
     </div>

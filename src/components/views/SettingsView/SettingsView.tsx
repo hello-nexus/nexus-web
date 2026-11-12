@@ -64,6 +64,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       smartPollSeconds: ui.smartPollSeconds,
       smartPollDefaultSeconds: ui.smartPollDefaultSeconds,
       smartPollPerDrive: ui.smartPollPerDrive,
+      liveDriveActivity: ui.liveDriveActivity,
       accentSource: ui.accentSource,
       startOnLogin: ui.startOnLogin,
       showConflictAlerts: ui.showConflictAlerts,

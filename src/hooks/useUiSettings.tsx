@@ -79,6 +79,7 @@ export interface UiSettingsValue {
   smartPollSeconds: Record<string, number>;
   smartPollDefaultSeconds: number;
   smartPollPerDrive: boolean;
+  liveDriveActivity: boolean;
   monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -256,6 +257,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     smartPollSeconds: src.general.smartPollSeconds,
     smartPollDefaultSeconds: src.general.smartPollDefaultSeconds,
     smartPollPerDrive: src.general.smartPollPerDrive,
+    liveDriveActivity: src.general.liveDriveActivity,
     monitoringEventKindsHidden: src.general.monitoringEventKindsHidden,
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
     showWindowsTrayIcon: src.general.showWindowsTrayIcon,
@@ -341,6 +343,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       smartPollSeconds: src.smartPollSeconds,
       smartPollDefaultSeconds: src.smartPollDefaultSeconds,
       smartPollPerDrive: src.smartPollPerDrive,
+      liveDriveActivity: src.liveDriveActivity,
       monitoringEventKindsHidden: src.monitoringEventKindsHidden,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
@@ -390,13 +393,14 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
   // monitoring block
-  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; fpsOverlayEnabled: boolean; eventKindsHidden: string[]; smartPollSeconds: Record<string, number>; smartPollDefaultSeconds: number; smartPollPerDrive: boolean }> = {};
+  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; fpsOverlayEnabled: boolean; eventKindsHidden: string[]; smartPollSeconds: Record<string, number>; smartPollDefaultSeconds: number; smartPollPerDrive: boolean; liveDriveActivity: boolean }> = {};
   if (patch.monitoringDetailedCollapsed !== undefined) monitoring.detailedCollapsed = patch.monitoringDetailedCollapsed;
   if (patch.monitoringEventsEnabled !== undefined) monitoring.eventsEnabled = patch.monitoringEventsEnabled;
   if (patch.monitoringFpsOverlayEnabled !== undefined) monitoring.fpsOverlayEnabled = patch.monitoringFpsOverlayEnabled;
   if (patch.smartPollSeconds !== undefined) monitoring.smartPollSeconds = patch.smartPollSeconds;
   if (patch.smartPollDefaultSeconds !== undefined) monitoring.smartPollDefaultSeconds = patch.smartPollDefaultSeconds;
   if (patch.smartPollPerDrive !== undefined) monitoring.smartPollPerDrive = patch.smartPollPerDrive;
+  if (patch.liveDriveActivity !== undefined) monitoring.liveDriveActivity = patch.liveDriveActivity;
   if (patch.monitoringEventKindsHidden !== undefined) monitoring.eventKindsHidden = patch.monitoringEventKindsHidden;
   if (patch.showMacStatusBarIcon !== undefined) monitoring.showMacStatusBarIcon = patch.showMacStatusBarIcon;
   if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
@@ -554,6 +558,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     smartPollSeconds: server.monitoring?.smartPollSeconds ?? base.smartPollSeconds,
     smartPollDefaultSeconds: server.monitoring?.smartPollDefaultSeconds ?? base.smartPollDefaultSeconds,
     smartPollPerDrive: server.monitoring?.smartPollPerDrive ?? base.smartPollPerDrive,
+    liveDriveActivity: server.monitoring?.liveDriveActivity ?? base.liveDriveActivity,
     monitoringEventKindsHidden: server.monitoring?.eventKindsHidden ?? base.monitoringEventKindsHidden,
     showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
     showWindowsTrayIcon: server.monitoring?.showWindowsTrayIcon ?? base.showWindowsTrayIcon,

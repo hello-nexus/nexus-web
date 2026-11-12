@@ -55,6 +55,7 @@ export interface MonitoringSettings {
   smartPollDefaultSeconds?: number;
   /** False: the default governs every drive. True: each drive uses its own entry. */
   smartPollPerDrive?: boolean;
+  liveDriveActivity?: boolean;
 }
 
 export interface PanelSettings {
