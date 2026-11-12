@@ -298,7 +298,7 @@ describe('ThermalsTab', () => {
     afterEach(() => { vi.useRealTimers(); });
     const current = () => ({ type: 'Current', category: 'psu', id: 'psu/c/0', name: 'PSU Output', parentName: 'PSU' });
 
-    it('shows one banner per active alert, warning for watch and critical for act', () => {
+    it('folds several active alerts into one collapsed banner in the highest tone, expandable to each alert', () => {
       h.rules = [
         rule('r1', { severity: 'watch', high: 9.5, sensor: current() }),
         rule('r2', { severity: 'act', high: 9.5, sensor: current() }),
@@ -307,9 +307,26 @@ describe('ThermalsTab', () => {
       h.states = [active('r1'), active('r2'), state('r3')];
       render(<SensorsTab {...props()} />);
       const banners = screen.getAllByRole('status').filter(el => el.hasAttribute('data-tone'));
-      expect(banners).toHaveLength(2);
+      expect(banners).toHaveLength(1);
+      expect(banners[0]).toHaveAttribute('data-tone', 'critical');
+      expect(banners[0]).toHaveTextContent('diagnostics.sensors.alerts.title(count=2)');
+      expect(screen.queryByTestId('sensor-banner-dismiss')).toBeNull();
+      const toggle = screen.getByTestId('sensor-banner-toggle');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getAllByTestId('sensor-banner-dismiss')).toHaveLength(2);
+      fireEvent.click(screen.getAllByTestId('sensor-banner-dismiss')[1]);
+      expect(h.acknowledge).toHaveBeenCalledWith('r2');
+    });
+
+    it('renders a single alert as the banner itself', () => {
+      h.rules = [rule('r1', { severity: 'watch', high: 9.5, sensor: current() })];
+      h.states = [active('r1')];
+      render(<SensorsTab {...props()} />);
+      const banners = screen.getAllByRole('status').filter(el => el.hasAttribute('data-tone'));
+      expect(banners).toHaveLength(1);
       expect(banners[0]).toHaveAttribute('data-tone', 'warning');
-      expect(banners[1]).toHaveAttribute('data-tone', 'critical');
       expect(banners[0]).toHaveTextContent(/^diagnostics\.alerts\.banner\.above\(name=PSU Output,limit=9\.5 A,time=21:09,peak=10\.1 A\)diagnostics\.alerts\.banner\.detail\(value=10 A\)/);
     });
 

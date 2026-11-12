@@ -8,13 +8,14 @@ import { watchlistFixture } from './watchlistFixture';
 
 const h = vi.hoisted(() => ({
   rules: [] as unknown[],
+  states: [] as unknown[],
   atLimit: false,
   coolingChart: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
-    rules: h.rules, states: [], loaded: true, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
+    rules: h.rules, states: h.states, loaded: true, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
     add: vi.fn(), save: vi.fn(), remove: vi.fn(), acknowledge: vi.fn(), resetBuiltIns: vi.fn(), preview: vi.fn(),
   }),
 }));
@@ -300,13 +301,13 @@ describe('Search and the selected entry', () => {
 });
 
 describe('Watchlist at the cap', () => {
-  it('lays out 50 entries across six groups, searches them, and disables Add at the limit', () => {
+  it('lays out 50 entries across six groups, searches them, and hides Add at the limit', () => {
     h.rules = watchlistFixture(50);
     h.atLimit = true;
     renderTab();
     expect(screen.getAllByTestId('watchlist-group')).toHaveLength(6);
     expect(screen.getAllByTestId('sensor-row')).toHaveLength(50);
-    expect(screen.getByTestId('sensor-add')).toBeDisabled();
+    expect(screen.queryByTestId('sensor-add')).toBeNull();
     fireEvent.change(screen.getByRole('textbox', { name: 'diagnostics.sensors.search' }), { target: { value: 'sensor 7' } });
     expect(screen.getAllByTestId('sensor-row')).toHaveLength(1);
   });
