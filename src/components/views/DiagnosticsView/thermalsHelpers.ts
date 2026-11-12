@@ -56,6 +56,14 @@ export interface ThermalsSelection {
 
 export const INITIAL_THERMALS_SELECTION: ThermalsSelection = { group: 'thermals', selectedId: null, auto: true };
 
+/** The selected entry as the settings panel shows it: none while the search filters it out of the list (the selection itself stays). */
+export function visibleSelection(
+  selected: SensorAlertRule | undefined,
+  sections: ReadonlyArray<{ rules: readonly SensorAlertRule[] }>,
+): SensorAlertRule | undefined {
+  return selected && sections.some(s => s.rules.some(r => r.id === selected.id)) ? selected : undefined;
+}
+
 /** Built-in watchlist ids read `builtin:<chart series id>`. */
 const BUILTIN_ID_PREFIX = 'builtin:';
 

@@ -274,6 +274,16 @@ describe('findTrackedRule and rowTitles', () => {
     expect(rowTitles(mk('c', { category: 'weird', parentName: '' }), t)).toEqual({ title: 'Package', subtitle: undefined });
   });
 
+  it('titles a fan built-in as its device then the fan, never the same text twice', () => {
+    const fan = (name: string, parentName: string, hardwareName: string) => mk(
+      'builtin:fan:x', { category: 'builtin', name, type: 'Fan', parentName: '' }, 'fanSpeed',
+      { kind: 'sensor', sensor: { category: 'gpu', id: 'f', name, type: 'Fan', parentName }, sensors: [], hardwareName },
+    );
+    expect(rowTitles(fan('GPU Fan 1', 'NVIDIA GeForce RTX 5080', 'NVIDIA GeForce RTX 5080'), t)).toEqual({ title: 'NVIDIA GeForce RTX 5080', subtitle: 'GPU Fan 1' });
+    expect(rowTitles(fan('Fan #1', 'ITE IT8696E', 'Fan #1'), t)).toEqual({ title: 'ITE IT8696E', subtitle: 'Fan #1' });
+    expect(rowTitles(fan('Fan #1', '', 'Fan #1'), t)).toEqual({ title: 'Fan #1', subtitle: undefined });
+  });
+
   it('titles every entry as device then exact sensor', () => {
     expect(rowTitles(mk('a', {}), t)).toEqual({ title: 'monitoring.settings.category.cpu', subtitle: 'Package (Temperature)' });
     const builtIn = (source?: SensorAlertRule['source']) => mk('builtin:x', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp', source);

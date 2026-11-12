@@ -54,9 +54,11 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
       {state === 'content' && data && (
         <>
           <div className={styles.sectionHeaderRow}>
-            <SectionHeader>{t('diagnostics.system.pnpProblems')}</SectionHeader>
             {/* eslint-disable-next-line i18next/no-literal-string -- setting and locale keys, not text */}
             <ComponentMonitorSwitch setting="diagnosticsComponentSystem" labelKey="diagnostics.monitorComponent.system" />
+          </div>
+          <div className={styles.sectionHeaderRow}>
+            <SectionHeader>{t('diagnostics.system.pnpProblems')}</SectionHeader>
             <Button
               tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={opening}
               onClick={() => void handleOpenDeviceManager()}

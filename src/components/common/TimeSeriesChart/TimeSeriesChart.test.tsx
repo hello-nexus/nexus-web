@@ -792,6 +792,14 @@ describe('TimeSeriesChart', () => {
     });
   });
 
+  it('keeps every y-tick label inside the plot, so the top one is not clipped', () => {
+    const series = [{ id: 'a', name: 'A', color: '#fff', points: [{ t: 0, avg: 41, max: 41 }, { t: HOUR, avg: 77, max: 78 }] }];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    const ys = [...container.querySelectorAll('text')].filter(n => /^\d+C$/.test(n.textContent ?? '')).map(n => Number(n.getAttribute('y')));
+    expect(ys.length).toBeGreaterThan(1);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(12);
+  });
+
   describe('yAxisSide', () => {
     it('renders y-tick labels on the left by default', () => {
       render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} />);

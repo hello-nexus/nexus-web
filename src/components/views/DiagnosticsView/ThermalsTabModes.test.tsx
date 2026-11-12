@@ -233,6 +233,20 @@ describe('Watchlist sections and search', () => {
   });
 });
 
+describe('Search and the selected entry', () => {
+  it('shows the deselected empty state while search hides the selected entry, and restores it on clear', () => {
+    renderTab();
+    fireEvent.click(rowButton('u1'));
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('u1');
+    const search = screen.getByRole('textbox', { name: 'diagnostics.sensors.search' });
+    fireEvent.change(search, { target: { value: 'l2' } });
+    expect(screen.queryByTestId('settings-stub')).toBeNull();
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: '' } });
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('u1');
+  });
+});
+
 describe('Watchlist at the cap', () => {
   it('lays out 50 entries across six groups, searches them, and disables Add at the limit', () => {
     h.rules = watchlistFixture(50);

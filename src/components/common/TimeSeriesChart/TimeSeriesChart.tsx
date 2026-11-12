@@ -390,7 +390,8 @@ export function TimeSeriesChart({
   // line's own plot area, into the ribbon gap/band, colliding with the
   // ribbon's fill and value label. Dropping ticks under minV removes only
   // ones with no line data to reference in the first place.
-  const yTicks = useMemo(() => niceTicks(minV, maxV, yTickCount).filter(tick => tick >= minV), [minV, maxV, yTickCount]);
+  // The same goes for a tick rounded above maxV: its y sits over the plot's top edge, where its label clips.
+  const yTicks = useMemo(() => niceTicks(minV, maxV, yTickCount).filter(tick => tick >= minV && tick <= maxV), [minV, maxV, yTickCount]);
 
   const xTicks = useMemo(() => {
     if (!domainT) return [];

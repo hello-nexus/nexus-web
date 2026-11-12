@@ -401,7 +401,14 @@ export function rowTitles(
   t: (key: string, vars?: Record<string, string | number>) => string,
   pickerLabel?: (sensor: SensorRef) => string | undefined,
 ): { title: string; subtitle: string | undefined } {
-  if (isBuiltIn(rule)) return { title: rule.sensor.name, subtitle: sourceSubtitle(rule.source, t) };
+  if (isBuiltIn(rule)) {
+    // A fan reads like a temperature: the device it belongs to, then the fan's own name.
+    const fan = rule.sensor.type === 'Fan' ? rule.source?.sensor : null;
+    const device = fan ? (fan.parentName || rule.source?.hardwareName) : undefined;
+    if (fan && device && device !== fan.name) return { title: device, subtitle: fan.name };
+    const subtitle = sourceSubtitle(rule.source, t);
+    return { title: rule.sensor.name, subtitle: subtitle === rule.sensor.name ? undefined : subtitle };
+  }
   const { category, name, parentName } = rule.sensor;
   const deviceKey = CATEGORY_LABEL_KEYS[category as DeviceKey];
   if (!deviceKey) return parentName ? { title: parentName, subtitle: name } : { title: name, subtitle: undefined };

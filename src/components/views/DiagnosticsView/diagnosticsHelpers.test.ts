@@ -194,6 +194,19 @@ describe('aggregateDomainTiles', () => {
     expect(cooling?.reasons).toContain(gpuReason);
   });
 
+  it('grades the Cooling tile by active Watchlist alerts without listing their lines', () => {
+    const alertReason: DiagnosticsReason = { code: 'alerts.sensorThreshold', severity: 'act', summary: 'CPU above 40', detail: 'd' };
+    const tiles = aggregateDomainTiles([
+      comp('cooling', 'ok'),
+      { id: 'alert:1', kind: 'alerts', name: 'CPU', status: 'act', reasons: [alertReason] },
+      { id: 'alert:2', kind: 'alerts', name: 'GPU', status: 'watch', reasons: [] },
+    ]);
+    const cooling = tiles.find(t => t.domain === 'cooling');
+    expect(cooling?.status).toBe('act');
+    expect(cooling?.reasons).toEqual([]);
+    expect(aggregateDomainTiles([comp('cooling', 'ok'), comp('alerts', 'watch')]).find(t => t.domain === 'cooling')?.status).toBe('watch');
+  });
+
   it('takes the worst status across multiple same-domain components', () => {
     const tiles = aggregateDomainTiles([comp('storage', 'ok'), comp('storage', 'act')]);
     expect(tiles.find(t => t.domain === 'storage')?.status).toBe('act');

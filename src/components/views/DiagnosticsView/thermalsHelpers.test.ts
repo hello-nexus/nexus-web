@@ -16,6 +16,7 @@ import {
   selectGroup,
   selectRule,
   seriesIdOfRule,
+  visibleSelection,
 } from './thermalsHelpers';
 
 const rule = (id: string, over: Partial<SensorAlertRule> = {}, type = 'Temperature'): SensorAlertRule => ({
@@ -147,5 +148,18 @@ describe('ruleOutOfRangeBands', () => {
   it('draws nothing for a disabled entry or an entry with no drawn series', () => {
     expect(ruleOutOfRangeBands([{ ...cpu, enabled: false }], [line])).toEqual([]);
     expect(ruleOutOfRangeBands([gpu], [line])).toEqual([]);
+  });
+});
+
+describe('visibleSelection', () => {
+  const a = rule('a');
+  const b = rule('b');
+  it('keeps the selected entry while the filtered list still has it', () => {
+    expect(visibleSelection(a, [{ rules: [a, b] }])).toBe(a);
+  });
+  it('drops it once the filter hides it, and for no selection', () => {
+    expect(visibleSelection(a, [{ rules: [b] }])).toBeUndefined();
+    expect(visibleSelection(a, [])).toBeUndefined();
+    expect(visibleSelection(undefined, [{ rules: [a] }])).toBeUndefined();
   });
 });

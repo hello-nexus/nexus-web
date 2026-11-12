@@ -47,6 +47,7 @@ import {
   selectRule,
   seriesIdOfRule,
   type ThermalsSelection,
+  visibleSelection,
 } from './thermalsHelpers';
 import pageStyles from '../../../panel/widgets/lighting/LightingPage.module.scss';
 import styles from './ThermalsTab.module.scss';
@@ -162,6 +163,7 @@ export function ThermalsTab({
         : section.rules,
     }))
     .filter(section => section.rules.length > 0);
+  const detailRule = visibleSelection(selectedRule, sections);
 
   // The chart's lines. Thermals draws the device temperatures plus the custom temperature entries; every other
   // group draws its entries' recorded lines.
@@ -276,16 +278,16 @@ export function ThermalsTab({
               <span>{t('diagnostics.sensors.add')}</span>
             </button>
           </div>
-          {selectedRule ? (
-            <div className={styles.detail} data-testid="sensor-detail" data-rule-id={selectedRule.id}>
+          {detailRule ? (
+            <div className={styles.detail} data-testid="sensor-detail" data-rule-id={detailRule.id}>
               <div className={styles.groupHeader}>
                 <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
               </div>
               <Card>
                 <div data-testid="sensor-settings">
                   <SensorAlertRuleSettings
-                    key={selectedRule.id}
-                    rule={selectedRule}
+                    key={detailRule.id}
+                    rule={detailRule}
                     lookup={lookup}
                     onPreview={alerts.preview}
                     onSave={next => alerts.save(next, (code, ruleId) => {
@@ -295,11 +297,11 @@ export function ThermalsTab({
                       if (existing) setTrackedBy(existing);
                       else push({ title: t('diagnostics.alerts.saveFailed') });
                     })}
-                    findTracked={sensor => findTracked(sensor, selectedRule.id)}
+                    findTracked={sensor => findTracked(sensor, detailRule.id)}
                     onTracked={setTrackedBy}
-                    onDelete={() => { void alerts.remove(selectedRule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
-                    state={stateOf(selectedRule.id)}
-                    onRestoreDefault={() => restoreBuiltIn(selectedRule.id)}
+                    onDelete={() => { void alerts.remove(detailRule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
+                    state={stateOf(detailRule.id)}
+                    onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
                   />
                 </div>
               </Card>

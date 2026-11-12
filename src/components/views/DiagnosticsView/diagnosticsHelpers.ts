@@ -196,7 +196,7 @@ export function visibleDiagnosticsTabs(platform: string): readonly DiagnosticsTa
 
 /** One summary tile per hardware domain, aggregating the server's per-device
  *  health.components into a fixed 2x2: Storage / Memory / Cooling / System.
- *  GPU folds into Cooling (its temperature already lives in the Cooling tab's
+ *  GPU and the Watchlist alerts fold into Cooling (its temperature already lives in the Cooling tab's
  *  chart; its throttle is a thermal/power signal). Tile status is the worst of
  *  its MEASURED members by STATUS_SEVERITY_RANK; an 'unknown' member is a probe
  *  with no source for that hardware (a GPU no NVML can read) rather than a
@@ -214,7 +214,7 @@ export interface DomainTile {
 const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly DiagnosticsKind[] }[] = [
   { domain: 'storage', kinds: ['storage'] },
   { domain: 'memory', kinds: ['memory'] },
-  { domain: 'cooling', kinds: ['cooling', 'gpu'] },
+  { domain: 'cooling', kinds: ['cooling', 'gpu', 'alerts'] },
   { domain: 'system', kinds: ['system'] },
 ];
 
@@ -240,7 +240,9 @@ export function aggregateDomainTiles(components: DiagnosticsComponent[]): Domain
     for (const member of measured) {
       if (STATUS_SEVERITY_RANK[member.status] > STATUS_SEVERITY_RANK[status]) status = member.status;
     }
+    // Watchlist alerts grade the tile but their lines stay in the alerts list below it.
     const reasons = members
+      .filter(m => m.kind !== 'alerts')
       .flatMap(m => m.reasons)
       .sort((a, b) => STATUS_SEVERITY_RANK[b.severity] - STATUS_SEVERITY_RANK[a.severity]);
     return { domain, status, reasons };

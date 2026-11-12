@@ -444,6 +444,14 @@ describe('SystemSection PnP problems', () => {
     expect(screen.getByText('diagnostics.system.unknownDevice')).toBeInTheDocument();
   });
 
+  it('puts the Monitor switch on its own row above the section header, like the Memory tab', () => {
+    renderSystem(baseData);
+    const sw = screen.getByRole('switch', { name: 'diagnostics.monitorComponent.system' });
+    const header = screen.getByText('diagnostics.system.pnpProblems');
+    expect(sw.closest('[class*="sectionHeaderRow"]')).not.toBe(header.closest('[class*="sectionHeaderRow"]'));
+    expect(sw.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('offers Open Device Manager whether or not there are problems', () => {
     const { unmount } = renderSystem(baseData);
     expect(screen.getByRole('button', { name: 'diagnostics.system.openDeviceManager' })).toBeInTheDocument();
@@ -687,7 +695,7 @@ describe('DiagnosticsView tabs', () => {
     mockAlerts.states = [];
   });
 
-  it('keeps alert components out of the Summary tiles while the overall badge still reflects them', () => {
+  it('grades the Thermals tile by alert components without listing their lines, matching the overall badge', () => {
     mockHealth = {
       generatedAt: new Date().toISOString(), supported: true, overall: 'act',
       components: [{
@@ -698,7 +706,7 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
     expect(screen.queryByText('CPU Package above 90')).toBeNull();
     expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(4);
-    expect(screen.getByText('diagnostics.status.act')).toBeInTheDocument();
+    expect(screen.getAllByText('diagnostics.status.act')).toHaveLength(2);
   });
 
   it('hides the sensor alerts list when no rules exist', () => {
