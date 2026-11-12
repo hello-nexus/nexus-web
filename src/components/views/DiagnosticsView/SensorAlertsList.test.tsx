@@ -76,6 +76,9 @@ describe('SensorAlertsList', () => {
     expect(within(rows[0]).getByText('CPU Sensor a')).toBeInTheDocument();
     expect(within(rows[0]).getByText('62°C')).toBeInTheDocument();
     expect(within(rows[0]).getByText('diagnostics.alerts.state.ok')).toBeInTheDocument();
+    // A not-reported sensor shows no reading, even while the live list still carries a value for it.
+    expect(within(rows[2]).queryByText('62°C')).toBeNull();
+    expect(within(rows[2]).getByText('diagnostics.sensors.notReported')).toBeInTheDocument();
     // A switched-off sensor shows its name only.
     expect(within(rows[3]).getByText('CPU Sensor d')).toBeInTheDocument();
     expect(within(rows[3]).queryByText('diagnostics.alerts.state.disabled')).toBeNull();

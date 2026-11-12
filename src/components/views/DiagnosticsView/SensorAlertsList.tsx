@@ -34,7 +34,8 @@ export function SensorAlertsList({ onOpenRule }: SensorAlertsListProps) {
             const state = stateOf(rule);
             const kind = rowState(rule, state);
             const type = rule.sensor.type;
-            const reading = resolve(rule.sensor.category, rule.sensor.id)?.value ?? state?.value ?? null;
+            // The service's unreported verdict wins over a stale live value (e.g. a Control sensor stuck at 0).
+            const reading = rule.enabled && kind === 'unavailable' ? null : (resolve(rule.sensor.category, rule.sensor.id)?.value ?? state?.value ?? null);
             const open = () => onOpenRule(rule.id);
             return (
               <li key={rule.id} className={styles.row} data-state={kind} data-severity={rule.severity}>
