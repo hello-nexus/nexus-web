@@ -357,7 +357,7 @@ export function Dashboard() {
   // Before useRoute: its canonical-path redirect drops the query this reads.
   useState(() => stashPanelEditorTarget(window.location.pathname, window.location.search));
   const {
-    section, view, subtab,
+    route, section, view, subtab,
     navigate, setView, setSubtab,
     canGoBack: routeCanGoBack, canGoForward: routeCanGoForward, goBack: routeGoBack, goForward: routeGoForward,
   } = useRoute();
@@ -1025,7 +1025,7 @@ export function Dashboard() {
           }}
         />
       );
-      case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenCooling={() => navigate('system', 'cooling')} /></FeatureGate>;
+      case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} navKey={route} onTabChange={setSubtab} onOpenCooling={() => navigate('system', 'cooling')} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
       case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} onOpenCooling={() => navigate('system', 'cooling')} platform={status.ping?.platform ?? ''} />;

@@ -68,6 +68,10 @@ interface ThermalsTabProps {
   /** Chart group and the entry picked, owned by DiagnosticsView so they survive tab switches. */
   selection: ThermalsSelection;
   onSelectionChange: (next: ThermalsSelection) => void;
+  /** An entry a search result asked for; selected and revealed once the list has loaded. */
+  linkedRuleId?: string | null;
+  /** Changes on every navigation, so opening the same link again re-applies it. */
+  linkNavKey?: unknown;
   /** Called after an alert was dismissed, so the Health summary refreshes. */
   onAlertDismissed: () => void;
 }
@@ -79,7 +83,7 @@ interface ThermalsTabProps {
  */
 export function ThermalsTab({
   coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
-  selection, onSelectionChange, onAlertDismissed,
+  selection, onSelectionChange, onAlertDismissed, linkedRuleId, linkNavKey,
 }: ThermalsTabProps) {
   const { t, language } = useTranslation();
   const { push } = useToast();
@@ -179,6 +183,17 @@ export function ThermalsTab({
     // Only a change of the selected entry or its group moves the list, not every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectionKey, selectedRule !== undefined]);
+  // A search deep link takes the same reveal as an added entry: clear the search, select it (which reopens its group and scrolls the list). An entry deleted meanwhile leaves nothing selected.
+  useEffect(() => {
+    if (!linkedRuleId || !loaded) return;
+    const linked = rules.find(r => r.id === linkedRuleId);
+    if (linked) {
+      setQuery('');
+      onSelectionChange(selectRule(selection, linked));
+    }
+    // Keyed on the link and the navigation, so later picks are not overridden; the selection is replaced, not read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedRuleId, linkNavKey, loaded]);
   const toggleGroup = (g: string) => setCollapsedGroups(prev => {
     const next = new Set(prev);
     if (!next.delete(g)) next.add(g);

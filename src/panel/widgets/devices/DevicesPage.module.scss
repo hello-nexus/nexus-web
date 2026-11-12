@@ -1,4 +1,5 @@
 @use '../../../styles/scrollbar' as *;
+@use '../../../styles/interactions' as *;
 @use '../../../styles/text' as *;
 
 .devices {
@@ -48,10 +49,7 @@
   cursor: pointer;
   transition: background var(--ease-fast), border-color var(--ease-fast);
 
-  &:hover {
-    background: var(--bg-card-hover);
-    border: var(--border-width) solid var(--border-strong);
-  }
+  @include interactive-hover;
 
   &:focus-visible {
     outline: 2px solid var(--accent);
@@ -257,7 +255,7 @@
   }
 
   tbody tr:hover {
-    background: var(--bg-card-hover);
+    background: var(--devices-row-hover);
   }
 }
 

@@ -24,7 +24,7 @@ import { MemorySection } from './MemorySection';
 import { ThermalsTab } from './ThermalsTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
-import { INITIAL_THERMALS_SELECTION, type ThermalsSelection } from './thermalsHelpers';
+import { INITIAL_THERMALS_SELECTION, parseWatchlistLink, type ThermalsSelection } from './thermalsHelpers';
 import { SENSOR_HISTORY_OPTIONS, SENSOR_HISTORY_QUERY } from './sensorHistoryHelpers';
 import { fetchSensorAlertHistory } from '../../../api/diagnosticsAlerts';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
@@ -40,6 +40,8 @@ interface DiagnosticsViewProps {
   onTabChange: (tab: string) => void;
   /** Opens the Cooling page; without it the notice link is a plain href. */
   onOpenCooling?: () => void;
+  /** Changes on every navigation; see DiagnosticsPage. */
+  navKey?: unknown;
 }
 
 const INCIDENT_WINDOW_DAYS = 30;
@@ -51,9 +53,11 @@ const INCIDENT_WINDOW_DAYS = 30;
 // effect requires.
 const COOLING_EPISODES_QUERY: DiagnosticsTemperatureQuery = { hours: 168 };
 
-export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange, onOpenCooling }: DiagnosticsViewProps) {
+export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: routeTab, onTabChange, onOpenCooling, navKey }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
+  // A search result opens the Sensors tab with one watchlist entry: the route tab reads `cooling:<id>`.
+  const { tab: urlTab, ruleId: linkedRuleId } = routeTab?.startsWith('cooling:') ? parseWatchlistLink(routeTab) : { tab: routeTab, ruleId: null };
 
   const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
@@ -203,6 +207,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           onOpenCooling={onOpenCooling}
           selection={thermalsSelection}
           onSelectionChange={setThermalsSelection}
+          linkedRuleId={linkedRuleId}
+          linkNavKey={navKey}
           onAlertDismissed={() => refreshHealth({ force: true })}
           onGuardTripDismissed={() => {
             refreshHealth({ force: true });

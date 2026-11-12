@@ -1,4 +1,5 @@
 @use '../../../styles/scrollbar' as *;
+@use '../../../styles/interactions' as *;
 @use '../../../styles/text' as *;
 
 .settings {
@@ -262,9 +263,7 @@
   transition: border-color var(--ease-fast), box-shadow var(--ease-fast), background var(--ease-fast);
   cursor: pointer;
 
-  &:hover {
-    background: var(--bg-card-hover);
-  }
+  @include interactive-hover;
 
   // Hairline between rows at the text edge, as between SettingRows; none
   // against the active card's own outline.
@@ -282,14 +281,15 @@
     content: none;
   }
 
-  &.profileCardActive {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    cursor: default;
+  // Same for a hovered card, whose border would double the hairline.
+  &:hover::before,
+  &:hover + &::before {
+    content: none;
+  }
 
-    &:hover {
-      background: var(--accent-soft);
-    }
+  &.profileCardActive {
+    cursor: default;
+    @include interactive-selected;
   }
 }
 

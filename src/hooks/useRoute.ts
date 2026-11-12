@@ -291,6 +291,8 @@ export function useRoute() {
   const canGoForward = indexRef.current < historyRef.current.length - 1;
 
   return {
+    // A new object on every navigation, even to an unchanged path, for a page that must react to a repeat.
+    route,
     section: route.section,
     view: route.view,
     subtab: route.subtab,

@@ -259,30 +259,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-// The Disconnected group renders as a button so the whole header strip is
-// clickable to expand. Same shape as the other group headers; just nukes
-// the default button chrome.
-.disconnectedHeader {
-  width: 100%;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  transition: background var(--ease-fast);
-  // Same hover fill as the sidebar nav tabs.
-  &:hover {
-    background: color-mix(in srgb, var(--surface) 50%, transparent);
-  }
-  // A collapsed group wears the hover fill; hover lifts it to the full surface.
-  &[aria-expanded='false'] {
-    background: color-mix(in srgb, var(--surface) 50%, transparent);
-    &:hover {
-      background: var(--surface);
-    }
-  }
-}
 .disconnectedChevron {
   display: inline-block;
   width: 0.75rem;
@@ -447,7 +423,7 @@
   // including while the pointer is down, matching .deviceCard exactly.
   cursor: pointer;
   transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease;
-  &:hover { border-color: var(--border-strong); }
+  @include interactive-hover;
 }
 
 .fanModeRow {
@@ -504,7 +480,7 @@
   z-index: var(--z-dropdown);
 }
 
-.fanCardTarget {
+.fanCard.fanCardTarget {
   border-color: var(--accent);
 }
 
@@ -526,9 +502,8 @@
   }
 }
 
-.fanCardSelected {
-  border-color: var(--accent);
-  background: var(--surface-selected, color-mix(in srgb, var(--accent) 12%, transparent));
+.fanCard.fanCardSelected {
+  @include interactive-selected;
 }
 
 .fanCardBody {
@@ -723,6 +698,7 @@
   border: none;
   border-radius: var(--radius-sm);
   color: var(--text-dim);
+  font: inherit;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -730,7 +706,12 @@
   cursor: pointer;
   text-align: left;
   transition: background var(--ease-fast);
-  &:hover { background: rgba(255, 255, 255, 0.04); }
+  &:hover { background: var(--devices-row-hover); }
+  // A collapsed group wears the row wash; hover firms it up.
+  &[aria-expanded='false'] {
+    background: var(--devices-row-alt);
+    &:hover { background: var(--devices-row-hover); }
+  }
   &:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: -2px;

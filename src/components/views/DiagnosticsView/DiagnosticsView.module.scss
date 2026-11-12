@@ -443,7 +443,7 @@
   padding: 0.45rem 0.6rem;
   cursor: pointer;
 
-  &:hover { background: color-mix(in srgb, var(--bg) 40%, transparent); }
+  &:hover { background: var(--surface-hover); }
 }
 
 .pnpHeaderText {

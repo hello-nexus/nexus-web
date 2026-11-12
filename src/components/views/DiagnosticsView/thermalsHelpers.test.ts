@@ -17,6 +17,8 @@ import {
   selectRule,
   seriesIdOfRule,
   visibleSelection,
+  watchlistLink,
+  parseWatchlistLink,
   GROUP_ICON,
   THERMAL_GROUP_ORDER,
 } from './thermalsHelpers';
@@ -171,5 +173,19 @@ describe('visibleSelection', () => {
     expect(visibleSelection(a, [{ rules: [b] }])).toBeUndefined();
     expect(visibleSelection(a, [])).toBeUndefined();
     expect(visibleSelection(undefined, [{ rules: [a] }])).toBeUndefined();
+  });
+});
+
+describe('watchlist deep link', () => {
+  it('round-trips an entry id through the route tab, ids with colons included', () => {
+    for (const id of ['abc-123', 'builtin:gpu-temp:0', 'a/b c']) {
+      expect(parseWatchlistLink(watchlistLink(id))).toEqual({ tab: 'cooling', ruleId: id });
+    }
+  });
+  it('leaves a plain tab, no tab and a malformed escape without an entry', () => {
+    expect(parseWatchlistLink('cooling')).toEqual({ tab: 'cooling', ruleId: null });
+    expect(parseWatchlistLink(null)).toEqual({ tab: null, ruleId: null });
+    expect(parseWatchlistLink('cooling:%E0%A4%A')).toEqual({ tab: 'cooling', ruleId: null });
+    expect(parseWatchlistLink('cooling:')).toEqual({ tab: 'cooling', ruleId: null });
   });
 });

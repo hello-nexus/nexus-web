@@ -10,12 +10,13 @@ const h = vi.hoisted(() => ({
   rules: [] as unknown[],
   states: [] as unknown[],
   atLimit: false,
+  loaded: true,
   coolingChart: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
-    rules: h.rules, states: h.states, loaded: true, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
+    rules: h.rules, states: h.states, loaded: h.loaded, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
     add: vi.fn(), save: vi.fn(), remove: vi.fn(), acknowledge: vi.fn(), resetBuiltIns: vi.fn(), preview: vi.fn(),
   }),
 }));
@@ -104,6 +105,7 @@ const chartSeriesIds = () => (h.coolingChart.mock.calls.at(-1)?.[0].series as { 
 beforeEach(() => {
   vi.clearAllMocks();
   h.atLimit = false;
+  h.loaded = true;
   h.rules = [cpu, gpu, rule('u1'), rule('u2'), ...loads];
 });
 
@@ -283,6 +285,60 @@ describe('Revealing the selected entry', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe('A search deep link to a watchlist entry', () => {
+  const linked = (linkedRuleId: string | null, linkNavKey?: object) => (
+    <ThermalsHarness history={sensorHistory} coolingHistory={coolingHistory} onAlertDismissed={vi.fn()} linkedRuleId={linkedRuleId} linkNavKey={linkNavKey} />
+  );
+  const loadsHeader = () => within(screen.getAllByTestId('watchlist-group').find(g => g.getAttribute('data-group') === 'loads')!)
+    .getByRole('button', { name: 'diagnostics.thermals.group.loads' });
+  const pressed = () => screen.getAllByTestId('sensor-row').filter(r => r.querySelector('button[aria-pressed="true"]')).map(r => r.getAttribute('data-rule-id'));
+
+  it('selects the entry, clears the search and reopens its collapsed group', () => {
+    const { rerender } = render(linked(null));
+    fireEvent.click(loadsHeader());
+    expect(loadsHeader()).toHaveAttribute('aria-expanded', 'false');
+    const search = screen.getByRole('textbox', { name: 'diagnostics.sensors.search' });
+    fireEvent.change(search, { target: { value: 'u1' } });
+    rerender(linked('l2'));
+    expect(search).toHaveValue('');
+    expect(loadsHeader()).toHaveAttribute('aria-expanded', 'true');
+    expect(rowButton('l2')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('l2');
+  });
+
+  it('applies once and does not override a later pick while the link is unchanged', () => {
+    const { rerender } = render(linked('l2'));
+    expect(pressed()).toEqual(['l2']);
+    fireEvent.click(rowButton('u1'));
+    expect(pressed()).toEqual(['u1']);
+    rerender(linked('l2'));
+    expect(pressed()).toEqual(['u1']);
+  });
+
+  it('applies again when the same entry is opened by a new navigation after another pick', () => {
+    const { rerender } = render(linked('l2', {}));
+    fireEvent.click(rowButton('u1'));
+    expect(pressed()).toEqual(['u1']);
+    rerender(linked('l2', {}));
+    expect(pressed()).toEqual(['l2']);
+  });
+
+  it('opens with nothing selected when the entry no longer exists', () => {
+    render(linked('deleted-meanwhile'));
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+    expect(pressed()).toEqual([]);
+  });
+
+  it('keeps the link while the first load has not succeeded and applies it once the list loads', () => {
+    h.loaded = false;
+    const { rerender } = render(linked('l2'));
+    expect(screen.queryByTestId('settings-stub')).toBeNull();
+    h.loaded = true;
+    rerender(linked('l2'));
+    expect(pressed()).toEqual(['l2']);
   });
 });
 
