@@ -41,10 +41,30 @@
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-// Neutral hover lift for a whole clickable dashboard-tile card (monitoring
-// overview cards, diagnostics summary jump-off cards): the surface lifts to
-// --surface-hover with its border revealing at --border-strong, plus the
-// canonical card focus-visible ring. Layout (padding, gap, background base)
+// The one hover treatment for interactive cards and rows: the border lights to
+// --border-hover with a small background shift as support. The element keeps a
+// transparent border at rest so the reveal never reflows content.
+@mixin interactive-hover {
+  &:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
+  }
+}
+
+// The one selected treatment: accent border over a faint accent fill, held
+// through hover. Include it inside the selected modifier's own block.
+@mixin interactive-selected {
+  &,
+  &:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+// Interactive dashboard-tile card (monitoring overview cards, diagnostics
+// summary jump-off cards): the shared hover and selected treatment, plus the
+// canonical card focus-visible ring. A tile marks selection with aria-pressed
+// or aria-selected. Layout (padding, gap, background base)
 // stays with the caller - this mixin owns only the interaction states so
 // every dash-tile-style card shares one definition instead of re-declaring it.
 @mixin dash-tile-hover {
@@ -52,9 +72,11 @@
   cursor: pointer;
   transition: background var(--ease-fast), border-color var(--ease-fast);
 
-  &:hover {
-    background: var(--surface-hover);
-    border-color: var(--border-strong);
+  @include interactive-hover;
+
+  &[aria-pressed='true'],
+  &[aria-selected='true'] {
+    @include interactive-selected;
   }
 
   &:focus-visible {

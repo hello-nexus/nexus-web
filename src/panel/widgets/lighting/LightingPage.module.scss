@@ -726,7 +726,7 @@
   --effect-template-border-width: var(--picker-border-width);
   --effect-template-border: transparent;
   --effect-template-preview-inset: var(--picker-fill-gap);
-  --effect-template-hover-border: var(--border-strong);
+  --effect-template-hover-border: var(--border-hover);
   // Transparent so the inset preview floats with no plate around it, matching
   // the colour swatches' transparent gap.
   --effect-template-bg: transparent;
@@ -1128,9 +1128,7 @@
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast);
 
-  &:hover {
-    border-color: var(--border-strong);
-  }
+  @include interactive-hover;
 
   // The selection's border without its fill: a pick lands here. After :hover,
   // like the selected state, so hovering does not drop the accent.
@@ -1157,8 +1155,7 @@
   }
 
   &.deviceCardSelected {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    @include interactive-selected;
   }
 
   // Detection-failed / 0-LED non-resizable zones: dimmed + dashed as a state
@@ -1166,14 +1163,6 @@
   &.deviceCardUnavailable {
     opacity: 0.55;
     border-style: dashed;
-
-    &:hover { border-color: var(--border-strong); }
-  }
-
-  &.deviceCardNeedsBinding {
-    cursor: pointer;
-
-    &:hover { border-color: var(--warn-line); }
   }
 
   // Dim the device name + meta when the toggle is off. The card itself keeps
@@ -1270,11 +1259,15 @@
 
 .deviceCardStackHeaderSelectable {
   cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  @include interactive-hover;
 }
 
 // Any zone under the header selected: the fill only, so the selected zone's
 // own accent border stays the one outline in the card.
-.deviceCardStackHeaderSelected {
+.deviceCardStackHeaderSelected,
+.deviceCardStackHeaderSelected:hover {
   background: var(--accent-soft);
 }
 
