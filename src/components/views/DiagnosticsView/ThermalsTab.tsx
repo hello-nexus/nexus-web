@@ -21,6 +21,7 @@ import type { DeckMonitoringCategory } from '../../../panel/widgets/deck/types';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertBanner } from './SensorAlertBanner';
+import { SensorAlertsBanner, type BannerAlert } from './SensorAlertsBanner';
 import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRule, formatDisplayValue, isBannerAlert, rowTitles, ruleLabel, sensorRefOf } from './sensorAlertHelpers';
 import { Card } from '../../common/Card/Card';
 import { SearchInput } from '../../common/SearchInput/SearchInput';
@@ -202,7 +203,7 @@ export function ThermalsTab({
     [thermalsGroup, customTemps, groupRules, sensorHistory.series, deviceLines],
   );
   const chartLines = useMemo(() => (thermalsGroup ? [...deviceLines, ...customLines] : customLines), [thermalsGroup, deviceLines, customLines]);
-  const rangeBands = useMemo(() => ruleOutOfRangeBands(groupRules, chartLines), [groupRules, chartLines]);
+  const rangeBands = useMemo(() => ruleOutOfRangeBands(selectedRule ? [selectedRule] : [], chartLines), [selectedRule, chartLines]);
   const chartHistory = useMemo(
     () => (thermalsGroup && customTemps.length > 0 ? linkHistories(coolingHistory, sensorHistory) : thermalsGroup ? coolingHistory : sensorHistory),
     [thermalsGroup, customTemps.length, coolingHistory, sensorHistory],
@@ -219,6 +220,15 @@ export function ThermalsTab({
   );
 
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
+  const bannerAlerts: BannerAlert[] = rules.flatMap(rule => {
+    const state = stateOf(rule.id);
+    return isBannerAlert(rule, state) ? [{ rule, state }] : [];
+  });
+  const dismissAlert = async (ruleId: string) => {
+    const ok = await alerts.acknowledge(ruleId);
+    if (ok) onAlertDismissed();
+    return ok;
+  };
   const listProps = {
     states,
     selectedId,
@@ -370,22 +380,15 @@ export function ThermalsTab({
         onCancel={() => setTrackedBy(null)}
       />
       <GuardTripNotice serviceOnline={serviceOnline} onOpenCooling={onOpenCooling} onDismissed={onGuardTripDismissed} />
-      {rules.map(rule => {
-        const st = stateOf(rule.id);
-        return isBannerAlert(rule, st) && (
-          <SensorAlertBanner
-            key={rule.id}
-            rule={rule}
-            state={st}
-            nowMs={now}
-            onDismiss={async () => {
-              const ok = await alerts.acknowledge(rule.id);
-              if (ok) onAlertDismissed();
-              return ok;
-            }}
-          />
-        );
-      })}
+      {bannerAlerts.length === 1 && (
+        <SensorAlertBanner
+          rule={bannerAlerts[0].rule}
+          state={bannerAlerts[0].state}
+          nowMs={now}
+          onDismiss={() => dismissAlert(bannerAlerts[0].rule.id)}
+        />
+      )}
+      {bannerAlerts.length > 1 && <SensorAlertsBanner alerts={bannerAlerts} nowMs={now} onDismiss={dismissAlert} />}
       <div data-testid="thermals-history" data-group={group}>
         <CoolingHistorySection
           history={chartHistory}

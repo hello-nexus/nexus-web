@@ -170,7 +170,7 @@ export function outOfRangeBands(
   return bands;
 }
 
-/** Out-of-range bands for every entry with alerts on whose series is drawn, each against its own limits in the chart's native unit. */
+/** Out-of-range bands for the given entries (the chart passes only the selected one) with alerts on whose series is drawn, each against its own limits in the chart's native unit. */
 export function ruleOutOfRangeBands(
   rules: readonly SensorAlertRule[],
   series: readonly TimeSeriesSeries[],
