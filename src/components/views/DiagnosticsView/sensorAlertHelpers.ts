@@ -149,13 +149,10 @@ export function widenBounds(bounds: Bounds, values: ReadonlyArray<number | null 
   return { min, max };
 }
 
-/** Display bounds grown by one step past a set limit that sits on an end of the track, so the end of the track always means no limit. */
-export function padBounds(bounds: Bounds, low: number | null, high: number | null, step: number): Bounds {
+/** The slider track: the real range plus one step past each end. The knob parked on a pad stop means no limit on that side, so every real value, the range's own min and max included, stays selectable. */
+export function padBounds(bounds: Bounds, step: number): Bounds {
   const decimals = step < 1 ? 2 : 0;
-  return {
-    min: low !== null && low <= bounds.min ? roundTo(low - step, decimals) : bounds.min,
-    max: high !== null && high >= bounds.max ? roundTo(high + step, decimals) : bounds.max,
-  };
+  return { min: roundTo(bounds.min - step, decimals), max: roundTo(bounds.max + step, decimals) };
 }
 
 /** Bounds in the displayed unit, snapped outward to the slider step so both ends sit on the grid. */
@@ -218,10 +215,16 @@ export function seedBound(
 
 export type AlertChipState = 'ok' | 'pending' | 'active' | 'unavailable';
 
-/** The state a rule's header chip shows; a disabled rule shows none. */
+/** The state a rule's header chip shows; a disabled rule (or the service's off state) shows none. */
 export function chipState(rule: SensorAlertRule, state: SensorAlertState | undefined): AlertChipState | null {
-  if (!rule.enabled) return null;
-  return state?.state ?? 'ok';
+  const kind = state?.state;
+  if (!rule.enabled || kind === 'off') return null;
+  return kind ?? 'ok';
+}
+
+/** The service judged the sensor unreported; true whether or not the alert is switched on, so a switched-off entry keeps its chip. */
+export function isNotReported(state: SensorAlertState | undefined): boolean {
+  return state?.state === 'unavailable';
 }
 
 export type AlertRowState = AlertChipState | 'disabled';

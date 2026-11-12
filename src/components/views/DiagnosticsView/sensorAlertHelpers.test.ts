@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel, findTrackedRule, rowTitles,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel, findTrackedRule, rowTitles, isNotReported,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -113,6 +113,7 @@ describe('new rule defaults', () => {
 describe('alert state helpers', () => {
   it('shows no chip for a disabled rule and the service state otherwise', () => {
     expect(chipState(rule({ enabled: false }), state())).toBeNull();
+    expect(chipState(rule(), state({ state: 'off' }))).toBeNull();
     expect(chipState(rule(), state({ state: 'pending' }))).toBe('pending');
     expect(chipState(rule(), undefined)).toBe('ok');
   });
@@ -213,11 +214,9 @@ describe('active alert banner', () => {
 });
 
 describe('padBounds', () => {
-  it('grows an end by a step only when a set limit sits on it', () => {
-    expect(padBounds({ min: 0, max: 120 }, null, 120, 1)).toEqual({ min: 0, max: 121 });
-    expect(padBounds({ min: 0, max: 120 }, 0, 80, 1)).toEqual({ min: -1, max: 120 });
-    expect(padBounds({ min: 0, max: 120 }, 10, 80, 1)).toEqual({ min: 0, max: 120 });
-    expect(padBounds({ min: 0, max: 1 }, null, 1, 0.05)).toEqual({ min: 0, max: 1.05 });
+  it('grows both ends by one step, the no-limit stops past the real range', () => {
+    expect(padBounds({ min: 20, max: 100 }, 1)).toEqual({ min: 19, max: 101 });
+    expect(padBounds({ min: 0, max: 1 }, 0.05)).toEqual({ min: -0.05, max: 1.05 });
   });
 });
 
@@ -292,5 +291,18 @@ describe('findTrackedRule and rowTitles', () => {
     expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg, pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average(2)');
     expect(rowTitles(builtIn({ kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' }), t).subtitle).toBe('diagnostics.sensors.source.drive');
     expect(rowTitles(builtIn({ kind: 'channel', sensor: null, sensors: [], hardwareName: 'Fan' }), t).subtitle).toBe('diagnostics.sensors.source.channel');
+  });
+});
+
+describe('isNotReported', () => {
+  const st = (state: string): SensorAlertState => ({ ruleId: 'r1', state: state as SensorAlertState['state'], acknowledged: false });
+  it('is true only for the unavailable verdict, whether or not alerts are on', () => {
+    expect(isNotReported(st('unavailable'))).toBe(true);
+    expect(isNotReported(st('off'))).toBe(false);
+    expect(isNotReported(st('ok'))).toBe(false);
+    expect(isNotReported(undefined)).toBe(false);
+  });
+  it('never raises a banner for a switched-off rule, whatever state the service sends', () => {
+    expect(isBannerAlert(rule({ enabled: false }), st('active'))).toBe(false);
   });
 });

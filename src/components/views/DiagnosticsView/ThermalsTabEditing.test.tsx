@@ -108,10 +108,13 @@ async function renderSection(rules: SensorAlertRule[], states: SensorAlertState[
   h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ({ ok: true, status: 200, data: r }));
   let utils!: ReturnType<typeof render>;
   await act(async () => { utils = render(tab()); });
+  // Nothing is selected by default: pick the first row so its settings open.
+  const first = screen.queryAllByTestId('sensor-row')[0]?.querySelector('button[aria-pressed]');
+  if (first) await act(async () => { fireEvent.click(first); });
   return utils;
 }
 
-// The first sensor is selected by default, so its settings are already open.
+// The helper above selects the first sensor, so its settings are open.
 // The live badge is also a status region, so the alert banner is found by its tone.
 const banner = () => document.querySelector('[role="status"][data-tone]');
 
@@ -155,17 +158,17 @@ describe('ThermalsTab editing', () => {
     expect(screen.getByTestId('sensor-settings')).toBeInTheDocument();
   });
 
-  it('disables Add at the rule limit and explains why', async () => {
+  it('hides Add at the rule limit and explains why', async () => {
     const rules = Array.from({ length: 50 }, (_, i) => rule(`r${i}`));
     await renderSection(rules);
-    expect(screen.getByTestId('sensor-add')).toBeDisabled();
-    expect(screen.getByText('diagnostics.alerts.limitNote(max=50)')).toBeInTheDocument();
+    expect(screen.queryByTestId('sensor-add')).toBeNull();
+    expect(screen.getByText('diagnostics.alerts.limitReached(max=50)')).toBeInTheDocument();
   });
 
   it('keeps Add enabled below the limit', async () => {
     await renderSection([rule('r1')]);
     expect(screen.getByTestId('sensor-add')).toBeEnabled();
-    expect(screen.queryByText(/limitNote/)).toBeNull();
+    expect(screen.queryByText(/limitReached/)).toBeNull();
   });
 
   it('writes the full rule when the lower limit is typed', async () => {

@@ -51,6 +51,8 @@ export interface CoolingHistorySectionProps {
   yDomain?: readonly [number | null, number | null];
   /** The empty-state text; the temperature one when omitted. */
   emptyTitle?: string;
+  /** Glyph above the empty-state title; the Thermals chart's thermometer by default. */
+  emptyIcon?: ReactNode;
   wheelZoomNeedsModifier?: boolean;
 }
 
@@ -64,7 +66,7 @@ const CHART_HEIGHT = 246;
  */
 export function CoolingHistorySection({
   history, episodes, headerControl, activeSeriesId, thresholds, rangeBands, onSeriesSelect,
-  title, lines, extraLines, fanStrip = true, valueFormat: valueFormatProp, yDomain, emptyTitle, wheelZoomNeedsModifier,
+  title, lines, extraLines, fanStrip = true, valueFormat: valueFormatProp, yDomain, emptyTitle, emptyIcon, wheelZoomNeedsModifier,
 }: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat, timeFormat, dateFormat } = useUnitPrefs();
@@ -159,7 +161,7 @@ export function CoolingHistorySection({
         <div className={chartStyles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : showEmpty ? (
         <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
-          <EmptyState compact icon={<Thermometer size={22} />} title={emptyTitle ?? t('diagnostics.temperature.empty')} />
+          <EmptyState compact icon={emptyIcon ?? <Thermometer size={22} />} title={emptyTitle ?? t('diagnostics.temperature.empty')} />
         </div>
       ) : (
         <>

@@ -1,4 +1,5 @@
 // Pure selection and chart-linking logic for the Thermals tab (ThermalsTab).
+import { Activity, Clock, Fan, Gauge, Plug, Signal, SlidersHorizontal, Thermometer, Zap, type LucideIcon } from 'lucide-react';
 import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { TimeSeriesBand, TimeSeriesPoint, TimeSeriesSeries, TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
@@ -10,6 +11,12 @@ import { distinctLineColors } from './temperatureHelpers';
 export type ThermalGroup = 'thermals' | 'loads' | 'voltages' | 'power' | 'fans' | 'clocks' | 'currents' | 'controls' | 'levels';
 
 export const THERMAL_GROUP_ORDER: readonly ThermalGroup[] = ['thermals', 'loads', 'voltages', 'power', 'fans', 'clocks', 'currents', 'controls', 'levels'];
+
+/** The glyph a group's chart shows while it has no recorded line. */
+export const GROUP_ICON: Record<ThermalGroup, LucideIcon> = {
+  thermals: Thermometer, loads: Gauge, voltages: Zap, power: Plug, fans: Fan,
+  clocks: Clock, currents: Activity, controls: SlidersHorizontal, levels: Signal,
+};
 
 const GROUP_BY_TYPE: Record<string, ThermalGroup> = {
   Temperature: 'thermals', Load: 'loads', Voltage: 'voltages', Power: 'power', Fan: 'fans',
@@ -44,17 +51,13 @@ export function groupTitleKey(group: ThermalGroup): string {
   return group === 'thermals' ? 'diagnostics.temperature.title' : `diagnostics.thermals.history.${group}`;
 }
 
-/**
- * The chart group plus the entry picked. `auto` means nothing was chosen yet, so the group's first entry
- * stands in; once the user picks or deselects it is false and `selectedId: null` really means none.
- */
+/** The chart group plus the entry picked; `selectedId: null` means none is picked (the default, nothing is selected until the user or a deep link picks one). */
 export interface ThermalsSelection {
   group: ThermalGroup;
   selectedId: string | null;
-  auto: boolean;
 }
 
-export const INITIAL_THERMALS_SELECTION: ThermalsSelection = { group: 'thermals', selectedId: null, auto: true };
+export const INITIAL_THERMALS_SELECTION: ThermalsSelection = { group: 'thermals', selectedId: null };
 
 /** The selected entry as the settings panel shows it: none while the search filters it out of the list (the selection itself stays). */
 export function visibleSelection(
@@ -76,17 +79,17 @@ export function partitionRules(rules: readonly SensorAlertRule[]): { builtIns: S
 
 /** Picking an entry shows its group with that entry highlighted. */
 export function selectRule(_sel: ThermalsSelection, rule: SensorAlertRule): ThermalsSelection {
-  return { group: groupOf(rule), selectedId: rule.id, auto: false };
+  return { group: groupOf(rule), selectedId: rule.id };
 }
 
 /** Clearing the pick keeps the group. */
 export function deselect(sel: ThermalsSelection): ThermalsSelection {
-  return { ...sel, selectedId: null, auto: false };
+  return { ...sel, selectedId: null };
 }
 
-/** Switching group highlights that group's first entry. */
+/** Switching group clears the pick. */
 export function selectGroup(sel: ThermalsSelection, group: ThermalGroup): ThermalsSelection {
-  return sel.group === group ? sel : { group, selectedId: null, auto: true };
+  return sel.group === group ? sel : { group, selectedId: null };
 }
 
 export interface ResolvedThermals {
@@ -105,7 +108,7 @@ export function resolveThermals(rules: readonly SensorAlertRule[], sel: Thermals
   const group = picked ? groupOf(picked) : (groups.includes(sel.group) ? sel.group : 'thermals');
   const { builtIns, custom } = partitionRules(rules.filter(r => groupOf(r) === group));
   const groupRules = [...builtIns, ...custom];
-  const selectedId = picked && groupOf(picked) === group ? picked.id : (sel.auto ? (groupRules[0]?.id ?? null) : null);
+  const selectedId = picked && groupOf(picked) === group ? picked.id : null;
   return { group, groups, selectedId, groupRules };
 }
 
@@ -167,7 +170,7 @@ export function outOfRangeBands(
   return bands;
 }
 
-/** Out-of-range bands for every enabled entry whose series is drawn, each against its own limits in the chart's native unit. */
+/** Out-of-range bands for every entry with alerts on whose series is drawn, each against its own limits in the chart's native unit. */
 export function ruleOutOfRangeBands(
   rules: readonly SensorAlertRule[],
   series: readonly TimeSeriesSeries[],

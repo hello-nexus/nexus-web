@@ -79,7 +79,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   const step = stepFor(type);
   const lowShownValue = rule.low !== null ? snapDisplay(toDisplay(rule.low, type, tempUnit), type) : null;
   const highShownValue = rule.high !== null ? snapDisplay(toDisplay(rule.high, type, tempUnit), type) : null;
-  const track = padBounds(shown, lowShownValue, highShownValue, step);
+  const track = padBounds(shown, step);
   const fmt = (v: number) => formatDisplayValue(v, type, tempUnit, numberFormat, monitoringWholeNumbers);
 
   const edit = (patch: Partial<SensorAlertRule>, write: boolean) => {
@@ -155,7 +155,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
           onCommit={v => setRange(v, true)}
         />
       </div>
-      <SettingRow label={t('diagnostics.alerts.raiseAfter')}>
+      <SettingRow label={t('diagnostics.alerts.raiseAfter')} description={t('diagnostics.alerts.raiseAfterDescription')}>
         <Select
           value={String(rule.raiseAfterSeconds)}
           ariaLabel={t('diagnostics.alerts.raiseAfter')}

@@ -17,6 +17,8 @@ import {
   selectRule,
   seriesIdOfRule,
   visibleSelection,
+  GROUP_ICON,
+  THERMAL_GROUP_ORDER,
 } from './thermalsHelpers';
 
 const rule = (id: string, over: Partial<SensorAlertRule> = {}, type = 'Temperature'): SensorAlertRule => ({
@@ -59,28 +61,36 @@ describe('grouping', () => {
   });
 });
 
+describe('GROUP_ICON', () => {
+  it('has an empty-state glyph for every group, distinct per group', () => {
+    const icons = THERMAL_GROUP_ORDER.map(g => GROUP_ICON[g]);
+    expect(icons.every(Boolean)).toBe(true);
+    expect(new Set(icons).size).toBe(THERMAL_GROUP_ORDER.length);
+  });
+});
+
 describe('selection', () => {
   it('picking an entry shows its group with that entry selected', () => {
-    expect(selectRule(INITIAL_THERMALS_SELECTION, load)).toEqual({ group: 'loads', selectedId: 'u2', auto: false });
+    expect(selectRule(INITIAL_THERMALS_SELECTION, load)).toEqual({ group: 'loads', selectedId: 'u2' });
   });
 
-  it('starts on the first built-in, and a group button selects that group\'s first entry', () => {
-    expect(resolveThermals(rules, INITIAL_THERMALS_SELECTION)).toMatchObject({ group: 'thermals', selectedId: cpu.id });
-    expect(resolveThermals(rules, selectGroup(INITIAL_THERMALS_SELECTION, 'loads'))).toMatchObject({ group: 'loads', selectedId: 'u2' });
+  it('starts with nothing selected, and a group button shows that group with nothing selected', () => {
+    expect(resolveThermals(rules, INITIAL_THERMALS_SELECTION)).toMatchObject({ group: 'thermals', selectedId: null });
+    expect(resolveThermals(rules, selectGroup(INITIAL_THERMALS_SELECTION, 'loads'))).toMatchObject({ group: 'loads', selectedId: null });
   });
 
   it('deselecting keeps the group and selects nothing', () => {
     const sel = deselect(selectRule(INITIAL_THERMALS_SELECTION, load2));
     expect(resolveThermals(rules, sel)).toMatchObject({ group: 'loads', selectedId: null });
-    expect(deselect(INITIAL_THERMALS_SELECTION).auto).toBe(false);
+    expect(deselect({ group: 'loads', selectedId: 'u2' })).toEqual({ group: 'loads', selectedId: null });
   });
 
   it('follows the picked entry to its group even when the remembered group differs', () => {
-    expect(resolveThermals(rules, { group: 'thermals', selectedId: 'u3', auto: false })).toMatchObject({ group: 'loads', selectedId: 'u3' });
+    expect(resolveThermals(rules, { group: 'thermals', selectedId: 'u3' })).toMatchObject({ group: 'loads', selectedId: 'u3' });
   });
 
   it('falls back to Thermals when the remembered group has no entries any more', () => {
-    expect(resolveThermals([cpu], { group: 'loads', selectedId: null, auto: true })).toMatchObject({ group: 'thermals', selectedId: cpu.id });
+    expect(resolveThermals([cpu], { group: 'loads', selectedId: null })).toMatchObject({ group: 'thermals', selectedId: null });
   });
 
   it('selects nothing without rules', () => {

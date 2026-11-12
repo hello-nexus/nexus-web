@@ -676,21 +676,17 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('summary');
   });
 
-  it('lists sensor alerts below the Summary grid with no Acknowledge button, and a row opens the Thermals tab', () => {
+  it('does not list the Watchlist on the Summary, and a card with no faults leads with its count', () => {
     mockHealth = { generatedAt: new Date().toISOString(), supported: true, overall: 'ok', components: [] };
     mockAlerts.rules = [{
       id: 'r1', enabled: true, severity: 'act', low: null, high: 90,
       sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
     }];
-    mockAlerts.states = [{ ruleId: 'r1', state: 'active', value: 95, since: null, extreme: 96, direction: 'above', acknowledged: false }];
-    const onTabChange = vi.fn();
-    renderDiagnosticsView({ tab: null, onTabChange });
+    mockAlerts.states = [{ ruleId: 'r1', state: 'ok', value: 50, since: null, extreme: null, direction: null, acknowledged: false }];
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn() });
 
-    const row = screen.getByRole('button', { name: /CPU Package/ });
-    expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /acknowledge/ })).toBeNull();
-    fireEvent.click(row);
-    expect(onTabChange).toHaveBeenCalledWith('cooling');
+    expect(screen.queryByRole('button', { name: /CPU Package/ })).toBeNull();
+    expect(screen.getByText('diagnostics.summary.count.sensors.one')).toBeInTheDocument();
     mockAlerts.rules = [];
     mockAlerts.states = [];
   });
@@ -794,8 +790,8 @@ describe('DiagnosticsView tabs', () => {
     for (const platform of ['windows', '']) {
       const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
       expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-        'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
-        'diagnostics.tab.thermals', 'diagnostics.kind.system',
+        'diagnostics.tab.summary', 'diagnostics.tab.thermals', 'diagnostics.kind.storage',
+        'diagnostics.kind.memory', 'diagnostics.kind.system',
       ]);
       unmount();
     }
@@ -805,8 +801,8 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'linux' });
 
     expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
-      'diagnostics.tab.summary', 'diagnostics.kind.storage',
-      'diagnostics.tab.thermals', 'diagnostics.kind.system',
+      'diagnostics.tab.summary', 'diagnostics.tab.thermals',
+      'diagnostics.kind.storage', 'diagnostics.kind.system',
     ]);
   });
 

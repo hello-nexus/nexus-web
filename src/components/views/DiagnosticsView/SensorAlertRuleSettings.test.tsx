@@ -56,6 +56,16 @@ describe('SensorAlertRuleSettings', () => {
     expect(document.querySelector('[role="switch"]')).toBe(sw);
   });
 
+  it('keeps every setting visible and editable with alerts off, and explains Raise after', () => {
+    const { onSave } = renderEditor({ ...userRule, enabled: false });
+    expect(screen.getByText('diagnostics.alerts.raiseAfterDescription')).toBeInTheDocument();
+    const urgent = screen.getByRole('switch', { name: 'diagnostics.alerts.urgent' });
+    expect(urgent).not.toBeDisabled();
+    fireEvent.click(urgent);
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ severity: 'act', enabled: false }));
+    expect(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' })).not.toBeDisabled();
+  });
+
   it('maps the Urgent switch to severity act and watch, with no severity chooser', () => {
     const { onSave, unmount } = renderEditor(userRule);
     expect(screen.queryByRole('radio')).toBeNull();
@@ -96,14 +106,14 @@ describe('SensorAlertRuleSettings', () => {
     expect(screen.queryByTestId('sensor-restore')).toBeNull();
   });
 
-  it('bounds a built-in slider to the service limits in Celsius and in Fahrenheit', () => {
+  it('puts the no-limit stops one step past the service range in Celsius and in Fahrenheit', () => {
     const { unmount } = renderEditor(builtInRule);
     const knob = () => document.querySelector('input[data-range-knob="max"]') as HTMLInputElement;
-    expect([knob().min, knob().max]).toEqual(['20', '100']);
+    expect([knob().min, knob().max]).toEqual(['19', '101']);
     unmount();
     h.tempUnit = 'f';
     renderEditor(builtInRule);
-    expect([knob().min, knob().max]).toEqual(['68', '212']);
+    expect([knob().min, knob().max]).toEqual(['67', '213']);
   });
 
   const typeInto = (container: HTMLElement, knob: 'lowKnob' | 'highKnob', value: string) => {
@@ -112,6 +122,22 @@ describe('SensorAlertRuleSettings', () => {
     fireEvent.change(field, { target: { value } });
     fireEvent.keyDown(field, { key: 'Enter' });
   };
+
+  it('makes the range maximum settable and the step past it no limit', () => {
+    const { onSave, container } = renderEditor(builtInRule);
+    typeInto(container, 'highKnob', '100');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ high: 100 }));
+    typeInto(container, 'highKnob', '101');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ high: null }));
+    typeInto(container, 'lowKnob', '20');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: 20 }));
+  });
+
+  it('reads the step below the range minimum as no lower limit', () => {
+    const { onSave, container } = renderEditor({ ...builtInRule, low: 30 });
+    typeInto(container, 'lowKnob', '19');
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ low: null }));
+  });
 
   it('lets a built-in take a lower limit and clear its upper limit like a custom rule', () => {
     const { onSave, container } = renderEditor(builtInRule);

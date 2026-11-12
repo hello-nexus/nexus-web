@@ -4,7 +4,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
-import { formatAlertValue, rowState, rowTitles, stateColor, stateLabelKey } from './sensorAlertHelpers';
+import { formatAlertValue, isNotReported, rowState, rowTitles, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
 import styles from './SensorList.module.scss';
 
@@ -39,16 +39,16 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
         const kind = rowState(rule, st);
         // The service's verdict wins: it nulls the value of a sensor it judged unreported, while the picker's
         // live list can still carry a stale 0 for the same entry, which would show as a reading beside NOT REPORTED.
-        const unreported = rule.enabled && kind === 'unavailable';
+        const unreported = isNotReported(st);
         const reading = unreported ? null : (liveOf(rule) ?? st?.value ?? null);
         const selected = rule.id === selectedId;
         const { title: name, subtitle } = rowTitles(rule, t, pickerLabel);
-        // An enabled sensor the PC does not report has nothing to grade: the chip alone says so.
-        // A switched-off sensor shows its name, dimmed, with no reading or chip.
+        // A sensor the PC does not report has nothing to show: the chip alone says so. A switched-off sensor
+        // (alerts off) still shows its reading and is charted; it only has no status chip.
         const BuiltInIcon = rule.builtIn ? (BUILT_IN_ICONS[rule.builtIn] ?? (rule.sensor.type === 'Fan' ? Fan : null)) : null;
         // Not reported is the service's verdict after its grace period; a sensor just switched on shows no chip until a reading arrives.
         const notReported = unreported;
-        const awaiting = rule.enabled && reading === null && !notReported;
+        const awaiting = reading === null && !notReported;
         return (
           <li
             key={rule.id}
@@ -64,16 +64,15 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
               subtitle={subtitle}
               icon={BuiltInIcon ? <BuiltInIcon size={16} /> : undefined}
               selected={selected}
-              dimmed={!rule.enabled}
               onSelect={() => onSelect(rule.id)}
-              value={rule.enabled && reading !== null
+              value={reading !== null
                 ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers)
                 : undefined}
-              chip={rule.enabled && !awaiting
-                ? (notReported
+              chip={awaiting
+                ? undefined
+                : notReported
                   ? <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />
-                  : <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} />)
-                : undefined}
+                  : kind !== 'disabled' ? <Badge label={t(stateLabelKey(kind))} color={stateColor(kind, rule)} /> : undefined}
             />
           </li>
         );

@@ -7,6 +7,7 @@ import { DomainGlyph } from '../../common/DomainGlyph/DomainGlyph';
 import type { DiagnosticsComponent, DiagnosticsKind } from '../../../api/diagnostics';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { reasonDetailText } from './reasonDetail';
+import type { SummaryDetail } from './summaryDetails';
 import { aggregateDomainTiles, DOMAIN_ICON, domainTitleKey, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
@@ -14,6 +15,8 @@ interface ComponentHealthGridProps {
   components: DiagnosticsComponent[];
   /** Jumps to the matching domain tab - a tile's domain is exactly a tab key. */
   onNavigate: (kind: DiagnosticsKind) => void;
+  /** What an OK tile shows under its title; a tile with fault reasons shows those instead. */
+  details?: Partial<Record<DiagnosticsKind, SummaryDetail | null>>;
 }
 
 /** The at-a-glance overview: a fixed 2x2 of four large domain tiles - Storage,
@@ -22,7 +25,7 @@ interface ComponentHealthGridProps {
  *  reasons. Clickable to jump to that domain's tab, which shows the richer
  *  per-endpoint data. Hover/focus treatment matches the monitoring overview's
  *  dash cards (dashHover), per the visual-parity requirement. */
-export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthGridProps) {
+export function ComponentHealthGrid({ components, onNavigate, details }: ComponentHealthGridProps) {
   const { t, language } = useTranslation();
   const prefs = useUnitPrefs();
   const tiles = useMemo(() => aggregateDomainTiles(components), [components]);
@@ -30,6 +33,7 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
     <div className={styles.grid}>
       {tiles.map(tile => {
         const Icon = DOMAIN_ICON[tile.domain];
+        const detail = tile.reasons.length === 0 ? details?.[tile.domain] : null;
         return (
           <Card
             key={tile.domain}
@@ -42,10 +46,16 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
             onClick={() => onNavigate(tile.domain)}
           >
             {Icon && <DomainGlyph icon={Icon} />}
+            {detail && (
+              <div className={styles.okInfo} data-testid="summary-ok-info">
+                {detail.count && <div className={styles.okCount}>{detail.count}</div>}
+                {detail.lines.map((line, i) => <div key={i} className={styles.okLine}>{line}</div>)}
+              </div>
+            )}
             {tile.reasons.length > 0 && (
               <ul className={styles.reasonList}>
                 {tile.reasons.map((reason, i) => {
-                  const detail = reasonDetailText(reason, { t, language, ...prefs });
+                  const reasonInfo = reasonDetailText(reason, { t, language, ...prefs });
                   return (
                     <li key={i} className={styles.reasonItem}>
                       <div className={styles.reasonText}>
@@ -56,11 +66,11 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
                         </div>
                         {reason.summary && <div className={styles.reasonSummary}>{reason.summary}</div>}
                       </div>
-                      {detail && (
+                      {reasonInfo && (
                         // Only the info trigger swallows the click, so tapping the
                         // reason text still bubbles to the card's navigate onClick.
                         <span className={styles.reasonInfo} onClick={e => e.stopPropagation()}>
-                          <InfoTooltip message={detail} side="top" />
+                          <InfoTooltip message={reasonInfo} side="top" />
                         </span>
                       )}
                     </li>

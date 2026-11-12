@@ -58,9 +58,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
 
   const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <ClipboardList size={14} /> },
+    { key: 'cooling', label: t('diagnostics.tab.thermals'), icon: <Gauge size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
-    { key: 'cooling', label: t('diagnostics.tab.thermals'), icon: <Gauge size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
   ] as const;
 
@@ -193,9 +193,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
           anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
           onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
-          onOpenAlert={id => { setFocusSensorId(id); onTabChange('cooling'); }}
           downloading={downloading} downloadingReport={downloadingReport}
           onDownload={() => void handleDownload()} onDownloadReport={() => void handleDownloadReport()}
+          smartData={smart.data} memoryData={memory.data} systemData={system.data}
         />
       );
       case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;

@@ -107,9 +107,13 @@ beforeEach(() => {
 });
 
 describe('Thermals group buttons', () => {
-  it('opens on Thermals with the first built-in highlighted and its limit drawn', () => {
+  it('opens on Thermals with nothing selected: no highlight, no limit lines, the empty settings panel', () => {
     renderTab();
     expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'thermals');
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', '');
+    expect(h.coolingChart.mock.calls.at(-1)?.[0].thresholds).toEqual([]);
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+    fireEvent.click(rowButton('builtin:cpu-temp'));
     expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'cpu-temp');
     expect(h.coolingChart.mock.calls.at(-1)?.[0].thresholds).toEqual([{ value: 80, color: 'var(--warn)' }]);
   });
@@ -124,11 +128,11 @@ describe('Thermals group buttons', () => {
     expect(screen.queryAllByRole('radio')).toHaveLength(0);
   });
 
-  it('a group button shows that group and highlights its first entry; its title follows the group', () => {
+  it('a group button shows that group with nothing selected; its title follows the group', () => {
     renderTab();
     fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.group.loads' }));
     expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'loads');
-    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'l1');
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', '');
     expect(screen.getByText('diagnostics.thermals.history.loads')).toBeInTheDocument();
     expect(chartSeriesIds()).toEqual(['l1', 'l2']);
   });
@@ -140,7 +144,7 @@ describe('Thermals group buttons', () => {
 
   it('a group button disappears with its last entry', () => {
     h.rules = [cpu, gpu];
-    renderTab({ group: 'loads', selectedId: null, auto: true });
+    renderTab({ group: 'loads', selectedId: null });
     expect(screen.queryByRole('radio', { name: 'diagnostics.thermals.group.loads' })).toBeNull();
     expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'thermals');
   });
@@ -188,6 +192,7 @@ describe('Thermals selection linking', () => {
 
   it('clicking the selected row or legend item again deselects: empty settings, no highlight, no limit lines', () => {
     renderTab();
+    fireEvent.click(rowButton('builtin:cpu-temp'));
     fireEvent.click(rowButton('builtin:cpu-temp'));
     expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.thermals.selectHint')).toBeInTheDocument();

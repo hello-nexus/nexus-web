@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DiagnosticsDrive, DiagnosticsSmartResponse } from '../../../api/diagnostics';
 import { fetchSmartPoll, SMART_POLL_CHOICES } from '../../../api/smartPoll';
@@ -57,6 +57,12 @@ describe('StorageSection per-drive polling', () => {
     expect(header).toContainElement(screen.getAllByRole('switch', { name: 'diagnostics.monitor.label' })[0]);
     // The container below holds content only: the name is not repeated inside it.
     expect(header.nextElementSibling).not.toContainElement(screen.getByText('Disk A'));
+  });
+
+  it('labels the polling select with visible text in the drive header', async () => {
+    render(<StorageSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+    const header = (await screen.findByText('Disk A')).closest('[class*="sectionHeaderRow"]') as HTMLElement;
+    expect(within(header).getByText('diagnostics.storage.poll.label')).toBeInTheDocument();
   });
 
   it('shows the default entry with the shared interval while the drive follows it', async () => {

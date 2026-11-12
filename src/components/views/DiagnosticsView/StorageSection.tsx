@@ -12,6 +12,7 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import type { DiagnosticsDrive, DiagnosticsFetchOptions, DiagnosticsSmartResponse, SmartAttribute } from '../../../api/diagnostics';
 import { fetchSmartPoll, SMART_POLL_CHOICES, type SmartPollDrive } from '../../../api/smartPoll';
@@ -89,6 +90,11 @@ function DriveCard({ drive, pollDrive, allPollDrives, onPollChanged }: {
           <span className={styles.driveBus}>{t(`diagnostics.storage.bus.${drive.bus}`)}</span>
         </div>
         <div className={styles.driveHeaderActions}>
+          {pollDrive && (
+            <HoverTooltip body={t('settings.smartPoll.description')}>
+              <span className={styles.pollLabel}>{t('diagnostics.storage.poll.label')}</span>
+            </HoverTooltip>
+          )}
           {pollDrive && (
             <Select
               value={driveIntervalValue(pollState, pollDrive)}

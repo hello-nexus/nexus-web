@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
@@ -91,6 +91,38 @@ describe('DiagnosticsWidget', () => {
       renderLive('4x2');
       expect(screen.getByText('diagnostics.alerts.notice.above(name=CPU Package,limit=90°C,value=95°C)')).toBeTruthy();
       expect(screen.queryByText('English service text')).toBeNull();
+    });
+
+    it('grades the first tile, Sensors, by the Watchlist alert: act is action needed, watch a warning', () => {
+      renderLive('2x2');
+      expect(screen.getAllByRole('img')[0].getAttribute('aria-label')).toBe('diagnostics.tab.thermals: diagnostics.status.act');
+      cleanup();
+      live.health = { ...alertHealth, overall: 'watch', components: [{ ...alertHealth.components[0], status: 'watch' }] };
+      render(
+        <PanelPreviewProvider value={false}>
+          <DiagnosticsWidget widget={widget('2x2')} />
+        </PanelPreviewProvider>,
+      );
+      expect(screen.getAllByRole('img')[0].getAttribute('aria-label')).toBe('diagnostics.tab.thermals: diagnostics.status.watch');
+    });
+
+    it('names the first 4x2 block Sensors with the Gauge icon, ahead of Storage', () => {
+      const { container } = renderLive('4x2');
+      const names = Array.from(container.querySelectorAll('[class*="blockName"]')).map(e => e.textContent);
+      expect(names).toEqual(['diagnostics.tab.thermals', 'diagnostics.kind.storage', 'diagnostics.kind.memory', 'diagnostics.kind.system']);
+      expect(container.querySelector('svg.lucide-gauge')).not.toBeNull();
+    });
+
+    it('does not grade the Sensors tile when the service reports only an ok alert component (alerts off)', () => {
+      live.health = { ...alertHealth, overall: 'ok', components: [{ ...alertHealth.components[0], status: 'ok', reasons: [] }] };
+      live.rules = [];
+      live.states = [];
+      render(
+        <PanelPreviewProvider value={false}>
+          <DiagnosticsWidget widget={widget('2x2')} />
+        </PanelPreviewProvider>,
+      );
+      expect(screen.getAllByRole('img')[0].getAttribute('aria-label')).toBe('diagnostics.tab.thermals: diagnostics.status.ok');
     });
 
     it('shows the localized alert as the reason at 2x2', () => {

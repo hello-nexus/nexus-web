@@ -97,6 +97,9 @@ beforeEach(() => {
   h.resetBuiltIns.mockResolvedValue(true);
 });
 
+// Nothing is selected by default, so a test that needs the settings panel or a limit line picks the first row.
+const selectFirstRow = () => fireEvent.click(screen.getAllByTestId('sensor-row')[0].querySelector('button[aria-pressed]')!);
+
 describe('ThermalsTab', () => {
   it('shows an empty state whose action adds a sensor, not a link to the settings', async () => {
     render(<SensorsTab {...props()} />);
@@ -117,12 +120,12 @@ describe('ThermalsTab', () => {
     expect(search).toHaveValue('');
   });
 
-  it('puts Add sensor at the top of the tab, disabled with the limit text at the rule limit', () => {
+  it('hides Add sensor and shows the limit note at the rule limit', () => {
     h.rules = Array.from({ length: 50 }, (_, i) => rule(`r${i}`));
     h.atLimit = true;
     render(<SensorsTab {...props()} />);
-    expect(screen.getByTestId('sensor-add')).toBeDisabled();
-    expect(screen.getByText('diagnostics.alerts.limitNote(max=50)')).toBeInTheDocument();
+    expect(screen.queryByTestId('sensor-add')).toBeNull();
+    expect(screen.getByText('diagnostics.alerts.limitReached(max=50)')).toBeInTheDocument();
   });
 
   const otherSensor = { category: 'cpu', id: 'cpu/temp/9', name: 'Other', type: 'Temperature', parentName: 'CPU' };
@@ -163,11 +166,13 @@ describe('ThermalsTab', () => {
     h.rules = [rule('r1'), rule('r2', { enabled: false })];
     h.states = [state('r1', { state: 'active', direction: 'above' }), state('r2')];
     render(<SensorsTab {...props()} />);
+    selectFirstRow();
     expect(screen.getAllByTestId('chart')).toHaveLength(1);
-    expect(screen.getAllByText('62°C')).toHaveLength(1);
+    // The switched-off entry keeps its reading, with no chip.
+    expect(screen.getAllByText('62°C')).toHaveLength(2);
     expect(screen.getByText('diagnostics.alerts.state.active')).toBeInTheDocument();
     expect(screen.queryByText('diagnostics.alerts.state.disabled')).toBeNull();
-    expect(h.chart.mock.calls[0][0]).toMatchObject({ thresholds: [{ value: 80, color: 'var(--bad)' }] });
+    expect(h.chart.mock.calls.at(-1)![0]).toMatchObject({ thresholds: [{ value: 80, color: 'var(--bad)' }] });
   });
 
   it('says there is no history when the selected sensor has no recorded series', () => {
@@ -182,22 +187,26 @@ describe('ThermalsTab', () => {
     h.rules = [rule('r1')];
     h.states = [state('r1')];
     render(<SensorsTab {...props()} />);
+    selectFirstRow();
     expect(screen.getByText('143.6°F')).toBeInTheDocument();
     // The chart plots Celsius and formats every value in the unit preference.
-    const chart = h.chart.mock.calls[0][0] as { series: Array<{ points: Array<{ avg: number }> }>; thresholds: Array<{ value: number }>; valueFormat: (v: number) => string };
+    const chart = h.chart.mock.calls.at(-1)![0] as { series: Array<{ points: Array<{ avg: number }> }>; thresholds: Array<{ value: number }>; valueFormat: (v: number) => string };
     expect(chart.series[0].points[0].avg).toBe(50);
     expect(chart.valueFormat(chart.series[0].points[0].avg)).toBe('122°F');
     expect(chart.valueFormat(chart.thresholds[0].value)).toBe('176°F');
   });
 
-  it('shows the editor and graph of the first sensor by default, and the clicked sensor swaps them', () => {
+  it('selects nothing by default, and a clicked sensor opens its editor and graph', () => {
     h.rules = [rule('r1'), rule('r2')];
     render(<SensorsTab {...props()} />);
-    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r1');
-    expect(screen.getByTestId('sensor-detail')).toHaveAttribute('data-rule-id', 'r1');
+    expect(screen.queryByTestId('settings-stub')).toBeNull();
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+    expect(h.chart.mock.calls[0][0]).toMatchObject({ activeSeriesId: null });
     const rows = screen.getAllByTestId('sensor-row');
-    expect(rows[0]).toHaveAttribute('data-selected', 'true');
-    fireEvent.click(within(rows[1]).getByRole('button', { pressed: false }));
+    expect(rows[0]).toHaveAttribute('data-selected', 'false');
+    fireEvent.click(within(rows[0]).getByRole('button', { pressed: false }));
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r1');
+    fireEvent.click(within(screen.getAllByTestId('sensor-row')[1]).getByRole('button', { pressed: false }));
     expect(screen.getByTestId('settings-stub')).toHaveTextContent('r2');
     expect(screen.getAllByTestId('sensor-row')[1]).toHaveAttribute('data-selected', 'true');
   });
@@ -230,6 +239,7 @@ describe('ThermalsTab', () => {
   it('writes the enabled switch from the settings panel and deletes from the editor', () => {
     h.rules = [rule('r1')];
     render(<SensorsTab {...props()} />);
+    selectFirstRow();
     expect(screen.getByTestId('sensor-row').querySelector('[role="switch"]')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' }));
     expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1', enabled: false }), expect.any(Function));
@@ -241,6 +251,7 @@ describe('ThermalsTab', () => {
     h.rules = [rule('r1')];
     h.remove.mockResolvedValue(false);
     render(<SensorsTab {...props()} />);
+    selectFirstRow();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-delete' })); });
     expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.deleteFailed' });
   });
@@ -263,6 +274,7 @@ describe('ThermalsTab', () => {
     it('restores one built-in from its editor', () => {
       h.rules = [builtIn('builtin-cpu', 'cpuTemp'), builtIn('builtin-gpu', 'gpuTemp')];
       render(<SensorsTab {...props()} />);
+      selectFirstRow();
       fireEvent.click(screen.getByRole('button', { name: 'stub-restore' }));
       expect(h.resetBuiltIns).toHaveBeenCalledWith('builtin-cpu');
     });
@@ -271,6 +283,7 @@ describe('ThermalsTab', () => {
       h.rules = [builtIn('builtin-cpu', 'cpuTemp')];
       h.resetBuiltIns.mockResolvedValue(false);
       render(<SensorsTab {...props()} />);
+      selectFirstRow();
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-restore' })); });
       expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' });
     });
@@ -325,7 +338,8 @@ describe('ThermalsTab', () => {
       h.rules = [rule('r1'), rule('r2'), rule('r3', { enabled: false })];
       h.states = [state('r1'), active('r2', { acknowledged: true }), active('r3')];
       render(<SensorsTab {...props()} />);
-      expect(screen.queryByRole('status')).toBeNull();
+      // The empty settings panel is also a status region, so the banner is found by its tone.
+      expect(document.querySelector('[role="status"][data-tone]')).toBeNull();
     });
 
     it('Dismiss acknowledges the rule and refreshes health, and there is no Acknowledge button anywhere', async () => {

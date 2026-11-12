@@ -134,7 +134,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-height: 116px;
+  min-height: 190px;
   // A resting border so each domain reads as a distinct tile - the shared
   // dash-tile hover keeps a transparent border and --surface sits very close
   // to --bg, so without this the four tiles blur into the page.
@@ -144,6 +144,25 @@
   // Own stacking context so the watermark's negative z-index paints above the
   // card surface but beneath the text.
   isolation: isolate;
+}
+
+.okInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.okCount {
+  font-size: var(--type-body);
+  color: var(--text);
+  font-weight: var(--weight-heading);
+}
+
+.okLine {
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }
 
 .reasonList {
@@ -221,6 +240,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.pollLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }
 
 // Overview + (optional) NVMe side by side; a single column fills the card.

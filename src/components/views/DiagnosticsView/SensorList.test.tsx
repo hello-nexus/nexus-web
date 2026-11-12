@@ -38,9 +38,10 @@ describe('SensorList', () => {
     expect(rows[0]).toHaveTextContent('62°C');
     expect(rows[0]).toHaveTextContent('diagnostics.alerts.state.pending');
     expect(rows[0]).toHaveAttribute('data-selected', 'true');
-    // A switched-off sensor keeps its name and hides its value and chip.
+    // A switched-off sensor (alerts off) keeps its name and reading, but shows no status chip and is not dimmed.
     expect(rows[1]).toHaveTextContent('monitoring.settings.category.cpuSensor r2 (Temperature)');
-    expect(rows[1]).not.toHaveTextContent('50°C');
+    expect(rows[1]).toHaveTextContent('50°C');
+    expect(rows[1].firstElementChild!.className).not.toMatch(/dimmed/);
     expect(rows[1]).not.toHaveTextContent('diagnostics.alerts.state');
     expect(rows[1]).toHaveAttribute('data-selected', 'false');
 
@@ -106,7 +107,24 @@ describe('SensorList', () => {
     expect(card.className).toMatch(/selected/);
   });
 
-  it('renders a switched-off built-in the PC does not report dimmed, with no chip', () => {
+  it('shows the reading of a switched-off entry whatever state string the service sends', () => {
+    render(
+      <SensorList
+        rules={[rule('r1', { enabled: false }), rule('r2', { enabled: false })]}
+        states={[state('r1', { state: 'off', value: 41 }), state('r2', { state: 'unavailable', value: null })]}
+        selectedId={null}
+        liveOf={() => null}
+        onSelect={vi.fn()}
+      />,
+    );
+    const rows = screen.getAllByTestId('sensor-row');
+    expect(rows[0]).toHaveTextContent('41°C');
+    expect(rows[0]).not.toHaveTextContent('diagnostics.alerts.state');
+    // Not reported shows its chip whether alerts are on or off.
+    expect(rows[1]).toHaveTextContent('diagnostics.sensors.notReported');
+  });
+
+  it('renders a switched-off built-in with no state and no reading with no chip', () => {
     render(<SensorList rules={[rule('b1', { builtIn: 'ramTemp', enabled: false })]} states={[]} selectedId={null} liveOf={() => null} onSelect={vi.fn()} />);
     const row = screen.getByTestId('sensor-row');
     expect(row.querySelector('[role="switch"]')).toBeNull();

@@ -8,7 +8,7 @@ import { buildQuery, type MetricHistoryFetchResult, type MetricHistoryQuery, typ
 export const MAX_SENSOR_ALERT_RULES = 50;
 
 export type SensorAlertSeverity = 'watch' | 'act';
-export type SensorAlertStateKind = 'ok' | 'pending' | 'active' | 'unavailable';
+export type SensorAlertStateKind = 'ok' | 'pending' | 'active' | 'unavailable' | 'off';
 
 /** The component temperature rules the service always keeps; null on a user rule. */
 export type BuiltInSensorKind = 'cpuTemp' | 'gpuTemp' | 'storageTemp' | 'ramTemp' | 'fanSpeed';

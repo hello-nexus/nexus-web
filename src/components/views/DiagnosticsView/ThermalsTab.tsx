@@ -35,6 +35,7 @@ import { SensorList } from './SensorList';
 import { sensorCardAnchor, sensorYDomain } from './sensorHistoryHelpers';
 import {
   deselect,
+  GROUP_ICON,
   groupLabelKey,
   groupedRules,
   groupTitleKey,
@@ -193,6 +194,7 @@ export function ThermalsTab({
   // The chart's lines. Thermals draws the device temperatures plus the custom temperature entries; every other
   // group draws its entries' recorded lines.
   const thermalsGroup = group === 'thermals';
+  const GroupIcon = GROUP_ICON[group];
   const customTemps = useMemo(() => groupRules.filter(r => !r.builtIn), [groupRules]);
   const deviceLines = useMemo(() => toCoolingTempChartSeries(coolingHistory.series), [coolingHistory.series]);
   const customLines = useMemo(
@@ -226,7 +228,7 @@ export function ThermalsTab({
   };
   const restoreBuiltIn = (id: string) => { void alerts.resetBuiltIns(id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); }); };
   const note = alerts.atLimit
-    ? t('diagnostics.alerts.limitNote', { max: MAX_SENSOR_ALERT_RULES })
+    ? t('diagnostics.alerts.limitReached', { max: MAX_SENSOR_ALERT_RULES })
     : loaded && !firstSensor && rules.length === 0 ? t('diagnostics.alerts.noSensors') : null;
   const addButton = (
     <Button
@@ -303,13 +305,15 @@ export function ThermalsTab({
                   </CollapsibleSection>
                 </div>
               ))}
-              <button
-                type="button" className={pageStyles.addSmartLights} data-testid="sensor-add"
-                disabled={!loaded || alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
-              >
-                <Plus size={22} aria-hidden />
-                <span>{t('diagnostics.sensors.add')}</span>
-              </button>
+              {!alerts.atLimit && (
+                <button
+                  type="button" className={pageStyles.addSmartLights} data-testid="sensor-add"
+                  disabled={!loaded || !firstSensor} onClick={() => void onAdd()}
+                >
+                  <Plus size={22} aria-hidden />
+                  <span>{t('diagnostics.sensors.add')}</span>
+                </button>
+              )}
             </div>
           </div>
           {detailRule ? (
@@ -394,6 +398,7 @@ export function ThermalsTab({
           valueFormat={thermalsGroup ? undefined : groupFormat}
           yDomain={groupYDomain}
           emptyTitle={thermalsGroup ? undefined : t('diagnostics.sensors.noHistory')}
+          emptyIcon={<GroupIcon size={22} />}
           wheelZoomNeedsModifier
           activeSeriesId={selectedRule ? seriesIdOfRule(selectedRule) : null}
           thresholds={thresholds}

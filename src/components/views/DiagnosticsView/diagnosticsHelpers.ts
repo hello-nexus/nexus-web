@@ -178,13 +178,13 @@ export function resolveSectionState(opts: {
 
 export type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system';
 
-const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'storage', 'memory', 'cooling', 'system'];
+const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'cooling', 'storage', 'memory', 'system'];
 
 // Windows Memory Diagnostic has no Linux equivalent; macOS exposes none of
 // SMART, PnP problems, or the Windows event log, so only Summary and
 // Thermals (the 'cooling' key) have real content there.
 const PLATFORM_DIAGNOSTICS_TABS: Record<string, readonly DiagnosticsTab[]> = {
-  linux: ['summary', 'storage', 'cooling', 'system'],
+  linux: ['summary', 'cooling', 'storage', 'system'],
   macos: ['summary', 'cooling'],
 };
 

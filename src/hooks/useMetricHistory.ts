@@ -624,7 +624,8 @@ export function useMetricHistory(
   const runTailGapFill = useCallback((minTo?: number) => {
     // With nothing loaded yet the base follows the wall clock: a source that was empty at the first fetch (a sensor just added) would otherwise poll the same stale window forever.
     const base = lastLoadedTRef.current ?? Math.max(nowRef.current, Date.now());
-    const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
+    // A pull-only source polls every TAIL_POLL_MS, so the window must reach a couple of its own polls past the last point or the live edge falls further behind the wall clock on every poll.
+    const to = Math.max(base, minTo ?? base) + (pollsTail ? TAIL_POLL_MS : LIVE_TAIL_POLL_MS) * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const windowSeconds = Math.max(0, to - from) / 1000;
     // Fetch the hole at the step the viewport is drawn at (1s before its first response). Merging a coarser
@@ -660,7 +661,7 @@ export function useMetricHistory(
       bumpNow(tail);
       if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
     })();
-  }, [bumpNow]);
+  }, [bumpNow, pollsTail]);
 
   // Subscribed regardless of `following`/drag phase - this is what keeps
   // nowRef (the server time base) advancing while the user browses a
