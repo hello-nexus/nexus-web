@@ -16,6 +16,9 @@ export interface GallerySource {
   // Item ids of a folder source the user removed from the gallery; the files
   // stay on disk and one restore call brings them all back.
   excluded: string[];
+  // Set when the service could not read the added path (a mapped network
+  // drive) and plays a copy in its own storage instead.
+  originalPath?: string;
 }
 
 // Decided by the service from the file extension. A video is only ever a
@@ -101,6 +104,7 @@ export interface GalleryPickResponse {
 // Stable error code on source mutations. Keep in lockstep with
 // GalleryErrorCodes in nexus-service Models/Gallery/GalleryModels.cs.
 export const GALLERY_ERROR_DUPLICATE = 'duplicate';
+export const GALLERY_ERROR_TOO_LARGE = 'too_large';
 export const GALLERY_ERROR_LIMIT = 'limit';
 
 export interface GallerySourceMutation {
