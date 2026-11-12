@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryPage } from './GalleryPage';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob } from '../../../../api/service';
+import { fetchGalleryItems, fetchGallerySources, updateGallerySort } from '../../../../api/gallery';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
@@ -11,13 +12,18 @@ const mockState = vi.hoisted(() => ({
   uses: [] as { surface: 'dashboard' | 'panel'; name: string; count: number }[] | null,
   bridgeAvailable: false,
   truncated: false,
+  sort: undefined as { by: 'name' | 'modified' | 'added'; direction: 'asc' | 'desc' } | undefined,
 }));
 
 vi.mock('../../../../api/gallery', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../api/gallery')>()),
   GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
-  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists, truncated: mockState.truncated })),
+  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists, truncated: mockState.truncated, sort: mockState.sort })),
+  updateGallerySort: vi.fn((sort: typeof mockState.sort) => {
+    mockState.sort = sort;
+    return Promise.resolve(true);
+  }),
   createGalleryPlaylist: vi.fn((name: string) => {
     const playlist = { id: 'pl-new', name, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [] };
     mockState.playlists = [...mockState.playlists, playlist];
@@ -79,6 +85,7 @@ beforeEach(() => {
   mockState.uses = [];
   mockState.bridgeAvailable = false;
   mockState.truncated = false;
+  mockState.sort = undefined;
   vi.clearAllMocks();
   vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(null));
   let n = 0;
@@ -92,6 +99,151 @@ afterEach(() => {
 });
 
 describe('GalleryPage', () => {
+  it('shows the sort the service applies', async () => {
+    mockState.sort = { by: 'modified', direction: 'desc' };
+    render(<GalleryPage />);
+
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.descending' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.modified');
+  });
+
+  it('defaults to name ascending against a service without the setting', async () => {
+    render(<GalleryPage />);
+
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.name');
+  });
+
+  it('saves a new sort key, keeping the direction', async () => {
+    mockState.sort = { by: 'name', direction: 'desc' };
+    render(<GalleryPage />);
+    await screen.findByRole('button', { name: 'gallery.page.sort.descending' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.sort.label' }));
+    fireEvent.click(screen.getByRole('option', { name: 'gallery.page.sort.added' }));
+
+    await waitFor(() => expect(updateGallerySort).toHaveBeenCalledWith({ by: 'added', direction: 'desc' }));
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.added');
+  });
+
+  it('flips the direction on its own button', async () => {
+    mockState.sort = { by: 'added', direction: 'asc' };
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' }));
+
+    await waitFor(() => expect(updateGallerySort).toHaveBeenCalledWith({ by: 'added', direction: 'desc' }));
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.descending' })).toBeTruthy();
+  });
+
+  it('keeps the last of two rapid sort changes, on screen and in storage', async () => {
+    mockState.sort = { by: 'name', direction: 'asc' };
+    mockState.sources = [folderSource('Pictures')];
+    const a = { id: 'i1', name: 'a.png', sourceId: 'Pictures', kind: 'image' as const };
+    const b = { id: 'i2', name: 'b.png', sourceId: 'Pictures', kind: 'image' as const };
+    mockState.items = [a, b];
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    const saves: { sort: unknown; resolve: (ok: boolean) => void }[] = [];
+    const deferredSave = (sort: typeof mockState.sort) => new Promise<boolean>(resolve => {
+      saves.push({ sort, resolve: ok => { if (ok) mockState.sort = sort; resolve(ok); } });
+    });
+    vi.mocked(updateGallerySort).mockImplementationOnce(deferredSave).mockImplementationOnce(deferredSave);
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' }));
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.sort.label' }));
+    fireEvent.click(screen.getByRole('option', { name: 'gallery.page.sort.added' }));
+    // The second save waits for the first.
+    await waitFor(() => expect(saves).toHaveLength(1));
+    expect(saves[0].sort).toEqual({ by: 'name', direction: 'desc' });
+
+    // A read that goes out while a save is in flight and lands after both
+    // saves settle still answers with the stale order.
+    let landStale: () => void = () => {};
+    vi.mocked(fetchGalleryItems).mockImplementationOnce(() => new Promise(resolve => {
+      landStale = () => resolve({ items: [a, b], playlists: [], sort: { by: 'name', direction: 'asc' } });
+    }));
+    const onGallery = vi.mocked(useTopicCallback).mock.calls.at(-1)![2] as () => void;
+    await act(async () => { onGallery(); });
+
+    await act(async () => saves[0].resolve(true));
+    await waitFor(() => expect(saves).toHaveLength(2));
+    expect(saves[1].sort).toEqual({ by: 'added', direction: 'desc' });
+    await act(async () => saves[1].resolve(true));
+    // The service's broadcast after the last save refetches in the new order.
+    mockState.items = [b, a];
+    await act(async () => { onGallery(); });
+    await waitFor(() => expect(screen.getAllByRole('img').map(i => i.getAttribute('alt'))).toEqual(['b.png', 'a.png']));
+    await act(async () => landStale());
+
+    expect(screen.getAllByRole('img').map(i => i.getAttribute('alt'))).toEqual(['b.png', 'a.png']);
+    expect(mockState.sort).toEqual({ by: 'added', direction: 'desc' });
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.label' }).textContent).toContain('gallery.page.sort.added');
+    expect(screen.getByRole('button', { name: 'gallery.page.sort.descending' })).toBeTruthy();
+  });
+
+  it('keeps an older read that lands after a newer read failed', async () => {
+    render(<GalleryPage />);
+    await screen.findByText('gallery.intro.title');
+    mockState.sources = [folderSource('Pictures')];
+    const items = [
+      { id: 'i1', name: 'a.png', sourceId: 'Pictures', kind: 'image' as const },
+      { id: 'i2', name: 'b.png', sourceId: 'Pictures', kind: 'image' as const },
+    ];
+    vi.mocked(fetchServiceBlob).mockImplementation(() => Promise.resolve(new Blob(['x'])));
+    let landOlder: () => void = () => {};
+    vi.mocked(fetchGallerySources)
+      .mockImplementationOnce(() => Promise.resolve({ sources: mockState.sources }))
+      .mockImplementationOnce(() => Promise.resolve(null));
+    vi.mocked(fetchGalleryItems)
+      .mockImplementationOnce(() => new Promise(resolve => {
+        landOlder = () => resolve({ items, playlists: [] });
+      }))
+      .mockImplementationOnce(() => Promise.resolve(null));
+    const onGallery = vi.mocked(useTopicCallback).mock.calls.at(-1)![2] as () => void;
+
+    await act(async () => { onGallery(); });
+    await act(async () => { onGallery(); });
+    await act(async () => landOlder());
+
+    expect(await screen.findByText('Pictures')).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByRole('img').map(i => i.getAttribute('alt'))).toEqual(['a.png', 'b.png']));
+  });
+
+  it('drops a failure once a later save in the chain succeeds', async () => {
+    mockState.sort = { by: 'name', direction: 'asc' };
+    vi.mocked(updateGallerySort)
+      .mockImplementationOnce(() => Promise.resolve(false))
+      .mockImplementationOnce(sort => { mockState.sort = sort; return Promise.resolve(true); });
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' }));
+    fireEvent.click(screen.getByRole('button', { name: 'gallery.page.sort.descending' }));
+
+    await waitFor(() => expect(updateGallerySort).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    expect(screen.queryByText('gallery.page.sort.saveFailed')).toBeNull();
+  });
+
+  it('reads the stored sort back when a save fails', async () => {
+    mockState.sort = { by: 'name', direction: 'asc' };
+    vi.mocked(updateGallerySort).mockImplementationOnce(() => Promise.resolve(false));
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' }));
+
+    expect(await screen.findByText('gallery.page.sort.saveFailed')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'gallery.page.sort.ascending' })).toBeTruthy();
+  });
+
+  it('explains that the sort also orders widgets and slideshows', async () => {
+    render(<GalleryPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'infoTooltip.ariaLabel' }));
+
+    expect(screen.getByRole('tooltip').textContent).toBe('gallery.page.sort.info');
+  });
+
   it('shows the feature intro when there are no sources', async () => {
     render(<GalleryPage />);
 
