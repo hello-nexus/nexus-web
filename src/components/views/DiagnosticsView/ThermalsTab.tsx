@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartLine, MousePointerClick, Plus, SearchX } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -140,19 +140,6 @@ export function ThermalsTab({
     const { title, subtitle } = rowTitles(rule, t, pickerLabel);
     return subtitle ? `${title}: ${subtitle}` : title;
   };
-  // The settings panel sticks just under the docked chart, so it needs the chart's height.
-  const dockRef = useRef<HTMLDivElement>(null);
-  const [dockHeight, setDockHeight] = useState(0);
-  useEffect(() => {
-    const el = dockRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const measure = () => setDockHeight(el.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
   const sections = groupedRules(rules)
@@ -255,28 +242,32 @@ export function ThermalsTab({
       : (
         <div className={styles.split}>
           <div className={styles.listPane}>
-            <div className={styles.groupHeader}>
-              <SectionHeader>{t('diagnostics.tab.sensors')}</SectionHeader>
-              {note && <span className={styles.note}>{note}</span>}
+            <div className={styles.listHead}>
+              <div className={styles.groupHeader}>
+                <SectionHeader>{t('diagnostics.tab.sensors')}</SectionHeader>
+                {note && <span className={styles.note}>{note}</span>}
+              </div>
+              <SearchInput value={query} onChange={setQuery} placeholder={t('diagnostics.sensors.search')} />
             </div>
-            <SearchInput value={query} onChange={setQuery} placeholder={t('diagnostics.sensors.search')} />
-            {sections.length === 0 ? (
-              <div className={styles.messageBox}>
-                <EmptyState compact icon={<SearchX size={22} />} title={t('diagnostics.sensors.noMatches')} />
-              </div>
-            ) : sections.map(section => (
-              <div key={section.group} className={styles.section} data-testid="watchlist-group" data-group={section.group}>
-                <span className={styles.sectionTitle}>{t(groupLabelKey(section.group))}</span>
-                <SensorList rules={section.rules} {...listProps} />
-              </div>
-            ))}
-            <button
-              type="button" className={pageStyles.addSmartLights} data-testid="sensor-add"
-              disabled={!loaded || alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
-            >
-              <Plus size={22} aria-hidden />
-              <span>{t('diagnostics.sensors.add')}</span>
-            </button>
+            <div className={styles.listScroll}>
+              {sections.length === 0 ? (
+                <div className={styles.messageBox}>
+                  <EmptyState compact icon={<SearchX size={22} />} title={t('diagnostics.sensors.noMatches')} />
+                </div>
+              ) : sections.map(section => (
+                <div key={section.group} className={styles.section} data-testid="watchlist-group" data-group={section.group}>
+                  <span className={styles.sectionTitle}>{t(groupLabelKey(section.group))}</span>
+                  <SensorList rules={section.rules} {...listProps} />
+                </div>
+              ))}
+              <button
+                type="button" className={pageStyles.addSmartLights} data-testid="sensor-add"
+                disabled={!loaded || alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
+              >
+                <Plus size={22} aria-hidden />
+                <span>{t('diagnostics.sensors.add')}</span>
+              </button>
+            </div>
           </div>
           {detailRule ? (
             <div className={styles.detail} data-testid="sensor-detail" data-rule-id={detailRule.id}>
@@ -320,7 +311,7 @@ export function ThermalsTab({
       );
 
   return (
-    <div className={styles.root} style={{ '--dock-height': `${dockHeight}px` } as CSSProperties}>
+    <div className={styles.root}>
       <ConfirmModal
         open={trackedBy !== null}
         title={t('diagnostics.sensors.tracked.title')}
@@ -347,7 +338,7 @@ export function ThermalsTab({
           />
         );
       })}
-      <div ref={dockRef} className={styles.dock} data-testid="thermals-history" data-group={group}>
+      <div data-testid="thermals-history" data-group={group}>
         <CoolingHistorySection
           history={chartHistory}
           episodes={thermalsGroup ? episodes : undefined}

@@ -24,6 +24,8 @@ import {
 import { episodeBand, formatTemperatureCelsius } from './temperatureHelpers';
 import { coolingSilhouettePoints, toCoolingTempChartSeries } from './coolingHistoryHelpers';
 import styles from './CoolingHistorySection.module.scss';
+// The chart block shares the Monitoring page's surface, range row and brush styles instead of copying them.
+import chartStyles from '../../../panel/widgets/monitoring/page/MetricHistorySection.module.scss';
 
 export interface CoolingHistorySectionProps {
   history: UseMetricHistoryResult;
@@ -129,7 +131,7 @@ export function CoolingHistorySection({
   const showEmpty = !history.loading && !history.error && chartSeries.length === 0 && rpmPoints.length === 0;
 
   return (
-    <section className={styles.root}>
+    <section className={chartStyles.root}>
       <div className={styles.headerRow}>
         <div className={styles.headerStatus}>
           <SectionHeader>{title ?? t('diagnostics.temperature.title')}</SectionHeader>
@@ -142,11 +144,11 @@ export function CoolingHistorySection({
       </div>
 
       {showUnsupported ? (
-        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+        <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
           <EmptyState compact title={t('monitoring.history.unsupported')} />
         </div>
       ) : history.error ? (
-        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+        <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
           <EmptyState
             compact
             title={t('monitoring.history.error')}
@@ -154,9 +156,9 @@ export function CoolingHistorySection({
           />
         </div>
       ) : showLoadingSkeleton ? (
-        <div className={styles.skeleton} style={{ height: CHART_HEIGHT }} />
+        <div className={chartStyles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : showEmpty ? (
-        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+        <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
           <EmptyState compact icon={<Thermometer size={22} />} title={emptyTitle ?? t('diagnostics.temperature.empty')} />
         </div>
       ) : (
@@ -183,11 +185,11 @@ export function CoolingHistorySection({
             yDomain={yDomain}
             wheelZoomNeedsModifier={wheelZoomNeedsModifier}
           />
-          <div className={styles.controls}>
+          <div className={chartStyles.controls}>
             {history.rangeKey === 'custom' ? (
               <button
                 type="button"
-                className={styles.resetRange}
+                className={chartStyles.resetRange}
                 style={{ height: TIMELINE_BRUSH_DEFAULT_HEIGHT }}
                 onClick={() => history.setRange(history.lastPresetKey)}
               >
@@ -196,7 +198,7 @@ export function CoolingHistorySection({
               </button>
             ) : (
               <Select
-                className={styles.rangeSelect}
+                className={chartStyles.rangeSelect}
                 height={TIMELINE_BRUSH_DEFAULT_HEIGHT}
                 value={history.rangeKey}
                 onChange={key => history.setRange(key as typeof history.lastPresetKey)}
@@ -205,7 +207,7 @@ export function CoolingHistorySection({
               />
             )}
             <TimelineBrush
-              className={styles.brush}
+              className={chartStyles.brush}
               domainStart={history.stripDomain[0]}
               domainEnd={history.stripDomain[1]}
               from={history.domain[0]}

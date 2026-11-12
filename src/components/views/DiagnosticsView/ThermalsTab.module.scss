@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/scrollbar' as *;
 
 .root {
   display: flex;
@@ -21,8 +22,7 @@
   background: var(--surface);
 }
 
-// Under the graph: the list and the selected sensor's settings side by side at equal widths. Only a
-// phone-width surface stacks them; the app window never gets that narrow.
+// Under the graph: the list and the selected sensor's settings side by side at equal widths. Only a phone-width surface stacks them; the app window never gets that narrow.
 .split {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -41,6 +41,23 @@
   min-width: 0;
 }
 
+// The header and search stay put; only the grouped rows scroll.
+.listHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.listScroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-height: max(20rem, 55vh);
+  overflow-y: auto;
+  @include scrollbar-visible;
+}
+
 // Both columns' headers share this row height, so the first cards line up.
 .groupHeader {
   min-height: var(--size-sm);
@@ -56,18 +73,6 @@
   flex-direction: column;
   gap: var(--space-md);
   min-width: 0;
-  // Stays in view under the docked chart while a long watchlist scrolls.
-  position: sticky;
-  top: var(--dock-height, 0);
-}
-
-// The chart stays docked while the watchlist scrolls under it, like the Monitoring page's pinned hero chart.
-.dock {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--bg-elevated);
-  padding-bottom: var(--space-sm);
 }
 
 .section {
