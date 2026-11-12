@@ -111,9 +111,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   // ThermalsTab) so their viewport/cache survive switching away and back.
   const isThermalsTab = tab === 'cooling';
   const [thermalsSelection, setThermalsSelection] = useState<ThermalsSelection>(INITIAL_THERMALS_SELECTION);
-  const customChart = isThermalsTab && thermalsSelection.mode === 'custom';
-  const sensorHistory = useMetricHistory(serviceOnline && customChart, customChart ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory, SENSOR_HISTORY_OPTIONS);
-  const allChart = isThermalsTab && !customChart;
+  const sensorHistory = useMetricHistory(serviceOnline && isThermalsTab, isThermalsTab ? SENSOR_HISTORY_QUERY : '', fetchSensorAlertHistory, SENSOR_HISTORY_OPTIONS);
+  const allChart = isThermalsTab && thermalsSelection.group === 'thermals';
   const coolingHistory = useMetricHistory(serviceOnline && allChart, allChart ? COOLING_HISTORY_SERIES_QUERY : '');
 
   // The System tab's incident timeline uses a relative-range / specific-day
@@ -203,7 +202,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
       case 'memory': return <MemorySection data={memory.data} loading={memory.loading} error={memory.error} onRefresh={memory.refresh} />;
       case 'cooling': return (
         <ThermalsTab
-          cooling={cooling}
           coolingHistory={coolingHistory}
           sensorHistory={sensorHistory}
           episodes={temperatures.data?.episodes ?? []}

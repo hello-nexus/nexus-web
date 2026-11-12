@@ -1,5 +1,8 @@
 import type { BuiltInSensorKind, NewSensorAlertRule, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
+import { CATEGORY_LABEL_KEYS } from '../../../panel/widgets/monitoring/sensorPicker';
+import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
+import type { DeviceKey } from '../../../panel/widgets/monitoring/perfSlots';
 import type { Language } from '../../../lib/settings';
 import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, tempUnitSymbol, type DateFormat, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
 
@@ -251,7 +254,7 @@ export function sensorLabel(sensor: SensorRef): string {
 }
 
 /** Native bounds (Celsius) the service clamps a built-in's upper limit to. */
-const BUILT_IN_LIMIT_BOUNDS: Record<BuiltInSensorKind, Bounds> = {
+const BUILT_IN_LIMIT_BOUNDS: Partial<Record<BuiltInSensorKind, Bounds>> = {
   cpuTemp: { min: 20, max: 100 },
   gpuTemp: { min: 20, max: 100 },
   storageTemp: { min: 20, max: 100 },
@@ -265,7 +268,7 @@ export function isBuiltIn(rule: SensorAlertRule): boolean {
 
 /** The slider bounds of a built-in's limit, or null for a user rule. */
 export function builtInLimitBounds(rule: SensorAlertRule): Bounds | null {
-  return rule.builtIn ? BUILT_IN_LIMIT_BOUNDS[rule.builtIn] : null;
+  return rule.builtIn ? (BUILT_IN_LIMIT_BOUNDS[rule.builtIn] ?? null) : null;
 }
 
 /** A rule's name: the device name a built-in carries, else the sensor's own label. */
@@ -367,13 +370,40 @@ export function findTrackedRule(rules: readonly SensorAlertRule[], sensor: Senso
 function sourceSubtitle(source: SensorAlertRule['source'], t: (key: string, vars?: Record<string, string | number>) => string): string | undefined {
   if (!source) return undefined;
   if (source.kind === 'drive') return t('diagnostics.sensors.source.drive');
+  if (source.kind === 'channel') return t('diagnostics.sensors.source.channel');
   if (source.kind === 'average') return source.sensors.length > 0 ? t('diagnostics.sensors.source.average', { count: source.sensors.length }) : undefined;
   return source.sensor?.name || undefined;
 }
 
-/** A row's title and subtitle. Every entry reads alike: the device, then the exact sensor tracked. */
-export function rowTitles(rule: SensorAlertRule, t: (key: string, vars?: Record<string, string | number>) => string): { title: string; subtitle: string | undefined } {
+/** The sensor dropdown label the picker shows for a stored sensor, rebuilt from its own fields (the picker's per-category label rules). */
+function pickerSensorLabel(sensor: SensorRef): string {
+  const device = sensor.category as DeviceKey;
+  switch (device) {
+    case 'quick':
+    case 'fan':
+    case 'fps':
+    case 'storage':
+      return sensor.name;
+    case 'network':
+      return bareSensorLabel(device, sensor.name) || sensor.name;
+    default:
+      return `${bareSensorLabel(device, sensor.name) || sensor.name} (${sensor.type})`;
+  }
+}
+
+/**
+ * A row's title and subtitle. A built-in reads device name then source; a custom sensor reads exactly as the
+ * editor's picker did: the picker's device label, then its sensor label. `pickerLabel` supplies the live option
+ * label where the picker's text needs live data (a drive's name), else it is rebuilt from the stored sensor.
+ */
+export function rowTitles(
+  rule: SensorAlertRule,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  pickerLabel?: (sensor: SensorRef) => string | undefined,
+): { title: string; subtitle: string | undefined } {
   if (isBuiltIn(rule)) return { title: rule.sensor.name, subtitle: sourceSubtitle(rule.source, t) };
-  const { name, parentName } = rule.sensor;
-  return parentName ? { title: parentName, subtitle: name } : { title: name, subtitle: undefined };
+  const { category, name, parentName } = rule.sensor;
+  const deviceKey = CATEGORY_LABEL_KEYS[category as DeviceKey];
+  if (!deviceKey) return parentName ? { title: parentName, subtitle: name } : { title: name, subtitle: undefined };
+  return { title: t(deviceKey), subtitle: pickerLabel?.(rule.sensor) ?? pickerSensorLabel(rule.sensor) };
 }

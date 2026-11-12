@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { ChevronDown, ChevronRight, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { useUiSettings } from '../../../hooks/useUiSettings';
+import { ComponentMonitorSwitch } from './ComponentMonitorSwitch';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
@@ -24,6 +26,7 @@ interface SystemSectionProps {
 export function SystemSection({ data, loading, error, onRefresh }: SystemSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
+  const monitored = useUiSettings().settings.diagnosticsComponentSystem;
   const state = resolveSectionState({
     hasData: data !== null,
     loading,
@@ -52,6 +55,8 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
         <>
           <div className={styles.sectionHeaderRow}>
             <SectionHeader>{t('diagnostics.system.pnpProblems')}</SectionHeader>
+            {/* eslint-disable-next-line i18next/no-literal-string -- setting and locale keys, not text */}
+            <ComponentMonitorSwitch setting="diagnosticsComponentSystem" labelKey="diagnostics.monitorComponent.system" />
             <Button
               tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={opening}
               onClick={() => void handleOpenDeviceManager()}
@@ -59,7 +64,7 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
               {t('diagnostics.system.openDeviceManager')}
             </Button>
           </div>
-          {data.pnpProblems.length === 0 ? (
+          {!monitored ? null : data.pnpProblems.length === 0 ? (
             <EmptyState compact icon={<ShieldCheck size={22} />} title={t('diagnostics.system.pnpEmpty')} />
           ) : (
             <ul className={styles.pnpList}>

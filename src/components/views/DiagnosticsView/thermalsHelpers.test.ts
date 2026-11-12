@@ -3,58 +3,83 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import {
   INITIAL_THERMALS_SELECTION,
   builtInSeriesId,
-  builtInOutOfRangeBands,
-  builtInThresholds,
+  deselect,
+  groupOf,
+  groupedRules,
+  groupsPresent,
   outOfRangeBands,
   resolveThermals,
   ruleForSeries,
-  selectMode,
+  ruleLines,
+  ruleOutOfRangeBands,
+  ruleThresholds,
+  selectGroup,
   selectRule,
+  seriesIdOfRule,
 } from './thermalsHelpers';
 
-const rule = (id: string, over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
+const rule = (id: string, over: Partial<SensorAlertRule> = {}, type = 'Temperature'): SensorAlertRule => ({
   id, enabled: true,
-  sensor: { category: 'cpu', id, name: id, type: 'Temperature', parentName: '' },
+  sensor: { category: 'cpu', id, name: id, type, parentName: '' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
   notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn: null, ...over,
 });
 const cpu = rule('builtin:cpu-temp', { builtIn: 'cpuTemp' });
 const gpu = rule('builtin:gpu-temp:0', { builtIn: 'gpuTemp' });
-const fan = rule('u1');
-const volt = rule('u2');
-const rules = [cpu, gpu, fan, volt];
+const temp = rule('u1');
+const load = rule('u2', {}, 'Load');
+const load2 = rule('u3', {}, 'Load');
+const builtInFan = rule('builtin:fan:1', { builtIn: 'fanSpeed' }, 'Fan');
+const rules = [cpu, gpu, temp, load, load2, builtInFan];
 
-describe('selectRule', () => {
-  it('a built-in switches to All thermals and a custom sensor to Custom', () => {
-    const custom = selectRule(INITIAL_THERMALS_SELECTION, fan);
-    expect(custom).toMatchObject({ mode: 'custom', custom: 'u1' });
-    expect(selectRule(custom, gpu)).toMatchObject({ mode: 'all', all: 'builtin:gpu-temp:0', custom: 'u1' });
+describe('grouping', () => {
+  it('groups an entry by its sensor type, a fan built-in with the fan speeds', () => {
+    expect(groupOf(cpu)).toBe('thermals');
+    expect(groupOf(temp)).toBe('thermals');
+    expect(groupOf(load)).toBe('loads');
+    expect(groupOf(builtInFan)).toBe('fans');
+    expect(groupOf(rule('v', {}, 'Voltage'))).toBe('voltages');
+    expect(groupOf(rule('p', {}, 'Power'))).toBe('power');
+    expect(groupOf(rule('c', {}, 'Clock'))).toBe('clocks');
+    expect(groupOf(rule('a', {}, 'Current'))).toBe('currents');
+  });
+
+  it('offers Thermals always and then only the groups that have an entry, in chart order', () => {
+    expect(groupsPresent([])).toEqual(['thermals']);
+    expect(groupsPresent(rules)).toEqual(['thermals', 'loads', 'fans']);
+    expect(groupsPresent([load])).toEqual(['thermals', 'loads']);
+  });
+
+  it('sections the watchlist by group, built-ins before custom entries', () => {
+    expect(groupedRules([temp, cpu, load, gpu]).map(s => [s.group, s.rules.map(r => r.id)])).toEqual([
+      ['thermals', ['builtin:cpu-temp', 'builtin:gpu-temp:0', 'u1']],
+      ['loads', ['u2']],
+    ]);
   });
 });
 
-describe('resolveThermals', () => {
-  it('starts on the first built-in in All mode', () => {
-    expect(resolveThermals(rules, INITIAL_THERMALS_SELECTION)).toMatchObject({ mode: 'all', selectedId: cpu.id });
+describe('selection', () => {
+  it('picking an entry shows its group with that entry selected', () => {
+    expect(selectRule(INITIAL_THERMALS_SELECTION, load)).toEqual({ group: 'loads', selectedId: 'u2', auto: false });
   });
 
-  it('remembers the last entry of each mode across a toggle', () => {
-    let sel = selectRule(INITIAL_THERMALS_SELECTION, gpu);
-    sel = selectRule(sel, volt);
-    expect(resolveThermals(rules, sel)).toMatchObject({ mode: 'custom', selectedId: 'u2' });
-    sel = selectMode(sel, 'all');
-    expect(resolveThermals(rules, sel)).toMatchObject({ mode: 'all', selectedId: gpu.id });
-    sel = selectMode(sel, 'custom');
-    expect(resolveThermals(rules, sel)).toMatchObject({ mode: 'custom', selectedId: 'u2' });
+  it('starts on the first built-in, and a group button selects that group\'s first entry', () => {
+    expect(resolveThermals(rules, INITIAL_THERMALS_SELECTION)).toMatchObject({ group: 'thermals', selectedId: cpu.id });
+    expect(resolveThermals(rules, selectGroup(INITIAL_THERMALS_SELECTION, 'loads'))).toMatchObject({ group: 'loads', selectedId: 'u2' });
   });
 
-  it('falls back to All while there are no custom sensors', () => {
-    const sel = selectMode(INITIAL_THERMALS_SELECTION, 'custom');
-    expect(resolveThermals([cpu, gpu], sel)).toMatchObject({ mode: 'all', selectedId: cpu.id });
+  it('deselecting keeps the group and selects nothing', () => {
+    const sel = deselect(selectRule(INITIAL_THERMALS_SELECTION, load2));
+    expect(resolveThermals(rules, sel)).toMatchObject({ group: 'loads', selectedId: null });
+    expect(deselect(INITIAL_THERMALS_SELECTION).auto).toBe(false);
   });
 
-  it('falls back to the first entry when the remembered one is gone', () => {
-    const sel = selectRule(INITIAL_THERMALS_SELECTION, volt);
-    expect(resolveThermals([cpu, fan], sel)).toMatchObject({ mode: 'custom', selectedId: 'u1' });
+  it('follows the picked entry to its group even when the remembered group differs', () => {
+    expect(resolveThermals(rules, { group: 'thermals', selectedId: 'u3', auto: false })).toMatchObject({ group: 'loads', selectedId: 'u3' });
+  });
+
+  it('falls back to Thermals when the remembered group has no entries any more', () => {
+    expect(resolveThermals([cpu], { group: 'loads', selectedId: null, auto: true })).toMatchObject({ group: 'thermals', selectedId: cpu.id });
   });
 
   it('selects nothing without rules', () => {
@@ -63,20 +88,33 @@ describe('resolveThermals', () => {
 });
 
 describe('chart linking', () => {
-  it('maps a built-in to its chart series id and back', () => {
+  it('maps a device temperature to its monitoring series and any other entry to its own', () => {
     expect(builtInSeriesId(gpu)).toBe('gpu-temp:0');
-    expect(builtInSeriesId(fan)).toBeNull();
-    expect(builtInSeriesId(undefined)).toBeNull();
+    expect(builtInSeriesId(temp)).toBeNull();
+    expect(seriesIdOfRule(gpu)).toBe('gpu-temp:0');
+    expect(seriesIdOfRule(temp)).toBe('u1');
+    expect(seriesIdOfRule(builtInFan)).toBe('builtin:fan:1');
     expect(ruleForSeries(rules, 'cpu-temp')).toBe(cpu);
+    expect(ruleForSeries(rules, 'u2')).toBe(load);
     expect(ruleForSeries(rules, 'mem-temp')).toBeNull();
   });
 
-  it('draws a built-in limit lines in Celsius, in the severity tone, and none for a custom sensor', () => {
-    expect(builtInThresholds(rule('builtin:cpu-temp', { builtIn: 'cpuTemp', low: 5, high: 90, severity: 'act' }))).toEqual([
+  it('draws limit lines in the severity tone', () => {
+    expect(ruleThresholds(rule('builtin:cpu-temp', { builtIn: 'cpuTemp', low: 5, high: 90, severity: 'act' }))).toEqual([
       { value: 5, color: 'var(--bad)' }, { value: 90, color: 'var(--bad)' },
     ]);
-    expect(builtInThresholds(cpu)).toEqual([{ value: 80, color: 'var(--warn)' }]);
-    expect(builtInThresholds(fan)).toEqual([]);
+    expect(ruleThresholds(load)).toEqual([{ value: 80, color: 'var(--warn)' }]);
+    expect(ruleThresholds(undefined)).toEqual([]);
+  });
+
+  it('draws each recorded entry as a line in its own color, none repeating or taken', () => {
+    const hist = (id: string) => ({ id, kind: 'sensorAlert', name: id, points: [{ t: 1, avg: 2, max: 3 }] });
+    const taken = new Set(['#3a89e8']);
+    const lines = ruleLines([load, load2, temp], [hist('u2'), hist('u3')], r => `n-${r.id}`, taken);
+    expect(lines.map(l => l.id)).toEqual(['u2', 'u3']);
+    expect(lines.map(l => l.name)).toEqual(['n-u2', 'n-u3']);
+    expect(new Set(lines.map(l => l.color)).size).toBe(2);
+    expect(lines.some(l => taken.has(l.color))).toBe(false);
   });
 });
 
@@ -98,15 +136,16 @@ describe('outOfRangeBands', () => {
   });
 });
 
-describe('builtInOutOfRangeBands', () => {
+describe('ruleOutOfRangeBands', () => {
   const line = { id: 'cpu-temp', name: 'CPU', color: 'x', points: [{ t: 0, avg: 50, max: 50 }, { t: 10, avg: 95, max: 95 }, { t: 20, avg: 96, max: 96 }] };
-  it('bands each enabled built-in against its own limits in its severity tone', () => {
-    expect(builtInOutOfRangeBands([cpu], [line])).toEqual([{ startT: 10, endT: 20, color: 'var(--warn)' }]);
-    expect(builtInOutOfRangeBands([{ ...cpu, severity: 'act' }], [line])[0].color).toBe('var(--bad)');
+  const loadLine = { id: 'u2', name: 'L', color: 'x', points: [{ t: 0, avg: 10, max: 10 }, { t: 10, avg: 99, max: 99 }] };
+  it('bands each enabled entry against its own limits in its severity tone, in every group', () => {
+    expect(ruleOutOfRangeBands([cpu], [line])).toEqual([{ startT: 10, endT: 20, color: 'var(--warn)' }]);
+    expect(ruleOutOfRangeBands([{ ...cpu, severity: 'act' }], [line])[0].color).toBe('var(--bad)');
+    expect(ruleOutOfRangeBands([load], [loadLine])).toHaveLength(1);
   });
-  it('draws nothing for a disabled entry, a custom sensor, or an entry with no drawn series', () => {
-    expect(builtInOutOfRangeBands([{ ...cpu, enabled: false }], [line])).toEqual([]);
-    expect(builtInOutOfRangeBands([fan], [line])).toEqual([]);
-    expect(builtInOutOfRangeBands([gpu], [line])).toEqual([]);
+  it('draws nothing for a disabled entry or an entry with no drawn series', () => {
+    expect(ruleOutOfRangeBands([{ ...cpu, enabled: false }], [line])).toEqual([]);
+    expect(ruleOutOfRangeBands([gpu], [line])).toEqual([]);
   });
 });

@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChartLine, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { ChartLine, MousePointerClick, Plus, SearchX } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import {
   MAX_SENSOR_ALERT_RULES,
   type SensorAlertRule,
   type SensorRef,
 } from '../../../api/diagnosticsAlerts';
-import type { DiagnosticsCoolingResponse, DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
+import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { requestSearchScroll } from '../../../search/scroll';
@@ -21,38 +21,37 @@ import type { DeckMonitoringCategory } from '../../../panel/widgets/deck/types';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertBanner } from './SensorAlertBanner';
-import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRule, isBannerAlert, ruleLabel, sensorRefOf } from './sensorAlertHelpers';
+import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRule, formatDisplayValue, isBannerAlert, rowTitles, ruleLabel, sensorRefOf } from './sensorAlertHelpers';
 import { Card } from '../../common/Card/Card';
+import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
-import { SensorHistorySection } from './SensorHistorySection';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import { toCoolingTempChartSeries } from './coolingHistoryHelpers';
-import { CoolingSection } from './CoolingSection';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { GuardTripNotice } from './GuardTripNotice';
 import { SensorList } from './SensorList';
-import { sensorCardAnchor } from './sensorHistoryHelpers';
+import { sensorCardAnchor, sensorYDomain } from './sensorHistoryHelpers';
 import {
-  builtInSeriesId,
-  builtInOutOfRangeBands,
-  builtInThresholds,
+  deselect,
+  groupLabelKey,
+  groupedRules,
+  groupTitleKey,
+  linkHistories,
   resolveThermals,
   ruleForSeries,
-  selectMode,
+  ruleLines,
+  ruleOutOfRangeBands,
+  ruleThresholds,
+  selectGroup,
   selectRule,
-  type ThermalsMode,
+  seriesIdOfRule,
   type ThermalsSelection,
 } from './thermalsHelpers';
 import pageStyles from '../../../panel/widgets/lighting/LightingPage.module.scss';
 import styles from './ThermalsTab.module.scss';
 
 interface ThermalsTabProps {
-  cooling: {
-    data: DiagnosticsCoolingResponse | null;
-    loading: boolean;
-    error: boolean;
-    refresh: () => void;
-  };
   /** The All thermals chart's history; the hook instance lives in DiagnosticsView so its viewport survives tab switches. */
   coolingHistory: UseMetricHistoryResult;
   /** The Custom sensors chart's history. */
@@ -63,7 +62,7 @@ interface ThermalsTabProps {
   onOpenCooling?: () => void;
   /** The user dismissed an ended trip: refresh whatever shows it. */
   onGuardTripDismissed: () => void;
-  /** Chart mode and the entry picked in each mode, owned by DiagnosticsView so they survive tab switches. */
+  /** Chart group and the entry picked, owned by DiagnosticsView so they survive tab switches. */
   selection: ThermalsSelection;
   onSelectionChange: (next: ThermalsSelection) => void;
   /** A card to scroll to and shine once the rules have loaded (set by a Summary row). */
@@ -74,12 +73,12 @@ interface ThermalsTabProps {
 }
 
 /**
- * Every thermal in one place: a full-width chart (all device temperatures, or one custom sensor), then the
+ * Every thermal in one place: a full-width chart of one unit group (Thermals, Loads, Voltages, ...), then the
  * watchlist on the left and the selected entry's settings on the right, then the fans. Selecting a watchlist
- * entry picks the chart mode, and a chart legend item selects its built-in entry.
+ * entry shows its group, and a chart legend item selects its entry; selecting it again clears the pick.
  */
 export function ThermalsTab({
-  cooling, coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
+  coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
   selection, onSelectionChange, focusRuleId, onFocused, onAlertDismissed,
 }: ThermalsTabProps) {
   const { t } = useTranslation();
@@ -88,26 +87,18 @@ export function ThermalsTab({
   const { rules, states, loaded, error, loading, refresh } = alerts;
   const lookup = useSensorLookup();
   const { sensors, extras, networkSensors, resolve } = lookup;
-  const { mode, selectedId, builtIns, custom } = resolveThermals(rules, selection);
+  const { group, groups, selectedId, groupRules } = resolveThermals(rules, selection);
   const selectedRule = rules.find(r => r.id === selectedId);
   const select = (rule: SensorAlertRule) => onSelectionChange(selectRule(selection, rule));
+  // A second pick of the selected entry clears it.
+  const toggleSelect = (rule: SensorAlertRule) => onSelectionChange(rule.id === selectedId ? deselect(selection) : selectRule(selection, rule));
+  const { monitoringTempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   // The focus effect reads the latest selection without re-running on every selection change.
   const selectionRef = useRef(selection);
   useEffect(() => { selectionRef.current = selection; });
   // Re-snapshot "now" when the states change, so render stays pure.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [states]);
-
-  // The Custom view needs at least one custom sensor; once the last is deleted the stored mode follows the shown one.
-  const customGone = loaded && selection.mode === 'custom' && custom.length === 0;
-  useEffect(() => {
-    if (customGone) onSelectionChange(selectMode(selection, 'all'));
-  }, [customGone, selection, onSelectionChange]);
-
-  const rangeBands = useMemo(
-    () => builtInOutOfRangeBands(rules, toCoolingTempChartSeries(coolingHistory.series)),
-    [rules, coolingHistory.series],
-  );
 
   // The first sensor the picker would list: new rules start on it.
   const firstSensor = useMemo(() => {
@@ -141,12 +132,70 @@ export function ThermalsTab({
     else if (res.result === 'error') push({ title: t('diagnostics.alerts.addFailed') });
   };
 
+  // The sensor dropdown text the editor's picker lists for a stored sensor.
+  const pickerLabel = (sensor: SensorRef) => sensorsForDevice(sensors, networkSensors, extras, sensor.category as DeckMonitoringCategory)
+    .find(o => o.value === sensor.id || o.sensorName === sensor.id)?.label;
+  const entryName = (rule: SensorAlertRule) => {
+    const { title, subtitle } = rowTitles(rule, t, pickerLabel);
+    return subtitle ? `${title}: ${subtitle}` : title;
+  };
+  // The settings panel sticks just under the docked chart, so it needs the chart's height.
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [dockHeight, setDockHeight] = useState(0);
+  useEffect(() => {
+    const el = dockRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => setDockHeight(el.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const [query, setQuery] = useState('');
+  const needle = query.trim().toLowerCase();
+  const sections = groupedRules(rules)
+    .map(section => ({
+      ...section,
+      rules: needle
+        ? section.rules.filter(r => { const { title, subtitle } = rowTitles(r, t, pickerLabel); return `${title} ${subtitle ?? ''}`.toLowerCase().includes(needle); })
+        : section.rules,
+    }))
+    .filter(section => section.rules.length > 0);
+
+  // The chart's lines. Thermals draws the device temperatures plus the custom temperature entries; every other
+  // group draws its entries' recorded lines.
+  const thermalsGroup = group === 'thermals';
+  const customTemps = useMemo(() => groupRules.filter(r => !r.builtIn), [groupRules]);
+  const deviceLines = useMemo(() => toCoolingTempChartSeries(coolingHistory.series), [coolingHistory.series]);
+  const customLines = useMemo(
+    () => ruleLines(thermalsGroup ? customTemps : groupRules, sensorHistory.series, ruleLabel, new Set(deviceLines.map(l => l.color))),
+    [thermalsGroup, customTemps, groupRules, sensorHistory.series, deviceLines],
+  );
+  const chartLines = useMemo(() => (thermalsGroup ? [...deviceLines, ...customLines] : customLines), [thermalsGroup, deviceLines, customLines]);
+  const rangeBands = useMemo(() => ruleOutOfRangeBands(groupRules, chartLines), [groupRules, chartLines]);
+  const chartHistory = useMemo(
+    () => (thermalsGroup && customTemps.length > 0 ? linkHistories(coolingHistory, sensorHistory) : thermalsGroup ? coolingHistory : sensorHistory),
+    [thermalsGroup, customTemps.length, coolingHistory, sensorHistory],
+  );
+  const groupType = groupRules[0]?.sensor.type ?? 'Temperature';
+  const groupFormat = useMemo(
+    () => (v: number) => formatDisplayValue(v, groupType, monitoringTempUnit, numberFormat, monitoringWholeNumbers),
+    [groupType, monitoringTempUnit, numberFormat, monitoringWholeNumbers],
+  );
+  const thresholds = useMemo(() => ruleThresholds(selectedRule), [selectedRule]);
+  const groupYDomain = useMemo(
+    () => (thermalsGroup ? undefined : sensorYDomain({ id: '', name: '', color: '', points: customLines.flatMap(l => l.points) }, thresholds)),
+    [thermalsGroup, customLines, thresholds],
+  );
+
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
   const listProps = {
     states,
     selectedId,
+    pickerLabel,
     liveOf: (rule: SensorAlertRule) => resolve(rule.sensor.category, rule.sensor.id)?.value ?? null,
-    onSelect: (id: string) => { const rule = rules.find(r => r.id === id); if (rule) select(rule); },
+    onSelect: (id: string) => { const rule = rules.find(r => r.id === id); if (rule) toggleSelect(rule); },
     onToggleEnabled: (rule: SensorAlertRule, enabled: boolean) => alerts.save({ ...rule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') })),
   };
   const restoreBuiltIn = (id: string) => { void alerts.resetBuiltIns(id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); }); };
@@ -163,7 +212,7 @@ export function ThermalsTab({
   );
 
   // Charts grow once history lands, so the scroll waits for it to avoid landing above the target's final position.
-  const activeHistory = mode === 'custom' ? sensorHistory : coolingHistory;
+  const activeHistory = chartHistory;
   const historySettled = !activeHistory.loading || !activeHistory.supported || activeHistory.error;
   const focusedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -178,17 +227,12 @@ export function ThermalsTab({
     onFocused();
   }, [focusRuleId, loaded, historySettled, rules, onSelectionChange, onFocused]);
 
-  const modeToggle = custom.length > 0 ? (
+  const groupToggle = groups.length > 1 ? (
     <ChipGroup
       ariaLabel={t('diagnostics.thermals.mode.aria')}
-      options={[
-        // eslint-disable-next-line i18next/no-literal-string -- option keys, not text
-        { key: 'all', label: t('diagnostics.thermals.mode.all') },
-        // eslint-disable-next-line i18next/no-literal-string -- option keys, not text
-        { key: 'custom', label: t('diagnostics.thermals.mode.custom') },
-      ]}
-      activeKey={mode}
-      onChange={key => onSelectionChange(selectMode(selection, key as ThermalsMode))}
+      options={groups.map(key => ({ key, label: t(groupLabelKey(key)) }))}
+      activeKey={group}
+      onChange={key => onSelectionChange(selectGroup(selection, key as typeof group))}
     />
   ) : undefined;
 
@@ -213,7 +257,17 @@ export function ThermalsTab({
               <SectionHeader>{t('diagnostics.tab.sensors')}</SectionHeader>
               {note && <span className={styles.note}>{note}</span>}
             </div>
-            <SensorList rules={[...builtIns, ...custom]} {...listProps} />
+            <SearchInput value={query} onChange={setQuery} placeholder={t('diagnostics.sensors.search')} />
+            {sections.length === 0 ? (
+              <div className={styles.messageBox}>
+                <EmptyState compact icon={<SearchX size={22} />} title={t('diagnostics.sensors.noMatches')} />
+              </div>
+            ) : sections.map(section => (
+              <div key={section.group} className={styles.section} data-testid="watchlist-group" data-group={section.group}>
+                <span className={styles.sectionTitle}>{t(groupLabelKey(section.group))}</span>
+                <SensorList rules={section.rules} {...listProps} />
+              </div>
+            ))}
             <button
               type="button" className={pageStyles.addSmartLights} data-testid="sensor-add"
               disabled={!loaded || alerts.atLimit || !firstSensor} onClick={() => void onAdd()}
@@ -222,7 +276,7 @@ export function ThermalsTab({
               <span>{t('diagnostics.sensors.add')}</span>
             </button>
           </div>
-          {selectedRule && (
+          {selectedRule ? (
             <div className={styles.detail} data-testid="sensor-detail" data-rule-id={selectedRule.id}>
               <div className={styles.groupHeader}>
                 <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
@@ -250,16 +304,25 @@ export function ThermalsTab({
                 </div>
               </Card>
             </div>
+          ) : (
+            <div className={styles.detail} data-testid="sensor-detail-empty">
+              <div className={styles.groupHeader}>
+                <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
+              </div>
+              <div className={styles.messageBox}>
+                <EmptyState compact icon={<MousePointerClick size={22} />} title={t('diagnostics.thermals.selectHint')} />
+              </div>
+            </div>
           )}
         </div>
       );
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} style={{ '--dock-height': `${dockHeight}px` } as CSSProperties}>
       <ConfirmModal
         open={trackedBy !== null}
         title={t('diagnostics.sensors.tracked.title')}
-        message={trackedBy ? t('diagnostics.sensors.tracked.message', { name: ruleLabel(trackedBy) }) : ''}
+        message={trackedBy ? t('diagnostics.sensors.tracked.message', { name: entryName(trackedBy) }) : ''}
         confirmLabel={t('diagnostics.sensors.tracked.show')}
         destructive={false}
         onConfirm={() => { if (trackedBy) select(trackedBy); setTrackedBy(null); }}
@@ -282,41 +345,26 @@ export function ThermalsTab({
           />
         );
       })}
-      {mode === 'custom' && selectedRule ? (
-        <div data-testid="sensor-history" data-mode="custom" data-rule-id={selectedRule.id}>
-          <SensorHistorySection
-            history={sensorHistory}
-            rule={selectedRule}
-            headerControl={modeToggle}
-            legend={(
-              <ChipGroup
-                wrap
-                ariaLabel={t('diagnostics.thermals.mode.custom')}
-                options={custom.map(r => ({ key: r.id, label: ruleLabel(r) }))}
-                activeKey={selectedRule.id}
-                onChange={id => { const rule = rules.find(r => r.id === id); if (rule) select(rule); }}
-              />
-            )}
-          />
-        </div>
-      ) : (
-        <div data-testid="cooling-history" data-mode="all">
-          <CoolingHistorySection
-            history={coolingHistory}
-            episodes={episodes}
-            headerControl={modeToggle}
-            activeSeriesId={builtInSeriesId(selectedRule)}
-            thresholds={builtInThresholds(selectedRule)}
-            rangeBands={rangeBands}
-            onSeriesSelect={seriesId => { const rule = ruleForSeries(rules, seriesId); if (rule) select(rule); }}
-          />
-        </div>
-      )}
+      <div ref={dockRef} className={styles.dock} data-testid="thermals-history" data-group={group}>
+        <CoolingHistorySection
+          history={chartHistory}
+          episodes={thermalsGroup ? episodes : undefined}
+          headerControl={groupToggle}
+          title={t(groupTitleKey(group))}
+          lines={thermalsGroup ? undefined : customLines}
+          extraLines={thermalsGroup ? customLines : undefined}
+          fanStrip={thermalsGroup}
+          valueFormat={thermalsGroup ? undefined : groupFormat}
+          yDomain={groupYDomain}
+          emptyTitle={thermalsGroup ? undefined : t('diagnostics.sensors.noHistory')}
+          wheelZoomNeedsModifier
+          activeSeriesId={selectedRule ? seriesIdOfRule(selectedRule) : null}
+          thresholds={thresholds}
+          rangeBands={rangeBands}
+          onSeriesSelect={seriesId => { const rule = ruleForSeries(rules, seriesId); if (rule) toggleSelect(rule); }}
+        />
+      </div>
       {watchlist}
-      <CoolingSection
-        data={cooling.data} loading={cooling.loading} error={cooling.error} onRefresh={cooling.refresh}
-        heading={t('diagnostics.cooling.fansTitle')}
-      />
     </div>
   );
 }

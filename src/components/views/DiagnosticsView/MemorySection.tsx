@@ -10,6 +10,8 @@ import { Card } from '../../common/Card/Card';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
 import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsFetchOptions, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
+import { useUiSettings } from '../../../hooks/useUiSettings';
+import { ComponentMonitorSwitch } from './ComponentMonitorSwitch';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { formatBytes, relativeTimeLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
@@ -25,6 +27,7 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const { push } = useToast();
+  const monitored = useUiSettings().settings.diagnosticsComponentRam;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -68,6 +71,10 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
       {state === 'empty' && <EmptyState compact icon={<MemoryStick size={22} />} title={t('diagnostics.memory.empty')} />}
       {state === 'content' && data && (
         <Card>
+          <div className={styles.sectionHeaderRow}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- setting and locale keys, not text */}
+            <ComponentMonitorSwitch setting="diagnosticsComponentRam" labelKey="diagnostics.monitorComponent.ram" />
+          </div>
           <table className={styles.moduleTable}>
             <thead>
               <tr>
@@ -91,12 +98,12 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
             </tbody>
           </table>
 
-          <div className={styles.memoryMetaRow}>
+          {monitored && <div className={styles.memoryMetaRow}>
             {data.xmpLikelyActive === true && <Badge label={t('diagnostics.memory.xmpActive')} color="var(--accent)" />}
             <span>{t('diagnostics.memory.lastTest')}: {lastTestLabel}</span>
-          </div>
+          </div>}
 
-          <div className={styles.testActions}>
+          {monitored && <div className={styles.testActions}>
             {data.testScheduled ? (
               <>
                 <Badge label={t('diagnostics.memory.testScheduled')} color="var(--warn)" />
@@ -109,7 +116,7 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
                 {t('diagnostics.memory.runTest')}
               </Button>
             )}
-          </div>
+          </div>}
         </Card>
       )}
 

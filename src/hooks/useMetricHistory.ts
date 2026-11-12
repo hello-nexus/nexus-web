@@ -622,7 +622,8 @@ export function useMetricHistory(
   // of margin - a multi-tick gap needs the fetch to reach at least as far as
   // the frame that revealed it, not just one tick past the last known point.
   const runTailGapFill = useCallback((minTo?: number) => {
-    const base = lastLoadedTRef.current ?? nowRef.current;
+    // With nothing loaded yet the base follows the wall clock: a source that was empty at the first fetch (a sensor just added) would otherwise poll the same stale window forever.
+    const base = lastLoadedTRef.current ?? Math.max(nowRef.current, Date.now());
     const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const windowSeconds = Math.max(0, to - from) / 1000;

@@ -110,6 +110,8 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
             sensor={rule.sensor.id}
             categories={ALERT_SENSOR_CATEGORIES}
             sensorTypes={ALERT_SENSOR_TYPES}
+            isUnavailable={(category, o) => !!findTracked?.({ category, id: o.value, type: o.type ?? '', name: '', parentName: '' })}
+            unavailableSuffix={t('diagnostics.sensors.inWatchlist')}
             onChange={(sel, resolved) => {
               if (!resolved) return;
               const ref = sensorRefOf(sel.category, resolved);

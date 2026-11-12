@@ -4,20 +4,22 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { ThermalsHarness } from './thermalsTestHarness';
 import { INITIAL_THERMALS_SELECTION } from './thermalsHelpers';
+import { watchlistFixture } from './watchlistFixture';
 
 const h = vi.hoisted(() => ({
   rules: [] as unknown[],
+  atLimit: false,
   coolingChart: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
-    rules: h.rules, states: [], loaded: true, error: false, loading: false, refresh: vi.fn(), atLimit: false,
+    rules: h.rules, states: [], loaded: true, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
     add: vi.fn(), save: vi.fn(), remove: vi.fn(), acknowledge: vi.fn(), resetBuiltIns: vi.fn(), preview: vi.fn(),
   }),
 }));
 vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: vi.fn() }) }));
-vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
+vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal => ({ ...(await importOriginal<object>()), sensorsForDevice: () => [] }));
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({
   useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }),
 }));
@@ -71,16 +73,21 @@ const coolingHistory = history([
   { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: pt },
   { id: 'gpu-temp:0', kind: 'gpu-temp', name: 'GPU', points: pt },
 ]);
-const sensorHistory = history([{ id: 'u1', kind: 'sensorAlert', name: 'Fan', points: pt }]);
+const sensorHistory = history([
+  { id: 'u1', kind: 'sensorAlert', name: 'Custom temp', points: pt },
+  { id: 'l1', kind: 'sensorAlert', name: 'Load', points: pt },
+  { id: 'l2', kind: 'sensorAlert', name: 'Load 2', points: pt },
+]);
 
-const rule = (id: string, over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
+const rule = (id: string, over: Partial<SensorAlertRule> = {}, type = 'Temperature'): SensorAlertRule => ({
   id, enabled: true,
-  sensor: { category: 'cpu', id, name: id, type: 'Temperature', parentName: '' },
+  sensor: { category: 'cpu', id, name: id, type, parentName: '' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
   notifyDesktop: false, showInHealth: true, repeatMinutes: 0, builtIn: null, ...over,
 });
 const cpu = rule('builtin:cpu-temp', { builtIn: 'cpuTemp' });
 const gpu = rule('builtin:gpu-temp:0', { builtIn: 'gpuTemp' });
+const loads = [rule('l1', {}, 'Load'), rule('l2', {}, 'Load')];
 
 const renderTab = (initial = INITIAL_THERMALS_SELECTION) => render(
   <ThermalsHarness
@@ -90,97 +97,151 @@ const renderTab = (initial = INITIAL_THERMALS_SELECTION) => render(
 );
 
 const rowFor = (id: string) => screen.getAllByTestId('sensor-row').find(r => r.getAttribute('data-rule-id') === id)!;
+const rowButton = (id: string) => within(rowFor(id)).getByRole('button');
+const chartSeriesIds = () => (h.coolingChart.mock.calls.at(-1)?.[0].series as { id: string }[]).map(s => s.id);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  h.rules = [cpu, gpu, rule('u1'), rule('u2')];
+  h.atLimit = false;
+  h.rules = [cpu, gpu, rule('u1'), rule('u2'), ...loads];
 });
 
-describe('Thermals mode toggle', () => {
-  it('opens on All thermals with the selected built-in highlighted and its limit drawn', () => {
+describe('Thermals group buttons', () => {
+  it('opens on Thermals with the first built-in highlighted and its limit drawn', () => {
     renderTab();
-    expect(screen.getByTestId('cooling-history')).toBeInTheDocument();
+    expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'thermals');
     expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'cpu-temp');
     expect(h.coolingChart.mock.calls.at(-1)?.[0].thresholds).toEqual([{ value: 80, color: 'var(--warn)' }]);
   });
 
-  it('switches to the Custom sensors chart and back, keeping each mode\'s selection', () => {
-    renderTab();
-    fireEvent.click(screen.getByTestId('legend-gpu-temp:0'));
-    expect(rowFor('builtin:gpu-temp:0')).toHaveAttribute('data-selected', 'true');
-
-    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.mode.custom' }));
-    expect(screen.getByTestId('sensor-history')).toHaveAttribute('data-rule-id', 'u1');
-    fireEvent.click(within(rowFor('u2')).getByRole('button'));
-    expect(screen.getByTestId('sensor-history')).toHaveAttribute('data-rule-id', 'u2');
-
-    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.mode.all' }));
-    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'gpu-temp:0');
-    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.mode.custom' }));
-    expect(screen.getByTestId('sensor-history')).toHaveAttribute('data-rule-id', 'u2');
-  });
-
-  it('hides the Custom option when there are no custom sensors', () => {
+  it('shows a button per group that has an entry, Thermals first, and none when only Thermals exists', () => {
+    const { unmount } = renderTab();
+    const labels = screen.getAllByRole('radio').map(r => r.textContent);
+    expect(labels).toEqual(['diagnostics.tab.thermals', 'diagnostics.thermals.group.loads']);
+    unmount();
     h.rules = [cpu, gpu];
     renderTab();
-    expect(screen.queryByRole('radio', { name: 'diagnostics.thermals.mode.custom' })).toBeNull();
-    expect(screen.getByTestId('cooling-history')).toBeInTheDocument();
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
   });
 
-  it('shows All thermals when Custom was stored but the last custom sensor is gone', () => {
+  it('a group button shows that group and highlights its first entry; its title follows the group', () => {
+    renderTab();
+    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.group.loads' }));
+    expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'loads');
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'l1');
+    expect(screen.getByText('diagnostics.thermals.history.loads')).toBeInTheDocument();
+    expect(chartSeriesIds()).toEqual(['l1', 'l2']);
+  });
+
+  it('draws custom temperature entries in the Thermals chart beside the device lines', () => {
+    renderTab();
+    expect(chartSeriesIds()).toEqual(['cpu-temp', 'gpu-temp:0', 'u1']);
+  });
+
+  it('a group button disappears with its last entry', () => {
     h.rules = [cpu, gpu];
-    renderTab({ mode: 'custom', all: null, custom: 'u1' });
-    expect(screen.getByTestId('cooling-history')).toBeInTheDocument();
+    renderTab({ group: 'loads', selectedId: null, auto: true });
+    expect(screen.queryByRole('radio', { name: 'diagnostics.thermals.group.loads' })).toBeNull();
+    expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'thermals');
   });
 });
 
 describe('Thermals duplicate sensor', () => {
   it('refuses a sensor another entry tracks, names that entry, and selects it on request', () => {
     renderTab();
-    fireEvent.click(within(rowFor('u2')).getByRole('button'));
+    fireEvent.click(rowButton('l1'));
     fireEvent.click(screen.getByRole('button', { name: 'stub-pick-tracked' }));
     expect(screen.getByText('diagnostics.sensors.tracked.message')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.sensors.tracked.show' }));
-    expect(screen.getByTestId('sensor-history')).toHaveAttribute('data-rule-id', 'u1');
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('u1');
     expect(screen.queryByText('diagnostics.sensors.tracked.message')).toBeNull();
   });
 
   it('keeps the entry when the refusal is cancelled', () => {
     renderTab();
-    fireEvent.click(within(rowFor('u2')).getByRole('button'));
+    fireEvent.click(rowButton('l1'));
     fireEvent.click(screen.getByRole('button', { name: 'stub-pick-tracked' }));
     fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
-    expect(screen.getByTestId('sensor-history')).toHaveAttribute('data-rule-id', 'u2');
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('l1');
   });
 });
 
 describe('Thermals selection linking', () => {
-  it('selecting a custom entry switches the chart to Custom on that sensor', () => {
+  it('selecting an entry of another unit switches the chart to its group', () => {
     renderTab();
-    fireEvent.click(within(rowFor('u2')).getByRole('button'));
-    expect(screen.getByTestId('sensor-history')).toHaveAttribute('data-rule-id', 'u2');
-    expect(screen.getByTestId('settings-stub')).toHaveTextContent('u2');
-  });
-
-  it('selecting a built-in entry while on Custom switches the chart to All thermals', () => {
-    renderTab({ ...INITIAL_THERMALS_SELECTION, mode: 'custom' });
-    expect(screen.getByTestId('sensor-history')).toBeInTheDocument();
-    fireEvent.click(within(rowFor('builtin:gpu-temp:0')).getByRole('button'));
+    fireEvent.click(rowButton('l2'));
+    expect(screen.getByTestId('thermals-history')).toHaveAttribute('data-group', 'loads');
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'l2');
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('l2');
+    fireEvent.click(rowButton('builtin:gpu-temp:0'));
     expect(screen.getByTestId('chart')).toHaveAttribute('data-active', 'gpu-temp:0');
   });
 
-  it('clicking a legend item selects its built-in entry', () => {
+  it('clicking a legend item selects its entry, in every group alike', () => {
     renderTab();
     fireEvent.click(screen.getByTestId('legend-gpu-temp:0'));
     expect(screen.getByTestId('settings-stub')).toHaveTextContent('builtin:gpu-temp:0');
+    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.group.loads' }));
+    fireEvent.click(screen.getByTestId('legend-l2'));
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('l2');
   });
 
-  it('lists built-ins first, then the custom entries in one list, with no subheading, and a single add row', () => {
+  it('clicking the selected row or legend item again deselects: empty settings, no highlight, no limit lines', () => {
     renderTab();
+    fireEvent.click(rowButton('builtin:cpu-temp'));
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.thermals.selectHint')).toBeInTheDocument();
+    expect(screen.queryByTestId('settings-stub')).toBeNull();
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-active', '');
+    expect(h.coolingChart.mock.calls.at(-1)?.[0].thresholds).toEqual([]);
+
+    fireEvent.click(screen.getByTestId('legend-gpu-temp:0'));
+    expect(screen.getByTestId('settings-stub')).toHaveTextContent('builtin:gpu-temp:0');
+    fireEvent.click(screen.getByTestId('legend-gpu-temp:0'));
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
+  });
+
+  it('every group draws the same legend: one clickable item per line', () => {
+    renderTab();
+    const thermalsLegend = screen.getAllByTestId(/^legend-/).length;
+    expect(thermalsLegend).toBe(3);
+    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.thermals.group.loads' }));
+    expect(screen.getAllByTestId(/^legend-/)).toHaveLength(2);
+  });
+});
+
+describe('Watchlist sections and search', () => {
+  it('sections the list by group in chart order with a heading each, built-ins first', () => {
+    renderTab();
+    const sections = screen.getAllByTestId('watchlist-group');
+    expect(sections.map(sec => sec.getAttribute('data-group'))).toEqual(['thermals', 'loads']);
+    expect(within(sections[0]).getByText('diagnostics.tab.thermals')).toBeInTheDocument();
     const ids = screen.getAllByTestId('sensor-row').map(r => r.getAttribute('data-rule-id'));
-    expect(ids).toEqual(['builtin:cpu-temp', 'builtin:gpu-temp:0', 'u1', 'u2']);
+    expect(ids).toEqual(['builtin:cpu-temp', 'builtin:gpu-temp:0', 'u1', 'u2', 'l1', 'l2']);
     expect(screen.getAllByTestId('sensor-add')).toHaveLength(1);
-    expect(screen.getAllByRole('list')).toHaveLength(1);
-    expect(within(rowFor('u1')).queryByRole('img', { hidden: true })).toBeNull();
+  });
+
+  it('filters rows by title or subtitle, hides empty groups, and shows an empty result', () => {
+    renderTab();
+    const search = screen.getByRole('textbox', { name: 'diagnostics.sensors.search' });
+    fireEvent.change(search, { target: { value: 'l2' } });
+    expect(screen.getAllByTestId('sensor-row').map(r => r.getAttribute('data-rule-id'))).toEqual(['l2']);
+    expect(screen.getAllByTestId('watchlist-group')).toHaveLength(1);
+    fireEvent.change(search, { target: { value: 'zzz' } });
+    expect(screen.queryAllByTestId('sensor-row')).toHaveLength(0);
+    expect(screen.getByText('diagnostics.sensors.noMatches')).toBeInTheDocument();
+  });
+});
+
+describe('Watchlist at the cap', () => {
+  it('lays out 50 entries across six groups, searches them, and disables Add at the limit', () => {
+    h.rules = watchlistFixture(50);
+    h.atLimit = true;
+    renderTab();
+    expect(screen.getAllByTestId('watchlist-group')).toHaveLength(6);
+    expect(screen.getAllByTestId('sensor-row')).toHaveLength(50);
+    expect(screen.getByTestId('sensor-add')).toBeDisabled();
+    fireEvent.change(screen.getByRole('textbox', { name: 'diagnostics.sensors.search' }), { target: { value: 'sensor 7' } });
+    expect(screen.getAllByTestId('sensor-row')).toHaveLength(1);
   });
 });

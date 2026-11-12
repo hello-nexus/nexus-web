@@ -45,7 +45,7 @@ vi.mock('../../common/TimeSeriesChart/TimeSeriesChart', () => ({ TimeSeriesChart
 vi.mock('../../common/TimelineBrush/TimelineBrush', () => ({ TIMELINE_BRUSH_DEFAULT_HEIGHT: 28, TimelineBrush: () => <div data-testid="brush" /> }));
 
 const history = {
-  series: [], domain: [0, 2000], stripDomain: [0, 3000], rangeKey: '1h', lastPresetKey: '1h', following: true, supported: true,
+  silhouette: [], series: [], domain: [0, 2000], stripDomain: [0, 3000], rangeKey: '1h', lastPresetKey: '1h', following: true, supported: true,
   setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), onChartWheelZoom: vi.fn(), backToLive: vi.fn(), stepSeconds: 1,
 } as unknown as UseMetricHistoryResult;
 const onAlertDismissed = vi.fn();
@@ -111,10 +111,9 @@ async function renderSection(rules: SensorAlertRule[], states: SensorAlertState[
   return utils;
 }
 
-// The first sensor is selected by default; clicking its row keeps the detail pane on it.
+// The first sensor is selected by default, so its settings are already open.
 // The live badge is also a status region, so the alert banner is found by its tone.
 const banner = () => document.querySelector('[role="status"][data-tone]');
-const openFirst = () => fireEvent.click(within(screen.getAllByTestId('sensor-row')[0]).getByRole('button', { pressed: true }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -127,7 +126,7 @@ describe('ThermalsTab editing', () => {
   it('lists each rule with its sensor name, live value and state chip', async () => {
     await renderSection([rule('r1')], [okState('r1', { state: 'pending' })]);
     const row = within(screen.getByTestId('sensor-row'));
-    expect(row.getByText('CPU Package')).toBeInTheDocument();
+    expect(row.getByText('Package (Temperature)')).toBeInTheDocument();
     expect(row.getByText('62°C')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.state.pending')).toBeInTheDocument();
   });
@@ -152,15 +151,15 @@ describe('ThermalsTab editing', () => {
       high: 14,
     });
     expect(h.createSensorAlert.mock.calls[0][0]).not.toHaveProperty('id');
-    await waitFor(() => expect(screen.getAllByText('CPU Total').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('Total (Load)').length).toBeGreaterThan(0));
     expect(screen.getByTestId('sensor-settings')).toBeInTheDocument();
   });
 
   it('disables Add at the rule limit and explains why', async () => {
-    const rules = Array.from({ length: 20 }, (_, i) => rule(`r${i}`));
+    const rules = Array.from({ length: 50 }, (_, i) => rule(`r${i}`));
     await renderSection(rules);
     expect(screen.getByTestId('sensor-add')).toBeDisabled();
-    expect(screen.getByText('diagnostics.alerts.limitNote(max=20)')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.limitNote(max=50)')).toBeInTheDocument();
   });
 
   it('keeps Add enabled below the limit', async () => {
@@ -171,7 +170,6 @@ describe('ThermalsTab editing', () => {
 
   it('writes the full rule when the lower limit is typed', async () => {
     await renderSection([rule('r1')]);
-    openFirst();
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.lowKnob' }));
     const field = document.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(field, { target: { value: '30' } });
@@ -184,14 +182,12 @@ describe('ThermalsTab editing', () => {
     await renderSection([rule('r1')]);
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=CPU Package)' }));
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', enabled: false })));
-    openFirst();
     fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
     await waitFor(() => expect(h.updateSensorAlert).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1', severity: 'act' })));
   });
 
   it('lets the last remaining limit be switched off, making the sensor track-only', async () => {
     await renderSection([rule('r1')]);
-    openFirst();
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
     const field = document.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(field, { target: { value: '' } });
@@ -202,7 +198,6 @@ describe('ThermalsTab editing', () => {
   it('reverts to the service list when a write is refused', async () => {
     await renderSection([rule('r1')]);
     h.updateSensorAlert.mockResolvedValue({ ok: false, status: 400, data: null });
-    openFirst();
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
     await waitFor(() => expect(h.push).toHaveBeenCalledWith({ title: 'diagnostics.alerts.saveFailed' }));
     expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(2);
@@ -211,7 +206,6 @@ describe('ThermalsTab editing', () => {
   it('deletes a rule after confirmation', async () => {
     await renderSection([rule('r1')]);
     h.deleteSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
-    openFirst();
     fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
     const dialog = await screen.findByRole('alertdialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'common.delete' }));
@@ -223,7 +217,6 @@ describe('ThermalsTab editing', () => {
     h.tempUnit = 'f';
     await renderSection([rule('r1', { high: 80 })]);
     expect(within(screen.getByTestId('sensor-row')).getByText('143.6°F')).toBeInTheDocument();
-    openFirst();
     expect(screen.getByRole('slider', { name: 'diagnostics.alerts.highKnob' })).toHaveValue('176');
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
     const field = document.querySelector('input[type="number"]') as HTMLInputElement;
@@ -235,7 +228,6 @@ describe('ThermalsTab editing', () => {
 
   it('reads a typed limit past the end of the track as no limit', async () => {
     await renderSection([rule('r1', { high: 80 })]);
-    openFirst();
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.alerts.highKnob' }));
     const field = document.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(field, { target: { value: '150' } });
@@ -245,7 +237,6 @@ describe('ThermalsTab editing', () => {
 
   it('writes a delay picked in seconds, keeps clear-after fixed, and shows an off-list stored delay as its own option', async () => {
     await renderSection([rule('r1', { raiseAfterSeconds: 7 })]);
-    openFirst();
     const raise = screen.getByRole('combobox', { name: 'diagnostics.alerts.raiseAfter' }) as HTMLSelectElement;
     expect(raise.value).toBe('7');
     expect(within(raise).getAllByRole('option').map(o => o.getAttribute('value'))).toEqual(['', '0', '5', '7', '10', '15', '30', '60', '180', '300']);
@@ -267,7 +258,6 @@ describe('ThermalsTab editing', () => {
 
     it('has no Acknowledge button in the opened card settings', async () => {
       await renderSection([rule('r1')], [okState('r1', { state: 'active', direction: 'above' })]);
-      openFirst();
       expect(screen.queryByRole('button', { name: /acknowledge/i })).toBeNull();
     });
 
@@ -330,7 +320,6 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReset();
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
-      openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
       fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
       expect(h.updateSensorAlert).toHaveBeenCalledTimes(1);
@@ -345,7 +334,6 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReset();
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
-      openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
       fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
       await act(async () => { first.resolve({ ok: false, status: 400, data: null }); });
@@ -361,7 +349,6 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReset();
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.updateSensorAlert.mockImplementation(async (r: SensorAlertRule) => ok(r));
-      openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
       fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.incidents.severity.critical' }));
       utils.unmount();
@@ -376,7 +363,6 @@ describe('ThermalsTab editing', () => {
       h.updateSensorAlert.mockReset();
       h.updateSensorAlert.mockReturnValueOnce(first.promise);
       h.deleteSensorAlert.mockResolvedValue({ ok: true, status: 204, data: null });
-      openFirst();
       fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.notifyDesktop' }));
       fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
       fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'common.delete' }));

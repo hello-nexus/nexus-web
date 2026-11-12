@@ -255,13 +255,32 @@ describe('findTrackedRule and rowTitles', () => {
     expect(findTrackedRule([a], { ...a.sensor, type: 'Fan' })).toBeUndefined();
   });
 
+  it('titles a custom entry as the picker did, per category shape', () => {
+    const row = (sensor: Partial<SensorAlertRule['sensor']>) => rowTitles(mk('c', sensor), t);
+    expect(row({ category: 'memory', id: 'ram/load/0', name: 'Memory', type: 'Load', parentName: 'Total Memory' }))
+      .toEqual({ title: 'monitoring.settings.category.memory', subtitle: 'Memory (Load)' });
+    expect(row({ category: 'cpu', name: 'CPU Package', type: 'Temperature' }))
+      .toEqual({ title: 'monitoring.settings.category.cpu', subtitle: 'Package (Temperature)' });
+    expect(row({ category: 'gpu', name: 'GPU Core', type: 'Load' }).subtitle).toBe('Core (Load)');
+    expect(row({ category: 'motherboard', name: 'Chassis Fan #1', type: 'Fan' }).subtitle).toBe('Chassis Fan #1 (Fan)');
+    expect(row({ category: 'motherboard', name: '+12V', type: 'Voltage' }).subtitle).toBe('+12V (Voltage)');
+    expect(row({ category: 'fan', name: 'Fan #2', type: 'Fan' })).toEqual({ title: 'monitoring.settings.category.motherboard', subtitle: 'Fan #2' });
+    expect(row({ category: 'storage', name: 'Temperature', type: 'Temperature' }).subtitle).toBe('Temperature');
+  });
+
+  it('prefers the live picker label when one is supplied and keeps the old shape for an unknown category', () => {
+    expect(rowTitles(mk('c', { category: 'storage', name: 'Temperature' }), t, () => 'Samsung (C:) Temperature').subtitle).toBe('Samsung (C:) Temperature');
+    expect(rowTitles(mk('c', { category: 'weird' }), t)).toEqual({ title: 'CPU', subtitle: 'Package' });
+    expect(rowTitles(mk('c', { category: 'weird', parentName: '' }), t)).toEqual({ title: 'Package', subtitle: undefined });
+  });
+
   it('titles every entry as device then exact sensor', () => {
-    expect(rowTitles(mk('a', {}), t)).toEqual({ title: 'CPU', subtitle: 'Package' });
-    expect(rowTitles(mk('b', { parentName: '' }), t)).toEqual({ title: 'Package', subtitle: undefined });
+    expect(rowTitles(mk('a', {}), t)).toEqual({ title: 'monitoring.settings.category.cpu', subtitle: 'Package (Temperature)' });
     const builtIn = (source?: SensorAlertRule['source']) => mk('builtin:x', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp', source);
     expect(rowTitles(builtIn(), t)).toEqual({ title: 'AMD Ryzen', subtitle: undefined });
     expect(rowTitles(builtIn({ kind: 'sensor', sensor: pkg, sensors: [], hardwareName: 'CPU' }), t).subtitle).toBe('Package');
     expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg, pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average(2)');
     expect(rowTitles(builtIn({ kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' }), t).subtitle).toBe('diagnostics.sensors.source.drive');
+    expect(rowTitles(builtIn({ kind: 'channel', sensor: null, sensors: [], hardwareName: 'Fan' }), t).subtitle).toBe('diagnostics.sensors.source.channel');
   });
 });

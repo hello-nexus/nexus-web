@@ -8,6 +8,8 @@ import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { StatusRow } from '../components/common/StatusRow/StatusRow';
+import { groupedRules } from '../components/views/DiagnosticsView/thermalsHelpers';
+import { watchlistFixture } from '../components/views/DiagnosticsView/watchlistFixture';
 import { Badge } from '../components/common/Badge/Badge';
 import { Coachmark } from '../components/common/Coachmark/Coachmark';
 import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
@@ -1473,6 +1475,24 @@ function PreviewEndTaskButton() {
         <span>iCUE</span>
         <EndTaskButton conflictId="preview-icue" />
       </div>
+    </div>
+  );
+}
+
+function PreviewWatchlistFifty() {
+  const [q, setQ] = useState('');
+  const sections = groupedRules(watchlistFixture(50)).map(sec => ({ ...sec, rules: sec.rules.filter(r => r.sensor.name.toLowerCase().includes(q.trim().toLowerCase())) })).filter(sec => sec.rules.length > 0);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 420, overflowY: 'auto' }}>
+      <SearchInput value={q} onChange={setQ} placeholder="Search sensors" />
+      {sections.map(sec => (
+        <div key={sec.group} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ opacity: 0.6, fontSize: 11 }}>{sec.group}</span>
+          {sec.rules.map(r => (
+            <StatusRow key={r.id} name={r.sensor.name} chip={<Badge label="OK" color="var(--good)" />} value="42" toggle={<Toggle checked={r.enabled} onChange={() => {}} ariaLabel="Enabled" />} onSelect={() => {}} />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -3115,6 +3135,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'StatusRow', category: 'cards',
     filePath: 'src/components/common/StatusRow/StatusRow.tsx',
     description: 'List row for a monitored thing, built on Card: name on the left, the reading with its status chip stacked beneath it and right-aligned, then the on/off switch at the far right. An optional dim `subtitle` line (the sensor behind the name) keeps the name to one line. The reading never wraps; a long name takes the squeeze (two lines, then an ellipsis with the full name in a tooltip). A row with no reading (switched off) shows name and switch only. Used by the Diagnostics Thermals watchlist and its fans list.', Preview: PreviewStatusRow,
+  },
+  {
+    name: 'Watchlist (50 entries)', category: 'cards',
+    filePath: 'src/components/views/DiagnosticsView/watchlistFixture.ts',
+    description: 'The Thermals watchlist at its 50-entry cap: six unit groups with a heading each, built-ins first, filtered by the search box above.', Preview: PreviewWatchlistFifty,
   },
   {
     name: 'DomainGlyph', category: 'cards',

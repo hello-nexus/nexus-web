@@ -1,7 +1,7 @@
-import { Cpu, Gpu, HardDrive, MemoryStick, type LucideIcon } from 'lucide-react';
+import { Cpu, Fan, Gpu, HardDrive, MemoryStick, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
+import type { BuiltInSensorKind, SensorAlertRule, SensorAlertState, SensorRef } from '../../../api/diagnosticsAlerts';
 import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { Toggle } from '../../common/Toggle/Toggle';
@@ -15,6 +15,7 @@ const BUILT_IN_ICONS: Record<BuiltInSensorKind, LucideIcon> = {
   gpuTemp: Gpu,
   storageTemp: HardDrive,
   ramTemp: MemoryStick,
+  fanSpeed: Fan,
 };
 
 interface SensorListProps {
@@ -23,12 +24,14 @@ interface SensorListProps {
   selectedId: string | null;
   /** A sensor's current reading in its native unit, when the sensor is listed. */
   liveOf: (rule: SensorAlertRule) => number | null;
+  /** The sensor dropdown label the picker lists for a stored sensor, when it needs live data. */
+  pickerLabel?: (sensor: SensorRef) => string | undefined;
   onSelect: (id: string) => void;
   onToggleEnabled: (rule: SensorAlertRule, enabled: boolean) => void;
 }
 
 /** The tracked sensors, one row each: name, live value, state chip and the enabled switch. A row selects the sensor for the detail pane. */
-export function SensorList({ rules, states, selectedId, liveOf, onSelect, onToggleEnabled }: SensorListProps) {
+export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onSelect, onToggleEnabled }: SensorListProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   return (
@@ -38,10 +41,10 @@ export function SensorList({ rules, states, selectedId, liveOf, onSelect, onTogg
         const kind = rowState(rule, st);
         const reading = liveOf(rule) ?? st?.value ?? null;
         const selected = rule.id === selectedId;
-        const { title: name, subtitle } = rowTitles(rule, t);
+        const { title: name, subtitle } = rowTitles(rule, t, pickerLabel);
         // An enabled sensor the PC does not report has nothing to switch or grade: the chip alone says so.
         // A switched-off sensor shows its name and switch only.
-        const BuiltInIcon = rule.builtIn ? BUILT_IN_ICONS[rule.builtIn] : null;
+        const BuiltInIcon = rule.builtIn ? (BUILT_IN_ICONS[rule.builtIn] ?? (rule.sensor.type === 'Fan' ? Fan : null)) : null;
         // Not reported is the service's verdict after its grace period; a sensor just switched on shows its switch alone until a reading arrives.
         const notReported = rule.enabled && reading === null && kind === 'unavailable';
         const awaiting = rule.enabled && reading === null && !notReported;

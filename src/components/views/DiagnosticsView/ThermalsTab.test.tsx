@@ -27,7 +27,8 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
   }),
 }));
 vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: h.push }) }));
-vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({
+vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal => ({
+  ...(await importOriginal<object>()),
   sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'cpu' ? [{ value: 'cpu/temp/0', type: 'Temperature' }] : []),
 }));
 vi.mock('./SensorAlertRuleSettings', () => ({
@@ -106,11 +107,11 @@ describe('ThermalsTab', () => {
   });
 
   it('puts Add sensor at the top of the tab, disabled with the limit text at the rule limit', () => {
-    h.rules = Array.from({ length: 20 }, (_, i) => rule(`r${i}`));
+    h.rules = Array.from({ length: 50 }, (_, i) => rule(`r${i}`));
     h.atLimit = true;
     render(<SensorsTab {...props()} />);
     expect(screen.getByTestId('sensor-add')).toBeDisabled();
-    expect(screen.getByText('diagnostics.alerts.limitNote(max=20)')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.limitNote(max=50)')).toBeInTheDocument();
   });
 
   const otherSensor = { category: 'cpu', id: 'cpu/temp/9', name: 'Other', type: 'Temperature', parentName: 'CPU' };
@@ -161,7 +162,7 @@ describe('ThermalsTab', () => {
   it('says there is no history when the selected sensor has no recorded series', () => {
     h.rules = [rule('r9')];
     render(<SensorsTab {...props()} />);
-    expect(screen.getByText('diagnostics.sensors.noHistory')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.temperature.empty')).toBeInTheDocument();
     expect(screen.queryByTestId('chart')).toBeNull();
   });
 
@@ -171,9 +172,11 @@ describe('ThermalsTab', () => {
     h.states = [state('r1')];
     render(<SensorsTab {...props()} />);
     expect(screen.getByText('143.6°F')).toBeInTheDocument();
-    const chart = h.chart.mock.calls[0][0] as { series: Array<{ points: Array<{ avg: number }> }>; thresholds: Array<{ value: number }> };
-    expect(chart.series[0].points[0].avg).toBe(122);
-    expect(chart.thresholds[0].value).toBe(176);
+    // The chart plots Celsius and formats every value in the unit preference.
+    const chart = h.chart.mock.calls[0][0] as { series: Array<{ points: Array<{ avg: number }> }>; thresholds: Array<{ value: number }>; valueFormat: (v: number) => string };
+    expect(chart.series[0].points[0].avg).toBe(50);
+    expect(chart.valueFormat(chart.series[0].points[0].avg)).toBe('122°F');
+    expect(chart.valueFormat(chart.thresholds[0].value)).toBe('176°F');
   });
 
   it('shows the editor and graph of the first sensor by default, and the clicked sensor swaps them', () => {
@@ -195,13 +198,14 @@ describe('ThermalsTab', () => {
     expect(h.chart.mock.calls[0][0]).toMatchObject({ wheelZoomNeedsModifier: true });
   });
 
-  it('falls back to the first sensor after the selected one is deleted', () => {
+  it('selects nothing after the selected sensor is deleted', () => {
     h.rules = [rule('r1'), rule('r2')];
     const { rerender } = render(<SensorsTab {...props()} />);
     fireEvent.click(within(screen.getAllByTestId('sensor-row')[1]).getByRole('button', { pressed: false }));
     h.rules = [rule('r1')];
     rerender(<SensorsTab {...props()} />);
-    expect(screen.getByTestId('settings-stub')).toHaveTextContent('r1');
+    expect(screen.queryByTestId('settings-stub')).toBeNull();
+    expect(screen.getByTestId('sensor-detail-empty')).toBeInTheDocument();
   });
 
   it('selects a deep-linked sensor', () => {
@@ -277,7 +281,7 @@ describe('ThermalsTab', () => {
       ];
       h.states = [active('r1'), active('r2'), state('r3')];
       render(<SensorsTab {...props()} />);
-      const banners = screen.getAllByRole('status');
+      const banners = screen.getAllByRole('status').filter(el => el.hasAttribute('data-tone'));
       expect(banners).toHaveLength(2);
       expect(banners[0]).toHaveAttribute('data-tone', 'warning');
       expect(banners[1]).toHaveAttribute('data-tone', 'critical');
@@ -288,15 +292,16 @@ describe('ThermalsTab', () => {
       h.rules = [rule('r1', { low: 3, high: null, sensor: current() })];
       h.states = [active('r1', { direction: 'below', value: 2, extreme: 1.5 })];
       render(<SensorsTab {...props()} />);
-      expect(screen.getByRole('status')).toHaveTextContent('diagnostics.alerts.banner.below(name=PSU Output,limit=3 A,');
-      expect(screen.getByRole('status')).toHaveTextContent('peak=1.5 A');
+      const banner = screen.getAllByRole('status').find(el => el.hasAttribute('data-tone'))!;
+      expect(banner).toHaveTextContent('diagnostics.alerts.banner.below(name=PSU Output,limit=3 A,');
+      expect(banner).toHaveTextContent('peak=1.5 A');
     });
 
     it('keeps a banner for a finished alert until it is dismissed, as a warning even for an act rule', () => {
       h.rules = [rule('r1', { severity: 'act', high: 9.5, sensor: current() })];
       h.states = [state('r1', { endedAt: '2026-11-10T22:00:00', endedPeak: 10.4, endedThreshold: 9.5, endedDirection: 'above' })];
       render(<SensorsTab {...props()} />);
-      const banner = screen.getByRole('status');
+      const banner = screen.getAllByRole('status').find(el => el.hasAttribute('data-tone'))!;
       expect(banner).toHaveAttribute('data-tone', 'warning');
       expect(banner).toHaveTextContent('diagnostics.alerts.banner.ended.above(name=PSU Output,limit=9.5 A,peak=10.4 A)');
       expect(banner).toHaveTextContent('diagnostics.alerts.banner.ended.detail');

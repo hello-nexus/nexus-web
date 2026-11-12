@@ -52,7 +52,7 @@ vi.mock('../../../hooks/useSensorAlerts', () => ({
 
 // The Summary list reads live values through the sensor lookup; none here, so a row falls back to the state value.
 vi.mock('../../../panel/widgets/monitoring/picker/SensorPicker', () => ({ SensorPicker: () => null, useSensorLookup: () => ({ sensors: [], extras: {}, networkSensors: [], resolve: () => undefined }) }));
-vi.mock('../../../panel/widgets/monitoring/sensorPicker', () => ({ sensorsForDevice: () => [] }));
+vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal => ({ ...(await importOriginal<object>()), sensorsForDevice: () => [] }));
 
 // The per-tab switches need the UI settings provider and have their own suite.
 
@@ -717,7 +717,7 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('cooling');
   });
 
-  it('shows the temperature chart, watchlist and fans on one Thermals page, with no GPU card', () => {
+  it('shows the temperature chart and watchlist on one Thermals page, with no fans section and no GPU card', () => {
     mockAlerts.rules = [{
       id: 'builtin:cpu-temp', enabled: true, severity: 'watch', low: null, high: 90, builtIn: 'cpuTemp',
       sensor: { category: 'builtin', id: 'cpu-temp', name: 'CPU', type: 'Temperature', parentName: '' },
@@ -726,7 +726,7 @@ describe('DiagnosticsView tabs', () => {
       renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
       expect(screen.getByText('diagnostics.temperature.title')).toBeInTheDocument();
       expect(screen.getByTestId('sensor-row')).toBeInTheDocument();
-      expect(screen.getByText('diagnostics.cooling.fansTitle')).toBeInTheDocument();
+      expect(screen.queryByText('diagnostics.cooling.fansTitle')).not.toBeInTheDocument();
       expect(screen.queryByText('diagnostics.gpu.throttle.title')).not.toBeInTheDocument();
     } finally {
       mockAlerts.rules = [];
@@ -816,10 +816,10 @@ describe('DiagnosticsView tabs', () => {
     const onTabChange = vi.fn();
     renderDiagnosticsView({ tab: null, onTabChange });
 
-    // "diagnostics.kind.cooling" also labels the Cooling tab button (no
+    // "diagnostics.tab.thermals" also labels the Thermals tab button (no
     // I18nProvider means both resolve to the same raw key) - target the tile's
     // own heading specifically.
-    fireEvent.click(screen.getByRole('heading', { level: 4, name: 'diagnostics.kind.cooling' }));
+    fireEvent.click(screen.getByRole('heading', { level: 4, name: 'diagnostics.tab.thermals' }));
 
     expect(onTabChange).toHaveBeenCalledWith('cooling');
   });

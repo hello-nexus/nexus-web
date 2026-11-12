@@ -5,13 +5,13 @@ import { authFetchWithStatus } from './service';
 import { requestJson } from './fetchOutcome';
 import { buildQuery, type MetricHistoryFetchResult, type MetricHistoryQuery, type MetricHistoryResponse } from './monitoringHistory';
 
-export const MAX_SENSOR_ALERT_RULES = 20;
+export const MAX_SENSOR_ALERT_RULES = 50;
 
 export type SensorAlertSeverity = 'watch' | 'act';
 export type SensorAlertStateKind = 'ok' | 'pending' | 'active' | 'unavailable';
 
 /** The component temperature rules the service always keeps; null on a user rule. */
-export type BuiltInSensorKind = 'cpuTemp' | 'gpuTemp' | 'storageTemp' | 'ramTemp';
+export type BuiltInSensorKind = 'cpuTemp' | 'gpuTemp' | 'storageTemp' | 'ramTemp' | 'fanSpeed';
 
 /** Resolver category of a built-in's fixed sensor ref; the live sensor lookup cannot resolve it. */
 export const BUILTIN_SENSOR_CATEGORY = 'builtin';
@@ -26,7 +26,7 @@ export interface SensorRef {
 
 /** What a built-in actually reads right now (wire only, absent on a user rule): one sensor, the mean of several, or a drive's SMART temperature. */
 export interface SensorAlertSource {
-  kind: 'sensor' | 'average' | 'drive';
+  kind: 'sensor' | 'average' | 'drive' | 'channel';
   sensor: SensorRef | null;
   sensors: SensorRef[];
   hardwareName: string;

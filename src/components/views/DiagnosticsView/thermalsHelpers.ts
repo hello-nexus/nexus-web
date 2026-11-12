@@ -1,18 +1,60 @@
 // Pure selection and chart-linking logic for the Thermals tab (ThermalsTab).
 import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { TimeSeriesBand, TimeSeriesPoint, TimeSeriesSeries, TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
+import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
+import type { MetricHistorySeries } from '../../../api/monitoringHistory';
 import { isBuiltIn } from './sensorAlertHelpers';
+import { distinctLineColors } from './temperatureHelpers';
 
-export type ThermalsMode = 'all' | 'custom';
+/** The unit groups the watchlist charts by; each plots its entries together on one axis. */
+export type ThermalGroup = 'thermals' | 'loads' | 'voltages' | 'power' | 'fans' | 'clocks' | 'currents' | 'controls' | 'levels';
 
-/** The chart mode plus the entry last picked in each mode, so toggling back restores it. */
-export interface ThermalsSelection {
-  mode: ThermalsMode;
-  all: string | null;
-  custom: string | null;
+export const THERMAL_GROUP_ORDER: readonly ThermalGroup[] = ['thermals', 'loads', 'voltages', 'power', 'fans', 'clocks', 'currents', 'controls', 'levels'];
+
+const GROUP_BY_TYPE: Record<string, ThermalGroup> = {
+  Temperature: 'thermals', Load: 'loads', Voltage: 'voltages', Power: 'power', Fan: 'fans',
+  Clock: 'clocks', Current: 'currents', Control: 'controls', Level: 'levels',
+};
+
+/** The group an entry charts in, by its sensor type (a built-in without a known type is a device temperature). */
+export function groupOf(rule: SensorAlertRule): ThermalGroup {
+  return GROUP_BY_TYPE[rule.sensor.type] ?? (isBuiltIn(rule) ? 'thermals' : 'levels');
 }
 
-export const INITIAL_THERMALS_SELECTION: ThermalsSelection = { mode: 'all', all: null, custom: null };
+/** The watchlist's sections: every group that has an entry, in chart order, each with its built-ins first then the custom entries. */
+export function groupedRules(rules: readonly SensorAlertRule[]): Array<{ group: ThermalGroup; rules: SensorAlertRule[] }> {
+  return THERMAL_GROUP_ORDER.flatMap(group => {
+    const inGroup = rules.filter(r => groupOf(r) === group);
+    const { builtIns, custom } = partitionRules(inGroup);
+    return inGroup.length > 0 ? [{ group, rules: [...builtIns, ...custom] }] : [];
+  });
+}
+
+/** The groups to offer: Thermals always, then every other group that has an entry. */
+export function groupsPresent(rules: readonly SensorAlertRule[]): ThermalGroup[] {
+  const present = new Set(rules.map(groupOf));
+  return THERMAL_GROUP_ORDER.filter(g => g === 'thermals' || present.has(g));
+}
+
+/** Locale keys: the button label and the chart title for a group (Thermals keeps its existing keys). */
+export function groupLabelKey(group: ThermalGroup): string {
+  return group === 'thermals' ? 'diagnostics.tab.thermals' : `diagnostics.thermals.group.${group}`;
+}
+export function groupTitleKey(group: ThermalGroup): string {
+  return group === 'thermals' ? 'diagnostics.temperature.title' : `diagnostics.thermals.history.${group}`;
+}
+
+/**
+ * The chart group plus the entry picked. `auto` means nothing was chosen yet, so the group's first entry
+ * stands in; once the user picks or deselects it is false and `selectedId: null` really means none.
+ */
+export interface ThermalsSelection {
+  group: ThermalGroup;
+  selectedId: string | null;
+  auto: boolean;
+}
+
+export const INITIAL_THERMALS_SELECTION: ThermalsSelection = { group: 'thermals', selectedId: null, auto: true };
 
 /** Built-in watchlist ids read `builtin:<chart series id>`. */
 const BUILTIN_ID_PREFIX = 'builtin:';
@@ -24,31 +66,39 @@ export function partitionRules(rules: readonly SensorAlertRule[]): { builtIns: S
   };
 }
 
-/** Picking a built-in shows All thermals; picking a custom sensor shows Custom. */
-export function selectRule(sel: ThermalsSelection, rule: SensorAlertRule): ThermalsSelection {
-  return isBuiltIn(rule) ? { ...sel, mode: 'all', all: rule.id } : { ...sel, mode: 'custom', custom: rule.id };
+/** Picking an entry shows its group with that entry highlighted. */
+export function selectRule(_sel: ThermalsSelection, rule: SensorAlertRule): ThermalsSelection {
+  return { group: groupOf(rule), selectedId: rule.id, auto: false };
 }
 
-export function selectMode(sel: ThermalsSelection, mode: ThermalsMode): ThermalsSelection {
-  return sel.mode === mode ? sel : { ...sel, mode };
+/** Clearing the pick keeps the group. */
+export function deselect(sel: ThermalsSelection): ThermalsSelection {
+  return { ...sel, selectedId: null, auto: false };
+}
+
+/** Switching group highlights that group's first entry. */
+export function selectGroup(sel: ThermalsSelection, group: ThermalGroup): ThermalsSelection {
+  return sel.group === group ? sel : { group, selectedId: null, auto: true };
 }
 
 export interface ResolvedThermals {
-  /** Custom falls back to All while there are no custom sensors. */
-  mode: ThermalsMode;
+  group: ThermalGroup;
+  groups: ThermalGroup[];
+  /** The highlighted entry, or null when none is selected. */
   selectedId: string | null;
-  builtIns: SensorAlertRule[];
-  custom: SensorAlertRule[];
+  /** Every entry of the shown group, built-ins first. */
+  groupRules: SensorAlertRule[];
 }
 
-/** The effective mode and selected entry: the remembered pick while it still exists, else the first entry of that mode. */
+/** The effective group and selection: the picked entry's own group while it exists, else the remembered group (Thermals once it has no entries). */
 export function resolveThermals(rules: readonly SensorAlertRule[], sel: ThermalsSelection): ResolvedThermals {
-  const { builtIns, custom } = partitionRules(rules);
-  const mode: ThermalsMode = sel.mode === 'custom' && custom.length > 0 ? 'custom' : 'all';
-  const pool = mode === 'custom' ? custom : (builtIns.length > 0 ? builtIns : [...rules]);
-  const picked = mode === 'custom' ? sel.custom : sel.all;
-  const selectedId = pool.find(r => r.id === picked)?.id ?? pool[0]?.id ?? null;
-  return { mode, selectedId, builtIns, custom };
+  const groups = groupsPresent(rules);
+  const picked = rules.find(r => r.id === sel.selectedId);
+  const group = picked ? groupOf(picked) : (groups.includes(sel.group) ? sel.group : 'thermals');
+  const { builtIns, custom } = partitionRules(rules.filter(r => groupOf(r) === group));
+  const groupRules = [...builtIns, ...custom];
+  const selectedId = picked && groupOf(picked) === group ? picked.id : (sel.auto ? (groupRules[0]?.id ?? null) : null);
+  return { group, groups, selectedId, groupRules };
 }
 
 /** The chart series a built-in entry draws, or null for a custom sensor. */
@@ -57,14 +107,19 @@ export function builtInSeriesId(rule: SensorAlertRule | undefined): string | nul
   return rule.id.slice(BUILTIN_ID_PREFIX.length);
 }
 
-/** The built-in entry a chart series belongs to, or null when none tracks it. */
-export function ruleForSeries(rules: readonly SensorAlertRule[], seriesId: string): SensorAlertRule | null {
-  return rules.find(r => builtInSeriesId(r) === seriesId) ?? null;
+/** The chart series an entry draws: a built-in device temperature's monitoring line, else the entry's own recorded line. */
+export function seriesIdOfRule(rule: SensorAlertRule): string {
+  return groupOf(rule) === 'thermals' ? (builtInSeriesId(rule) ?? rule.id) : rule.id;
 }
 
-/** A built-in's limits as chart lines in Celsius, the unit the temperature chart plots in. */
-export function builtInThresholds(rule: SensorAlertRule | undefined): TimeSeriesThreshold[] {
-  if (!rule || !isBuiltIn(rule)) return [];
+/** The entry a chart series belongs to, or null when none tracks it. */
+export function ruleForSeries(rules: readonly SensorAlertRule[], seriesId: string): SensorAlertRule | null {
+  return rules.find(r => seriesIdOfRule(r) === seriesId) ?? null;
+}
+
+/** An entry's limits as chart lines in its native unit (Celsius for a temperature), the unit the group's chart plots in. */
+export function ruleThresholds(rule: SensorAlertRule | undefined): TimeSeriesThreshold[] {
+  if (!rule) return [];
   const color = rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)';
   return [rule.low, rule.high]
     .filter((v): v is number => v !== null)
@@ -104,15 +159,51 @@ export function outOfRangeBands(
   return bands;
 }
 
-/** Out-of-range bands for every enabled built-in entry whose series is drawn, each against its own limits (Celsius, the chart's unit). */
-export function builtInOutOfRangeBands(
+/** Out-of-range bands for every enabled entry whose series is drawn, each against its own limits in the chart's native unit. */
+export function ruleOutOfRangeBands(
   rules: readonly SensorAlertRule[],
   series: readonly TimeSeriesSeries[],
 ): TimeSeriesBand[] {
   return rules.flatMap(rule => {
-    const id = builtInSeriesId(rule);
-    const line = id === null ? undefined : series.find(s => s.id === id);
+    const line = series.find(s => s.id === seriesIdOfRule(rule));
     if (!line || !rule.enabled) return [];
     return outOfRangeBands(line.points, rule.low, rule.high, rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)');
   });
+}
+
+/** The recorded lines of `rules` (those with points), in the chart's native units, each in its own color distinct from `taken`. */
+export function ruleLines(
+  rules: readonly SensorAlertRule[],
+  history: readonly MetricHistorySeries[],
+  labelOf: (rule: SensorAlertRule) => string,
+  taken?: ReadonlySet<string>,
+): TimeSeriesSeries[] {
+  const found = rules.flatMap(rule => {
+    const s = history.find(h => h.id === rule.id);
+    return s && s.points.length > 0 ? [{ rule, s }] : [];
+  });
+  const colors = distinctLineColors(found.length, taken);
+  return found.map(({ rule, s }, i) => ({
+    id: rule.id,
+    name: labelOf(rule),
+    color: colors[i],
+    points: s.points.map(p => ({ t: p.t, avg: p.avg, max: p.max })),
+  }));
+}
+
+/**
+ * The Thermals chart's viewport with the custom temperatures' history following it: every navigation the
+ * user makes is forwarded to `follower` too, so both fetch the same window. Reads come from `lead`.
+ */
+export function linkHistories(lead: UseMetricHistoryResult, follower: UseMetricHistoryResult): UseMetricHistoryResult {
+  return {
+    ...lead,
+    setRange: key => { lead.setRange(key); follower.setRange(key); },
+    onBrushChange: (from, to, phase) => { lead.onBrushChange(from, to, phase); follower.onBrushChange(from, to, phase); },
+    onChartDragSelect: (from, to) => { lead.onChartDragSelect(from, to); follower.onChartDragSelect(from, to); },
+    onChartWheelZoom: (anchorT, factor) => { const moved = lead.onChartWheelZoom(anchorT, factor); follower.onChartWheelZoom(anchorT, factor); return moved; },
+    detach: () => { lead.detach(); follower.detach(); },
+    backToLive: () => { lead.backToLive(); follower.backToLive(); },
+    retry: () => { lead.retry(); follower.retry(); },
+  };
 }

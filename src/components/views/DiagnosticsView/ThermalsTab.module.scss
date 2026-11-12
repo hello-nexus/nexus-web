@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .root {
   display: flex;
   flex-direction: column;
@@ -54,4 +56,27 @@
   flex-direction: column;
   gap: var(--space-md);
   min-width: 0;
+  // Stays in view under the docked chart while a long watchlist scrolls.
+  position: sticky;
+  top: var(--dock-height, 0);
+}
+
+// The chart stays docked while the watchlist scrolls under it, like the Monitoring page's pinned hero chart.
+.dock {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-elevated);
+  padding-bottom: var(--space-sm);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.sectionTitle {
+  @include text-label;
+  color: var(--text-dim);
 }

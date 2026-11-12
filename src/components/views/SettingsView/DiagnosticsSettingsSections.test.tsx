@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { DiagnosticsHealthChecksSection, DiagnosticsNotificationsSection, DiagnosticsResetSection } from './DiagnosticsSettingsSections';
+import { DiagnosticsNotificationsSection, DiagnosticsResetSection } from './DiagnosticsSettingsSections';
 
 const update = vi.fn();
 const resetBuiltIns = vi.fn().mockResolvedValue(true);
@@ -20,17 +20,6 @@ vi.mock('../../../lib/i18n', () => ({
     ),
   }),
 }));
-
-describe('DiagnosticsHealthChecksSection', () => {
-  it('lists the five monitor switches and writes the matching component field', () => {
-    mockSettings = { diagnosticsComponentGpu: true, diagnosticsComponentStorage: true, diagnosticsComponentRam: true, diagnosticsComponentCooling: true, diagnosticsComponentSystem: true };
-    update.mockClear();
-    render(<DiagnosticsHealthChecksSection />);
-    expect(screen.getAllByRole('switch')).toHaveLength(5);
-    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.monitorComponent.storage' }));
-    expect(update).toHaveBeenCalledWith({ diagnosticsComponentStorage: false });
-  });
-});
 
 describe('DiagnosticsNotificationsSection', () => {
   it('shows the per-check switches and cooldown nested under the master while it is on', () => {
@@ -56,7 +45,7 @@ describe('DiagnosticsNotificationsSection', () => {
 
 describe('DiagnosticsResetSection', () => {
   it('asks for confirmation, then restores the contract defaults and the built-in sensors', () => {
-    mockSettings = { diagnosticsNotificationsEnabled: false, diagnosticsComponentGpu: false, diagnosticsIgnoredComponents: ['storage:Z52AFCNF'] };
+    mockSettings = { diagnosticsNotificationsEnabled: false, diagnosticsIgnoredComponents: ['storage:Z52AFCNF'] };
     update.mockClear();
     render(<DiagnosticsResetSection />);
     expect(screen.getByText('settings.dangerZone')).toBeInTheDocument();
@@ -65,12 +54,10 @@ describe('DiagnosticsResetSection', () => {
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'cooling.settings.reset' }));
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       diagnosticsNotificationsEnabled: true,
-      diagnosticsComponentGpu: true,
-      diagnosticsComponentStorage: true,
       diagnosticsComponentRam: true,
-      diagnosticsComponentCooling: true,
       diagnosticsComponentSystem: true,
     }));
+    for (const dropped of ['diagnosticsComponentGpu', 'diagnosticsComponentStorage', 'diagnosticsComponentCooling']) expect(update.mock.calls[0][0]).not.toHaveProperty(dropped);
     expect(update.mock.calls[0][0]).not.toHaveProperty('diagnosticsIgnoredComponents');
     expect(update.mock.calls[0][0]).not.toHaveProperty('diagnosticsSensorNotifications');
     expect(resetBuiltIns).toHaveBeenCalledTimes(1);

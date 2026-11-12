@@ -15,10 +15,9 @@ interface HarnessProps {
 
 /** ThermalsTab with its selection state owned locally, as DiagnosticsView owns it; `history` feeds the Custom sensors chart. */
 export function ThermalsHarness({ history, coolingHistory, focusRuleId, onFocused, onAlertDismissed, initialSelection, onSelection }: HarnessProps) {
-  const [selection, setSelection] = useState<ThermalsSelection>(initialSelection ?? { ...INITIAL_THERMALS_SELECTION, mode: 'custom' });
+  const [selection, setSelection] = useState<ThermalsSelection>(initialSelection ?? INITIAL_THERMALS_SELECTION);
   return (
     <ThermalsTab
-      cooling={{ data: null, loading: false, error: false, refresh: () => {} }}
       coolingHistory={coolingHistory ?? { ...history, silhouette: history.silhouette ?? [], series: [] }}
       sensorHistory={history}
       episodes={[]}

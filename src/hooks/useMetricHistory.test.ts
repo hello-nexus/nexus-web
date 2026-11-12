@@ -1298,6 +1298,20 @@ describe('useMetricHistory', () => {
       expect(result.current.domain).toEqual(result.current.stripDomain);
     });
 
+    it('keeps polling past an empty first response and picks up points recorded later', async () => {
+      const later = { t: NOW + 20_000, avg: 61, max: 62 };
+      const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async q => ({
+        data: alertResp(q.from <= later.t && later.t <= q.to ? [later] : []),
+        mocked: false, unsupported: false,
+      }));
+      const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher, { fillBox: true }));
+      await advance(0);
+      expect(result.current.series.find(s => s.id === 'r1')?.points ?? []).toEqual([]);
+
+      await advance(25_000);
+      expect(result.current.series.find(s => s.id === 'r1')!.points).toEqual([later]);
+    });
+
     it('keeps the default sixth-of-strip window without fillBox', async () => {
       const fetcher = vi.fn<(q: MetricHistoryQuery) => Promise<Result>>(async () => ({ data: alertResp([]), mocked: false, unsupported: false }));
       const { result } = renderHook(() => useMetricHistory(true, 'sensorAlert', fetcher));

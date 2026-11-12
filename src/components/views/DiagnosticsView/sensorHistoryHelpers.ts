@@ -1,9 +1,5 @@
 import type { MetricHistoryOptions } from '../../../hooks/useMetricHistory';
-import type { MetricHistorySeries } from '../../../api/monitoringHistory';
-import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { TimeSeriesSeries, TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
-import type { TempUnit } from '../../../lib/units';
-import { toDisplay } from './sensorAlertHelpers';
 
 /** The history source ignores the series filter; the kind token keeps the monitoring push topic's frames out of the chart. */
 export const SENSOR_HISTORY_QUERY = 'sensorAlert';
@@ -14,33 +10,6 @@ export const SENSOR_HISTORY_OPTIONS: MetricHistoryOptions = { fillBox: true };
 /** The Watchlist tab's anchor id for a rule's list row, which Summary rows scroll to. */
 export function sensorCardAnchor(ruleId: string): string {
   return `sensor-card-${ruleId}`;
-}
-
-/** A rule's recorded series as a chart line, named by the localized `label` rather than the service's English name, in the user's display unit; undefined when nothing is recorded in the window. */
-export function toSensorChartSeries(
-  series: readonly MetricHistorySeries[],
-  rule: SensorAlertRule,
-  tempUnit: TempUnit,
-  label: string,
-): TimeSeriesSeries | undefined {
-  const found = series.find(s => s.id === rule.id);
-  if (!found || found.points.length === 0) return undefined;
-  const type = rule.sensor.type;
-  return {
-    id: rule.id,
-    name: label,
-    color: 'var(--accent)',
-    points: found.points.map(p => ({ t: p.t, avg: toDisplay(p.avg, type, tempUnit), max: toDisplay(p.max, type, tempUnit) })),
-  };
-}
-
-/** Alert limits as chart lines in the display unit, in the rule's tone. */
-export function sensorChartThresholds(rule: SensorAlertRule, tempUnit: TempUnit): TimeSeriesThreshold[] {
-  const color = rule.severity === 'act' ? 'var(--bad)' : 'var(--warn)';
-  const type = rule.sensor.type;
-  return [rule.low, rule.high]
-    .filter((v): v is number => v !== null)
-    .map(v => ({ value: toDisplay(v, type, tempUnit), color }));
 }
 
 const Y_PADDING_FRACTION = 0.08;
@@ -56,9 +25,4 @@ export function sensorYDomain(
   const max = Math.max(...values);
   const pad = (max - min || Math.abs(max) || 1) * Y_PADDING_FRACTION;
   return [min - pad, max + pad];
-}
-
-/** The picked sensor while it still exists, else the first one in the list (null with no rules), so a deleted selection falls back instead of dangling. */
-export function resolveSelectedId(rules: readonly SensorAlertRule[], picked: string | null): string | null {
-  return picked !== null && rules.some(r => r.id === picked) ? picked : (rules[0]?.id ?? null);
 }

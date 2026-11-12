@@ -36,12 +36,12 @@ describe('SensorList', () => {
       />,
     );
     const rows = screen.getAllByTestId('sensor-row');
-    expect(rows[0]).toHaveTextContent('CPUSensor r1');
+    expect(rows[0]).toHaveTextContent('monitoring.settings.category.cpuSensor r1 (Temperature)');
     expect(rows[0]).toHaveTextContent('62°C');
     expect(rows[0]).toHaveTextContent('diagnostics.alerts.state.pending');
     expect(rows[0]).toHaveAttribute('data-selected', 'true');
     // A switched-off sensor keeps its name and switch and hides its value and chip.
-    expect(rows[1]).toHaveTextContent('CPUSensor r2');
+    expect(rows[1]).toHaveTextContent('monitoring.settings.category.cpuSensor r2 (Temperature)');
     expect(rows[1]).not.toHaveTextContent('50°C');
     expect(rows[1]).not.toHaveTextContent('diagnostics.alerts.state');
     expect(rows[1]).toHaveAttribute('data-selected', 'false');

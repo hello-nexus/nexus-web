@@ -172,10 +172,7 @@ export interface UiSettingsValue {
   diagnosticsNotificationCooldownMinutes: number;
   diagnosticsSensorNotifications: boolean;
   diagnosticsSensorCooldownMinutes: number;
-  diagnosticsComponentGpu: boolean;
-  diagnosticsComponentStorage: boolean;
   diagnosticsComponentRam: boolean;
-  diagnosticsComponentCooling: boolean;
   diagnosticsComponentSystem: boolean;
   diagnosticsIgnoredComponents: string[];
 }
@@ -195,10 +192,7 @@ export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
   notificationCooldownMinutes: 60,
   sensorNotifications: true,
   sensorCooldownMinutes: 60,
-  componentGpu: true,
-  componentStorage: true,
   componentRam: true,
-  componentCooling: true,
   componentSystem: true,
   ignoredComponents: [] as string[],
 } as const;
@@ -294,10 +288,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
     diagnosticsSensorNotifications: DIAGNOSTICS_SETTINGS_DEFAULTS.sensorNotifications,
     diagnosticsSensorCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.sensorCooldownMinutes,
-    diagnosticsComponentGpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentGpu,
-    diagnosticsComponentStorage: DIAGNOSTICS_SETTINGS_DEFAULTS.componentStorage,
     diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
-    diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
     diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
     diagnosticsIgnoredComponents: DIAGNOSTICS_SETTINGS_DEFAULTS.ignoredComponents,
   };
@@ -451,10 +442,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.diagnosticsSensorNotifications !== undefined) notifications.sensorAlerts = patch.diagnosticsSensorNotifications;
   if (patch.diagnosticsSensorCooldownMinutes !== undefined) notifications.sensorCooldownMinutes = patch.diagnosticsSensorCooldownMinutes;
   const components: Partial<DiagnosticsComponentPrefs> = {};
-  if (patch.diagnosticsComponentGpu !== undefined) components.gpu = patch.diagnosticsComponentGpu;
-  if (patch.diagnosticsComponentStorage !== undefined) components.storage = patch.diagnosticsComponentStorage;
   if (patch.diagnosticsComponentRam !== undefined) components.ram = patch.diagnosticsComponentRam;
-  if (patch.diagnosticsComponentCooling !== undefined) components.cooling = patch.diagnosticsComponentCooling;
   if (patch.diagnosticsComponentSystem !== undefined) components.system = patch.diagnosticsComponentSystem;
   const diagnostics: PreferencesPatch['diagnostics'] = {};
   if (Object.keys(notifications).length > 0) diagnostics.notifications = notifications;
@@ -577,10 +565,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     diagnosticsNotificationCooldownMinutes: server.diagnostics?.notifications?.cooldownMinutes ?? base.diagnosticsNotificationCooldownMinutes,
     diagnosticsSensorNotifications: server.diagnostics?.notifications?.sensorAlerts ?? base.diagnosticsSensorNotifications,
     diagnosticsSensorCooldownMinutes: server.diagnostics?.notifications?.sensorCooldownMinutes ?? base.diagnosticsSensorCooldownMinutes,
-    diagnosticsComponentGpu: server.diagnostics?.components?.gpu ?? base.diagnosticsComponentGpu,
-    diagnosticsComponentStorage: server.diagnostics?.components?.storage ?? base.diagnosticsComponentStorage,
     diagnosticsComponentRam: server.diagnostics?.components?.ram ?? base.diagnosticsComponentRam,
-    diagnosticsComponentCooling: server.diagnostics?.components?.cooling ?? base.diagnosticsComponentCooling,
     diagnosticsComponentSystem: server.diagnostics?.components?.system ?? base.diagnosticsComponentSystem,
     diagnosticsIgnoredComponents: server.diagnostics?.ignoredComponents ?? base.diagnosticsIgnoredComponents,
   };

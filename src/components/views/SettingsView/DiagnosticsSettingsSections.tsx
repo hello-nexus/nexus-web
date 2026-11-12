@@ -23,23 +23,12 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
   diagnosticsNotifySystemDevices: DIAGNOSTICS_SETTINGS_DEFAULTS.notifySystemDevices,
   diagnosticsNotifyGpuThrottle: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyGpuThrottle,
   diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
-  diagnosticsComponentGpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentGpu,
-  diagnosticsComponentStorage: DIAGNOSTICS_SETTINGS_DEFAULTS.componentStorage,
   diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
-  diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
   diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
   // Per-device ignores are deliberately not reset: the confirm copy promises
   // limits, notifications and monitoring, and each ignore is undone on its
   // own device card.
 };
-
-const HEALTH_CHECKS: readonly { labelKey: string; setting: BoolKey }[] = [
-  { labelKey: 'diagnostics.monitorComponent.gpu', setting: 'diagnosticsComponentGpu' },
-  { labelKey: 'diagnostics.monitorComponent.storage', setting: 'diagnosticsComponentStorage' },
-  { labelKey: 'diagnostics.monitorComponent.ram', setting: 'diagnosticsComponentRam' },
-  { labelKey: 'diagnostics.monitorComponent.cooling', setting: 'diagnosticsComponentCooling' },
-  { labelKey: 'diagnostics.monitorComponent.system', setting: 'diagnosticsComponentSystem' },
-];
 
 const NOTIFY_CHECKS: readonly { labelKey: string; setting: BoolKey }[] = [
   { labelKey: 'diagnostics.notify.storage', setting: 'diagnosticsNotifyStorageHealth' },
@@ -48,24 +37,6 @@ const NOTIFY_CHECKS: readonly { labelKey: string; setting: BoolKey }[] = [
   { labelKey: 'diagnostics.notify.memoryTest', setting: 'diagnosticsNotifyMemoryTest' },
   { labelKey: 'diagnostics.notify.systemDevices', setting: 'diagnosticsNotifySystemDevices' },
 ];
-
-/** Which components the health checks watch. */
-export function DiagnosticsHealthChecksSection() {
-  const { t } = useTranslation();
-  const { settings, update } = useUiSettings();
-  return (
-    <SettingsSection title={t('settings.diagnosticsHealthChecks.title')}>
-      {HEALTH_CHECKS.map(spec => (
-        <SettingToggle
-          key={spec.setting}
-          label={t(spec.labelKey)}
-          checked={settings[spec.setting]}
-          onChange={v => update({ [spec.setting]: v })}
-        />
-      ))}
-    </SettingsSection>
-  );
-}
 
 /** Desktop notifications for diagnostics: the master switch, and beneath it (only while on) each check's switch and the cooldown between repeat alerts. */
 export function DiagnosticsNotificationsSection() {
