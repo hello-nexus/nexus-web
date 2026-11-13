@@ -43,11 +43,16 @@
 // Unlit segments ghosted behind each numeral, drawn in the same face.
 @include in-skin('vfd', '[data-skin-part="digit"]') {
   font-weight: 700;
-  // DSEG glyphs run taller than the line box the widgets size for; room keeps
-  // the fit boxes (overflow hidden) from shaving the top segment.
-  padding: 0.14em 0;
-  // The padding is paid back so the row keeps the height the widget laid out.
-  margin: -0.14em 0;
+  // DSEG ink is exactly one em tall, rising from the baseline, so it sits a
+  // fixed 0.175em above the centre of whatever line box the widget sized.
+  // The shift centres it in that line, so it stays clear of the lines above
+  // and below at any widget padding instead of riding up into them.
+  position: relative;
+  top: 0.1em;
+  // Slack so the fit boxes (overflow hidden) do not shave the top segment,
+  // paid back so the row keeps the height the widget laid out.
+  padding: 0.04em 0;
+  margin: -0.04em 0;
 }
 @include in-skin('vfd', '[data-skin-part="digit"]::before') {
   content: '8';
