@@ -15,7 +15,7 @@ export function ThermometerGauge({ value, formatted, label, gradient }: GaugePro
     <div className={styles.thermo}>
       <div className={styles.tubeWrap}>
         <div className={styles.tube}>
-          <div className={styles.fill} style={fillStyle} />
+          <div className={styles.fill} style={fillStyle} data-skin-part="bar-fill" />
         </div>
       </div>
       <div className={styles.info}>

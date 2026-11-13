@@ -147,7 +147,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
   const progressBar = s.playback.durationMs > 0 && (
     <div className={styles.progressTrack}>
-      <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+      <div className={styles.progressFill} style={{ width: `${progress}%` }} data-skin-part="bar-fill" />
     </div>
   );
   // Stacked touch tiles seat the bar on the transport row, at the controls' width.

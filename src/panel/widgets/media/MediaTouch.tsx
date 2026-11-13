@@ -586,7 +586,7 @@ function SeekBar({
       <div className={styles.seekRow}>
         {elapsed}
         <div className={styles.seekBar} role="progressbar" aria-valuenow={Math.round(serverPct)} aria-valuemin={0} aria-valuemax={100}>
-          <div className={styles.seekFill} style={{ width: `${serverPct}%` }} />
+          <div className={styles.seekFill} style={{ width: `${serverPct}%` }} data-skin-part="bar-fill" />
         </div>
         {total}
       </div>
@@ -633,6 +633,7 @@ function SeekBar({
       >
         <div
           className={styles.seekFill}
+          data-skin-part="bar-fill"
           style={{ width: `${shown}%`, transition: dragPct === null ? undefined : 'none' }}
         />
       </div>
@@ -736,7 +737,7 @@ function HorizontalVolume({
         onPointerUp={onTrackPointerUp}
         onPointerCancel={onTrackPointerUp}
       >
-        <div className={styles.volumeFill} style={{ width: `${fillPct}%` }} />
+        <div className={styles.volumeFill} style={{ width: `${fillPct}%` }} data-skin-part="bar-fill" />
         <div className={styles.volumeKnob} style={{ left: `calc(${fillPct}% - 11px)` }} />
       </div>
     </div>

@@ -256,7 +256,7 @@ export function PanelMixerSlider({
               foreground. Both copies sit at the same offset from the track's
               bottom edge, which the fill shares, so the copy lines up exactly
               and is revealed as the fill rises past the glyph. */}
-          <div className={styles.fill} style={{ height: `${pct * 100}%` }} aria-hidden="true">
+          <div className={styles.fill} style={{ height: `${pct * 100}%` }} aria-hidden="true" data-skin-part="bar-fill">
             {icon && (
               <div
                 className={styles.iconOnFill}
