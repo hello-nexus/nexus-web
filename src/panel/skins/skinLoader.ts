@@ -27,7 +27,7 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   sketch: () => import('./sketch.scss'),
   bubblegum: () => import('./bubblegum.scss'),
   sakura: () => import('./sakura.scss'),
-  track: () => import('./track.scss'),
+  contour: () => import('./contour.scss'),
 };
 
 // One in-flight or settled load per key. A failed load leaves the cache, so the next call retries it.

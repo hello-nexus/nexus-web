@@ -124,6 +124,7 @@
   background-size: var(--skin-card-image-size, auto);
   background-position: var(--skin-card-image-pos, 0 0);
   background-repeat: no-repeat;
+  box-shadow: var(--skin-card-face-shadow, none);
 }
 .panel-root[data-panel-skin] .panel-card::after {
   z-index: 5;
@@ -178,7 +179,7 @@ $skin-insets: (
   border-radius: var(--skin-bar-radius, var(--radius-pill));
   box-shadow: none;
 }
-$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, sakura, steampunk, swiss, track;
+$accent-fill: arcade, bevel, bubblegum, clay, cockpit, contour, deco, hifi, hud, mecha, neon, nixie, pixel, sakura, steampunk, swiss;
 @each $id in $accent-fill {
   .panel-root[data-panel-skin='#{$id}'] [data-skin-part='fill'] { background: var(--skin-fill, var(--accent)); }
 }

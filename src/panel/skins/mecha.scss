@@ -29,7 +29,7 @@
   --mc-seam: #0b0c0e;
   --mc-plate: #3a3f46;
   --mc-rivet: #8a919b;
-  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.08), transparent 40%), repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.045) 0, rgba(255, 255, 255, 0.045) 14px, transparent 14px, transparent 28px);
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.08), transparent 40%), repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0, rgba(255, 255, 255, 0.03) 14px, transparent 14px, transparent 28px);
   --gauge-track: rgba(0, 0, 0, 0.4);
 }
 @include skin-light('mecha') {
@@ -37,7 +37,7 @@
   --mc-seam: #2b3036;
   --mc-plate: #c3c8cd;
   --mc-rivet: #6a717a;
-  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.5), transparent 40%), repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 14px, transparent 14px, transparent 28px);
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.5), transparent 40%), repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.033) 0, rgba(0, 0, 0, 0.033) 14px, transparent 14px, transparent 28px);
   --gauge-track: rgba(20, 24, 28, 0.18);
 }
 @include in-skin('mecha', 'svg.lucide') {
