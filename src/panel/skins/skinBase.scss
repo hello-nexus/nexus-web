@@ -30,6 +30,11 @@
   // The knob over an accent track takes the ink drawn on the accent, so a pale accent keeps a visible knob.
   --toggle-knob-on: var(--accent-text);
 }
+// Card edges (frame rings, rivets, strips, radius) sit outside the zoom that scales widget content, so the card pseudo layers take the panel scale as a CSS zoom, relative to the 2.5K Y70 scale where the authored sizes are exact. Never below 1, so hairlines stay at least one pixel.
+.panel-root[data-panel-skin],
+.panel-root[data-panel-skin] .panel-card {
+  --panel-edge-zoom: max(1, calc(var(--panel-scale, 1) / 1.13608));
+}
 // Widget tiles draw their own flat frames; sheets, menus and overlays keep the stock shadows and blur.
 .panel-root[data-panel-skin] .panel-card {
   --shadow-sm: none;
@@ -115,6 +120,7 @@
   left: 0;
   pointer-events: none;
   border-radius: inherit;
+  zoom: var(--panel-edge-zoom, 1);
   opacity: var(--panel-card-bg-alpha, 1);
 }
 .panel-root[data-panel-skin] .panel-card::before {
