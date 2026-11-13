@@ -27,7 +27,6 @@ const TEXT_INK = new Set<PanelSkinId>(['blueprint', 'sketch', 'bubblegum', 'saku
 // Decorations drawn for a full-size card collide with the numeral at thumbnail size; these move or drop them.
 const THUMB_TWEAKS: Partial<Record<PanelSkinId, CSSProperties>> = {
   deco: { '--skin-card-deco-pos': '100% 8px' } as CSSProperties,
-  mecha: { '--skin-card-deco-size': '7px 7px, 0 0, 0 0', '--skin-card-deco-pos': '48px 6px, 0 0, 0 0' } as CSSProperties,
   sakura: { '--skin-card-frame': 'inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.85)' } as CSSProperties,
   cockpit: { '--skin-card-deco-pos': '10px 30px, 10px 30px' } as CSSProperties,
 };

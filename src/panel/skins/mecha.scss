@@ -1,7 +1,7 @@
 @use 'mixins' as *;
 @use 'kit' as *;
 
-// Armour plating: chamfered panels with seams, corner rivets, a faint wide diagonal stripe texture and stencil capitals.
+// Armour plating: chamfered panels with seams, rivets at the top-left and bottom-right corners, a faint wide diagonal stripe texture and stencil capitals.
 @mixin mecha-common {
   @include kit-radius(0, 0, 0);
   @include kit-weights(600, 500, 700, 700, 500);
@@ -9,10 +9,9 @@
   --skin-card-frame: inset 0 0 0 1px var(--mc-seam), inset 0 0 0 4px var(--mc-plate);
   --skin-card-deco:
     radial-gradient(circle at 50% 50%, var(--mc-rivet) 0, var(--mc-rivet) 1.5px, transparent 2px),
-    radial-gradient(circle at 50% 50%, var(--mc-rivet) 0, var(--mc-rivet) 1.5px, transparent 2px),
     radial-gradient(circle at 50% 50%, var(--mc-rivet) 0, var(--mc-rivet) 1.5px, transparent 2px);
-  --skin-card-deco-size: 7px 7px, 7px 7px, 7px 7px;
-  --skin-card-deco-pos: 6px 6px, calc(100% - 20px) 6px, 12px calc(100% - 14px);
+  --skin-card-deco-size: 7px 7px, 7px 7px;
+  --skin-card-deco-pos: 6px 6px, calc(100% - 13px) calc(100% - 13px);
   --skin-card-deco-repeat: no-repeat;
   --skin-text-case: uppercase;
   --skin-letter-spacing: 0.05em;
