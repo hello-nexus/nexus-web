@@ -179,7 +179,7 @@ $skin-insets: (
   border-radius: var(--skin-bar-radius, var(--radius-pill));
   box-shadow: none;
 }
-$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, ripple, sakura, steampunk, swiss;
+$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, sakura, steampunk, swiss, synthwave;
 @each $id in $accent-fill {
   .panel-root[data-panel-skin='#{$id}'] [data-skin-part='fill'] { background: var(--skin-fill, var(--accent)); }
 }

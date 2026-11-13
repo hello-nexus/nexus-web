@@ -2,6 +2,7 @@
 
 import type { PanelFontId } from '../theme/panelFont';
 import { sakuraFieldUrl } from './sakuraField';
+import { synthwaveGridVars } from './synthwaveGrid';
 
 export interface SkinDef {
   id: string;
@@ -37,7 +38,7 @@ export const PANEL_SKINS = [
   { id: 'swiss', label: 'Swiss', font: 'lexend', accent: '#e30613', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'clay', label: 'Clay', font: 'lexend', accent: '#7a5af8', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'sketch', label: 'Sketch', font: 'piazzolla', accent: '#d9532b', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'ripple', label: 'Ripple', font: 'lexend', accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'synthwave', label: 'Synthwave', font: 'tektur', accent: '#25d9f5', prefersSkinBackground: false, framelessAtZeroPadding: false },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];
@@ -127,6 +128,7 @@ export const CARD_FACE: Record<string, { light: string; dark: string }> = {
   swiss: { light: '#ffffff', dark: '#151515' },
   clay: { light: '#fbf4ee', dark: '#3d3a4a' },
   sketch: { light: '#fbf8ee', dark: '#34373d' },
+  synthwave: { light: '#fff7fb', dark: '#1a1040' },
 };
 
 export const ACCENT_INK_MIN = 4.5;
@@ -188,6 +190,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
     ...skinAccentInkVars(id, a, second),
     ...(id in SURFACE_SPECS ? skinSurfaceVars(id as keyof typeof SURFACE_SPECS, a) : {}),
     ...(id === 'sakura' ? sakuraBlossomVars(a) : {}),
+    ...(id === 'synthwave' ? synthwaveGridVars() : {}),
     ...(id in BACKDROP_BASE ? skinBackdropVars(id as keyof typeof BACKDROP_BASE, a) : {}),
     ...(id === 'deco' || id === 'steampunk' || id === 'nixie' ? metalVars(a) : {}),
   };
@@ -199,7 +202,6 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
 export const SURFACE_SPECS = {
   bubblegum: { sat: 0.85, light: { back: 0.91, card: 0.975, line: 0.8 }, dark: { back: 0.12, card: 0.17, line: 0.34 } },
   sakura: { sat: 0.55, light: { back: 0.94, card: 0.985, line: 0.84 }, dark: { back: 0.13, card: 0.19, line: 0.38 } },
-  ripple: { sat: 0.12, light: { back: 0.91, card: 0.99, line: 0.78 }, dark: { back: 0.09, card: 0.15, line: 0.32 } },
   deco: { sat: 0.35, light: { back: 0.83, card: 0.95, line: 0.5 }, dark: { back: 0.03, card: 0.06, line: 0.5 } },
   steampunk: { sat: 0.5, light: { back: 0.66, card: 0.84, line: 0.45 }, dark: { back: 0.06, card: 0.12, line: 0.35 } },
   nixie: { sat: 0.45, light: { back: 0.72, card: 0.91, line: 0.45 }, dark: { back: 0.03, card: 0.06, line: 0.3 } },
