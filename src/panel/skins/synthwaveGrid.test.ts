@@ -4,8 +4,8 @@ import { normalizePanelSkin, skinAccentVars } from './skins';
 
 describe('Synthwave grid', () => {
   it('packs the rows tighter toward the horizon', () => {
-    const d = /<path d="([^"]*H160[^"]*)"/.exec(synthwaveGridSvg('dark'))?.[1] ?? '';
-    const ys = [...d.matchAll(/M0 ([\d.]+)H160/g)].map(m => Number(m[1]));
+    const d = /<path d="([^"]*H1600[^"]*)"/.exec(synthwaveGridSvg('dark'))?.[1] ?? '';
+    const ys = [...d.matchAll(/M0 ([\d.]+)H1600/g)].map(m => Number(m[1]));
     expect(ys.length).toBeGreaterThan(5);
     const gaps = ys.slice(1).map((y, i) => y - ys[i]);
     for (let i = 1; i < gaps.length; i++) expect(gaps[i]).toBeGreaterThan(gaps[i - 1]);
