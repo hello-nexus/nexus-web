@@ -89,4 +89,43 @@ describe('AsusRyujinExtremeDevicePage', () => {
     expect(screen.getByRole('slider', { name: /brightnessAria/ })).toBeDisabled();
     expect(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ })).toBeDisabled();
   });
+
+  it('skips a poll while a write is in flight', async () => {
+    await mount();
+    let release: (v: boolean) => void = () => {};
+    mockSet.mockReturnValue(new Promise<boolean>(r => { release = r; }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ }));
+    });
+    mockGet.mockClear();
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(mockGet).not.toHaveBeenCalled();
+    mockGet.mockResolvedValue({ ...base, rotation: 90 });
+    await act(async () => { release(true); });
+  });
+
+  it('ignores polls during a drag and keeps the knob, then re-reads after the commit', async () => {
+    await mount();
+    const slider = screen.getByRole('slider', { name: /brightnessAria/ });
+    await act(async () => { fireEvent.change(slider, { target: { value: '35' } }); });
+    mockGet.mockClear();
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(slider).toHaveValue('35');
+    await act(async () => { fireEvent.pointerUp(slider); });
+    await waitFor(() => expect(mockSet).toHaveBeenCalledWith({ brightness: 35 }));
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+  });
+
+  it('re-reads the stored brightness after a refused write', async () => {
+    await mount();
+    mockSet.mockResolvedValue(false);
+    const slider = screen.getByRole('slider', { name: /brightnessAria/ });
+    await act(async () => {
+      fireEvent.change(slider, { target: { value: '35' } });
+      fireEvent.pointerUp(slider);
+    });
+    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('slider', { name: /brightnessAria/ })).toHaveValue('60'));
+  });
 });

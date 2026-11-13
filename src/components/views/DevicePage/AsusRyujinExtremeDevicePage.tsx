@@ -21,6 +21,7 @@ import { useReportDeviceWaiting } from './deviceDetecting';
 import styles from './LianLiDevicePage.module.scss';
 
 const POLL_MS = 3000;
+const STACKED = 'stacked' as const;
 const ROTATIONS: readonly RyujinRotation[] = [0, 90];
 
 /** The ROG Ryujin III Extreme page: the display settings its screen stores. Pump and fans live on the Cooling page. */
@@ -33,11 +34,13 @@ export function AsusRyujinExtremeDevicePage() {
   const aliveRef = useRef(true);
   // Writes in flight: a poll landing meanwhile would snap a control back.
   const busyRef = useRef(0);
+  // A brightness drag in progress: a poll landing before its final write would snap the knob back.
+  const draggingRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (busyRef.current > 0) return;
+    if (busyRef.current > 0 || draggingRef.current) return;
     const next = await getRyujinDisplay();
-    if (!aliveRef.current || next === null || busyRef.current > 0) return;
+    if (!aliveRef.current || next === null || busyRef.current > 0 || draggingRef.current) return;
     setState(next);
   }, []);
 
@@ -55,6 +58,7 @@ export function AsusRyujinExtremeDevicePage() {
 
   const commit = useCallback(async (patch: RyujinDisplayPatch) => {
     busyRef.current += 1;
+    draggingRef.current = false;
     let ok = false;
     try {
       ok = await setRyujinDisplay(patch);
@@ -81,6 +85,7 @@ export function AsusRyujinExtremeDevicePage() {
           <Slider
             editable
             trackFill
+            orientation={STACKED}
             label={t('devices.asus-ryujin-extreme.brightness')}
             ariaLabel={t('devices.asus-ryujin-extreme.brightnessAria')}
             value={state?.brightness ?? RYUJIN_MIN_BRIGHTNESS}
@@ -89,7 +94,10 @@ export function AsusRyujinExtremeDevicePage() {
             step={1}
             formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
             disabled={!ready}
-            onChange={v => setState(prev => prev && { ...prev, brightness: v })}
+            onChange={v => {
+              draggingRef.current = true;
+              setState(prev => prev && { ...prev, brightness: v });
+            }}
             onCommit={v => { void commit({ brightness: v }); }}
           />
           <SettingRow label={t('devices.asus-ryujin-extreme.rotation')}>
