@@ -95,10 +95,10 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
             return (
               <IconLabelButton
                 key={key}
-                className={styles.designBtn}
                 active={key === currentDesign}
                 icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                label={CLOCK_DESIGNS[key].label}
+                title={CLOCK_DESIGNS[key].label}
+                ariaLabel={CLOCK_DESIGNS[key].label}
                 onPress={() => setDesign(key)}
               />
             );
