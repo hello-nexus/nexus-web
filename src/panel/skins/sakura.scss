@@ -24,7 +24,7 @@
       $dy: if($core, 0, $ring * $s * math.sin($a));
       $rad: if($core, $ring * 0.3 * $s, $r * $s);
       $col: if($core, var(--sk-core), var(--sk-petal));
-      $grads: list.append($grads, radial-gradient(circle closest-side, $col 0, $col 88%, transparent 100%), comma);
+      $grads: list.append($grads, radial-gradient(circle closest-side, $col 0, $col 97%, transparent 100%), comma);
       $sizes: list.append($sizes, calc(var(--sk-u) * #{2 * $rad}) calc(var(--sk-u) * #{2 * $rad}), comma);
       $poss: list.append($poss, calc(var(--sk-w) * #{$fx} - var(--sk-ox) + var(--sk-u) * #{$dx - $rad}) calc(var(--sk-h) * #{$fy} - var(--sk-oy) + var(--sk-u) * #{$dy - $rad}), comma);
     }
@@ -50,7 +50,7 @@ $sk-field: blossom-layers(
   --sk-h: calc(var(--panel-rows, 4) * var(--sk-row) + (var(--panel-rows, 4) - 1) * var(--sk-gap));
   --sk-ox: calc(var(--panel-cell-col, 0) * (var(--panel-cell-size) + var(--sk-gap)));
   --sk-oy: calc(var(--panel-cell-row, 0) * (var(--sk-row) + var(--sk-gap)));
-  --sk-u: calc(min(var(--sk-w) * 0.5, var(--sk-h)) / 2);
+  --sk-u: calc(min(var(--sk-w) * 0.5, var(--sk-h)) * 0.39);
   --skin-card-image-size: #{map-get($sk-field, sizes)};
   --skin-card-image-pos: #{map-get($sk-field, poss)};
 }

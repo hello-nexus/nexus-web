@@ -303,9 +303,9 @@ export function sakuraBlossomVars(accent: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const mode of ['light', 'dark'] as const) {
     const card = hexToRgb(sf[`--skin-sf-card-${mode}`]);
-    const petal = mode === 'light' ? mixRgb(card, acc, 0.05) : mixRgb(card, hexToRgb(sf['--skin-sf-back-dark']), 0.35);
+    const petal = mode === 'light' ? mixRgb(card, acc, 0.07) : mixRgb(card, hexToRgb(sf['--skin-sf-back-dark']), 0.42);
     out[`--sk-petal-${mode}`] = rgbToHex(petal);
-    out[`--sk-core-${mode}`] = rgbToHex(mixRgb(petal, acc, mode === 'light' ? 0.09 : 0.07));
+    out[`--sk-core-${mode}`] = rgbToHex(mixRgb(petal, acc, mode === 'light' ? 0.11 : 0.09));
   }
   return out;
 }
