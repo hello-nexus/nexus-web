@@ -19,6 +19,12 @@ const AT = String(Date.UTC(2026, 10, 10, 22, 31));
 const guard = { cause: 'x', active: 'false', reason: 'limit', peakC: '99.4', escalated: 'false', at: AT };
 
 describe('reasonDetailText', () => {
+  it('names the failed units for system.failedUnits, and never shows the raw detail without params', () => {
+    const text = reasonDetailText(reason('system.failedUnits', { count: '1', units: 'logrotate.service' }), ctx());
+    expect(text).toBe('diagnostics.reasonDetail.failedUnits(units=logrotate.service)');
+    expect(reasonDetailText(reason('system.failedUnits'), ctx())).toBeNull();
+  });
+
   it('words a thermal guard trip from its params, never from detail', () => {
     const text = reasonDetailText(reason('cooling.thermalGuardTrip', guard), ctx())!;
     expect(text).toContain('cause=diagnostics.reasonDetail.cause.limit');
