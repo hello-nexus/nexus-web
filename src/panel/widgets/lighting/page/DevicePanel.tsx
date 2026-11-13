@@ -140,8 +140,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   curatedControl?: CuratedControlByHandler;
   /** Opens the conflict dialog for these app ids. */
   onOpenAppStrip?: (appIds: string[]) => void;
-  /** Press on a keyboard card's save-colors strip; gets the card's deviceId. */
-  onOpenSaveToDevice?: (deviceId: string) => void;
+  /** The press handler for a keyboard card's save-colors strip, or null while its device page cannot be resolved (the strip then stays hidden). */
+  onOpenSaveToDevice?: (deviceId: string) => (() => void) | null;
   /** Not-responding strip press, with the card's name. */
   onOpenFixLighting?: (deviceName: string) => void;
   /** Renders the "Lighting doesn't match?" link as the last entry of the list; opens the Fix lighting modal with no device named. */
@@ -512,7 +512,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       pulseSeq={pulse?.ids.has(d.id) ? pulse.seq : undefined}
       appStrip={appStrips.get(d.id)}
       onOpenAppStrip={onOpenAppStrip ? () => onOpenAppStrip(appStrips.get(d.id)?.apps.map(a => a.id) ?? []) : undefined}
-      onOpenSaveToDevice={onOpenSaveToDevice && d.deviceId ? () => onOpenSaveToDevice(d.deviceId as string) : undefined}
+      onOpenSaveToDevice={(d.deviceId && onOpenSaveToDevice?.(d.deviceId)) || undefined}
       onOpenFixLighting={onOpenFixLighting ? () => onOpenFixLighting(d.name) : undefined}
       onUnstack={stackOf(stacks, d.id) ? () => onStacksChange?.(unstackDevices(stacks, [d.id])) : undefined}
     />

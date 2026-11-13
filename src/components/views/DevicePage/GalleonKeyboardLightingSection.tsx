@@ -5,6 +5,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useToast } from '../../common/Toast/Toast';
+import { isGalleonDeck } from '../../../lib/galleonDeck';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
 import { GALLEON_SAVE_ANCHOR, keyboardCardForDeck } from './galleonKeyboardLighting';
 
@@ -14,11 +15,11 @@ import { GALLEON_SAVE_ANCHOR, keyboardCardForDeck } from './galleonKeyboardLight
  * holds the deck. Renders nothing until the service lists a keyboard card that
  * can save its colors.
  */
-export function GalleonKeyboardLightingSection({ serial }: { serial: string | null | undefined }) {
+export function GalleonKeyboardLightingSection({ serial, className }: { serial: string | null | undefined; /** Wraps the section; the wrapper only exists while the section does. */ className?: string }) {
   const { t } = useTranslation();
   const { push } = useToast();
   const { decks } = useStreamDecks(true);
-  const deckKey = decks.filter(d => d.displayName.startsWith('Corsair ')).map(d => d.serial).join('|');
+  const deckKey = decks.filter(isGalleonDeck).map(d => d.serial).join('|');
   const [cards, setCards] = useState<LightingDevice[]>([]);
   // An optimistic value holds until the newest write settles; only that write may roll back.
   const [pending, setPending] = useState<boolean | null>(null);
@@ -32,7 +33,7 @@ export function GalleonKeyboardLightingSection({ serial }: { serial: string | nu
   const load = useCallback(async () => {
     const res = await fetchLightingDevices().catch(() => null);
     if (!mountedRef.current || !res) return;
-    setCards(res.allDevices ?? res.devices);
+    setCards(res.devices);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -60,7 +61,7 @@ export function GalleonKeyboardLightingSection({ serial }: { serial: string | nu
       });
   };
 
-  return (
+  const section = (
     <SettingsSection title={t('devices.galleon.keyboardLighting')}>
       <SettingToggle
         anchorId={GALLEON_SAVE_ANCHOR}
@@ -71,4 +72,5 @@ export function GalleonKeyboardLightingSection({ serial }: { serial: string | nu
       />
     </SettingsSection>
   );
+  return className ? <div className={className}>{section}</div> : section;
 }

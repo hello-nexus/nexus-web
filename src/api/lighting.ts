@@ -687,12 +687,12 @@ export const applyDeviceLayouts = (layouts: Record<string, DeviceLayoutDto>) =>
 export const setLightingDevicePower = (id: string, on: boolean) =>
   postService('/devices/lighting-devices/power', { id, on });
 
-// Excludes the device from the frame push entirely (distinct from power,
-// which drives it to black).
 /** Per-device "Save colors to the keyboard"; `id` is the card's deviceId. */
 export const setLightingDeviceSaveToDevice = (id: string, enabled: boolean) =>
   postService<{ error: boolean; msg: string }>('/devices/lighting-devices/save-to-device', { id, enabled });
 
+// Excludes the device from the frame push entirely (distinct from power,
+// which drives it to black).
 export const setLightingDeviceControlled = (id: string, controlled: boolean) =>
   postService('/devices/lighting-devices/controlled', { id, controlled });
 

@@ -177,7 +177,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, platform
         requiresBeta={device.requiresBeta}
         panelMode={controlGateIsPanel(device)}
         secondaryMonitorRecordId={device.panelDevice?.secondaryMonitor ? device.panelDevice.panelRecordId : undefined}
-        extra={device.curatedId === 'streamdeck' ? <GalleonKeyboardLightingSection serial={device.streamdeckSerial} /> : undefined}
+        extra={device.curatedId === 'streamdeck' ? <GalleonKeyboardLightingSection serial={device.streamdeckSerial} className={styles.controlOffExtra} /> : undefined}
         onEnable={() => {
           detectReportedRef.current = false;
           setDetectingKey(device.key);
@@ -429,7 +429,7 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
     <section className={styles.page}>
       <div className={styles.controlOff}>
         <h2 className={styles.controlOffTitle}>{deviceName}</h2>
-        {extra && <div className={styles.controlOffExtra}>{extra}</div>}
+        {extra}
         <div className={styles.controlOffBody}>
           {accessDenied ? (
             <Notice tone="warning" role="status" className={styles.controlOffNotice}>

@@ -38,6 +38,13 @@ describe('GalleonKeyboardLightingSection', () => {
     expect(container.innerHTML).toBe('');
   });
 
+  it('renders no wrapper when it has nothing to show', async () => {
+    h.fetch.mockResolvedValue({ devices: [] });
+    const { container } = render(<GalleonKeyboardLightingSection serial="S1" className="wrap" />);
+    await waitFor(() => expect(h.fetch).toHaveBeenCalled());
+    expect(container.innerHTML).toBe('');
+  });
+
   it('shows the toggle reflecting the card and posts the card deviceId on press', async () => {
     h.fetch.mockResolvedValue({ devices: [kb()] });
     render(<GalleonKeyboardLightingSection serial="S1" />);
@@ -64,6 +71,27 @@ describe('GalleonKeyboardLightingSection', () => {
     fireEvent.click(toggle);
     await waitFor(() => expect(h.push).toHaveBeenCalled());
     await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+  });
+
+  it('shows the optimistic value while the write is pending, then reverts on failure', async () => {
+    h.fetch.mockResolvedValue({ devices: [kb()] });
+    let finish: (v: unknown) => void = () => {};
+    h.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    render(<GalleonKeyboardLightingSection serial="S1" />);
+    const toggle = await screen.findByRole('switch', { name: /saveColors\.label/ });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'));
+    finish({ error: true, msg: 'no' });
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+    expect(h.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('wraps itself in the given class only while it renders', async () => {
+    h.fetch.mockResolvedValue({ devices: [kb()] });
+    const { container } = render(<GalleonKeyboardLightingSection serial="S1" className="wrap" />);
+    await screen.findByRole('switch');
+    expect(container.querySelector('.wrap')).not.toBeNull();
   });
 
   it('refetches on a lighting signal', async () => {

@@ -25,36 +25,20 @@ const KEYS_TOKEN = '\uE001';
 
 export function ControlledByStrip({ strip, label, saveToDevice, onOpen, passive }: ControlledByStripProps) {
   const { t, language } = useTranslation();
-  if (saveToDevice) {
-    const [before, after = ''] = t('lighting.devices.saveStrip.keep', { keys: KEYS_TOKEN }).split(KEYS_TOKEN);
-    const SaveIcon = saveToDevice === 'saved' ? Save : Keyboard;
-    return (
-      <button
-        type="button"
-        className={styles.deviceControlledBy}
-        data-no-dnd
-        tabIndex={passive ? -1 : undefined}
-        aria-hidden={passive || undefined}
-        onClick={e => { e.stopPropagation(); onOpen(); }}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
-      >
-        <SaveIcon aria-hidden />
-        <span>
-          {saveToDevice === 'saved' ? <b>{t('lighting.devices.saveStrip.saved')}</b> : (
-            <>
-              {before}
-              <b>{t('lighting.devices.saveStrip.keys')}</b>
-              {after}
-            </>
-          )}
-        </span>
-        <ChevronRight aria-hidden className={styles.deviceControlledByChevron} />
-      </button>
-    );
-  }
   const warn = label !== undefined || !!strip?.controlled;
   const [before, after = ''] = t(warn ? 'devices.conflictRunning.badge' : 'lighting.devices.controlledBy', { app: APP_TOKEN }).split(APP_TOKEN);
-  const Icon = warn ? AlertTriangle : AppWindow;
+  const [keysBefore, keysAfter = ''] = t('lighting.devices.saveStrip.keep', { keys: KEYS_TOKEN }).split(KEYS_TOKEN);
+  const Icon = saveToDevice ? (saveToDevice === 'saved' ? Save : Keyboard) : warn ? AlertTriangle : AppWindow;
+  let text;
+  if (saveToDevice === 'saved') {
+    text = <b>{t('lighting.devices.saveStrip.saved')}</b>;
+  } else if (saveToDevice) {
+    text = <>{keysBefore}<b>{t('lighting.devices.saveStrip.keys')}</b>{keysAfter}</>;
+  } else if (label !== undefined) {
+    text = <b>{label}</b>;
+  } else {
+    text = <>{before}<b>{formatList((strip?.apps ?? []).map(a => a.name), language)}</b>{after}</>;
+  }
   return (
     <button
       type="button"
@@ -67,15 +51,8 @@ export function ControlledByStrip({ strip, label, saveToDevice, onOpen, passive 
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
     >
       <Icon aria-hidden />
-      <span>
-        {label !== undefined ? <b>{label}</b> : (
-          <>
-            {before}
-            <b>{formatList((strip?.apps ?? []).map(a => a.name), language)}</b>
-            {after}
-          </>
-        )}
-      </span>
+      <span>{text}</span>
+      {saveToDevice && <ChevronRight aria-hidden className={styles.deviceControlledByChevron} />}
     </button>
   );
 }

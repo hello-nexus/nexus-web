@@ -2,6 +2,7 @@
 // Devices widget. Both share one list and `key` namespace so a widget click
 // can deep-link to a card on the page by matching keys.
 
+import { isGalleonDeck } from '../lib/galleonDeck';
 import { useEffect, useMemo, useState } from 'react';
 import { useDevices, type DeviceListItem } from './useDevices';
 import { usePanelDevices, STREAMED_FAMILY_ICONS } from './usePanelDevices';
@@ -288,7 +289,7 @@ export function useUnifiedDevices(enabled: boolean) {
         subtitle: streamdeckHandler?.category ?? 'controller',
         category: streamdeckHandler?.category ?? 'controller',
         // The Galleon is a Corsair keyboard with a Stream Deck built in.
-        iconSrc: deck.displayName.startsWith('Corsair ') ? BRAND_LOGOS.Corsair : BRAND_LOGOS.Elgato,
+        iconSrc: isGalleonDeck(deck) ? BRAND_LOGOS.Corsair : BRAND_LOGOS.Elgato,
         connected: deck.connected || deckPresentWhileReleased,
         kind: 'curated',
         curatedId: 'streamdeck',
