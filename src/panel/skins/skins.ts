@@ -21,9 +21,11 @@ export const PANEL_SKINS = [
   { id: 'vfd', label: 'VFD', font: 'jura', accent: '#3fd9c8', prefersSkinBackground: true, framelessAtZeroPadding: true },
   { id: 'hud', label: 'HUD', font: 'tektur', accent: '#2fd8ff', prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'neon', label: 'Neon', font: 'oswald', accent: '#ff2bd6', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'blueprint', label: 'Blueprint', font: 'jura', accent: '#1a4fa8', prefersSkinBackground: true, framelessAtZeroPadding: false },
   { id: 'eink', label: 'E-ink', font: 'piazzolla', accent: '#2f6fd6', prefersSkinBackground: true, framelessAtZeroPadding: true },
   { id: 'bevel', label: 'Bevel', font: 'lexend', accent: '#6f9bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'sakura', label: 'Sakura', font: 'piazzolla', accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'hifi', label: 'Hi-fi', font: 'oswald', accent: '#e2572b', prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'cockpit', label: 'Cockpit', font: 'jura', accent: '#ffb000', prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'arcade', label: 'Arcade', font: 'tektur', accent: '#ff3b30', prefersSkinBackground: false, framelessAtZeroPadding: false },
@@ -35,8 +37,6 @@ export const PANEL_SKINS = [
   { id: 'swiss', label: 'Swiss', font: 'lexend', accent: '#e30613', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'clay', label: 'Clay', font: 'lexend', accent: '#7a5af8', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'sketch', label: 'Sketch', font: 'piazzolla', accent: '#d9532b', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'sakura', label: 'Sakura', font: 'piazzolla', accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'ripple', label: 'Ripple', font: 'lexend', accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
 ] as const satisfies readonly SkinDef[];
 
