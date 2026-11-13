@@ -83,6 +83,7 @@ import {
   staticLookPin, colorPin, animatePin, MIRROR_PIN, MEDIA_PIN, pinGridKey, pinHex, pinSignature, type Pins,
   pickerMarks, pinMode, pinnedNamesByEffect, pinModeTargetLabel, pinTargetLabel, pressReach, engineReaches, selectAllEligible, tabPressChangesNothing, clearLegacyLightingKeys,
   SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY, selectionWithoutUnpinned,
+  SELECTION_TAB_STORAGE_KEY, SELECTION_TAB_BASE_STORAGE_KEY, reconcileSelectionTab,
 } from './pins';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
@@ -1082,12 +1083,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const selectionIds = useMemo(() => [...selectedDeviceIds], [selectedDeviceIds]);
   // The tab a press opened for a selection, null for the global mode's tab. Selecting and
   // deselecting cards never moves it.
-  const [selectionTab, setSelectionTab] = useState<LightingMode | null>(null);
-  const [tabBaseMode, setTabBaseMode] = useState(mode);
-  if (tabBaseMode !== mode) {
+  const [selectionTab, setSelectionTab] = usePersistentState<LightingMode | null>(SELECTION_TAB_STORAGE_KEY, null);
+  const [tabBaseMode, setTabBaseMode] = usePersistentState<LightingMode | null>(SELECTION_TAB_BASE_STORAGE_KEY, null);
+  const reconciledTab = reconcileSelectionTab(selectionTab, tabBaseMode, mode, synced);
+  if (reconciledTab.base !== tabBaseMode || reconciledTab.tab !== selectionTab) {
     // A global mode change from anywhere (a press, Off, simple mode, another client) reopens the global tab.
-    setTabBaseMode(mode);
-    setSelectionTab(null);
+    setTabBaseMode(reconciledTab.base);
+    setSelectionTab(reconciledTab.tab);
   }
   const viewMode: LightingMode = selectionTab ?? mode;
   // Nothing selected on a tab other than the running mode: its picks reach no card until a
@@ -1169,7 +1171,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       rawSync: selectMode === 'static' ? 'static' : key,
       effect: key,
     });
-  }, [activeEffect, applyAnimate, applyPins, viewMode, pinStaticLook, selectedDeviceIds, setGlobalColor, slotOf, stateFor, detachedTab, flashScope]);
+  }, [activeEffect, applyAnimate, applyPins, viewMode, pinStaticLook, selectedDeviceIds, setGlobalColor, slotOf, stateFor, detachedTab, flashScope, setSelectionTab]);
 
   // Paces the pin writes a color drag produces; the local copy is recorded
   // per move, the write follows when the previous one lands.
@@ -1200,7 +1202,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const pin = colorPin(hex);
     recordPins(ids, pin);
     queueColorWrite(pin, ids);
-  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope, recordColor]);
+  }, [queueColorWrite, recordPins, selectedDeviceIds, setCustomStaticColor, setGlobalColor, detachedTab, flashScope, recordColor, setSelectionTab]);
 
   // Records as well as writes: the marks and the device cards read the pin, so
   // a drag has to move them with the pointer, not on release.
