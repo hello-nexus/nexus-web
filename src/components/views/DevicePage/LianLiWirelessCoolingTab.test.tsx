@@ -162,4 +162,21 @@ describe('LianLiWirelessCoolingTab', () => {
     expect(mockFetchFanChannels).toHaveBeenCalledTimes(2);
     expect(mockFetchCurves).toHaveBeenCalledTimes(2);
   });
+
+  it('titles a HydroShift II by its device type and shows one Fans row on the :fans channel', async () => {
+    mockFetchFanChannels.mockResolvedValue({
+      channels: [
+        { id: 'lianli-wireless:998D1DE566E1:fans', name: 'HydroShift II Fans', dutyPercent: 60, rpm: 1500, mode: 'Manual' },
+        { id: 'lianli-wireless:998D1DE566E1:pump', name: 'HydroShift II Pump', dutyPercent: 70, rpm: 2800, mode: 'Manual' },
+      ],
+    });
+    await renderTab({ ...wirelessState, fans: [{ ...boundFan, devType: 10, fanCount: 3, rpm: [0, 1500, 1480, 0] }] });
+
+    expect(screen.getByText('devices.lianli-wireless.deviceHydroShift')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.fanTypeSlv3Lcd')).not.toBeInTheDocument();
+    expect(screen.getByText('cooling.label.fan')).toBeInTheDocument();
+    expect(screen.getByText('1,500 RPM')).toBeInTheDocument();
+    expect(screen.getByText('60%')).toBeInTheDocument();
+    expect(screen.queryByText(/fanN/)).not.toBeInTheDocument();
+  });
 });
