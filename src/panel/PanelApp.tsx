@@ -848,7 +848,8 @@ export function PanelContent({
   // shader, media and wallpaper layers. Any other mode draws the skin's tiles
   // over the user's background. Frost and opacity still apply to the backdrop.
   const skinned = skinScope !== null;
-  const skinOwnsBackdrop = skinned && effectiveTheme.backgroundMode === 'skin';
+  // A wallpaper or desktop Rendering choice shows instead of the skin's backdrop, like any other source.
+  const skinOwnsBackdrop = skinned && effectiveTheme.backgroundMode === 'skin' && effectiveTheme.backdrop === 'theme';
   const backdrop = wallpaperBackgroundAvailable && showPanelBackground && !skinOwnsBackdrop
     ? effectiveTheme.backdrop
     : 'theme';

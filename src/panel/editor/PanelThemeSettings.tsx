@@ -605,7 +605,7 @@ export function PanelThemeSettings({
               }}
               onCommit={onBackgroundFrostCommit}
             />
-            {theme.backdrop === 'desktop' && bgMode !== 'skin' ? null : (
+            {theme.backdrop === 'desktop' ? null : (
               <>
                 {backgroundOpacitySlider}
                 {backgroundOpacityPercent === 0 && (
@@ -613,9 +613,11 @@ export function PanelThemeSettings({
                 )}
               </>
             )}
-            {bgMode === 'skin' ? backgroundModeChips : theme.backdrop !== 'theme' ? null : (
+            {theme.backdrop !== 'theme' ? null : (
             <>
-            {bgMode === 'solid' ? (
+            {bgMode === 'skin' ? (
+              backgroundModeChips
+            ) : bgMode === 'solid' ? (
               <>
                 {backgroundModeChips}
                 <ColorPickerWithPresets

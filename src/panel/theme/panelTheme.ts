@@ -418,8 +418,8 @@ export function usePanelTheme(
     const cur = themeRef.current;
     if (mode === 'skin') {
       const before = cur.backgroundMode === 'skin' ? cur.backgroundModeBefore : cur.backgroundMode;
-      setTheme(prev => ({ ...prev, backgroundMode: 'skin', backgroundModeBefore: before, backgroundFrost: 0, backgroundOpacity: 1 }));
-      persistPatch({ backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
+      setTheme(prev => ({ ...prev, backdrop: 'theme', backgroundMode: 'skin', backgroundModeBefore: before, backgroundFrost: 0, backgroundOpacity: 1 }));
+      persistPatch({ backdrop: 'theme', backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
       return;
     }
     setTheme(prev => ({ ...prev, backgroundMode: mode, backgroundModeBefore: mode }));
@@ -573,8 +573,8 @@ export function usePanelTheme(
     // A skin that owns its look switches the background to Skin, once.
     if (skin && skinDef(skin)?.prefersSkinBackground && cur.backgroundMode !== 'skin') {
       const before = cur.backgroundMode;
-      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, backgroundMode: 'skin', backgroundModeBefore: before, backgroundFrost: 0, backgroundOpacity: 1 }));
-      persistPatch({ skin, ...CLEAR_SKIN_OVERRIDES, backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
+      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, backdrop: 'theme', backgroundMode: 'skin', backgroundModeBefore: before, backgroundFrost: 0, backgroundOpacity: 1 }));
+      persistPatch({ skin, ...CLEAR_SKIN_OVERRIDES, backdrop: 'theme', backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
       return;
     }
     // Each skin starts at its own designed look: its font, accent and mode overrides are dropped.
