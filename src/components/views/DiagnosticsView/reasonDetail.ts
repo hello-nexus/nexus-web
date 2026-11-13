@@ -56,6 +56,7 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
       escalation: ctx.t(escalated ? 'diagnostics.reasonDetail.escalated' : 'diagnostics.reasonDetail.notEscalated'),
     });
   },
+  'system.failedUnits': (p, ctx) => (p.units ? ctx.t('diagnostics.reasonDetail.failedUnits', { units: p.units }) : null),
   'cooling.fanStall': stall,
   'cooling.pumpStall': stall,
   'alerts.sensorThreshold': (p, ctx) => {
@@ -90,6 +91,7 @@ function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | nu
 // Codes whose service detail is key=value debug text, never prose.
 const DEBUG_DETAIL_CODES: ReadonlySet<string> = new Set([
   'cooling.thermalGuardTrip', 'cooling.fanStall', 'cooling.pumpStall', 'alerts.sensorThreshold', 'alerts.sensorThresholdEnded',
+  'system.failedUnits',
 ]);
 
 const KEY_VALUE_START = /^\s*\w+=/;

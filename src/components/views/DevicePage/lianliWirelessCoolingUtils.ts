@@ -4,6 +4,7 @@
 
 import type { FanChannel } from '../../../api/cooling';
 import type { LianLiWirelessFan } from '../../../api/lianli-wireless';
+import { isHydroShiftDevice } from './LianLiWirelessFansTab';
 
 // Matches Slv3CoolingProvider.IdPrefix / PortId in nexus-service.
 export const WIRELESS_CHANNEL_PREFIX = 'lianli-wireless:';
@@ -12,6 +13,11 @@ export const WIRELESS_CHANNEL_PREFIX = 'lianli-wireless:';
  *  bound fan chain; the prefix names the handler that owns it. */
 export function lianliWirelessPortChannelId(mac: string, port: number, prefix = WIRELESS_CHANNEL_PREFIX): string {
   return `${prefix}${mac}:port${port}`;
+}
+
+/** The one radiator-fan channel the service registers for a HydroShift II. */
+export function lianliWirelessAioFansChannelId(mac: string, prefix = WIRELESS_CHANNEL_PREFIX): string {
+  return `${prefix}${mac}:fans`;
 }
 
 export interface LianLiWirelessCoolingPort {
@@ -26,6 +32,9 @@ export interface LianLiWirelessCoolingPort {
 export interface LianLiWirelessCoolingChain {
   mac: string;
   fanType: number;
+  devType: number;
+  /** A HydroShift II: one shared radiator-fan row bound to the :fans channel. */
+  aio: boolean;
   ports: LianLiWirelessCoolingPort[];
 }
 
@@ -49,6 +58,22 @@ export function buildLianLiWirelessCoolingChains(
   const chains: LianLiWirelessCoolingChain[] = [];
   for (const fan of fans) {
     if (!fan.boundToUs) continue;
+    if (isHydroShiftDevice(fan.devType)) {
+      if (fan.fanCount <= 0) continue;
+      // The AIO applies one duty to all its radiator fans, so a single row.
+      // Slot 3 is the pump, so its tach never feeds the fans row.
+      const channel = byId.get(lianliWirelessAioFansChannelId(fan.mac, prefix)) ?? null;
+      const spinning = fan.rpm.slice(0, Math.min(fan.fanCount, 3)).filter(r => r > 0);
+      const avg = spinning.length ? Math.round(spinning.reduce((a, b) => a + b, 0) / spinning.length) : 0;
+      chains.push({
+        mac: fan.mac,
+        fanType: fan.fanType,
+        devType: fan.devType,
+        aio: true,
+        ports: [{ port: 0, rpm: channel?.rpm ?? avg, rpmUnavailable: false, channel }],
+      });
+      continue;
+    }
     // The service registers contiguous port0..portN-1 channels per chain, so
     // the channel count doubles as the highest port index + 1.
     const chainChannelCount = channels.filter(
@@ -69,7 +94,7 @@ export function buildLianLiWirelessCoolingChains(
         channel,
       });
     }
-    chains.push({ mac: fan.mac, fanType: fan.fanType, ports });
+    chains.push({ mac: fan.mac, fanType: fan.fanType, devType: fan.devType, aio: false, ports });
   }
   return chains;
 }

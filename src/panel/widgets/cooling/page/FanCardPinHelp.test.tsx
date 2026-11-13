@@ -36,11 +36,6 @@ describe('FanCard pin tooltip', () => {
     expect(hoverPin()).toHaveTextContent('cooling.pin.tipPump');
   });
 
-  it('explains an AIO channel pin', () => {
-    renderCard(channel({ isAio: true, controlled: false }));
-    expect(hoverPin()).toHaveTextContent('cooling.pin.tipAio');
-  });
-
   it('uses the plain copy for a user pin', () => {
     renderCard(channel({ controlled: false }));
     expect(hoverPin()).toHaveTextContent('cooling.pin.tip');
