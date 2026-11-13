@@ -22,7 +22,7 @@ export interface BackgroundSwitch {
   patch: PanelDevicePatch;
 }
 
-// Entering Skin resets frost and opacity (both stay editable there) and remembers what it replaced.
+// Entering Skin resets frost and opacity (only opacity stays editable there) and remembers what it replaced.
 export function enterSkinBackground(cur: SkinBackgroundFields): BackgroundSwitch {
   const inSkin = cur.backgroundMode === 'skin';
   const before = inSkin ? cur.backgroundModeBefore : cur.backgroundMode as PanelBackgroundBase;

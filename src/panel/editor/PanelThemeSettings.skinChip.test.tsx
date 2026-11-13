@@ -96,3 +96,22 @@ describe('Skin background chip and Rendering row', () => {
     expect(screen.queryByRole('radio', { name: 'Skin' })).toBeNull();
   });
 });
+
+describe('Frosted glass under the Theme backdrop', () => {
+  const frost = () => screen.getByRole('slider', { name: /Frosted glass/ });
+  const disabled = () => frost().hasAttribute('disabled') || frost().getAttribute('aria-disabled') === 'true';
+
+  it('is disabled for Skin and Solid and enabled for Animations', () => {
+    const { rerender } = render(ui({ skin: 'lcd', backgroundMode: 'skin', backgroundModeBefore: 'solid' }));
+    expect(disabled()).toBe(true);
+    rerender(ui({ skin: 'lcd', backgroundMode: 'solid' }));
+    expect(disabled()).toBe(true);
+    rerender(ui({ skin: 'lcd', backgroundMode: 'shader' }));
+    expect(disabled()).toBe(false);
+  });
+
+  it('stays enabled over a wallpaper backdrop even with a skin background chosen', () => {
+    render(ui({ skin: 'lcd', backgroundMode: 'skin', backgroundModeBefore: 'solid', backdrop: 'wallpaper' }));
+    expect(disabled()).toBe(false);
+  });
+});

@@ -893,10 +893,10 @@ export function PanelContent({
     && !effectiveTheme.backgroundSlideshow
     && (!effectiveTheme.backgroundMediaId || !effectiveTheme.backgroundMediaType
       || failedMediaId === effectiveTheme.backgroundMediaId);
-  // Frosted glass blurs what the page itself painted. Solid mode renders no
-  // frost pass (a blurred solid colour is the colour), and see-through has
-  // nothing in-page to sample.
-  const backgroundFrost = (skinOwnsBackdrop || showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid' && !mediaShowsSolid))
+  // Frosted glass blurs what the page itself painted. Solid and Skin modes
+  // render no frost pass (a blurred flat colour is the colour), and
+  // see-through has nothing in-page to sample.
+  const backgroundFrost = (showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid' && !mediaShowsSolid))
     ? effectiveTheme.backgroundFrost
     : 0;
   const panelSolidColor = useMemo(

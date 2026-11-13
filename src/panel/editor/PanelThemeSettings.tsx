@@ -282,9 +282,10 @@ export function PanelThemeSettings({
   // Frost blurs whatever the page itself paints, so it applies to the
   // redrawn wallpaper and to a shader/media layer. In see-through mode the
   // page paints nothing, so the host blurs the desktop behind the cards.
+  // A flat solid or skin backdrop has nothing to blur.
   const frostApplies = theme.backdrop === 'wallpaper'
     || theme.backdrop === 'desktop'
-    || (theme.backdrop === 'theme' && bgMode !== 'solid');
+    || (theme.backdrop === 'theme' && bgMode !== 'solid' && bgMode !== 'skin');
   // Built outside the JSX so the option keys read as data, matching the other
   // ChipGroup call sites (the i18n lint rule scans JSX only).
   const backdropOptions = [
