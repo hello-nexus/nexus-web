@@ -14,9 +14,7 @@ import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from '../engine/grid';
 
-// 'skin' shows the active skin's own backdrop. It is stored as 'skin' or
-// 'skin:<mode>' (the mode to fall back to when the skin is removed), so the
-// service needs no new field: it keeps the background mode as a plain string.
+// 'skin' is stored as 'skin' or 'skin:<mode>' (the mode to restore when the skin is removed); the service keeps the mode as a plain string.
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media' | 'skin';
 export type PanelBackgroundBase = Exclude<PanelBackgroundMode, 'skin'>;
 

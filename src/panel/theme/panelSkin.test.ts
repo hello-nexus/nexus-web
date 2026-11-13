@@ -38,7 +38,7 @@ describe('panel skin render-time overrides', () => {
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud' })))?.font).toBe('tektur');
   });
 
-  it('applies the skin accent, ignoring the user accent; a skin-level override wins unless locked', () => {
+  it('applies the skin accent, ignoring the user accent; a skin-level override wins', () => {
     const own = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
     expect(own.accentColor).toBe('#2fd8ff');
     const override = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', skinAccent: '#00ff00' })));

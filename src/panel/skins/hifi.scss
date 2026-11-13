@@ -34,6 +34,3 @@
   --gauge-track: rgba(42, 35, 24, 0.16);
   @include hifi-ring(#e9eaec, #bfc2c7, #8c9097);
 }
-@include in-skin('hifi', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

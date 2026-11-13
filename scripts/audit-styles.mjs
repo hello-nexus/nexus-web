@@ -38,10 +38,12 @@ const ALLOWLIST = {
     'styles/_text.scss',
     'styles/variables.scss',
     'styles/global.scss',
+    'panel/skins/', // directory prefix: a skin's type voice (weight, segment scale) is part of its palette
   ]),
   radius: new Set([
     'styles/variables.scss',
     'styles/global.scss',  // raw HTML resets (input range thumb, etc)
+    'panel/skins/skinBase.scss', // a skin without --skin-card-radius draws square cards
   ]),
   shadow: new Set([
     'styles/variables.scss',
@@ -59,6 +61,7 @@ const ALLOWLIST = {
     'panel/PanelOfflineOverlay.module.scss',
     'panel/PanelImmersiveOverlay.module.scss',
     'panel/styles/tokens.scss',
+    'panel/skins/', // directory prefix: skin files are palette definitions, their rgba values are the palette
   ]),
   blur: new Set([
     'styles/variables.scss',
@@ -159,7 +162,10 @@ function* walk(dir) {
 }
 
 function isAllowed(rel, axis) {
-  return ALLOWLIST[axis]?.has(rel.split(sep).join('/')) ?? false;
+  const path = rel.split(sep).join('/');
+  const list = ALLOWLIST[axis];
+  if (!list) return false;
+  return list.has(path) || [...list].some(e => e.endsWith('/') && path.startsWith(e));
 }
 
 const findings = {

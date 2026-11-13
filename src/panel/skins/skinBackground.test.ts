@@ -11,8 +11,6 @@ const base: SkinThemeFields = {
   skin: null,
   skinAccent: null,
   skinFont: null,
-  themeSyncWithDesktop: false,
-  themeMode: 'dark',
   accentSyncWithDesktop: false,
   accentColor: '',
   font: null,
@@ -50,16 +48,14 @@ describe('skin background mode', () => {
 });
 
 describe('skin defaults and overrides', () => {
-  it('applies the skin accent whatever the user own accent is, and leaves the mode to the Theme controls', () => {
-    const r = resolveSkin({ ...base, skin: 'hud', accentColor: '#ff0000', accentSyncWithDesktop: false, themeSyncWithDesktop: false, themeMode: 'light' })!;
+  it('applies the skin accent whatever the user own accent is', () => {
+    const r = resolveSkin({ ...base, skin: 'hud', accentColor: '#ff0000', accentSyncWithDesktop: false })!;
     expect(r.accent).toBe('#2fd8ff');
-    expect(r.mode).toBeNull();
   });
-  it('lets a skin-level accent and font override win, and leaves the mode to the Theme controls', () => {
+  it('lets a skin-level accent and font override win', () => {
     const o = { skinAccent: '#00ff00', skinFont: 'jura' };
     expect(resolveSkin({ ...base, skin: 'hud', ...o })).toMatchObject({ accent: '#00ff00', font: 'jura' });
     expect(resolveSkin({ ...base, skin: 'lcd', ...o })).toMatchObject({ accent: '#00ff00', font: 'jura' });
-    expect(resolveSkin({ ...base, skin: 'crt', ...o })!.mode).toBeNull();
   });
 });
 

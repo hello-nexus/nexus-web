@@ -30,6 +30,3 @@
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-sf-line-rgb-light), 0.8);
   --skin-card-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
 }
-@include in-skin('track', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

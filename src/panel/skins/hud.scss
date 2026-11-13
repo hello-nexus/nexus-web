@@ -101,6 +101,3 @@
 @include in-skin('hud', 'svg path, svg line, svg polyline') {
   stroke-linejoin: miter;
 }
-@include in-skin('hud', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

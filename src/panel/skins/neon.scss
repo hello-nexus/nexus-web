@@ -115,6 +115,3 @@
 @include in-skin('neon', 'svg.lucide') {
   stroke-width: 2.2;
 }
-@include in-skin('neon', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

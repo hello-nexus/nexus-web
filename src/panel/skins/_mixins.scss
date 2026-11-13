@@ -21,15 +21,6 @@
   .panel-root[data-panel-skin='#{$id}'][data-theme='light'],
   .panel-root[data-panel-skin='#{$id}'] [data-ink='dark'] { @content; }
 }
-// A variant of a screen skin; the first variant is also the default.
-@mixin skin-variant($id, $variant, $default: false) {
-  @if $default {
-    .panel-root[data-panel-skin='#{$id}'][data-theme]:not([data-skin-variant]),
-    .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme] { @content; }
-  } @else {
-    .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme] { @content; }
-  }
-}
 @mixin in-skin($id, $sel) {
   .panel-root[data-panel-skin='#{$id}'] #{$sel} { @content; }
 }

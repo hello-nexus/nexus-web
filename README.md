@@ -119,7 +119,7 @@ Everything ships from `src/`. Top-level folders:
 | `lib/` | Non-React utilities + stores (`appStore`, `monitoringStore`, `i18n`, `settings`, codecs, sensor resolvers). |
 | `locales/` | The i18n JSON bundles (en + 16 others). |
 | `overlay/` | The `/overlay` surface - per-monitor overlay shell + bridge to `nexus-overlay.exe`. |
-| `panel/` | The kiosk/phone **panel** surface and its own rendering engine (`engine/`, `editor/`, `chrome/`, `theme/`, `dnd/`, `background/`, `overlays/`, `embed/` simulator). `panel/widgets/` holds the built-in widget implementations. |
+| `panel/` | The kiosk/phone **panel** surface and its own rendering engine (`engine/`, `editor/`, `chrome/`, `theme/`, `dnd/`, `background/`, `overlays/`, `embed/` simulator, `skins/`). `panel/widgets/` holds the built-in widget implementations. `panel/skins/` is the per-panel Skin registry (`skins.ts`) plus one lazily loaded stylesheet per skin; a new skin is one registry entry and one `<id>.scss` plus a `skinLoader.ts` line. |
 | `sandbox/` | Host runtime for **sandboxed SDK widgets** ("Nexus apps"): boots a hardened Web Worker per widget, installs the `nexus.*` API, and renders the worker's remote-dom tree. This is what executes third-party app bundles. |
 | `search/` | Global command palette / top search (providers, fuzzy match, frecency). |
 | `site/` | The **marketing site** (`site/index.html` entry at the repo root -> `src/site/`): long-scroll landing page whose feature demos mount the app's real components on mock data. Standalone build only. Bundled shader copies live in `src/site/shaders/` (see its README). |

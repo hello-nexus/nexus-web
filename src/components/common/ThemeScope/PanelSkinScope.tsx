@@ -21,11 +21,7 @@ export const usePanelSkinAttrs = (): PanelSkinAttributes => useContext(SkinConte
 /** The body-level host for portaled chrome opened inside a skinned panel; null otherwise. */
 export const useSkinPortalHost = (): HTMLElement | null => useContext(SkinContext)?.host ?? null;
 
-/**
- * Provides the skin attributes to every panel-root mount and one body-level
- * host that mirrors them for portaled popovers, menus, modals and tooltips.
- * A null scope (no skin) creates nothing.
- */
+/** Skin attributes for every panel-root mount plus one body-level host mirroring them for portaled chrome; a null scope creates nothing. */
 export function PanelSkinScope({ scope, children }: { scope: PanelSkinScopeValue | null; children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const active = scope !== null;

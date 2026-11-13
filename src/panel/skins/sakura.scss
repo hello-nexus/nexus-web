@@ -48,6 +48,3 @@
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.5);
   --skin-card-shadow: 0 2px 0 rgba(var(--skin-accent-rgb), 0.2);
 }
-@include in-skin('sakura', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

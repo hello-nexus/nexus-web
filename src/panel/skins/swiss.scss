@@ -19,6 +19,3 @@
   @include kit(#e9e9e6, #ffffff, #0c0c0c, #4a4a4a, #bcbcb8, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #c0283a);
   --skin-card-deco: linear-gradient(var(--skin-accent-deep), var(--skin-accent-deep));
 }
-@include in-skin('swiss', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

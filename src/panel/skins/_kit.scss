@@ -75,21 +75,7 @@
   --weight-small: #{$small};
 }
 
-// A dark-mode override of one screen-skin variant (the shared mixins only
-// expose the any-mode and light selectors). Source order after the variant's
-// base block wins at equal specificity.
-@mixin skin-dark-variant($id, $variant, $default: false) {
-  @if $default {
-    .panel-root[data-panel-skin='#{$id}'][data-theme='dark']:not([data-skin-variant]),
-    .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme='dark'] { @content; }
-  } @else {
-    .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme='dark'] { @content; }
-  }
-}
 @mixin skin-dark($id) {
   .panel-root[data-panel-skin='#{$id}'][data-theme='dark'],
   .panel-root[data-panel-skin='#{$id}'] [data-ink='light'] { @content; }
-}
-@mixin skin-variant-any($id, $variant) {
-  .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme] { @content; }
 }

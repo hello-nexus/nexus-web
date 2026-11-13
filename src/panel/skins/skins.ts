@@ -1,56 +1,46 @@
-// Panel skin registry (prototype). A skin is one attribute on the panel root,
-// data-panel-skin="<id>", styled by src/panel/skins/<id>.scss, and a preset:
-// it carries a default font, accent and mode, and says which of them the user
-// may still change.
+// A skin is data-panel-skin="<id>" on the panel root, styled by <id>.scss; this registry holds its presets.
 
 import { PANEL_FONTS, panelFontVars, type PanelFontId } from '../theme/panelFont';
 
-// Skins draw only in faces the panel already ships (PANEL_FONTS); nothing is
-// added to the bundle.
+// 'pixel' is the one skin-only face, loaded with the skin.
 export type SkinFont = PanelFontId | 'pixel';
 
 export interface SkinDef {
   id: string;
   label: string;
-  kind: 'screen' | 'style';
   font: SkinFont;
   fontLocked: boolean;
-  // Style skins only: the default accent.
-  accent: string | null;
-  accentLocked: boolean;
-  // The mode the skin is drawn in. With modeLocked the dark/light setting is ignored.
-  mode: 'dark' | 'light';
-  modeLocked: boolean;
-  // Picking the skin switches the background mode to Skin (its own backdrop); the user can pick any other mode.
+  accent: string;
+  // Picking the skin switches the background mode to Skin; the user can pick any other mode.
   prefersSkinBackground: boolean;
-  // At 0% widget padding the frame decorations are not drawn and the inset is 0. Skins whose frame is their identity keep it.
+  // At zero widget padding the frame decorations and the inset are dropped; skins whose frame is their identity keep it.
   framelessAtZeroPadding: boolean;
 }
 
 export const PANEL_SKINS = [
-  { id: 'pixel', label: 'Pixel', kind: 'style', font: 'pixel', fontLocked: true, accent: '#41a6f6', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'lcd', label: 'LCD', kind: 'style', font: 'jura', fontLocked: true, accent: '#9bb36a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'vfd', label: 'VFD', kind: 'style', font: 'jura', fontLocked: true, accent: '#3fd9c8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'hud', label: 'HUD', kind: 'style', font: 'tektur', fontLocked: false, accent: '#2fd8ff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'neon', label: 'Neon', kind: 'style', font: 'oswald', fontLocked: false, accent: '#ff2bd6', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'blueprint', label: 'Blueprint', kind: 'style', font: 'jura', fontLocked: false, accent: '#1a4fa8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'eink', label: 'E-ink', kind: 'screen', font: 'piazzolla', fontLocked: false, accent: '#2f6fd6', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'bevel', label: 'Bevel', kind: 'style', font: 'lexend', fontLocked: false, accent: '#6f9bff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'hifi', label: 'Hi-fi', kind: 'style', font: 'oswald', fontLocked: false, accent: '#e2572b', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'cockpit', label: 'Cockpit', kind: 'style', font: 'jura', fontLocked: false, accent: '#ffb000', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'arcade', label: 'Arcade', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff3b30', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'glass', label: 'Glass', kind: 'style', font: 'lexend', fontLocked: false, accent: '#5aa8ff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'mecha', label: 'Mecha', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff7a00', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'steampunk', label: 'Steampunk', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'nixie', label: 'Nixie', kind: 'style', font: 'jura', fontLocked: false, accent: '#ff8a2a', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'deco', label: 'Art Deco', kind: 'style', font: 'oswald', fontLocked: false, accent: '#c9a24a', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'swiss', label: 'Swiss', kind: 'style', font: 'lexend', fontLocked: false, accent: '#e30613', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'clay', label: 'Clay', kind: 'style', font: 'lexend', fontLocked: false, accent: '#7a5af8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'sketch', label: 'Sketch', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#d9532b', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'bubblegum', label: 'Bubblegum', kind: 'style', font: 'lexend', fontLocked: false, accent: '#ff4fa3', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'sakura', label: 'Sakura', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#e8799a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'track', label: 'Track', kind: 'style', font: 'oswald', fontLocked: false, accent: '#1e6bff', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'pixel', label: 'Pixel', font: 'pixel', fontLocked: true, accent: '#41a6f6', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'lcd', label: 'LCD', font: 'jura', fontLocked: true, accent: '#9bb36a', prefersSkinBackground: true, framelessAtZeroPadding: false },
+  { id: 'crt', label: 'CRT', font: 'tektur', fontLocked: true, accent: '#33ff66', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'vfd', label: 'VFD', font: 'jura', fontLocked: true, accent: '#3fd9c8', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'hud', label: 'HUD', font: 'tektur', fontLocked: false, accent: '#2fd8ff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'neon', label: 'Neon', font: 'oswald', fontLocked: false, accent: '#ff2bd6', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'blueprint', label: 'Blueprint', font: 'jura', fontLocked: false, accent: '#1a4fa8', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'eink', label: 'E-ink', font: 'piazzolla', fontLocked: false, accent: '#2f6fd6', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'bevel', label: 'Bevel', font: 'lexend', fontLocked: false, accent: '#6f9bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'hifi', label: 'Hi-fi', font: 'oswald', fontLocked: false, accent: '#e2572b', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'cockpit', label: 'Cockpit', font: 'jura', fontLocked: false, accent: '#ffb000', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'arcade', label: 'Arcade', font: 'tektur', fontLocked: false, accent: '#ff3b30', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'glass', label: 'Glass', font: 'lexend', fontLocked: false, accent: '#5aa8ff', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'mecha', label: 'Mecha', font: 'tektur', fontLocked: false, accent: '#ff7a00', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'steampunk', label: 'Steampunk', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'nixie', label: 'Nixie', font: 'jura', fontLocked: false, accent: '#ff8a2a', prefersSkinBackground: true, framelessAtZeroPadding: false },
+  { id: 'deco', label: 'Art Deco', font: 'oswald', fontLocked: false, accent: '#c9a24a', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'swiss', label: 'Swiss', font: 'lexend', fontLocked: false, accent: '#e30613', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'clay', label: 'Clay', font: 'lexend', fontLocked: false, accent: '#7a5af8', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'sketch', label: 'Sketch', font: 'piazzolla', fontLocked: false, accent: '#d9532b', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', fontLocked: false, accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'sakura', label: 'Sakura', font: 'piazzolla', fontLocked: false, accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'track', label: 'Track', font: 'oswald', fontLocked: false, accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];
@@ -143,7 +133,7 @@ function deepened(hex: string): string {
 // Card face per skin and mode: the colour accent text sits on. Surface skins
 // compute theirs from the accent (skinSurfaceVars); the translucent Glass faces
 // are the fill composited over the backdrop. Screen skins and Blueprint draw their own ink.
-const CARD_FACE: Record<string, { light: string; dark: string }> = {
+export const CARD_FACE: Record<string, { light: string; dark: string }> = {
   pixel: { light: '#f4f4f4', dark: '#333c57' },
   bevel: { light: '#d3d3d3', dark: '#4b4f59' },
   hud: { light: '#f4fafd', dark: '#071a2a' },

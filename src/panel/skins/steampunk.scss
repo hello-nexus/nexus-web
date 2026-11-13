@@ -37,6 +37,3 @@
   @include sp-ring(var(--skin-metal-hi), var(--skin-metal-mid), var(--skin-metal-lo));
   @include derived(light);
 }
-@include in-skin('steampunk', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

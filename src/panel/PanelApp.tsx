@@ -844,9 +844,7 @@ export function PanelContent({
   // Dialogs opened from the sheet (a confirm) portal to <body>, outside the
   // sheet's zoom; hand them the same scale so they match the panel chrome.
   const sheetOverlayScale = touchPanelChrome ? (webkitSafeChromeScale ?? webkitSafePanelScale ?? 1) : 1;
-  // In the Skin background mode the skin's own backdrop replaces the theme's
-  // shader, media and wallpaper layers. Any other mode draws the skin's tiles
-  // over the user's background. Frost and opacity still apply to the backdrop.
+  // Skin background mode replaces the theme layers with the skin backdrop; any other mode draws the skin tiles over the user's background.
   const skinned = skinScope !== null;
   // A wallpaper or desktop Rendering choice shows instead of the skin's backdrop, like any other source.
   const skinOwnsBackdrop = skinned && effectiveTheme.backgroundMode === 'skin' && effectiveTheme.backdrop === 'theme';

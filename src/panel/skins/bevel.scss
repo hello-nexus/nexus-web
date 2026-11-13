@@ -37,9 +37,6 @@
   --skin-card-deco: linear-gradient(90deg, var(--skin-accent-deep), rgba(var(--skin-accent-rgb), 0.3));
   --gauge-track: #b4b6bc;
 }
-@include in-skin('bevel', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}
 @include in-skin('bevel', 'svg.lucide') {
   stroke-width: 2;
 }

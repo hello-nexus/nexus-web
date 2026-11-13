@@ -121,6 +121,3 @@
 @include in-skin('pixel', '[data-panel-widget-id]:active .panel-card') {
   transform: translate(3px, 3px);
 }
-@include in-skin('pixel', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}

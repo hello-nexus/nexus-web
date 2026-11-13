@@ -30,9 +30,6 @@
   --skin-card-frame: inset 0 0 0 3px #3a3d42, inset 0 0 0 4px #9a9ea4;
   --gauge-track: rgba(16, 18, 20, 0.16);
 }
-@include in-skin('cockpit', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}
 @include in-skin('cockpit', 'svg.lucide') {
   stroke-width: 1.8;
 }

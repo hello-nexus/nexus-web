@@ -669,8 +669,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     return (options ? stopForWidgetSize(options, widgetSizeStops, mode, densitySlots)?.percent : undefined) ?? 100;
   };
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
-  // The mode and accent the real panel resolves: same skin pass as PanelApp, so
-  // a skin that pins the mode or accent drives the preview identically.
+  // Same skin pass as PanelApp so the preview resolves the skin accent identically.
   const skinnedTheme = useMemo(() => applyPanelSkin(theme), [theme]);
   const effectiveThemeMode = skinnedTheme.themeSyncWithDesktop ? syncedAppMode : skinnedTheme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);

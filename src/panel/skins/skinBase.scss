@@ -179,6 +179,10 @@ $skin-insets: (
   border-radius: var(--skin-bar-radius, var(--radius-pill));
   box-shadow: none;
 }
+$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, sakura, steampunk, swiss, track;
+@each $id in $accent-fill {
+  .panel-root[data-panel-skin='#{$id}'] [data-skin-part='fill'] { background: var(--skin-fill, var(--accent)); }
+}
 .panel-root[data-panel-skin] svg[data-skin-part='spark'] [data-skin-part='spark-line'] {
   stroke-linejoin: var(--skin-line-join, round);
   stroke-linecap: var(--skin-line-cap, round);

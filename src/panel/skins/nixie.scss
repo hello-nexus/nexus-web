@@ -19,9 +19,6 @@
   --skin-bar-height: 4px;
   --skin-bar-radius: 2px;
 }
-@include in-skin('nixie', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}
 @include skin-light('nixie') {
   @include kit(#d9c7a0, #f3e6c8, #5e2a00, #77470f, #a07a2c, var(--skin-accent-ink-light), var(--skin-accent-rgb), #fff6e0, #3d6b14, #8a5a00, #b3261e);
   @include derived(light);

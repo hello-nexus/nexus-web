@@ -411,9 +411,7 @@ export function usePanelTheme(
     persistPatch({ backgroundColor: dark, backgroundColorLight: light });
   }, [persistPatch]);
 
-  // Entering Skin mode starts with no frost and the backdrop at full strength;
-  // both stay editable there. They are written as an explicit edit, so the
-  // values from the previous mode are replaced.
+  // Entering Skin mode resets frost and opacity; both stay editable there.
   const commitBackgroundMode = useCallback((mode: PanelBackgroundMode) => {
     const cur = themeRef.current;
     if (mode === 'skin') {
@@ -577,7 +575,7 @@ export function usePanelTheme(
       persistPatch({ skin, ...CLEAR_SKIN_OVERRIDES, backdrop: 'theme', backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
       return;
     }
-    // Each skin starts at its own designed look: its font, accent and mode overrides are dropped.
+    // A skin change drops the skin-level font and accent overrides.
     setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES }));
     persistPatch({ skin: skin ?? '', ...CLEAR_SKIN_OVERRIDES });
   }, [persistPatch]);

@@ -137,7 +137,6 @@ export interface PanelDeviceRecord {
   // What the user picked while the skin is active; cleared on every skin change.
   skinAccent?: string | null;
   skinFont?: string | null;
-  skinMode?: string | null;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Device ids last selected on this panel's Lighting view; absent until set.
@@ -267,7 +266,6 @@ export interface PanelDevicePatch {
   // Skin-level overrides; an empty string clears.
   skinAccent?: string;
   skinFont?: string;
-  skinMode?: string;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Full list (the client sends the whole selection); empty means none.

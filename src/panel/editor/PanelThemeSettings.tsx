@@ -294,9 +294,7 @@ export function PanelThemeSettings({
   const systemFonts = useSystemFonts(showSystemFonts && showTheme);
   const skinLabel = skin?.def.label ?? '';
   const lockedNote = label('skin.locked', 'Set by the {skin} skin').replace('{skin}', () => skinLabel);
-  const modeLocked = !!skin?.def.modeLocked;
   const fontLocked = !!skin?.def.fontLocked;
-  const accentLocked = !!skin && (skin.def.accentLocked || skin.def.accent === null);
   const skinOptions = [
     { value: NO_SKIN_KEY, label: label('skin.none', 'None') },
     ...PANEL_SKINS.map(s => ({ value: s.id as string, label: s.label })),
@@ -461,27 +459,23 @@ export function PanelThemeSettings({
           onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
         />
         <div className={styles.toggleReveal}>
-          {!modeLocked && (
-            <SettingToggle
-              label={syncWithDesktopLabel}
-              checked={theme.themeSyncWithDesktop}
-              onChange={onThemeSyncCommit}
-            />
-          )}
-          {(modeLocked || !theme.themeSyncWithDesktop) && (
+          <SettingToggle
+            label={syncWithDesktopLabel}
+            checked={theme.themeSyncWithDesktop}
+            onChange={onThemeSyncCommit}
+          />
+          {!theme.themeSyncWithDesktop && (
             <ChipGroup
               options={THEME_MODES.map(mode => ({
                 key: mode,
                 label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
-                disabled: modeLocked,
               }))}
-              activeKey={skin?.mode ?? theme.themeMode}
+              activeKey={theme.themeMode}
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
               fullWidth
             />
           )}
-          {modeLocked && <Notice tone="info" role="status">{lockedNote}</Notice>}
         </div>
       </SettingsSection>
       )}
@@ -537,8 +531,7 @@ export function PanelThemeSettings({
               onChange={onAccentSyncCommit}
             />
           )}
-          {accentLocked && <Notice tone="info" role="status">{lockedNote}</Notice>}
-          {!accentLocked && (skin || !theme.accentSyncWithDesktop) && (
+          {(skin || !theme.accentSyncWithDesktop) && (
             <ColorPickerWithPresets
               value={skin?.accent ?? (theme.accentColor || theme.appAccentColor)}
               presets={PRESET_ACCENTS}

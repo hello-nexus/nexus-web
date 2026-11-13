@@ -32,9 +32,6 @@
   --ar-strip: rgba(28, 13, 69, 0.08);
   --skin-card-image: none;
 }
-@include in-skin('arcade', '[data-skin-part="fill"]') {
-  background: var(--skin-fill, var(--accent));
-}
 @include in-skin('arcade', 'svg.lucide') {
   stroke-width: 2.4;
 }
