@@ -1,7 +1,7 @@
 @use 'mixins' as *;
 
 // Pixel / 8-bit. Notched corners from stacked 3px box-shadows (no clip-path,
-// no filter), a limited palette, Tektur, segmented bars and
+// no filter), a limited palette, Pixeloid Sans, segmented bars and
 // stepped easing. The accent snaps to the palette (see snapToPixelPalette).
 @mixin pixel-common {
   --skin-card-radius: 0;
@@ -14,11 +14,12 @@
   --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 6px, transparent 6px, transparent 8px);
   --skin-line-join: miter;
   --skin-line-cap: butt;
-  --weight-heading: 600;
-  --weight-body: 500;
-  --weight-strong: 600;
+  // Pixel has a regular and a bold face: titles and big values are bold, everything else regular.
+  --weight-heading: 700;
+  --weight-body: 400;
+  --weight-strong: 400;
   --weight-display: 700;
-  --weight-small: 500;
+  --weight-small: 400;
   --radius-sm: 0;
   --radius: 0;
   --radius-lg: 0;
