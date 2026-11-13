@@ -1,10 +1,13 @@
+@use 'sass:selector';
+@use 'sass:string';
+
 // Mixins shared by every skin. A skin file sets the --skin-* variables and
 // the panel tokens; this file turns the variables into card chrome, the
 // backdrop and the single optional overlay, so a skin stays a list of values
 // plus a few targeted rules. No filters, no animation, no per-element glow
 // filters: everything here is a plain background, border or box-shadow.
 //
-// Adaptive text colour stamps data-ink on each widget host over the user's own
+// Adaptive text color stamps data-ink on each widget host over the user's own
 // background, and tokens.scss re-declares the stock palette there. Each skin
 // block is therefore also emitted on the ink hosts: light ink (white text)
 // takes the skin's dark palette, dark ink its light palette.
@@ -21,7 +24,13 @@
   .panel-root[data-panel-skin='#{$id}'][data-theme='light'],
   .panel-root[data-panel-skin='#{$id}'] [data-ink='dark'] { @content; }
 }
+// selector.nest distributes over a comma list, so every item is scoped to the skin.
 @mixin in-skin($id, $sel) {
-  .panel-root[data-panel-skin='#{$id}'] #{$sel} { @content; }
+  #{selector.nest(".panel-root[data-panel-skin='#{$id}']", $sel)} { @content; }
 }
 
+
+// A skin token tint: an rgb triple at one alpha step. The one place the shared skin files spell an alpha.
+@function tint($rgb, $alpha) {
+  @return string.unquote("rgba(#{$rgb}, #{$alpha})");
+}

@@ -302,5 +302,5 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick,
     if (el) paint(el, deviceRef.current, slot, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly, locks);
   }, [pick, pattern, fullscreen, pickOnly, device.brightness, slot, locks]);
 
-  return <canvas ref={ref} className={styles.ledStrip} data-skin-part="true-color" aria-hidden />;
+  return <canvas ref={ref} className={styles.ledStrip} aria-hidden />;
 });

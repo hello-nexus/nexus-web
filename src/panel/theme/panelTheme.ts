@@ -29,9 +29,10 @@ import {
   panelBackgroundState,
   type PanelBackgroundMode,
   backgroundModeBeforeSkin,
-  encodeSkinBackgroundMode,
+  skinBackgroundHeld,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
+import { enterSkinBackground, leaveSkinBackground } from './skinBackgroundSwitch';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { normalizeTextColorMode, type TextColorMode } from './textColor';
 import { normalizePanelFont, panelFontVars, type PanelFont } from './panelFont';
@@ -219,6 +220,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundColorLight: r?.backgroundColorLight ?? '',
     backgroundMode: bgMode,
     backgroundModeBefore: backgroundModeBeforeSkin(r?.backgroundMode),
+    backgroundHeld: skinBackgroundHeld(r?.backgroundMode),
     backgroundEffect: effect,
     backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
     backgroundTemplates: templates,
@@ -411,17 +413,20 @@ export function usePanelTheme(
     persistPatch({ backgroundColor: dark, backgroundColorLight: light });
   }, [persistPatch]);
 
-  // Entering Skin mode resets frost and opacity; both stay editable there.
+  // Entering Skin remembers the backdrop, frost and opacity it replaces; picking another mode gives them back.
   const commitBackgroundMode = useCallback((mode: PanelBackgroundMode) => {
     const cur = themeRef.current;
     if (mode === 'skin') {
-      const before = cur.backgroundMode === 'skin' ? cur.backgroundModeBefore : cur.backgroundMode;
-      setTheme(prev => ({ ...prev, backdrop: 'theme', backgroundMode: 'skin', backgroundModeBefore: before, backgroundFrost: 0, backgroundOpacity: 1 }));
-      persistPatch({ backdrop: 'theme', backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
+      const change = enterSkinBackground(cur);
+      setTheme(prev => ({ ...prev, ...change.theme }));
+      persistPatch(change.patch);
       return;
     }
-    setTheme(prev => ({ ...prev, backgroundMode: mode, backgroundModeBefore: mode }));
-    persistPatch({ backgroundMode: mode });
+    const change = cur.backgroundMode === 'skin'
+      ? leaveSkinBackground(cur, mode)
+      : { theme: { backgroundMode: mode, backgroundModeBefore: mode }, patch: { backgroundMode: mode } };
+    setTheme(prev => ({ ...prev, ...change.theme }));
+    persistPatch(change.patch);
   }, [persistPatch]);
 
   const commitBackdrop = useCallback((backdrop: PanelBackdrop) => {
@@ -562,17 +567,18 @@ export function usePanelTheme(
 
   const commitSkin = useCallback((skin: PanelSkinId | null) => {
     const cur = themeRef.current;
-    // Removing the skin while its backdrop shows restores the mode held before it.
+    // Removing the skin while its backdrop shows restores what it replaced.
     if (!skin && cur.backgroundMode === 'skin') {
-      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, backgroundMode: prev.backgroundModeBefore }));
-      persistPatch({ skin: '', ...CLEAR_SKIN_OVERRIDES, backgroundMode: cur.backgroundModeBefore });
+      const change = leaveSkinBackground(cur);
+      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, ...change.theme }));
+      persistPatch({ skin: '', ...CLEAR_SKIN_OVERRIDES, ...change.patch });
       return;
     }
     // A skin that owns its look switches the background to Skin, once.
     if (skin && skinDef(skin)?.prefersSkinBackground && cur.backgroundMode !== 'skin') {
-      const before = cur.backgroundMode;
-      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, backdrop: 'theme', backgroundMode: 'skin', backgroundModeBefore: before, backgroundFrost: 0, backgroundOpacity: 1 }));
-      persistPatch({ skin, ...CLEAR_SKIN_OVERRIDES, backdrop: 'theme', backgroundMode: encodeSkinBackgroundMode(before), backgroundFrostLevel: 0, backgroundOpacity: 1 });
+      const change = enterSkinBackground(cur);
+      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, ...change.theme }));
+      persistPatch({ skin, ...CLEAR_SKIN_OVERRIDES, ...change.patch });
       return;
     }
     // A skin change drops the skin-level font and accent overrides.

@@ -38,6 +38,20 @@ describe('panel skin render-time overrides', () => {
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud' })))?.font).toBe('tektur');
   });
 
+  it('keeps Lexend as an explicit skin font choice', () => {
+    const picked = buildPanelTheme(null, record({ skin: 'hud', skinFont: 'lexend' }));
+    expect(picked.skinFont).toBe('lexend');
+    expect(resolveSkin(picked)?.font).toBe('lexend');
+  });
+
+  it('draws the resolved skin font even when it is Lexend, over the user font', () => {
+    const theme = buildPanelTheme(null, record({ skin: 'glass', font: 'oswald' }));
+    expect(resolveSkin(theme)?.font).toBe('lexend');
+    const vars = panelSkinVars(theme, '#ffffff');
+    expect(vars['--panel-font']).toContain("'Lexend'");
+    expect(vars['--font-sans']).toBe(vars['--panel-font']);
+  });
+
   it('applies the skin accent, ignoring the user accent; a skin-level override wins', () => {
     const own = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
     expect(own.accentColor).toBe('#2fd8ff');

@@ -64,10 +64,11 @@ export function panelSystemFontsAvailable(glassSurface: string | null | undefine
   return !!glassSurface && !REMOTE_GLASS_SURFACES.has(glassSurface);
 }
 
-// Font stack for a non-default choice; undefined keeps the app stack. Lexend
-// stays behind the choice for glyphs it lacks, and for a device without the font.
-export function panelFontStack(font: PanelFont | null): string | undefined {
-  if (font === null || font === DEFAULT_PANEL_FONT) return undefined;
+// Font stack for a non-default choice; undefined keeps the app stack, unless
+// `explicit` asks for the default face spelled out (a skin must override the user's own font).
+// Lexend stays behind the choice for glyphs it lacks, and for a device without the font.
+export function panelFontStack(font: PanelFont | null, explicit = false): string | undefined {
+  if (font === null || (font === DEFAULT_PANEL_FONT && !explicit)) return undefined;
   const system = systemFontFamily(font);
   const face = system ? cssQuoteFamily(system) : `'${panelFontFamily(font as PanelFontId)}'`;
   return `'Twemoji Country Flags', ${face}, 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`;
@@ -75,7 +76,7 @@ export function panelFontStack(font: PanelFont | null): string | undefined {
 
 // Panel-root vars for a font choice. --font-sans is set too: the shared _text.scss
 // mixins read it directly, so --panel-font alone misses most widget labels.
-export function panelFontVars(id: PanelFont | null): Record<string, string> {
-  const stack = panelFontStack(id);
+export function panelFontVars(id: PanelFont | null, explicit = false): Record<string, string> {
+  const stack = panelFontStack(id, explicit);
   return stack ? { '--panel-font': stack, '--font-sans': stack } : {};
 }

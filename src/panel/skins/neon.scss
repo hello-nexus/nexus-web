@@ -1,7 +1,7 @@
 @use 'mixins' as *;
 
 // Neon / synthwave (dark only): violet field, outlined tiles in the accent
-// and a derived second colour, alternating by cell. One box-shadow glow on the
+// and a derived second color, alternating by cell. One box-shadow glow on the
 // card edge, no text or SVG glow filters.
 @include skin('neon') {
   --skin-backdrop: #0c0618;
@@ -80,7 +80,7 @@
   --warn: #a8690a;
   --bad: #d12c52;
 }
-// Even cells take the derived second colour; the accent is re-pointed per
+// Even cells take the derived second color; the accent is re-pointed per
 // cell, so gauges, links and icons inside pick it up too.
 // The ink hosts of an even cell re-declare the skin block, so they are listed too.
 .panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even),
@@ -103,7 +103,7 @@
   --panel-element-bg: rgba(var(--skin-accent2-rgb), 0.16);
   --skin-spark-fill: rgba(var(--skin-accent2-rgb), 0.2);
 }
-// Pastel text stays on the deep accent; the second colour only draws the outline.
+// Pastel text stays on the deep accent; the second color only draws the outline.
 .panel-root[data-panel-skin='neon'][data-theme='light'] [data-panel-widget-id]:nth-child(even),
 .panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink='dark'] {
   --accent: var(--skin-accent-ink-light);

@@ -26,5 +26,5 @@ export function LightingLivePreview() {
   }, [live]);
 
   if (!live) return null;
-  return <canvas ref={canvasRef} className={styles.livePreview} data-skin-part="true-color" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className={styles.livePreview} aria-hidden="true" />;
 }

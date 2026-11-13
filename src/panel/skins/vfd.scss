@@ -6,7 +6,7 @@
 // other glyph falls through to the panel font stack per glyph.
 @font-face { font-family: 'Skin Seg7'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/dseg7.woff2') format('woff2'); unicode-range: U+0030-003A, U+002D, U+002E, U+00B0; }
 
-// Vacuum fluorescent display, glow colour from the accent. Glow text on black glass
+// Vacuum fluorescent display, glow color from the accent. Glow text on black glass
 // behind one static, faint mesh. Jura in capitals with wide letter-spacing.
 @include skin('vfd') {
   @include screen-tokens;
@@ -37,9 +37,6 @@
   --radius-pill: 1px;
   --panel-card-radius: 6px;
   --panel-element-radius: 3px;
-}
-@include in-skin('vfd', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
-  filter: grayscale(1) contrast(1.15) brightness(0.85);
 }
 // Unlit segments ghosted behind each numeral, drawn in the same face.
 @include in-skin('vfd', '[data-skin-part="digit"]') {

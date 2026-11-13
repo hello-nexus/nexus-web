@@ -1,7 +1,7 @@
 @use 'mixins' as *;
 @use 'warn' as *;
 
-// Dark is the blueprint (accent-coloured sheet, white lines); light is the whiteprint
+// Dark is the blueprint (accent-colored sheet, white lines); light is the whiteprint
 // (off-white sheet, accent lines). Both hatch in place of solid fills.
 @include skin('blueprint') {
   --bp-line: #f2f7ff;
@@ -106,9 +106,5 @@
 }
 @include in-skin('blueprint', 'svg path, svg line, svg polyline') {
   stroke-linejoin: miter;
-}
-@include in-skin('blueprint', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
-  filter: grayscale(1) contrast(1.3);
-  opacity: 0.9;
 }
 @include mono-warn('blueprint', var(--bp-line), var(--accent-text));

@@ -28,6 +28,7 @@ import {
   resolvePanelBackground,
   type PanelBackdrop,
   type PanelBackgroundBase,
+  type SkinBackgroundHeld,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
@@ -72,6 +73,8 @@ export interface PanelThemeSettingsState {
   backgroundMode: PanelBackgroundMode;
   // The mode a Skin background falls back to when the skin is removed.
   backgroundModeBefore: PanelBackgroundBase;
+  // The backdrop, frost and opacity the Skin background replaced; restored when it is left.
+  backgroundHeld?: SkinBackgroundHeld | null;
   backgroundEffect: string;
   backgroundTemplate: number;
   // Per-shader preset selection for this panel (effect key → preset index).
@@ -292,12 +295,13 @@ export function PanelThemeSettings({
   ];
   const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
   const systemFonts = useSystemFonts(showSystemFonts && showTheme);
-  const skinLabel = skin?.def.label ?? '';
+  const skinName = (id: string, fallback: string) => label(`skin.name.${id}`, fallback);
+  const skinLabel = skin ? skinName(skin.id, skin.def.label) : '';
   const lockedNote = label('skin.locked', 'Set by the {skin} skin').replace('{skin}', () => skinLabel);
   const fontLocked = !!skin?.def.fontLocked;
   const skinOptions = [
     { value: NO_SKIN_KEY, label: label('skin.none', 'None') },
-    ...PANEL_SKINS.map(s => ({ value: s.id as string, label: s.label })),
+    ...PANEL_SKINS.map(s => ({ value: s.id as string, label: skinName(s.id, s.label) })),
   ];
   const fontOptionsBase = buildPanelFontOptions(
     showSystemFonts
@@ -515,7 +519,8 @@ export function PanelThemeSettings({
           onChange={value => {
             const family = systemFontFamily(value);
             if (family) setRecentFonts(pushRecentSystemFont(family));
-            onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFont);
+            // Under a skin every pick is stored as is, so Lexend stays a choice instead of snapping back to the skin's face.
+            onFontCommit(!skin && value === DEFAULT_PANEL_FONT ? null : value as PanelFont);
           }}
         />
       </SettingsSection>

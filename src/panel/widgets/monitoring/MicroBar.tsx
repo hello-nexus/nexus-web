@@ -28,10 +28,10 @@ interface MicroBarProps {
   style?: CSSProperties;
 }
 
-function SimpleRow({ label, formatted, align, style, stateAttrs }: { label: string; formatted: string; align: MicroAlign; style?: CSSProperties; stateAttrs: ReturnType<typeof gaugeValueStateAttrs> }) {
+function SimpleRow({ label, formatted, align, style }: { label: string; formatted: string; align: MicroAlign; style?: CSSProperties }) {
   const { boxRef, contentRef, scale } = useFitWidth(1, true);
   return (
-    <div ref={boxRef} className={styles.rowSimple} style={style} {...stateAttrs}>
+    <div ref={boxRef} className={styles.rowSimple} style={style}>
       <div ref={contentRef} className={`${styles.simpleContent} ${styles[`align_${align}`]}`} style={{ transform: `scale(${scale})` }}>
         {label && <span className={styles.simpleLabel}>{label}</span>}
         <GaugeValue formatted={formatted} className={styles.simpleValue} align={align} />
@@ -40,6 +40,7 @@ function SimpleRow({ label, formatted, align, style, stateAttrs }: { label: stri
   );
 }
 
+// The state is stamped on the value element only (through the context), never on the row.
 export function MicroBar(props: MicroBarProps) {
   const { gradient, style, fillPercent } = props;
   const state = gradient && style ? gaugeValueStateAttrs(gradient.stops, fillPercent / 100)['data-value-state'] : undefined;
@@ -47,8 +48,7 @@ export function MicroBar(props: MicroBarProps) {
 }
 
 function MicroBarRow({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
-  const stateAttrs = gradient && style ? gaugeValueStateAttrs(gradient.stops, fillPercent / 100) : {};
-  if (design === 'simple') return <SimpleRow label={label} formatted={formatted} align={align} style={style} stateAttrs={stateAttrs} />;
+  if (design === 'simple') return <SimpleRow label={label} formatted={formatted} align={align} style={style} />;
 
   const head = (
     <div className={styles.head}>
@@ -60,7 +60,7 @@ function MicroBarRow({ label, formatted, fillPercent, design = 'bar', align = 'l
   if (design === 'fill') {
     const clamped = Math.max(0, Math.min(100, fillPercent));
     return (
-      <div className={styles.rowFill} style={style} {...stateAttrs}>
+      <div className={styles.rowFill} style={style}>
         <div className={styles.fillBar} style={{ width: `${clamped}%` }} />
         {head}
       </div>
@@ -69,7 +69,7 @@ function MicroBarRow({ label, formatted, fillPercent, design = 'bar', align = 'l
 
   if (design === 'backdrop') {
     return (
-      <div className={styles.rowGraph} style={style} {...stateAttrs}>
+      <div className={styles.rowGraph} style={style}>
         <div className={styles.graphChart}>
           <Sparkline
             values={history ?? []}
@@ -89,7 +89,7 @@ function MicroBarRow({ label, formatted, fillPercent, design = 'bar', align = 'l
   }
 
   return (
-    <div className={styles.row} style={style} {...stateAttrs}>
+    <div className={styles.row} style={style}>
       {head}
       <GaugeTrack fillPercent={fillPercent} gradient={gradient} />
     </div>

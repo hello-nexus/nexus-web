@@ -21,6 +21,14 @@ describe('buildUsage', () => {
     expect(u.effects.size).toBe(0);
   });
 
+  it('counts a Skin background without a live skin as the shader held before it', () => {
+    const u = buildUsage([
+      dev({ id: 'a', backgroundMode: 'skin:shader', skin: null, backgroundEffect: 'plasma', backgroundTemplate: 2 }),
+      dev({ id: 'b', backgroundMode: 'skin:shader', skin: 'lcd', backgroundEffect: 'fire', backgroundTemplate: 0 }),
+    ]);
+    expect([...u.effects]).toEqual(['plasma']);
+  });
+
   it('excludes the panel being edited so its own background never badges itself', () => {
     const devices = [
       dev({ id: 'self', backgroundMode: 'shader', backgroundEffect: 'plasma', backgroundTemplate: 3 }),

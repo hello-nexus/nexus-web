@@ -100,13 +100,13 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [f(0) * 255, f(8) * 255, f(4) * 255];
 }
 
-// Neon's second tile colour: the accent's hue rotated by a third of the wheel.
+// Neon's second tile color: the accent's hue rotated to a distinct neighbor.
 export function derivedSecondColor(hex: string): string {
   const [h, s, l] = rgbToHsl(hexToRgb(hex));
   return rgbToHex(hslToRgb((h + 150) % 360, Math.max(s, 0.8), Math.min(Math.max(l, 0.5), 0.6)));
 }
 
-// Pixel keeps to its 16-colour palette: the accent snaps to the nearest entry.
+// Pixel keeps to its fixed palette: the accent snaps to the nearest entry.
 export const PIXEL_PALETTE = ['#b13e53', '#ef7d57', '#ffcd75', '#a7f070', '#38b764', '#257179', '#41a6f6', '#3b5dc9', '#73eff7', '#f4f4f4'] as const;
 export function snapToPixelPalette(hex: string): string {
   const [r, g, b] = hexToRgb(hex);
@@ -121,7 +121,7 @@ export function snapToPixelPalette(hex: string): string {
 }
 
 // The accent darkened for text and lines on a light panel: lightness steps down
-// until the colour's luminance is low enough for 4.5:1 on the lighter card fills
+// until the color's luminance is low enough for text contrast on the lighter card fills
 // (parchment included), however bright the accent started.
 function deepened(hex: string): string {
   const [h, s, l0] = rgbToHsl(hexToRgb(hex));
@@ -130,7 +130,7 @@ function deepened(hex: string): string {
   return rgbToHex(hslToRgb(h, s, l));
 }
 
-// Card face per skin and mode: the colour accent text sits on. Surface skins
+// Card face per skin and mode: the color accent text sits on. Surface skins
 // compute theirs from the accent (skinSurfaceVars); the translucent Glass faces
 // are the fill composited over the backdrop. Screen skins and Blueprint draw their own ink.
 export const CARD_FACE: Record<string, { light: string; dark: string }> = {
@@ -211,7 +211,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
 }
 
 // Skins whose palette follows the accent: every surface, ink and line takes the
-// accent's hue, so a new accent recolours the whole skin. Per skin: surface
+// accent's hue, so a new accent recolors the whole skin. Per skin: surface
 // saturation, then lightness of the backdrop, card and line for each mode.
 export const SURFACE_SPECS = {
   bubblegum: { sat: 0.85, light: { back: 0.91, card: 0.975, line: 0.8 }, dark: { back: 0.12, card: 0.17, line: 0.34 } },
@@ -223,7 +223,7 @@ export const SURFACE_SPECS = {
 } as const;
 
 // The panel backdrop of every other skin keeps its own lightness and takes the
-// accent's hue, so the skin background recolours with the accent. Skins whose
+// accent's hue, so the skin background recolors with the accent. Skins whose
 // backdrop is already drawn from the accent (CRT, VFD, LCD, dark Blueprint) are
 // not listed.
 export const BACKDROP_BASE = {
@@ -273,7 +273,7 @@ export function metalVars(accent: string): Record<string, string> {
 }
 
 // Secondary ink: starts mid-tone and steps away from the surfaces until it
-// reads at 4.7:1 on both the card and the backdrop.
+// reads at the contrast target on both the card and the backdrop.
 function dimInk(h: number, s: number, l0: number, towardDark: boolean, surfaces: [number, number, number][], min = 4.7): string {
   let l = l0;
   for (let i = 0; i < 80; i++) {
@@ -311,7 +311,7 @@ export function skinSurfaceVars(id: keyof typeof SURFACE_SPECS, accent: string):
   return out;
 }
 
-// CRT: every colour derives from the accent. Ink lightness is clamped so a dark
+// CRT: every color derives from the accent. Ink lightness is clamped so a dark
 // blue or dark red accent still reads on the near-black glass; the glass takes
 // a faint tint of the same hue.
 // CRT in light mode is reverse video: warm-grey glass with dark phosphor-hued ink.
@@ -358,7 +358,7 @@ function relLum([r, g, b]: [number, number, number]): number {
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
 
-// Lightness is stepped away from the page until the accent reaches 4.6:1 on it,
+// Lightness is stepped away from the page until the accent reaches the contrast target on it,
 // so accent text and fills read on the paper whatever the user picks.
 function accentOnPage(h: number, s: number, l0: number, page: string, towardDark: boolean): string {
   const pl = relLum(hexToRgb(page));
@@ -374,9 +374,9 @@ function accentOnPage(h: number, s: number, l0: number, page: string, towardDark
   return rgbToHex(hslToRgb(h, s, Math.min(Math.max(l, 0), 1)));
 }
 
-// E-ink: body ink stays black or paper white; the accent is the colour of the
+// E-ink: body ink stays black or paper white; the accent is the color of the
 // highlights only (fills, sparkline, headings, active state), one value per
-// page colour.
+// page color.
 export function einkVars(accent: string): Record<string, string> {
   const [h, s0, l0] = rgbToHsl(hexToRgb(accent));
   const s = Math.min(Math.max(s0, 0.45), 0.85);
@@ -390,7 +390,7 @@ export function einkVars(accent: string): Record<string, string> {
   };
 }
 
-// LCD and VFD: one accent, every material colour derived from its hue. Lit ink
+// LCD and VFD: one accent, every material color derived from its hue. Lit ink
 // is clamped light enough for a black cell, the reflective cell stays pale and
 // its ink dark, so any accent stays legible in both modes.
 export function segmentDisplayVars(accent: string): Record<string, string> {
@@ -400,12 +400,12 @@ export function segmentDisplayVars(accent: string): Record<string, string> {
   const lit = readableInk(hex(Math.max(s0, 0.6), 0.68), hexToRgb(hex(Math.min(s0, 0.7), 0.08)));
   // Near-black ink: the hue survives only as a faint tint, so contrast on the pale cell never depends on the accent.
   const deep = hex(Math.min(s0, 0.3), 0.06);
-  // LCD backlight: the cell itself glows in the accent hue. Lightness rises until the near-black ink reads at 7:1 on it.
+  // LCD backlight: the cell itself glows in the accent hue. Lightness rises until the near-black ink reaches the strong contrast target on it.
   const glowSat = Math.min(Math.max(s0, 0.3), 0.5);
   let glowL = 0.5;
   while (glowL < 0.9 && contrastRatio(hexToRgb(deep), hslToRgb(h, glowSat, glowL)) < 7) glowL += 0.01;
   const glow = hex(glowSat, glowL);
-  // Daylight cell: a pale, grey tint of the accent (the default accent gives the pale grey-green cell), light enough for 7:1 ink.
+  // Daylight cell: a pale, grey tint of the accent light enough for the strong contrast target.
   const pale = hex(Math.min(Math.max(s0, 0.2), 0.4), 0.86);
   return {
     '--skin-lit': lit,

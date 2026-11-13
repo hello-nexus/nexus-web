@@ -2,7 +2,7 @@
 
 // Sci-fi HUD: chamfered corners, hairline frame, corner brackets and chamfer
 // lines in the card decoration layer, tick marks on bar tracks. The accent is
-// the line and glow colour. Tektur by default (a panel font).
+// the line and glow color. Tektur by default (a panel font).
 @mixin hud-common {
   --skin-card-radius: 0;
   --skin-card-clip: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);

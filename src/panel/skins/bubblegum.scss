@@ -2,7 +2,7 @@
 @use 'kit' as *;
 @use 'derived' as *;
 
-// Bubblegum: puffy rounded tiles, a glossy top highlight (light) and a sprinkle of dots on the backdrop. Every colour follows the accent.
+// Bubblegum: puffy rounded tiles, a glossy top highlight (light) and a sprinkle of dots on the backdrop. Every color follows the accent.
 @mixin bubblegum-common {
   @include kit-radius(28px, 16px, 999px);
   @include kit-weights(600, 500, 700, 700, 500);

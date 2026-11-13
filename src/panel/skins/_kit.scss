@@ -1,11 +1,12 @@
 @use 'sass:color';
+@use 'mixins' as *;
 
 // Palette to panel tokens for the style skins added after the first set. One
-// call sets every colour token a widget reads from a handful of values, so a
+// call sets every color token a widget reads from a handful of values, so a
 // skin file stays a palette per mode plus its own chrome. Plain custom
 // properties only: no filters, no animation.
 //
-//   $backdrop  panel colour            $card   card face colour
+//   $backdrop  panel color            $card   card face color
 //   $text      body ink                $dim    secondary ink
 //   $line      borders and hairlines   $acc    accent (a literal or a var() string)
 //   $acc-rgb   the accent as "r, g, b" (a literal or var() string)
@@ -21,39 +22,39 @@
   --bg: #{$card};
   --bg-elevated: #{$elev};
   --surface: #{$card};
-  --bg-card-hover: rgba(#{$acc-rgb}, 0.14);
-  --surface-hover: rgba(#{$acc-rgb}, 0.14);
-  --border: rgba(#{rgbs($line)}, 0.55);
+  --bg-card-hover: #{tint($acc-rgb, 0.14)};
+  --surface-hover: #{tint($acc-rgb, 0.14)};
+  --border: #{tint(rgbs($line), 0.55)};
   --border-strong: #{$line};
   --border-hover: #{$acc};
   --text: #{$text};
   --text-dim: #{$dim};
-  --separator: rgba(#{rgbs($line)}, 0.4);
-  --gauge-track: rgba(#{rgbs($text)}, 0.16);
+  --separator: #{tint(rgbs($line), 0.4)};
+  --gauge-track: #{tint(rgbs($text), 0.16)};
   --accent: #{$acc};
   --accent-glow: #{$acc};
   --accent-deep: #{$acc};
-  --accent-soft: rgba(#{$acc-rgb}, 0.2);
-  --accent-glow-shadow: rgba(#{$acc-rgb}, 0.3);
+  --accent-soft: #{tint($acc-rgb, 0.2)};
+  --accent-glow-shadow: #{tint($acc-rgb, 0.3)};
   --accent-text: #{$acc-text};
   --panel-accent: #{$acc};
   --panel-accent-glow: #{$acc};
-  --panel-accent-soft: rgba(#{$acc-rgb}, 0.2);
-  --panel-accent-shadow: rgba(#{$acc-rgb}, 0.3);
+  --panel-accent-soft: #{tint($acc-rgb, 0.2)};
+  --panel-accent-shadow: #{tint($acc-rgb, 0.3)};
   --panel-accent-text: #{$acc-text};
   --good: #{$good};
   --warn: #{$warn};
   --bad: #{$bad};
   --chart-line-alt: #{$warn};
-  --panel-control-bg: rgba(#{rgbs($text)}, 0.1);
-  --panel-control-bg-hover: rgba(#{rgbs($text)}, 0.18);
-  --panel-control-bg-active: rgba(#{rgbs($text)}, 0.28);
-  --panel-element-bg: rgba(#{rgbs($text)}, 0.1);
-  --panel-card-bg: rgba(#{rgbs($text)}, 0.06);
-  --panel-control-translucent: rgba(#{rgbs($text)}, 0.14);
-  --panel-border: rgba(#{rgbs($line)}, 0.55);
+  --panel-control-bg: #{tint(rgbs($text), 0.1)};
+  --panel-control-bg-hover: #{tint(rgbs($text), 0.18)};
+  --panel-control-bg-active: #{tint(rgbs($text), 0.28)};
+  --panel-element-bg: #{tint(rgbs($text), 0.1)};
+  --panel-card-bg: #{tint(rgbs($text), 0.06)};
+  --panel-control-translucent: #{tint(rgbs($text), 0.14)};
+  --panel-border: #{tint(rgbs($line), 0.55)};
   --panel-border-strong: #{$line};
-  --skin-spark-fill: rgba(#{$acc-rgb}, 0.28);
+  --skin-spark-fill: #{tint($acc-rgb, 0.28)};
 }
 
 // Radius tokens in one place.

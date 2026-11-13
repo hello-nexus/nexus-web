@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchPanelDevices, type PanelDeviceRecord } from '../api/panel';
 import { useTopicCallback } from './useMultiplexSocket';
+import { backgroundModeBeforeSkin, normalizePanelBackgroundMode } from '../panel/background/panelBackground';
+import { normalizeStoredSkin } from '../panel/theme/panelSkin';
 
 /**
  * Which effects/slots are in use as a panel background, across every paired
@@ -16,13 +18,19 @@ export interface PanelBackgroundUsage {
 
 const EMPTY: PanelBackgroundUsage = { effects: new Set(), slotsByEffect: new Map() };
 
+// A Skin background with no live skin shows the mode held before it (same rule as applyPanelSkin).
+function effectiveBackgroundMode(d: PanelDeviceRecord): string {
+  if (normalizePanelBackgroundMode(d.backgroundMode) !== 'skin') return d.backgroundMode ?? '';
+  return normalizeStoredSkin(d.skin) ? 'skin' : backgroundModeBeforeSkin(d.backgroundMode);
+}
+
 export function buildUsage(devices: PanelDeviceRecord[], excludeId?: string | null): PanelBackgroundUsage {
   const effects = new Set<string>();
   const slotsByEffect = new Map<string, Set<number>>();
   for (const d of devices) {
     // Skip the panel being edited: the badge means "ANOTHER surface uses this".
     if (excludeId && d.id === excludeId) continue;
-    if (d.backgroundMode !== 'shader' || !d.backgroundEffect) continue;
+    if (effectiveBackgroundMode(d) !== 'shader' || !d.backgroundEffect) continue;
     effects.add(d.backgroundEffect);
     const slot = Math.max(0, d.backgroundTemplate ?? 0);
     const set = slotsByEffect.get(d.backgroundEffect) ?? new Set<number>();

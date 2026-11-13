@@ -1,6 +1,7 @@
 // Skin stylesheets load on demand: a panel without a skin never fetches any of
 // this CSS, and a skin's @font-face rules (pixel, seven-segment) ride in that
 // skin's own chunk, so its fonts download only when the skin is applied.
+import { useEffect, useState } from 'react';
 import type { PanelSkinId } from './skins';
 
 const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
@@ -29,18 +30,37 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   track: () => import('./track.scss'),
 };
 
-const loaded = new Set<string>();
+// One in-flight or settled load per key. A failed load leaves the cache, so the next call retries it.
+const loads = new Map<string, Promise<void>>();
 
+function once(key: string, load: () => Promise<unknown>): Promise<void> {
+  let p = loads.get(key);
+  if (!p) {
+    p = load().then(() => undefined, (err: unknown) => {
+      loads.delete(key);
+      throw err;
+    });
+    loads.set(key, p);
+  }
+  return p;
+}
+
+// Base, then tint, then the skin: each sheet lands in that order.
 export async function loadSkinStyles(id: PanelSkinId): Promise<void> {
-  if (!loaded.has('base')) {
-    loaded.add('base');
-    await import('./skinBase.scss');
-  }
-  if (!loaded.has('tint')) {
-    loaded.add('tint');
-    await import('./skinTint.scss');
-  }
-  if (loaded.has(id)) return;
-  loaded.add(id);
-  await LOADERS[id]();
+  await once('base', () => import('./skinBase.scss'));
+  await once('tint', () => import('./skinTint.scss'));
+  await once(id, LOADERS[id]);
+}
+
+// True once the skin's CSS is in the page (always true without a skin). The panel keeps the stock look
+// until then, and a failed load stays stock and is retried the next time the skin is applied.
+export function useSkinStyles(id: PanelSkinId | null): boolean {
+  const [ready, setReady] = useState<PanelSkinId | null>(null);
+  useEffect(() => {
+    if (!id) return undefined;
+    let live = true;
+    loadSkinStyles(id).then(() => { if (live) setReady(id); }, () => {});
+    return () => { live = false; };
+  }, [id]);
+  return !id || ready === id;
 }

@@ -118,6 +118,3 @@
 @include in-skin('pixel', 'img, canvas') {
   image-rendering: pixelated;
 }
-@include in-skin('pixel', '[data-panel-widget-id]:active .panel-card') {
-  transform: translate(3px, 3px);
-}

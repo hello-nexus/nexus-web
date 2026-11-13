@@ -84,8 +84,7 @@ import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckIns
 import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelSkinScope, type PanelSkinScopeValue } from '../components/common/ThemeScope/PanelSkinScope';
 import { panelSkinAttrs } from './theme/panelSkin';
-import { loadSkinStyles } from './skins/skinLoader';
-import type { PanelSkinId } from './skins/skins';
+import { useSkinStyles } from './skins/skinLoader';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { PanelDeviceIdProvider } from './widgets/common/PanelDeviceIdContext';
 import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveContext';
@@ -595,7 +594,13 @@ export function PanelContent({
   // shows the default theme (its fetch never runs).
   // Render-time per-surface overrides (persisted theme intact); see
   // resolveEffectivePanelTheme for what each surface forces.
-  const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
+  const storedTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
+  // The skin applies only once its CSS has loaded; until then (and if the load fails) the panel keeps the stock look.
+  const skinStylesReady = useSkinStyles(embedded ? null : storedTheme.skin);
+  const baseTheme = useMemo(
+    () => (skinStylesReady || !storedTheme.skin ? storedTheme : { ...storedTheme, skin: null }),
+    [skinStylesReady, storedTheme],
+  );
   const focusStaticMode = useFocusStaticBackground(surface, !simulator && !embedded);
   const effectiveTheme = useMemo(() => {
     const theme = resolveEffectivePanelTheme(baseTheme, surface);
@@ -805,10 +810,6 @@ export function PanelContent({
     if (!skinAttrs['data-panel-skin']) return null;
     return { attrs: { ...skinAttrs, 'data-theme': resolvedThemeMode, 'data-surface': surface }, style: panelThemeVars };
   }, [embedded, effectiveTheme, resolvedThemeMode, surface, panelThemeVars]);
-  useEffect(() => {
-    const id = skinScope?.attrs['data-panel-skin'] as PanelSkinId | undefined;
-    if (id) void loadSkinStyles(id);
-  }, [skinScope]);
   // The panel backdrop is always the theme's dark/light background; the chosen
   // solid colour, shader, or media sits over it as an opacity-controlled
   // overlay. The embedded desktop deck paints no panel background so the
@@ -2454,7 +2455,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
-        {skinOwnsBackdrop && <div data-skin-part="backdrop" aria-hidden="true" style={{ opacity: effectiveTheme.backgroundOpacity }} />}
+        {skinOwnsBackdrop && <div data-skin-part="backdrop" data-panel-bg-layer aria-hidden="true" style={{ opacity: effectiveTheme.backgroundOpacity }} />}
         {showWallpaperLayer && <PanelBackgroundDesktop opacity={effectiveTheme.backgroundOpacity} />}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader

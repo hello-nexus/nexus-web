@@ -1,6 +1,6 @@
 // Backdrop tint: the panel backdrop of the listed skins follows the accent
-// (skinBackdropVars precomputes it per mode). Loaded after the skin, and the
-// extra attribute raises the selector above the skin's own backdrop value.
+// (skinBackdropVars precomputes it per mode). Loaded before the skin; the
+// data-skin-root attribute raises the selector above the skin's own backdrop value, so load order does not matter.
 $tinted: pixel, hud, neon, blueprint, eink, bevel, hifi, cockpit, arcade, glass, mecha, swiss, clay, sketch;
 @each $id in $tinted {
   .panel-root[data-skin-root][data-panel-skin='#{$id}'][data-theme='light'] { --skin-backdrop: var(--skin-bd-light); }

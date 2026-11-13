@@ -35,7 +35,7 @@ export function LightingShaderPreview({ effect, state, gpuAvailable, gpuState, p
       <canvas
         ref={canvasRef}
         className={styles.shaderPreview}
-        data-skin-part="true-color"
+       
         data-ready={ready && !error ? 'true' : 'false'}
         aria-hidden="true"
       />

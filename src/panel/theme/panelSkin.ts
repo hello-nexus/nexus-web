@@ -65,7 +65,7 @@ export function applyPanelSkin<T extends SkinThemeFields>(theme: T): T {
 export function panelSkinVars(theme: SkinThemeFields, accentHex: string): Record<string, string> {
   const r = resolveSkin(theme);
   if (!r) return {};
-  const font = r.font === 'pixel' ? skinFontVars('pixel') : panelFontVars(r.font as PanelFont);
+  const font = r.font === 'pixel' ? skinFontVars('pixel') : panelFontVars(r.font as PanelFont, true);
   return { ...font, ...skinAccentVars(r.id, accentHex) };
 }
 
@@ -75,7 +75,7 @@ export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overl
 export function panelSkinAttrs(theme: SkinThemeFields): PanelSkinAttrs {
   const r = resolveSkin(theme);
   if (!r) return {};
-  // Card outer shadows cannot scale with widget opacity; they drop out below half.
+  // Card outer shadows cannot scale with widget opacity; they drop out once the widgets are mostly faded.
   return {
     'data-panel-skin': r.id,
     'data-skin-overlay': 'on',

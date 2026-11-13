@@ -34,7 +34,7 @@ export function StudioPreview({ effectKey, stateRef, audioRef, className, maxFps
   }, []);
   return (
     <div className={`${styles.previewFrame} ${className ?? ''}`}>
-      <canvas ref={canvasRef} className={styles.previewCanvas} data-skin-part="true-color" />
+      <canvas ref={canvasRef} className={styles.previewCanvas} />
       {error && <InlineError className={styles.previewError}>{error}</InlineError>}
     </div>
   );

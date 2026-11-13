@@ -121,7 +121,7 @@ export function EffectCard({
     <>
       <div className={styles.thumbWrap} style={thumbBoxStyle}>
         {showImg
-          ? <img className={styles.thumbImg} data-skin-part="true-color" src={thumbUrl} alt={label} style={thumbImgStyle} onError={() => setFailedUrl(thumbUrl)} />
+          ? <img className={styles.thumbImg} src={thumbUrl} alt={label} style={thumbImgStyle} onError={() => setFailedUrl(thumbUrl)} />
           : <div className={thumbStatic || thumbUrl ? styles.thumbStaticPlaceholder : styles.thumbSkeleton} aria-hidden="true" style={thumbSkeletonStyle} />}
         {/* Before the badge: an overlay canvas fills the thumbnail and would hide it. */}
         {thumbOverlay}

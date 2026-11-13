@@ -692,7 +692,10 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   // where --accent is the desktop app's, not this panel's. Inject the panel's
   // accent vars (at the preview's own resolved mode) so previews highlight in
   // the panel's hue instead of the desktop default.
-  const panelPreviewThemeStyle = buildPanelThemeVars(theme, desktopResolvedThemeMode);
+  const panelPreviewThemeStyle = useMemo(
+    () => buildPanelThemeVars(skinnedTheme, desktopResolvedThemeMode),
+    [skinnedTheme, desktopResolvedThemeMode],
+  );
 
   useEffect(() => {
     if (!open) return;

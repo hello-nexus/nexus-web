@@ -14,7 +14,8 @@ import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from '../engine/grid';
 
-// 'skin' is stored as 'skin' or 'skin:<mode>' (the mode to restore when the skin is removed); the service keeps the mode as a plain string.
+// 'skin' is stored as 'skin', 'skin:<mode>' or 'skin:<mode>:<backdrop>:<frost>:<opacity>': what the Skin background replaced,
+// to restore when it is left. The service keeps the mode as a plain string.
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media' | 'skin';
 export type PanelBackgroundBase = Exclude<PanelBackgroundMode, 'skin'>;
 
@@ -217,15 +218,36 @@ export function normalizePanelBackgroundMode(value: string | null | undefined): 
   return 'solid';
 }
 
+// What a Skin background replaced: its mode, and the backdrop, frost and opacity the user had set.
+export interface SkinBackgroundHeld {
+  backdrop: PanelBackdrop;
+  frost: number;
+  opacity: number;
+}
+
+function skinParts(value: string | null | undefined): string[] {
+  return value != null && value.startsWith('skin:') ? value.slice(5).split(':') : [value ?? ''];
+}
+
 // The mode a Skin background falls back to once the skin is gone.
 export function backgroundModeBeforeSkin(value: string | null | undefined): PanelBackgroundBase {
-  const base = value != null && value.startsWith('skin:') ? value.slice(5) : value;
-  const mode = normalizePanelBackgroundMode(base);
+  const mode = normalizePanelBackgroundMode(skinParts(value)[0]);
   return mode === 'skin' ? 'solid' : mode;
 }
 
-export function encodeSkinBackgroundMode(before: PanelBackgroundBase): string {
-  return `skin:${before}`;
+// The backdrop, frost and opacity held before the Skin background; null when none were stored.
+export function skinBackgroundHeld(value: string | null | undefined): SkinBackgroundHeld | null {
+  const [, backdrop, frost, opacity] = skinParts(value);
+  const parsedBackdrop = normalizePanelBackdrop(backdrop);
+  if (!parsedBackdrop || frost === undefined || opacity === undefined) return null;
+  const f = Number(frost);
+  const o = Number(opacity);
+  if (!Number.isFinite(f) || !Number.isFinite(o)) return null;
+  return { backdrop: parsedBackdrop, frost: normalizePanelBackgroundFrost(f), opacity: normalizePanelBackgroundOpacity(o) };
+}
+
+export function encodeSkinBackgroundMode(before: PanelBackgroundBase, held?: SkinBackgroundHeld | null): string {
+  return held ? `skin:${before}:${held.backdrop}:${held.frost}:${held.opacity}` : `skin:${before}`;
 }
 
 export function normalizePanelBackgroundEffect(value: string | null | undefined): string {

@@ -1,7 +1,7 @@
 @use 'mixins' as *;
 @use 'kit' as *;
 
-// Frosted-glass cards drawn as a translucent gradient over a soft colour field with a bright top edge; no backdrop filter. The fill is tinted enough that text reads over a busy or pale user background too.
+// Frosted-glass cards drawn as a translucent gradient over a soft color field with a bright top edge; no backdrop filter. The fill is tinted enough that text reads over a busy or pale user background too.
 @include skin('glass') {
   @include kit(#0d1230, rgba(16, 22, 56, 0.66), #f6f8ff, #c3cbea, #aab6e8, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #08102a, #5df0b0, #ffd166, #ff7a90, #1a2150);
   @include kit-radius(18px, 10px, 999px);
