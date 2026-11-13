@@ -1361,12 +1361,22 @@ describe('ZoneCard save-colors strip', () => {
     expect(screen.queryByRole('button', { name: /saveStrip\.keep/ })).toBeNull();
   });
 
-  it('explains the color limit only while the toggle is on', () => {
+  it('explains the color limit inside the strip only while the toggle is on', () => {
     const { unmount } = renderKeyboard({ ...keyboard, savedToDevice: true });
-    expect(screen.getByText('lighting.devices.saveStrip.limit')).toBeTruthy();
+    const strip = screen.getByRole('button', { name: /saveStrip\.saved/ });
+    expect(strip.textContent).toContain('lighting.devices.saveStrip.limit');
+    expect(document.querySelector('canvas')).not.toBeNull();
     unmount();
     renderKeyboard(keyboard);
     expect(screen.queryByText('lighting.devices.saveStrip.limit')).toBeNull();
+  });
+
+  it('swaps the note to the saved-colors line and darkens the readout while the look is animated', () => {
+    renderKeyboard({ ...keyboard, savedToDevice: true }, { savedShowsAnimated: true });
+    const strip = screen.getByRole('button', { name: /saveStrip\.saved/ });
+    expect(strip.textContent).toContain('lighting.devices.saveStrip.animated');
+    expect(strip.textContent).not.toContain('lighting.devices.saveStrip.limit');
+    expect(document.querySelector('canvas')).toBeNull();
   });
 
   it('renders nothing on a card that cannot save colors', () => {

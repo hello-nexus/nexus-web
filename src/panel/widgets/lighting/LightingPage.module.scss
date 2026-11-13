@@ -269,6 +269,11 @@
   @include bare-icon-button;
 }
 
+.pauseToggleBlocked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .pauseTogglePaused {
   @include bare-icon-lit;
 
@@ -1226,6 +1231,21 @@
   }
 }
 
+.deviceControlledByStack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+// Sentence case and one line: the strip's own caps style is for its label.
+.deviceControlledByNote {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .deviceControlledByChevron {
   margin-left: auto;
 }
@@ -1301,12 +1321,6 @@
   }
 
   &:not(.deviceCardStackLast) .deviceControlledBy { border-radius: 0; }
-}
-
-// The one-line explanation under the save strip.
-.deviceSaveNotice {
-  margin: 0.4rem 0 0;
-  padding: 0.4rem 0.6rem;
 }
 
 // Second line of the device card: LED count on the left, action icons

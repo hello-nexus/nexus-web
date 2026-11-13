@@ -134,7 +134,8 @@ import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { PresetAppsModal } from './page/PresetAppsModal';
-import { modeBlockedBySavedColors, selectionSavesColors } from './page/savedColorsOnly';
+import { formatList } from '../../../components/common/Nexus2WelcomeScreen/nexus2WelcomeUtils';
+import { modeBlockedBySavedColors, savedColorsCards, savesColorsToDevice, selectionSavesColors } from './page/savedColorsOnly';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
@@ -1099,6 +1100,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }
   // A selected card that keeps its colors on the device can only show a still look.
   const staticOnly = selectionSavesColors(visibleDevices, selectedDeviceIds);
+  const savedColorNames = staticOnly ? savedColorsCards(visibleDevices, selectedDeviceIds).map(d => d.name) : [];
   const openedMode: LightingMode = selectionTab ?? mode;
   const viewMode: LightingMode = staticOnly && modeBlockedBySavedColors(openedMode) ? 'static' : openedMode;
   // Nothing selected on a tab other than the running mode: its picks reach no card until a
@@ -2485,26 +2487,28 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       const Icon = LIGHTING_MODE_ICONS[m.key];
       const showPauseToggle = synced && m.key === mode
         && (m.key === 'animate' || m.key === 'gif' || m.key === 'screen');
+      const blocked = staticOnly && modeBlockedBySavedColors(m.key);
       return {
         key: m.key,
         label: t(m.labelKey),
-        tooltip: staticOnly && modeBlockedBySavedColors(m.key) ? t('lighting.mode.savedColorsOnly')
+        tooltip: blocked ? t('lighting.mode.savedColorsOnly', { name: formatList(savedColorNames, language), static: t('lighting.mode.static') })
           : serviceOnline ? t(`${m.labelKey}.desc`) : undefined,
         icon: <Icon size={14} />,
-        disabled: staticOnly && modeBlockedBySavedColors(m.key) ? true : undefined,
+        blocked: blocked || undefined,
         trailing: showPauseToggle ? (
           <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
             <span
               role="button"
               tabIndex={0}
-              className={`${styles.pauseToggle} ${paused ? styles.pauseTogglePaused : ''}`}
+              className={`${styles.pauseToggle} ${paused ? styles.pauseTogglePaused : ''} ${blocked ? styles.pauseToggleBlocked : ''}`}
               aria-label={t(paused ? 'lighting.resume' : 'lighting.pause')}
-              onClick={e => { e.stopPropagation(); void handlePauseToggle(); }}
+              aria-disabled={blocked || undefined}
+              onClick={e => { e.stopPropagation(); if (!blocked) void handlePauseToggle(); }}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   e.stopPropagation();
-                  void handlePauseToggle();
+                  if (!blocked) void handlePauseToggle();
                 }
               }}
             >
@@ -2529,6 +2533,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // What a tab press gives the selected cards: that mode's global look, or the
   // one shared Mirror or Media. Off cannot be pinned, so it
   // always changes everything.
+  // Every path that makes a look global (no selection, simple mode, presets, sync, another client)
+  // reaches an unpinned card, and a saved keyboard cannot keep an animated one. These cards show their
+  // saved colors then, and the card says so.
+  const savedAnimatedIds = useMemo(
+    () => new Set(visibleDevices.filter(d => savesColorsToDevice(d) && modeBlockedBySavedColors(cardMode(d.id))).map(d => d.id)),
+    [visibleDevices, cardMode],
+  );
   const tabPinFor = (m: LightingMode): Pin | null => {
     switch (m) {
       case 'static': {
@@ -2543,6 +2554,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       default: return null;
     }
   };
+  // A keyboard that starts keeping its colors holds the static look it wears now: pinned, it stays on it
+  // when the global look turns animated. Once per card per visit, so a later unpin is the user's choice.
+  const autoPinnedRef = useRef(new Set<string>());
+  const tabPinForRef = useRef(tabPinFor);
+  tabPinForRef.current = tabPinFor;
+  useEffect(() => {
+    if (!synced || !pinsLoaded || mode !== 'static') return;
+    const ids = visibleDevices.filter(d => savesColorsToDevice(d) && !pins[d.id] && !autoPinnedRef.current.has(d.id)).map(d => d.id);
+    if (ids.length === 0) return;
+    const pin = tabPinForRef.current('static');
+    ids.forEach(id => autoPinnedRef.current.add(id));
+    if (pin) void writePins(ids, pin);
+  }, [synced, pinsLoaded, mode, visibleDevices, pins, writePins]);
   // Hovering a mode tab, the scope chip or a pick control (color field, effect
   // or media tile) previews the reach of its press. A press or the advanced
   // page unmounting skips the pointerleave, so both clear it.
@@ -3131,6 +3155,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             runningApps={runningApps}
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
+            savedAnimatedIds={savedAnimatedIds}
             onOpenSaveToDevice={onSectionNavigate ? deviceId => {
               const deviceKey = galleonDeviceKey(deviceId, galleonDeckSerials, galleonKeyboardCards(devices).length);
               return deviceKey ? () => onSectionNavigate('device', { deviceKey, scrollAnchors: [GALLEON_SAVE_ANCHOR] }) : null;

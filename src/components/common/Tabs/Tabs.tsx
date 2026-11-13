@@ -17,6 +17,9 @@ export interface TabDef {
   readonly icon?: ReactNode;
   /** Per-tab disable. Takes precedence over the `disabled` root flag. */
   readonly disabled?: boolean;
+  /** Unavailable but still focusable and hoverable, so its tooltip can say why: a native disabled
+   *  button takes no focus or pointer events. Reads dimmed, announces aria-disabled, ignores presses. */
+  readonly blocked?: boolean;
   /** Accessible name for a tab whose label carries no text (icon-only). */
   readonly ariaLabel?: string;
   /** Wraps the tab's content in the sidebar section-header pill (Apps /
@@ -138,9 +141,10 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
               aria-label={tab.ariaLabel}
               aria-haspopup={tab.expanded === undefined ? undefined : 'menu'}
               aria-expanded={tab.expanded}
-              className={classNames(styles.tab, { [styles.active]: isActive })}
+              className={classNames(styles.tab, { [styles.active]: isActive, [styles.blocked]: tab.blocked })}
+              aria-disabled={tab.blocked || undefined}
               disabled={disabled || tab.disabled}
-              onClick={e => onChange(tab.key, e.currentTarget)}
+              onClick={e => { if (!tab.blocked) onChange(tab.key, e.currentTarget); }}
               {...hoverProps(tab.key)}
             >
               <span className={classNames(styles.tabInner, { [styles.tabChip]: tab.chip })}>
@@ -163,9 +167,10 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
               aria-label={tab.ariaLabel}
               aria-haspopup={tab.expanded === undefined ? undefined : 'menu'}
               aria-expanded={tab.expanded}
-              className={styles.tab}
+              className={classNames(styles.tab, { [styles.blocked]: tab.blocked })}
+              aria-disabled={tab.blocked || undefined}
               disabled={disabled || tab.disabled}
-              onClick={e => onChange(tab.key, e.currentTarget)}
+              onClick={e => { if (!tab.blocked) onChange(tab.key, e.currentTarget); }}
               {...hoverProps(tab.key)}
             >
               <span className={classNames(styles.tabInner, { [styles.tabChip]: tab.chip })}>

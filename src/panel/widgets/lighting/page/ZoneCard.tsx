@@ -19,7 +19,6 @@ import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { DeviceNotice } from './DeviceNotice';
-import { Notice } from '../../../../components/common/Notice/Notice';
 import { ControlledByStrip } from './ControlledByStrip';
 import type { CardAppStrip } from './controlledBy';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
@@ -319,6 +318,7 @@ export function ZoneCard({
   appStrip,
   onOpenAppStrip,
   onOpenSaveToDevice,
+  savedShowsAnimated,
   onOpenFixLighting,
   onOpenBinding,
 }: {
@@ -419,6 +419,8 @@ export function ZoneCard({
   onOpenAppStrip?: () => void;
   /** Press on the save-colors strip of a keyboard that can hold its colors: opens that device's page at the toggle. */
   onOpenSaveToDevice?: () => void;
+  /** The effective look is animated while the keyboard keeps saved colors: the keyboard shows those, so the readout stays dark and the strip says so. */
+  savedShowsAnimated?: boolean;
   /** Opens the Fix lighting flow from the not-responding strip. */
   onOpenFixLighting?: () => void;
   /** Marks a wireless device that is not bound to this PC: a card with no lighting controls whose press opens the controller page to bind it. */
@@ -791,7 +793,7 @@ export function ZoneCard({
         )}
         {/* A dark device has nothing to read out, and firmware lighting does not
             come from our canvas, so the bar is absent rather than blank. */}
-        {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
+        {!unavailable && !firmwareControlled && controlled && device.ledsOn && !(savedShowsAnimated && device.savedToDevice) && (
           <DeviceLedStrip device={device} slot={stackSlot} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
         )}
         {/* Only a pinned card carries the button, in its mode's tab icon; hover
@@ -872,9 +874,12 @@ export function ZoneCard({
       {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
       {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} passive />}
       {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
-      {showSaveStrip && <ControlledByStrip saveToDevice={saveStripState} onOpen={onOpenSaveToDevice} />}
-      {showSaveStrip && device.savedToDevice && (
-        <Notice tone="info" role="status" className={styles.deviceSaveNotice}>{t('lighting.devices.saveStrip.limit')}</Notice>
+      {showSaveStrip && (
+        <ControlledByStrip
+          saveToDevice={saveStripState}
+          note={t(savedShowsAnimated ? 'lighting.devices.saveStrip.animated' : 'lighting.devices.saveStrip.limit')}
+          onOpen={onOpenSaveToDevice}
+        />
       )}
       {menuEnabled && (
         <MenuArrowButton

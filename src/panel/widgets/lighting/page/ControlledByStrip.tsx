@@ -13,7 +13,7 @@ const APP_TOKEN = '\uE000';
  * conflict dialog, so the press never reaches the card's select or drag.
  * With `label` it is the amber not-responding strip instead, opening whatever `onOpen` opens.
  */
-type ControlledByStripProps = { onOpen: () => void; /** The card around it is the one control, so the strip leaves the tab order and the accessibility tree. */ passive?: boolean } & (
+type ControlledByStripProps = { onOpen: () => void; /** A quiet second line under the saved state; one line, so the card height does not depend on its copy. */ note?: string; /** The card around it is the one control, so the strip leaves the tab order and the accessibility tree. */ passive?: boolean } & (
   | { strip: CardAppStrip; label?: never; saveToDevice?: never }
   | { label: string; strip?: never; saveToDevice?: never }
   /** The gray "save colors to the keyboard" entry: 'keep' offers it, 'saved' says it is on. Both lead to the device page. */
@@ -23,7 +23,7 @@ type ControlledByStripProps = { onOpen: () => void; /** The card around it is th
 // Stands in for the bold key names while translating, so each locale keeps its own word order around them.
 const KEYS_TOKEN = '\uE001';
 
-export function ControlledByStrip({ strip, label, saveToDevice, onOpen, passive }: ControlledByStripProps) {
+export function ControlledByStrip({ strip, label, saveToDevice, note, onOpen, passive }: ControlledByStripProps) {
   const { t, language } = useTranslation();
   const warn = label !== undefined || !!strip?.controlled;
   const [before, after = ''] = t(warn ? 'devices.conflictRunning.badge' : 'lighting.devices.controlledBy', { app: APP_TOKEN }).split(APP_TOKEN);
@@ -51,7 +51,12 @@ export function ControlledByStrip({ strip, label, saveToDevice, onOpen, passive 
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
     >
       <Icon aria-hidden />
-      <span>{text}</span>
+      {note && saveToDevice === 'saved' ? (
+        <span className={styles.deviceControlledByStack}>
+          <span>{text}</span>
+          <span className={styles.deviceControlledByNote}>{note}</span>
+        </span>
+      ) : <span>{text}</span>}
       {saveToDevice && <ChevronRight aria-hidden className={styles.deviceControlledByChevron} />}
     </button>
   );

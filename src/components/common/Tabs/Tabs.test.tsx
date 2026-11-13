@@ -242,3 +242,17 @@ describe('Tabs fullWidth', () => {
     expect(host.className).not.toMatch(/hostFull/);
   });
 });
+
+describe('Tabs blocked tab', () => {
+  it('stays focusable, announces aria-disabled and ignores presses', () => {
+    const onChange = vi.fn();
+    render(<Tabs tabs={[{ key: 'a', label: 'A' }, { key: 'b', label: 'B', blocked: true, tooltip: 'why' }]} activeKey="a" onChange={onChange} />);
+    const b = screen.getByRole('tab', { name: 'B' }) as HTMLButtonElement;
+    expect(b.disabled).toBe(false);
+    expect(b.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(b);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.focus(b);
+    expect(screen.getByText('why')).toBeTruthy();
+  });
+});
