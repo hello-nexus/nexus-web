@@ -1,7 +1,7 @@
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import type { LianLiFansState } from '../../../api/lianli-wireless';
 import { buildLianLiWirelessCoolingChains, WIRELESS_CHANNEL_PREFIX } from './lianliWirelessCoolingUtils';
-import { deviceTypeKey } from './LianLiWirelessFansTab';
+import { fanTypeKey, deviceTypeKey } from './LianLiWirelessFansTab';
 import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { useTranslation } from '../../../lib/i18n';
 import rowStyles from './CoolingFanRow.module.scss';
@@ -26,7 +26,7 @@ export function LianLiWirelessCoolingTab({ state, channelPrefix = WIRELESS_CHANN
       {chains.map(chain => (
         <SettingsSection
           key={chain.mac}
-          title={t(`devices.lianli-wireless.${deviceTypeKey(chain.devType, chain.fanType)}` as Parameters<typeof t>[0])}
+          title={t(`devices.lianli-wireless.${chain.aio ? deviceTypeKey(chain.devType, chain.fanType) : fanTypeKey(chain.fanType)}` as Parameters<typeof t>[0])}
           boxClassName={rowStyles.rows}
         >
           {chain.ports.map(p => (

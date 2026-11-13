@@ -59,18 +59,18 @@ export function buildLianLiWirelessCoolingChains(
   for (const fan of fans) {
     if (!fan.boundToUs) continue;
     if (isHydroShiftDevice(fan.devType)) {
+      if (fan.fanCount <= 0) continue;
       // The AIO applies one duty to all its radiator fans, so a single row.
+      // Slot 3 is the pump, so its tach never feeds the fans row.
+      const channel = byId.get(lianliWirelessAioFansChannelId(fan.mac, prefix)) ?? null;
+      const spinning = fan.rpm.slice(0, Math.min(fan.fanCount, 3)).filter(r => r > 0);
+      const avg = spinning.length ? Math.round(spinning.reduce((a, b) => a + b, 0) / spinning.length) : 0;
       chains.push({
         mac: fan.mac,
         fanType: fan.fanType,
         devType: fan.devType,
         aio: true,
-        ports: [{
-          port: 0,
-          rpm: Math.max(0, ...fan.rpm),
-          rpmUnavailable: false,
-          channel: byId.get(lianliWirelessAioFansChannelId(fan.mac, prefix)) ?? null,
-        }],
+        ports: [{ port: 0, rpm: channel?.rpm ?? avg, rpmUnavailable: false, channel }],
       });
       continue;
     }

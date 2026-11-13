@@ -158,17 +158,26 @@ describe('buildLianLiWirelessCoolingChains for a P28 V2 with one duty channel', 
 
 describe('HydroShift II chain', () => {
   const mac = '998D1DE566E1';
-  const aio = makeFan({ devType: 10, fanType: 24, fanCount: 3, rpm: [0, 1500, 1480, 0] });
+  const aio = makeFan({ devType: 10, fanType: 24, fanCount: 3, rpm: [1500, 1480, 0, 2800] });
 
   it('renders one aio row bound to the :fans channel', () => {
-    const fans = makeChannel({ id: lianliWirelessAioFansChannelId(mac), mode: 'Curve' });
+    const fans = makeChannel({ id: lianliWirelessAioFansChannelId(mac), mode: 'Curve', rpm: 1490 });
     const pump = makeChannel({ id: `lianli-wireless:${mac}:pump` });
     const [chain] = buildLianLiWirelessCoolingChains([aio], [fans, pump]);
     expect(chain.aio).toBe(true);
     expect(chain.devType).toBe(10);
     expect(chain.ports).toHaveLength(1);
     expect(chain.ports[0].channel).toBe(fans);
-    expect(chain.ports[0].rpm).toBe(1500);
+    expect(chain.ports[0].rpm).toBe(1490);
+  });
+
+  it('averages the spinning fan slots, never the pump slot, without a channel rpm', () => {
+    const [chain] = buildLianLiWirelessCoolingChains([aio], []);
+    expect(chain.ports[0].rpm).toBe(1490);
+  });
+
+  it('renders no row for a HydroShift II with fan count 0', () => {
+    expect(buildLianLiWirelessCoolingChains([makeFan({ devType: 10, fanCount: 0 })], [])).toEqual([]);
   });
 
   it('leaves the channel null until the :fans channel is polled', () => {
