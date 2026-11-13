@@ -11,7 +11,7 @@ import {
   type ElgatoProfileSummary, type ElgatoImportReport,
 } from '../../../api/streamdeck';
 import { createDeckPreset } from '../../../api/deck';
-import { dedupePresetName, unmappedReasonKey } from './elgatoImportUtils';
+import { dedupePresetName, unmappedEntryKey, unmappedPositionLabel, unmappedReasonKey } from './elgatoImportUtils';
 import styles from './ElgatoImportModal.module.scss';
 
 type Status = 'loading' | 'error' | 'notFound' | 'unsupportedVersion' | 'list';
@@ -174,22 +174,26 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
               <div className={styles.unmapped}>
                 <p className={styles.unmappedHeader}>{t('devices.streamdeck.import.unmappedHeader')}</p>
                 <ul className={styles.unmappedList}>
-                  {result.report.unmapped.map(item => (
-                    <li key={item.dial != null ? `${item.page}-dial-${item.dial}` : `${item.page}-${item.position}`} className={styles.unmappedItem}>
-                      <span className={styles.unmappedPosition}>
-                        {item.dial != null
-                          ? t('devices.streamdeck.import.unmappedPositionDial', { page: item.page, dial: item.dial })
-                          : t('devices.streamdeck.import.unmappedPosition', { page: item.page, position: item.position })}
-                      </span>
-                      <span className={styles.unmappedName}>{item.name}</span>
-                      <span className={styles.unmappedReason}>{t(unmappedReasonKey(item.reason))}</span>
-                      {item.detail && (
-                        <span className={styles.unmappedDetail}>
-                          {t('devices.streamdeck.import.unmappedDetail', { detail: item.detail })}
-                        </span>
-                      )}
-                    </li>
-                  ))}
+                  {result.report.unmapped.map((item, index) => {
+                    const position = unmappedPositionLabel(item);
+                    return (
+                      <li key={unmappedEntryKey(item, index)} className={styles.unmappedItem}>
+                        <span className={styles.unmappedPosition}>{t(position.key, position.params)}</span>
+                        <span className={styles.unmappedName}>{item.name}</span>
+                        <span className={styles.unmappedReason}>{t(unmappedReasonKey(item.reason))}</span>
+                        {item.detail && (
+                          <span className={styles.unmappedDetail}>
+                            {t('devices.streamdeck.import.unmappedDetail', { detail: item.detail })}
+                          </span>
+                        )}
+                        {item.uuid && (
+                          <span className={styles.unmappedDetail}>
+                            {t('devices.streamdeck.import.unmappedUuid', { uuid: item.uuid })}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

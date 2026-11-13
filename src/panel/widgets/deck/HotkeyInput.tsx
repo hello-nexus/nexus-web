@@ -36,10 +36,12 @@ const MOD_CODES = new Set([
 // deckExecutor.ts's own canonicalKey, so a captured token always resolves on
 // both the physical and widget dispatch paths.
 const NAMED: Record<string, string> = {
-  Space: 'space', Enter: 'enter', NumpadEnter: 'enter', Tab: 'tab', Escape: 'escape',
+  Space: 'space', Enter: 'enter', Tab: 'tab', Escape: 'escape',
   Backspace: 'backspace', Delete: 'delete', Insert: 'insert', Home: 'home', End: 'end',
   PageUp: 'pageup', PageDown: 'pagedown',
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  NumLock: 'numlock', NumpadAdd: 'numpadadd', NumpadSubtract: 'numpadsubtract', NumpadMultiply: 'numpadmultiply',
+  NumpadDivide: 'numpaddivide', NumpadDecimal: 'numpaddecimal', NumpadEnter: 'numpadenter', NumpadEqual: 'numpadequal',
   PrintScreen: 'printscreen', Period: '.',
   Comma: ',', Slash: '/', Semicolon: ';', Quote: "'",
   BracketLeft: '[', BracketRight: ']', Backslash: '\\', Minus: '-', Equal: '=', Backquote: '`',
@@ -48,6 +50,7 @@ const NAMED: Record<string, string> = {
 function codeToToken(code: string): string {
   if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
   if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+  if (/^Numpad[0-9]$/.test(code)) return code.toLowerCase();
   if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) return code.toLowerCase();
   return NAMED[code] ?? '';
 }

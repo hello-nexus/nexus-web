@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { dedupePresetName, unmappedReasonKey } from './elgatoImportUtils';
+import { dedupePresetName, unmappedEntryKey, unmappedPositionLabel, unmappedReasonKey } from './elgatoImportUtils';
 import type { ElgatoUnmappedReason } from '../../../api/streamdeck';
 
 describe('dedupePresetName', () => {
@@ -40,7 +40,7 @@ describe('unmappedReasonKey', () => {
     const reasons: ElgatoUnmappedReason[] = [
       'plugin', 'unsupported', 'hotkey', 'open', 'website', 'text', 'media',
       'multiStep', 'encoder', 'pageLimit', 'hotkeyExtraSlots', 'textEnterIgnored',
-      'monitoringSensor', 'audioPath',
+      'monitoringSensor', 'audioPath', 'openAppArgs', 'dialPartial',
     ];
     for (const reason of reasons) {
       expect(unmappedReasonKey(reason)).toBe(`devices.streamdeck.import.reason.${reason}`);
@@ -49,5 +49,31 @@ describe('unmappedReasonKey', () => {
 
   it('falls back to the unknown key for a code the client does not recognize', () => {
     expect(unmappedReasonKey('somethingNew')).toBe('devices.streamdeck.import.reason.unknown');
+  });
+});
+
+describe('new reason codes and entry labels', () => {
+  it('maps openAppArgs and dialPartial to their own keys', () => {
+    expect(unmappedReasonKey('openAppArgs')).toBe('devices.streamdeck.import.reason.openAppArgs');
+    expect(unmappedReasonKey('dialPartial')).toBe('devices.streamdeck.import.reason.dialPartial');
+  });
+
+  it('labels page 0 dials as default dials, not page 0', () => {
+    expect(unmappedPositionLabel({ page: 0, position: '', dial: 2 })).toEqual({
+      key: 'devices.streamdeck.import.unmappedPositionDefaultDial', params: { dial: 2 },
+    });
+    expect(unmappedPositionLabel({ page: 1, position: '', dial: 2 }).key).toBe('devices.streamdeck.import.unmappedPositionDial');
+    expect(unmappedPositionLabel({ page: 1, position: '2,1' }).key).toBe('devices.streamdeck.import.unmappedPosition');
+  });
+
+  it('keys stacked entries on the same dial uniquely', () => {
+    const entries = [
+      { page: 1, position: '', dial: 2 },
+      { page: 1, position: '', dial: 2 },
+      { page: 1, position: '2,1' },
+      { page: 1, position: '2,1' },
+    ];
+    const keys = entries.map((e, i) => unmappedEntryKey(e, i));
+    expect(new Set(keys).size).toBe(entries.length);
   });
 });

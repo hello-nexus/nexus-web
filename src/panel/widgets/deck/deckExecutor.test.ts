@@ -12,6 +12,15 @@ import { executeDeckAction, isPrivilegedDeckAction, parseHotkey, type DeckDispat
 import { onDeckOpenMonitoring } from './deckMonitoringNav';
 import type { DeckAction } from './types';
 
+describe('parseHotkey numpad tokens', () => {
+  it('round-trips every numpad token to its code name', () => {
+    const tokens = ['numlock', 'numpadadd', 'numpadsubtract', 'numpadmultiply', 'numpaddivide', 'numpaddecimal', 'numpadenter', 'numpadequal'];
+    const names = ['NumLock', 'NumpadAdd', 'NumpadSubtract', 'NumpadMultiply', 'NumpadDivide', 'NumpadDecimal', 'NumpadEnter', 'NumpadEqual'];
+    tokens.forEach((tok, i) => expect(parseHotkey(`ctrl+${tok}`)).toEqual({ key: names[i], ctrl: true, shift: false, alt: false, meta: false }));
+    for (let d = 0; d <= 9; d++) expect(parseHotkey(`numpad${d}`)?.key).toBe(`Numpad${d}`);
+  });
+});
+
 describe('parseHotkey', () => {
   it('parses modifiers + a letter', () => {
     expect(parseHotkey('ctrl+shift+m')).toEqual({ key: 'KeyM', ctrl: true, shift: true, alt: false, meta: false });

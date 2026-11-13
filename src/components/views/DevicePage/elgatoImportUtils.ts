@@ -1,6 +1,6 @@
 // Pure helpers for ElgatoImportModal, split out for direct testing (see
 // mappingUtils.ts for the pattern this follows).
-import type { ElgatoUnmappedReason } from '../../../api/streamdeck';
+import type { ElgatoUnmappedKey, ElgatoUnmappedReason } from '../../../api/streamdeck';
 
 /**
  * Dedupe an Elgato profile name against a physical deck's existing preset
@@ -34,6 +34,8 @@ const REASON_KEYS: Record<ElgatoUnmappedReason, string> = {
   textEnterIgnored: 'devices.streamdeck.import.reason.textEnterIgnored',
   monitoringSensor: 'devices.streamdeck.import.reason.monitoringSensor',
   audioPath: 'devices.streamdeck.import.reason.audioPath',
+  openAppArgs: 'devices.streamdeck.import.reason.openAppArgs',
+  dialPartial: 'devices.streamdeck.import.reason.dialPartial',
 };
 
 /**
@@ -43,4 +45,22 @@ const REASON_KEYS: Record<ElgatoUnmappedReason, string> = {
  */
 export function unmappedReasonKey(reason: string): string {
   return REASON_KEYS[reason as ElgatoUnmappedReason] ?? 'devices.streamdeck.import.reason.unknown';
+}
+
+/** Page 0 in the report is the profile's Default dial page, not a numbered page. */
+export const DEFAULT_DIAL_PAGE = 0;
+
+/** i18n key + params for an unmapped entry's location line. */
+export function unmappedPositionLabel(item: Pick<ElgatoUnmappedKey, 'page' | 'position' | 'dial'>): { key: string; params: Record<string, string | number> } {
+  if (item.dial != null) {
+    return item.page === DEFAULT_DIAL_PAGE
+      ? { key: 'devices.streamdeck.import.unmappedPositionDefaultDial', params: { dial: item.dial } }
+      : { key: 'devices.streamdeck.import.unmappedPositionDial', params: { page: item.page, dial: item.dial } };
+  }
+  return { key: 'devices.streamdeck.import.unmappedPosition', params: { page: item.page, position: item.position } };
+}
+
+/** React key unique per report entry: a stacked dial yields several entries with the same page and dial. */
+export function unmappedEntryKey(item: Pick<ElgatoUnmappedKey, 'page' | 'position' | 'dial'>, index: number): string {
+  return `${item.page}-${item.dial != null ? `dial-${item.dial}` : item.position}-${index}`;
 }
