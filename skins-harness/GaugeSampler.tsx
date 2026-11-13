@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { GAUGE_DESIGNS, type GaugeDesignKey, type GaugeProps } from '../src/panel/widgets/monitoring/gauges';
 
 // Harness-only tile: the real gauge components, one per 1x1 cell, so every
@@ -33,6 +33,14 @@ export function GaugeSampler() {
     };
     return { design, props };
   }), []);
+  // Stand-in for the monitoring widget's data-value-state until it lands: two warn and two critical cells.
+  useEffect(() => {
+    const cells = document.querySelectorAll('[data-widget-type="gauge-sampler"]');
+    const states: Record<number, string> = { 2: 'warn', 3: 'critical', 6: 'warn', 7: 'critical' };
+    Object.entries(states).forEach(([i, state]) => {
+      cells[Number(i)]?.querySelectorAll('[data-skin-part="value"], [data-skin-part="digit"]').forEach(el => el.setAttribute('data-value-state', state));
+    });
+  }, []);
   return (
     <>
       {items.map(({ design, props }, i) => {

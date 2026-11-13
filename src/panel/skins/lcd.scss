@@ -1,15 +1,20 @@
 @use 'mixins' as *;
 @use 'screen' as *;
+@use 'kit' as *;
+@use 'warn' as *;
 
 // DSEG7: digits, colon, period, minus and degree only (unicode-range), so every
 // other glyph falls through to the panel font stack per glyph.
 @font-face { font-family: 'Skin Seg7'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/dseg7.woff2') format('woff2'); unicode-range: U+0030-003A, U+002D, U+002E, U+00B0; }
 
-// Reflective LCD. The panel is the dark bezel, each card a recessed window.
-// One ink colour; unlit segments show as a ghost track behind bars.
-// Numerals in Tektur (squarish, reads like segments), words in Jura.
+// Light is the daylight reflective cell, dark is the same cell with its backlight on; both take their hue from the accent.
 @include skin('lcd') {
   @include screen-tokens;
+  --skin-back: var(--skin-day-back);
+  --skin-bg: var(--skin-pale);
+  --skin-ink: var(--skin-deep);
+  --skin-ink-rgb: var(--skin-deep-rgb);
+  --skin-dim: rgba(var(--skin-deep-rgb), 0.78);
   --skin-card-radius: 4px;
   --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.14), transparent 35%);
   --skin-card-frame: inset 0 0 0 2px var(--skin-ink), inset 0 4px 7px rgba(var(--skin-ink-rgb), 0.35);
@@ -37,28 +42,17 @@
   --ease: 0s;
   --ease-slow: 0s;
 }
-@include skin-variant('lcd', 'green', true) {
-  --skin-back: #2c3027;
-  --skin-bg: #b4c19a;
-  --skin-ink: #1d2616;
-  --skin-ink-rgb: 29, 38, 22;
-  --skin-dim: rgba(29, 38, 22, 0.78);
-}
-@include skin-variant('lcd', 'blue') {
-  --skin-back: #101624;
-  --skin-bg: #2c63d6;
-  --skin-ink: #eaf3ff;
-  --skin-ink-rgb: 234, 243, 255;
-  --skin-dim: rgba(234, 243, 255, 0.82);
-  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.1), transparent 40%);
-  --skin-text-shadow: 1px 1px 0 rgba(0, 0, 40, 0.35);
-}
-@include skin-variant('lcd', 'orange') {
-  --skin-back: #1f1710;
-  --skin-bg: #f0902a;
-  --skin-ink: #2a1300;
-  --skin-ink-rgb: 42, 19, 0;
-  --skin-dim: rgba(42, 19, 0, 0.8);
+// Backlight on: dark cell, lit segments.
+@include skin-dark('lcd') {
+  --skin-back: var(--skin-night-back);
+  --skin-bg: var(--skin-night);
+  --skin-ink: var(--skin-lit);
+  --skin-ink-rgb: var(--skin-lit-rgb);
+  --skin-dim: rgba(var(--skin-lit-rgb), 0.82);
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.06), transparent 40%);
+  --skin-card-frame: inset 0 0 0 2px rgba(var(--skin-ink-rgb), 0.6), inset 0 4px 7px rgba(var(--skin-ink-rgb), 0.15);
+  --skin-text-shadow: 0 0 3px rgba(var(--skin-ink-rgb), 0.4);
+  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.25) 1px, transparent 1px);
 }
 @include in-skin('lcd', 'svg path, svg line, svg polyline, svg rect, svg circle') {
   stroke-linecap: butt;
@@ -83,3 +77,4 @@
   opacity: 0.1;
   text-shadow: none;
 }
+@include mono-warn('lcd', var(--skin-ink), var(--skin-bg));

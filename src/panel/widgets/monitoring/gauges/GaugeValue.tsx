@@ -9,6 +9,9 @@ import styles from './GaugeValue.module.scss';
 // default) leaves every design's own size untouched.
 export const AdaptiveNumbersContext = createContext(false);
 
+/** The reading's warn/critical marker from valueColor.ts, stamped on the value element so it is a rendered box (the slot wrapper has none). */
+export const GaugeValueStateContext = createContext<'warn' | 'critical' | undefined>(undefined);
+
 const SLOT_SELECTOR = '[data-monitoring-slot-index]';
 
 // Measured on size change and when web fonts finish loading, never per tick.
@@ -83,6 +86,7 @@ export function GaugeValue({ formatted, className, clipTopPercent, textFill, ali
   const parts = splitFormatted(formatted);
   const { boxRef, contentRef, scale } = useFitWidth();
   const adaptive = useContext(AdaptiveNumbersContext);
+  const valueState = useContext(GaugeValueStateContext);
   const [boxEl, setBoxEl] = useState<HTMLElement | null>(null);
   const [twinEl, setTwinEl] = useState<HTMLElement | null>(null);
   const fontSize = useAdaptiveSize(adaptive, boxEl, twinEl, innerFraction, parts.unit);
@@ -97,6 +101,7 @@ export function GaugeValue({ formatted, className, clipTopPercent, textFill, ali
       role="img"
       aria-label={formatted}
       data-skin-part="value"
+      data-value-state={valueState}
       style={{ ...(align ? { justifyContent: ALIGN_JUSTIFY[align] } : undefined), ...(fontSize ? { fontSize: `${fontSize}px` } : undefined) }}
     >
       <span

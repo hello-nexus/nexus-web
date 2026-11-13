@@ -12,6 +12,19 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   neon: () => import('./neon.scss'),
   blueprint: () => import('./blueprint.scss'),
   eink: () => import('./eink.scss'),
+  bevel: () => import('./bevel.scss'),
+  hifi: () => import('./hifi.scss'),
+  cockpit: () => import('./cockpit.scss'),
+  arcade: () => import('./arcade.scss'),
+  glass: () => import('./glass.scss'),
+  holo: () => import('./holo.scss'),
+  mecha: () => import('./mecha.scss'),
+  steampunk: () => import('./steampunk.scss'),
+  nixie: () => import('./nixie.scss'),
+  deco: () => import('./deco.scss'),
+  swiss: () => import('./swiss.scss'),
+  clay: () => import('./clay.scss'),
+  sketch: () => import('./sketch.scss'),
 };
 
 const loaded = new Set<string>();

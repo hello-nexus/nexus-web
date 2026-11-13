@@ -13,6 +13,7 @@ export interface SkinThemeFields {
   accentSyncWithDesktop: boolean;
   accentColor: string;
   font: PanelFont | null;
+  widgetOpacity: number;
 }
 
 // Null is the stock look. An unknown id reads as null (same rule as panelFont).
@@ -44,7 +45,8 @@ export function resolveSkin(theme: SkinThemeFields): ResolvedSkin | null {
   return {
     id: theme.skin,
     def,
-    mode: def.modeLocked ? def.mode : null,
+    // Locked, or the user follows the desktop: the skin's own mode. Otherwise the user's.
+    mode: def.modeLocked || theme.themeSyncWithDesktop ? def.mode : null,
     font,
     accent,
   };
@@ -73,10 +75,11 @@ export function panelSkinVars(theme: SkinThemeFields, accentHex: string): Record
 }
 
 // Attributes a panel root carries for the skin stylesheets.
-export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overlay', string>>;
+export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overlay' | 'data-skin-card-faded', string>>;
 
 export function panelSkinAttrs(theme: SkinThemeFields): PanelSkinAttrs {
   const r = resolveSkin(theme);
   if (!r) return {};
-  return { 'data-panel-skin': r.id, 'data-skin-overlay': 'on' };
+  // Card outer shadows cannot scale with widget opacity; they drop out below half.
+  return { 'data-panel-skin': r.id, 'data-skin-overlay': 'on', ...(theme.widgetOpacity < 0.5 ? { 'data-skin-card-faded': '' } : {}) };
 }

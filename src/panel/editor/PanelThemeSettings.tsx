@@ -286,12 +286,12 @@ export function PanelThemeSettings({
   const skin = resolveSkin(theme);
   const skinLabel = skin?.def.label ?? '';
   const lockedNote = label('skin.locked', 'Set by the {skin} skin').replace('{skin}', () => skinLabel);
-  const modeLocked = !!skin?.mode;
+  const modeLocked = !!skin?.def.modeLocked;
   const fontLocked = !!skin?.def.fontLocked;
   const accentLocked = !!skin && (skin.def.accentLocked || skin.def.accent === null);
   const skinOptions = [
-    { key: NO_SKIN_KEY, label: label('skin.none', 'None') },
-    ...PANEL_SKINS.map(s => ({ key: s.id as string, label: s.label })),
+    { value: NO_SKIN_KEY, label: label('skin.none', 'None') },
+    ...PANEL_SKINS.map(s => ({ value: s.id as string, label: s.label })),
   ];
   const fontOptionsBase = buildPanelFontOptions(
     showSystemFonts
@@ -444,15 +444,12 @@ export function PanelThemeSettings({
 
       {showTheme && (
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
-        <SettingRow label={label('skin.title', 'Skin')} stackOnNarrow>
-          <ChipGroup
-            wrap
-            ariaLabel={label('skin.title', 'Skin')}
-            activeKey={theme.skin ?? NO_SKIN_KEY}
-            onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
-            options={skinOptions}
-          />
-        </SettingRow>
+        <SettingSelect
+          label={label('skin.title', 'Skin')}
+          value={theme.skin ?? NO_SKIN_KEY}
+          options={skinOptions}
+          onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
+        />
         <div className={styles.toggleReveal}>
           <SettingToggle
             label={syncWithDesktopLabel}
@@ -468,7 +465,7 @@ export function PanelThemeSettings({
                 label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
                 disabled: modeLocked,
               }))}
-              activeKey={skin?.mode ?? theme.themeMode}
+              activeKey={skin && modeLocked ? skin.def.mode : theme.themeMode}
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
               fullWidth

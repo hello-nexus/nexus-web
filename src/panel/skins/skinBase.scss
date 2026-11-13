@@ -59,24 +59,28 @@
   outline-offset: 2px;
 }
 
-// Card chrome. Set directly rather than through --panel-card-fill because the
-// stock .panel-card fill is a color-mix() that Chromium 83 drops.
+// Card chrome. The fill and the frame are pseudo layers so the user's widget
+// opacity (--panel-card-bg-alpha, 0-1) scales them; Chromium 83 has no
+// color-mix() to scale a fill colour directly. The face sits behind the
+// content (the card isolates its own stacking context), the frame above it.
+// An inset box-shadow on the card itself would paint under the content.
 .panel-root[data-panel-skin] .panel-card {
-  background-color: var(--skin-card-bg);
-  background-image: var(--skin-card-image, none);
+  isolation: isolate;
+  background-color: transparent;
   border: var(--skin-card-border, 0 solid transparent);
   border-radius: var(--skin-card-radius, 0);
-  box-shadow: var(--skin-card-shadow, none);
   clip-path: var(--skin-card-clip, none);
   color: var(--text);
   text-shadow: var(--skin-text-shadow, none);
   text-transform: var(--skin-text-case, none);
   letter-spacing: var(--skin-letter-spacing, normal);
 }
+// An outer shadow cannot be scaled; it drops out once the card is mostly faded.
+.panel-root[data-panel-skin]:not([data-skin-card-faded]) .panel-card {
+  box-shadow: var(--skin-card-shadow, none);
+}
 
-// One layer above the card content carries both the frame (an inset
-// box-shadow on the card itself would paint under the content) and the
-// decoration stack (brackets, ticks).
+.panel-root[data-panel-skin] .panel-card::before,
 .panel-root[data-panel-skin] .panel-card::after {
   content: '';
   position: absolute;
@@ -85,13 +89,36 @@
   bottom: 0;
   left: 0;
   pointer-events: none;
-  z-index: 5;
   border-radius: inherit;
+  opacity: var(--panel-card-bg-alpha, 1);
+}
+.panel-root[data-panel-skin] .panel-card::before {
+  z-index: -1;
+  background-color: var(--skin-card-bg);
+  background-image: var(--skin-card-image, none);
+}
+.panel-root[data-panel-skin] .panel-card::after {
+  z-index: 5;
   box-shadow: var(--skin-card-frame, none);
   background-image: var(--skin-card-deco, none);
   background-size: var(--skin-card-deco-size, auto);
   background-repeat: var(--skin-card-deco-repeat, repeat);
   background-position: var(--skin-card-deco-pos, 0 0);
+}
+
+// Content never sits under the frame: the stock inner padding (the scaler's
+// inset) reserves the skin's frame thickness, and the user's widget padding
+// still separates the cards on top of it.
+.panel-root[data-panel-skin][data-surface] {
+  --panel-widget-card-inner-pad: var(--skin-card-inset, 0px);
+}
+$skin-insets: (
+  arcade: 6px, clay: 4px, cockpit: 4px, bevel: 3px, blueprint: 2px, eink: 2px, crt: 2px,
+  glass: 2px, hud: 3px, deco: 6px, hifi: 6px, nixie: 2px, lcd: 3px, mecha: 4px, holo: 2px,
+  steampunk: 6px, sketch: 2px, pixel: 3px, neon: 3px, vfd: 2px, swiss: 4px,
+);
+@each $id, $px in $skin-insets {
+  .panel-root[data-panel-skin='#{$id}'] { --skin-card-inset: #{$px}; }
 }
 
 // The one optional overlay: a static, low-opacity layer over the panel. It

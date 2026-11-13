@@ -23,7 +23,7 @@ describe('panel skin normalization', () => {
 
 describe('panel skin render-time overrides', () => {
   it('leaves the stored theme alone and pins a locked mode on the effective theme', () => {
-    const base = buildPanelTheme(null, record({ skin: 'lcd', font: 'oswald', themeMode: 'light', themeSyncWithDesktop: false }));
+    const base = buildPanelTheme(null, record({ skin: 'crt', font: 'oswald', themeMode: 'light', themeSyncWithDesktop: false }));
     const eff = resolveEffectivePanelTheme(base, 'y70');
     expect(eff.themeMode).toBe('dark');
     expect(eff.themeSyncWithDesktop).toBe(false);
@@ -42,8 +42,14 @@ describe('panel skin render-time overrides', () => {
     expect(synced.accentColor).toBe('#2fd8ff');
     const own = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
     expect(own.accentColor).toBe('#ff0000');
-    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
-    expect(locked.accentColor).toBe('#ff0000');
+    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
+    expect(locked.accentColor).toBe('#ffb84a');
+  });
+
+  it('applies the skin default mode while synced and the user mode once pinned', () => {
+    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd' }))).themeMode).toBe('light');
+    const pinned = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' })));
+    expect(pinned.themeMode).toBe('dark');
   });
 
   it('is a no-op without a skin', () => {
