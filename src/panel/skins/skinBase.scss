@@ -131,7 +131,7 @@
 }
 $skin-insets: (
   arcade: 6px, clay: 2px, cockpit: 4px, bevel: 3px, blueprint: 2px, eink: 2px, crt: 4px,
-  glass: 2px, hud: 3px, deco: 4px, hifi: 3px, nixie: 2px, lcd: 2px, mecha: 4px, holo: 2px,
+  glass: 2px, hud: 3px, deco: 4px, hifi: 3px, nixie: 2px, lcd: 2px, mecha: 4px,
   steampunk: 4px, sketch: 2px, pixel: 3px, neon: 3px, vfd: 1px, swiss: 4px,
 );
 @each $id, $px in $skin-insets {

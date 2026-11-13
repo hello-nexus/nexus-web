@@ -1,0 +1,33 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Seventies: a cream (light) or chocolate (dark) face with a thin orange, mustard and brown stripe band along the bottom of each tile.
+@mixin seventies-common {
+  @include kit-radius(16px, 10px, 999px);
+  @include kit-weights(500, 400, 600, 600, 400);
+  --skin-card-inset: 2px;
+  --skin-card-deco:
+    linear-gradient(90deg, #e2681f, #e2681f),
+    linear-gradient(90deg, #e8a817, #e8a817),
+    linear-gradient(90deg, #8a4b1f, #8a4b1f);
+  --skin-card-deco-size: 100% 3px, 100% 3px, 100% 3px;
+  --skin-card-deco-pos: 0 100%, 0 calc(100% - 3px), 0 calc(100% - 6px);
+  --skin-card-deco-repeat: no-repeat;
+  --skin-bar-height: 7px;
+}
+@include skin('seventies') {
+  @include kit(#1f1107, #3a2311, #fcebcb, #dcb98a, #8f5e2e, var(--skin-accent), var(--skin-accent-rgb), #2a1608, #a8d66a, #f2c14e, #f2705a);
+  @include seventies-common;
+  --skin-card-frame: inset 0 0 0 1px rgba(143, 94, 46, 0.7);
+  --skin-card-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+  --gauge-track: rgba(0, 0, 0, 0.35);
+}
+@include skin-light('seventies') {
+  @include kit(#e6d2a8, #fbf1dc, #3a2212, #6b4a2c, #b98a52, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #3d6b14, #8a5a00, #b3261e);
+  --skin-card-frame: inset 0 0 0 1px rgba(185, 138, 82, 0.7);
+  --skin-card-shadow: 0 3px 0 rgba(120, 80, 30, 0.22);
+  --gauge-track: rgba(120, 80, 30, 0.2);
+}
+@include in-skin('seventies', '[data-skin-part="fill"]') {
+  background: var(--accent);
+}

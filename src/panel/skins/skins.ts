@@ -41,7 +41,6 @@ export const PANEL_SKINS = [
   { id: 'cockpit', label: 'Cockpit', kind: 'style', font: 'jura', fontLocked: false, accent: '#ffb000', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'arcade', label: 'Arcade', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff3b30', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'glass', label: 'Glass', kind: 'style', font: 'lexend', fontLocked: false, accent: '#5aa8ff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'holo', label: 'Holo', kind: 'style', font: 'jura', fontLocked: false, accent: '#7df9ff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'mecha', label: 'Mecha', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff7a00', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'steampunk', label: 'Steampunk', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', accentLocked: true, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'nixie', label: 'Nixie', kind: 'style', font: 'jura', fontLocked: false, accent: '#ff8a2a', accentLocked: true, mode: 'dark', modeLocked: true, prefersSkinBackground: true, framelessAtZeroPadding: false },
@@ -49,6 +48,11 @@ export const PANEL_SKINS = [
   { id: 'swiss', label: 'Swiss', kind: 'style', font: 'lexend', fontLocked: false, accent: '#e30613', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'clay', label: 'Clay', kind: 'style', font: 'lexend', fontLocked: false, accent: '#7a5af8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'sketch', label: 'Sketch', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#d9532b', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'bubblegum', label: 'Bubblegum', kind: 'style', font: 'lexend', fontLocked: false, accent: '#ff4fa3', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'sakura', label: 'Sakura', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#e8799a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'y2k', label: 'Y2K', kind: 'style', font: 'tektur', fontLocked: false, accent: '#3bb8ff', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'seventies', label: 'Seventies', kind: 'style', font: 'oswald', fontLocked: false, accent: '#f2822e', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'mint', label: 'Mint', kind: 'style', font: 'lexend', fontLocked: false, accent: '#3fb58a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];

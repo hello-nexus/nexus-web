@@ -1,0 +1,26 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Mint: calm, flat pastel green tiles with a one pixel rim and no texture.
+@mixin mint-common {
+  @include kit-radius(16px, 10px, 999px);
+  @include kit-weights(500, 400, 600, 600, 400);
+  --skin-card-inset: 2px;
+  --skin-bar-height: 6px;
+}
+@include skin('mint') {
+  @include kit(#0c1f19, #14302a, #e8f7ef, #a9cebd, #4f7d6c, var(--skin-accent), var(--skin-accent-rgb), #062018, #7ff0bf, #ffd98a, #ff9aa6);
+  @include mint-common;
+  --skin-card-frame: inset 0 0 0 1px rgba(127, 200, 170, 0.35);
+  --skin-card-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  --gauge-track: rgba(232, 247, 239, 0.14);
+}
+@include skin-light('mint') {
+  @include kit(#dff1e7, #f7fcf9, #17372b, #44645a, #a6cdbb, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #8a5a00, #b3261e);
+  --skin-card-frame: inset 0 0 0 1px rgba(120, 180, 150, 0.6);
+  --skin-card-shadow: 0 2px 0 rgba(90, 150, 120, 0.2);
+  --gauge-track: rgba(90, 150, 120, 0.22);
+}
+@include in-skin('mint', '[data-skin-part="fill"]') {
+  background: var(--accent);
+}
