@@ -132,6 +132,8 @@ export interface PanelDeviceRecord {
   textColor?: string;
   // Panel font id (panel/theme/panelFont.ts); unknown ids fall back to the default.
   font?: string;
+  // Panel skin id (panel/theme/panelSkin.ts); null or unknown is the stock look.
+  skin?: string | null;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Device ids last selected on this panel's Lighting view; absent until set.
@@ -256,6 +258,8 @@ export interface PanelDevicePatch {
   textColor?: string;
   // Panel font id (panel/theme/panelFont.ts); unknown ids fall back to the default.
   font?: string;
+  // Skin id; an empty string clears.
+  skin?: string;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Full list (the client sends the whole selection); empty means none.

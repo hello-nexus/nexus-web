@@ -6,6 +6,7 @@ import type { PanelSurface } from '../types';
 import { wiredPanelClass } from '../device/wiredPanel';
 import { hasNativeFindComputerBridge, openFindComputer } from '../device/panelNativeBridge';
 import styles from './PanelOfflineOverlay.module.scss';
+import { usePanelSkinAttrs } from '../../components/common/ThemeScope/PanelSkinScope';
 
 interface PanelOfflineOverlayProps {
   state: ConnectionState;
@@ -88,6 +89,7 @@ export function PanelOfflineOverlay({
   onRetry,
   onOpenNativePairing,
 }: PanelOfflineOverlayProps) {
+  const skinAttrs = usePanelSkinAttrs();
   const { t } = useTranslation();
   const secondsLeft = useCountdownSeconds(nextAttemptAt);
   const canPairNewSystem = hasNativeFindComputerBridge();
@@ -102,6 +104,7 @@ export function PanelOfflineOverlay({
     return (
       <div
         className={`panel-root ${styles.overlay}`}
+        {...skinAttrs}
         data-theme={resolvedThemeMode}
         data-surface={surface}
         style={themeStyle}
@@ -133,6 +136,7 @@ export function PanelOfflineOverlay({
     return (
       <div
         className={`panel-root ${styles.overlay}`}
+        {...skinAttrs}
         data-theme={resolvedThemeMode}
         data-surface={surface}
         style={themeStyle}
@@ -169,6 +173,7 @@ export function PanelOfflineOverlay({
     return (
       <div
         className={`panel-root ${styles.overlay}`}
+        {...skinAttrs}
         data-theme={resolvedThemeMode}
         data-surface={surface}
         style={themeStyle}
@@ -205,6 +210,7 @@ export function PanelOfflineOverlay({
     return (
       <div
         className={`panel-root ${styles.overlay}`}
+        {...skinAttrs}
         data-theme={resolvedThemeMode}
         data-surface={surface}
         style={themeStyle}
@@ -243,6 +249,7 @@ export function PanelOfflineOverlay({
     return (
       <div
         className={`panel-root ${styles.overlay}`}
+        {...skinAttrs}
         data-theme={resolvedThemeMode}
         data-surface={surface}
         style={themeStyle}
@@ -270,6 +277,7 @@ export function PanelOfflineOverlay({
   return (
     <div
       className={`panel-root ${styles.overlay}`}
+        {...skinAttrs}
       data-theme={resolvedThemeMode}
       data-surface={surface}
       style={themeStyle}

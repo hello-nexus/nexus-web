@@ -1769,6 +1769,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                             onTextColorPreview={panelTheme.previewTextColor}
                             onTextColorCommit={panelTheme.commitTextColor}
                             onFontCommit={panelTheme.commitFont}
+                            onSkinCommit={panelTheme.commitSkin}
                             showMediaTab={surface !== 'desktop'}
                             showSystemFonts={isSimulated ? isLocalPanelClient() : panelSystemFontsAvailable(glassSurface)}
                             backgroundHeldBy={backgroundHeldBy}

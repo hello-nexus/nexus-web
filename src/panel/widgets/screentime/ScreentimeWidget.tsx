@@ -2,6 +2,7 @@ import { useScreenTime } from '../../../hooks/useScreenTime';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { StableDigits } from '../common/StableDigits';
 import { SCREENTIME_PREVIEW } from './screentimePreviewData';
 import styles from './ScreentimeWidget.module.scss';
 
@@ -30,7 +31,7 @@ export function ScreentimeWidget({ widget }: WidgetProps) {
 
   return (
     <div className={styles.screentime}>
-      <div className={styles.total}>{formatHm(totalMs)}</div>
+      <div className={styles.total}><StableDigits text={formatHm(totalMs)} /></div>
       {top.length === 0 ? (
         <div className={styles.empty}>{t('panel.screentime.empty')}</div>
       ) : (

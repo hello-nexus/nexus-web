@@ -31,13 +31,11 @@ export const OWN_DEFAULT_ACCENT = '#2563eb';
 export function readSkinState(): SkinState {
   const q = new URLSearchParams(location.search);
   const skin = normalizePanelSkin(q.get('skin'));
-  const def = skinDef(skin);
-  const v = q.get('variant');
   const font = q.get('font');
   const accent = q.get('accent');
   return {
     skin,
-    variant: def?.variants.length ? (def.variants.find(x => x.id === v)?.id ?? def.variants[0].id) : null,
+    variant: null,
     ownMode: q.get('theme') === 'light' ? 'light' : 'dark',
     ownFont: (font as PanelFontId) || null,
     ownAccent: OWN_DEFAULT_ACCENT,
@@ -67,8 +65,7 @@ export function useSkinState() {
   const [s, setS] = useState<SkinState>(readSkinState);
   const eff = useMemo(() => effective(s), [s]);
   const setSkin = useCallback((id: PanelSkinId | null) => {
-    const def = skinDef(id);
-    setS(p => ({ ...p, skin: id, variant: def?.variants[0]?.id ?? null, ovFont: null, ovAccent: null }));
+    setS(p => ({ ...p, skin: id, variant: null, ovFont: null, ovAccent: null }));
   }, []);
   const setVariant = useCallback((variant: string) => setS(p => ({ ...p, variant })), []);
   const setMode = useCallback((m: 'dark' | 'light') => setS(p => ({ ...p, ownMode: m })), []);

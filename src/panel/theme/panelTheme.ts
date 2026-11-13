@@ -33,6 +33,8 @@ import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { normalizeTextColorMode, type TextColorMode } from './textColor';
 import { normalizePanelFont, panelFontVars, type PanelFont } from './panelFont';
+import { applyPanelSkin, normalizeStoredSkin, panelSkinVars } from './panelSkin';
+import type { PanelSkinId } from '../skins/skins';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -140,7 +142,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     '--panel-accent-on': onVars['--accent-on'],
     '--panel-accent-on-text': onVars['--accent-on-text'],
   };
-  return { ...vars, ...panelFontVars(theme.font) } as CSSProperties;
+  return { ...vars, ...panelFontVars(theme.font), ...panelSkinVars(theme, panelAccentColor(theme)) } as CSSProperties;
 }
 
 // Per-surface theme overrides applied at render time (persisted theme is
@@ -150,7 +152,8 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
 // dashboard has no per-device theme record (INERT_PANEL_RECORD), so its
 // widgetPadding never resolves past the initial default; this forces it to the
 // slider's maximum (100%) as a surface-level default instead.
-export function resolveEffectivePanelTheme(baseTheme: PanelThemeState, surface: PanelSurface): PanelThemeState {
+export function resolveEffectivePanelTheme(skinnedTheme: PanelThemeState, surface: PanelSurface): PanelThemeState {
+  const baseTheme = applyPanelSkin(skinnedTheme);
   if (isSingleWidgetSurface(surface)) {
     return { ...baseTheme, widgetLabels: false, widgetOpacity: 0, widgetPadding: 0 };
   }
@@ -200,6 +203,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     r?.backdrop,
     supportsDesktopWallpaper((r?.capabilities?.surface ?? '') as PanelSurface, !!r?.displayId),
   );
+  const skin = normalizeStoredSkin(r?.skin);
   return {
     appThemeMode: normalizePanelThemeMode(t?.themeMode),
     appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
@@ -240,6 +244,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     textColorMode: normalizeTextColorMode(r?.textColorMode),
     textColor: r?.textColor ?? '',
     font: normalizePanelFont(r?.font),
+    skin,
     gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
@@ -529,6 +534,11 @@ export function usePanelTheme(
     persistPatch({ font: font ?? '' });
   }, [persistPatch]);
 
+  const commitSkin = useCallback((skin: PanelSkinId | null) => {
+    setTheme(prev => ({ ...prev, skin }));
+    persistPatch({ skin: skin ?? '' });
+  }, [persistPatch]);
+
   const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
     setTheme(prev => ({ ...prev, gaugeGradient: normalizeGaugeGradient(stops) }));
   }, []);
@@ -589,6 +599,7 @@ export function usePanelTheme(
     previewTextColor: (hex: string) => setTheme(prev => ({ ...prev, textColor: hex })),
     commitTextColor,
     commitFont,
+    commitSkin,
     previewGaugeGradient,
     commitGaugeGradient,
     prefs,

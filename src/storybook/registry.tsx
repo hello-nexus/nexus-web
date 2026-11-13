@@ -2064,7 +2064,7 @@ function PreviewPanelThemeSettings() {
     backgroundMediaOrder: [],
     backgroundFrost: 0,
     immersiveBackdrop: true,
-    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '', font: null,
+    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '', font: null, skin: null,
     gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -2109,6 +2109,7 @@ function PreviewPanelThemeSettings() {
         onTextColorPreview={v => set({ textColor: v })}
         onTextColorCommit={v => set({ textColor: v })}
         onFontCommit={v => set({ font: v })}
+        onSkinCommit={v => set({ skin: v })}
       />
     </div>
   );

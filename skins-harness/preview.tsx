@@ -16,7 +16,7 @@ function Preview() {
     <>
       <ControlsBar api={api} view={view} setView={p => setV(v => ({ ...v, ...p }))} />
       <div className="stage" data-harness-stage>
-        <SkinSamplePanel skin={eff.skin} variant={eff.variant} mode={eff.mode} font={eff.font} accent={eff.accent} scene={view.scene} overlay={view.overlay} zoom={view.zoom} />
+        <SkinSamplePanel skin={eff.skin} mode={eff.mode} font={eff.font} accent={eff.accent} scene={view.scene} overlay={view.overlay} zoom={view.zoom} />
       </div>
     </>
   );

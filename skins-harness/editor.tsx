@@ -17,7 +17,7 @@ import styles from '../src/panel/editor/PanelThemeSettings.module.scss';
 // controllers and device hooks, which the harness does not provide.
 function Editor() {
   const api = useSkinState();
-  const { state, eff, setSkin, setVariant, setMode, setFont, setAccent } = api;
+  const { state, eff, setSkin, setMode, setFont, setAccent } = api;
   const def = skinDef(eff.skin);
   const [view] = useState(readView);
   useEffect(() => {
@@ -41,17 +41,6 @@ function Editor() {
               options={[{ key: 'none', label: 'None' }, ...PANEL_SKINS.map(s => ({ key: s.id, label: s.label }))]}
             />
           </div>
-          {def && def.variants.length > 0 && (
-            <div className="stack"><div className="stackLabel">Variant</div>
-              <ChipGroup
-                wrap
-                ariaLabel="Variant"
-                activeKey={state.variant ?? def.variants[0].id}
-                onChange={setVariant}
-                options={def.variants.map(v => ({ key: v.id, label: v.label }))}
-              />
-            </div>
-          )}
           <SettingRow label="Mode" description={eff.modeLocked ? `Fixed by the ${def?.label} skin` : undefined} disabled={eff.modeLocked}>
             <ChipGroup
               ariaLabel="Mode"
@@ -81,11 +70,11 @@ function Editor() {
             allowCustom
             disabled={eff.accentLocked}
           />
-          {eff.accentLocked && <div className="lockNote">{def?.variants.length ? 'Fixed by the skin. Use Variant.' : `Fixed by the ${def?.label} skin`}</div>}
+          {eff.accentLocked && <div className="lockNote">{`Fixed by the ${def?.label} skin`}</div>}
         </SettingsSection>
       </div>
       <div className="editorPanel">
-        <SkinSamplePanel skin={eff.skin} variant={eff.variant} mode={eff.mode} font={eff.font} accent={eff.accent} scene={view.scene} overlay zoom={1.5} />
+        <SkinSamplePanel skin={eff.skin} mode={eff.mode} font={eff.font} accent={eff.accent} scene={view.scene} overlay zoom={1.5} />
       </div>
     </div>
   );

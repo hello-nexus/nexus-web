@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from '../Button/Button';
+import { useSkinPortalHost } from '../ThemeScope/PanelSkinScope';
 import styles from './Coachmark.module.scss';
 
 export type CoachmarkSide = 'top' | 'bottom' | 'left' | 'right';
@@ -158,7 +159,9 @@ const FOLLOW_MAX_MS = 1500;
 export function Coachmark({ hintId, target, title, body, dismissLabel, onDismiss, placement = 'bottom', boundary }: CoachmarkProps) {
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const [placed, setPlaced] = useState<Placed | null>(null);
-  const [root, setRoot] = useState<HTMLElement>(() => document.body);
+  const skinHost = useSkinPortalHost();
+  const [stackRoot, setRoot] = useState<HTMLElement>(() => document.body);
+  const root = stackRoot === document.body && skinHost ? skinHost : stackRoot;
   const [announcement, setAnnouncement] = useState('');
   const announced = useRef(false);
   const targetInView = useRef(true);
@@ -279,6 +282,7 @@ export function Coachmark({ hintId, target, title, body, dismissLabel, onDismiss
       <div
         ref={bubbleRef}
         className={`${styles.bubble} ${placed ? styles[placed.side] : ''}`}
+        data-skin-part="surface"
         role="region"
         aria-labelledby={titleId}
         aria-describedby={body ? bodyId : undefined}

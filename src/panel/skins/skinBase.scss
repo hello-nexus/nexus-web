@@ -3,15 +3,60 @@
 // the variables into card chrome, the backdrop and the single optional
 // overlay. Plain backgrounds, borders and box-shadows only: no filters, no
 // animation.
+//
+// Every .panel-root a skinned panel mounts (sheets, menus, overlays, the
+// portal host) carries data-panel-skin and so takes the tokens below; only the
+// main panel root (data-skin-root) paints the backdrop and the overlay.
 
 .panel-root[data-panel-skin] {
+  font-family: var(--panel-font);
+  text-rendering: var(--skin-text-rendering, auto);
+  // Chrome tokens the shared controls read that a skin file does not set.
+  --backdrop-base: var(--bg);
+  --control-border: var(--border);
+  --control-border-strong: var(--border-strong);
+  --control-border-accent: var(--accent);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --blur-backdrop: 0px;
+  --blur-chip: 0px;
+}
+
+.panel-root[data-skin-root] {
   position: relative;
   overflow: hidden;
   background-color: var(--skin-backdrop);
+}
+
+// The backdrop pattern lives in its own compositor layer behind the content,
+// so a widget repainting does not re-rasterize it.
+.panel-root[data-skin-root] [data-skin-part='backdrop'] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
   background-image: var(--skin-backdrop-image, none);
   background-size: var(--skin-backdrop-size, auto);
-  font-family: var(--panel-font);
-  text-rendering: var(--skin-text-rendering, auto);
+}
+
+// Floating and docked chrome (sheets, menus, popovers, tooltips, modals,
+// toasts): a hairline from the skin border colour replaces the stock soft
+// shadow. A ring shadow takes no layout, so hit areas are unchanged.
+.panel-root[data-panel-skin] [data-skin-part='surface'],
+[data-skin-part='surface'].panel-root[data-panel-skin] {
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+// Keyboard focus stays visible on every control whatever the skin does to borders.
+.panel-root[data-panel-skin] :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 // Card chrome. Set directly rather than through --panel-card-fill because the
@@ -29,11 +74,10 @@
   letter-spacing: var(--skin-letter-spacing, normal);
 }
 
-// Frame and decoration layers above the widget content (an inset box-shadow
-// on the card itself would paint under the content). ::after carries the
-// frame, ::before a background-image stack (brackets, ticks).
-.panel-root[data-panel-skin] .panel-card::after,
-.panel-root[data-panel-skin] .panel-card::before {
+// One layer above the card content carries both the frame (an inset
+// box-shadow on the card itself would paint under the content) and the
+// decoration stack (brackets, ticks).
+.panel-root[data-panel-skin] .panel-card::after {
   content: '';
   position: absolute;
   top: 0;
@@ -43,19 +87,17 @@
   pointer-events: none;
   z-index: 5;
   border-radius: inherit;
-}
-.panel-root[data-panel-skin] .panel-card::after {
   box-shadow: var(--skin-card-frame, none);
-}
-.panel-root[data-panel-skin] .panel-card::before {
   background-image: var(--skin-card-deco, none);
   background-size: var(--skin-card-deco-size, auto);
   background-repeat: var(--skin-card-deco-repeat, repeat);
   background-position: var(--skin-card-deco-pos, 0 0);
 }
 
-// The one optional overlay: a static, low-opacity layer over the panel.
-.panel-root[data-panel-skin][data-skin-overlay='on']::after {
+// The one optional overlay: a static, low-opacity layer over the panel. It
+// gets its own compositor layer so a widget repainting underneath does not
+// re-rasterize the pattern.
+.panel-root[data-skin-root][data-skin-overlay='on']::after {
   content: '';
   position: absolute;
   top: 0;
@@ -64,6 +106,7 @@
   left: 0;
   z-index: 60;
   pointer-events: none;
+  will-change: transform;
   background-image: var(--skin-overlay, none);
   background-size: var(--skin-overlay-size, auto);
 }

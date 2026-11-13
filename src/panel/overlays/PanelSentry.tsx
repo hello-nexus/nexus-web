@@ -6,6 +6,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useNativePush } from '../device/panelNativeBridge';
 import { buildPushRegistration } from './sentryRegistration';
 import styles from './PanelSentry.module.scss';
+import { usePanelSkinAttrs } from '../../components/common/ThemeScope/PanelSkinScope';
 
 const POLL_MS = 5000;
 const FINAL_PUSH_STATUSES = new Set([400, 404, 422]);
@@ -45,6 +46,7 @@ interface PanelSentryProps {
 // shows while the PC is locked or armed (until dismissed, until the next lock),
 // and on demand from the tray row at any time while Sentry is supported.
 export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openRequest = 0, onSupportedChange }: PanelSentryProps) {
+  const skinAttrs = usePanelSkinAttrs();
   const { t } = useTranslation();
   const push = useNativePush(enabled);
   const [state, setState] = useState<SentryState | null>(null);
@@ -225,6 +227,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
   return (
     <div
       className={`panel-root ${styles.wrap}`}
+      {...skinAttrs}
       data-webview-cover
       data-theme={resolvedThemeMode}
       style={themeStyle}

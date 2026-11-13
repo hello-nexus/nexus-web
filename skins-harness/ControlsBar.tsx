@@ -14,7 +14,7 @@ type Api = ReturnType<typeof useSkinState>;
 export interface View { scene: string; overlay: boolean; zoom: number }
 
 export function ControlsBar({ api, view, setView, full = true }: { api: Api; view: View; setView: (p: Partial<View>) => void; full?: boolean }) {
-  const { state, eff, setSkin, setVariant, setMode, setFont, setAccent } = api;
+  const { state, eff, setSkin, setMode, setFont, setAccent } = api;
   const def = skinDef(eff.skin);
   const e: EffectiveSkin = eff;
   return (
@@ -23,11 +23,6 @@ export function ControlsBar({ api, view, setView, full = true }: { api: Api; vie
         <Btn on={state.skin === null} onClick={() => setSkin(null)}>None</Btn>
         {PANEL_SKINS.map(k => <Btn key={k.id} on={state.skin === k.id} onClick={() => setSkin(k.id)}>{k.label}</Btn>)}
       </div>
-      {def && def.variants.length > 0 && (
-        <div className="grp"><b>Variant</b>
-          {def.variants.map(v => <Btn key={v.id} on={state.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</Btn>)}
-        </div>
-      )}
       <div className="grp"><b>Mode{e.modeLocked ? ' (locked)' : ''}</b>
         <Btn on={e.mode === 'dark'} disabled={e.modeLocked} onClick={() => setMode('dark')}>Dark</Btn>
         <Btn on={e.mode === 'light'} disabled={e.modeLocked} onClick={() => setMode('light')}>Light</Btn>

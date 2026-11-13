@@ -15,6 +15,7 @@ import {
   type WeatherHourlyForecast,
 } from './weatherPreviewData';
 import styles from './WeatherWidget.module.scss';
+import { StableDigits } from '../common/StableDigits';
 
 // Static catalog face for the native Weather widget. Renders the real layout
 // from a fixed snapshot - no fetch, no config, no live clock - so the
@@ -111,7 +112,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
   const renderTop = () => (
     <div className={styles.largeTop}>
       <div className={styles.largeCurrent}>
-        <div className={styles.largeTemp}>{tempText}</div>
+        <div className={styles.largeTemp}><StableDigits text={tempText} /></div>
         {renderStats(styles.largeCurrentStats)}
       </div>
       <div className={styles.largeMeta}>
@@ -177,7 +178,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
           <WeatherIcon code={snap.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
         </div>
         <div className={styles.compactReadout}>
-          <div className={styles.compactTemp}>{tempText}</div>
+          <div className={styles.compactTemp}><StableDigits text={tempText} /></div>
         </div>
       </div>
       {full && renderStats(styles.compactStats)}

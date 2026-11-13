@@ -4,6 +4,7 @@ import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { Spinner } from '../../../components/common/Spinner/Spinner';
 import { WidgetOfflineState } from '../common/WidgetOfflineState';
 import { widgetSpinnerSize } from '../common/widgetSpinnerSize';
+import { StableDigits } from '../common/StableDigits';
 import type { NumberFormat } from '../../../lib/units';
 import type { PanelWidgetSize } from '../../types';
 import {
@@ -80,7 +81,7 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
       <div className={styles.graphRowStacked}>
         <div className={styles.graphStackedLine1}>
           <span className={styles.graphStackedLabel}>{stockLabel(quote.symbol)}</span>
-          <span className={styles.graphStackedPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
+          <span className={styles.graphStackedPrice}><StableDigits text={formatStockPrice(quote.price, numberFormat)} /></span>
         </div>
         <div className={styles.graphStackedLine2}>
           <div className={styles.graphChart} style={chartStyle}>{chart}</div>
@@ -95,7 +96,7 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
       <span className={styles.graphLabel}>{stockLabel(quote.symbol)}</span>
       <div className={styles.graphChart} style={chartStyle}>{chart}</div>
       <div className={styles.graphMeta}>
-        <span className={styles.graphPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
+        <span className={styles.graphPrice}><StableDigits text={formatStockPrice(quote.price, numberFormat)} /></span>
         {chip}
       </div>
     </div>

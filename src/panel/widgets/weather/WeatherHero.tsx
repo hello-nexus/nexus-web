@@ -1,5 +1,6 @@
 import { useTranslation } from '../../../lib/i18n';
 import { Card } from '../../../components/common/Card/Card';
+import { StableDigits } from '../common/StableDigits';
 import type { WeatherSnapshot } from '../../../api/weather';
 import { weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
@@ -31,7 +32,7 @@ export function WeatherHero({ snap, loaded, unit, label, immersive }: WeatherHer
   return (
     <Card className={`${styles.hero} ${immersive ? styles.immersive : ''}`}>
       <div className={styles.location}>{label ?? snap?.locationLabel ?? ''}</div>
-      <div className={styles.temp}>{formatTemp(temp, loaded ? '--' : '…')}</div>
+      <div className={styles.temp}><StableDigits text={formatTemp(temp, loaded ? '--' : '…')} /></div>
       <div className={styles.conditionRow}>
         <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.icon} strokeWidth={1.6} />
         <span className={styles.condition}>{loaded && !snap ? t('panel.widget.weather.noData') : conditionText}</span>

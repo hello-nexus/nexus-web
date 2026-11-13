@@ -628,6 +628,7 @@ export function Select({
           ref={menuRef}
           className={classNames(styles.menu, grid && styles.gridMenu)}
           data-select-menu=""
+          data-skin-part="surface"
           style={{
             ...gridStyle,
             position: 'fixed',

@@ -7,13 +7,14 @@ import { loadSkinStyles } from '../src/panel/skins/skinLoader';
 import { skinAccentVars, skinDef, skinFontVars, type PanelSkinId, type SkinFont } from '../src/panel/skins/skins';
 import { SCENES } from './scenes';
 import { GaugeSampler } from './GaugeSampler';
+import { ChromeScene } from './ChromeScene';
+import { PanelSkinScope } from '../src/components/common/ThemeScope/PanelSkinScope';
 
 const CELL = 90;
 const GAP = 6;
 
 export interface SkinSamplePanelProps {
   skin: PanelSkinId | null;
-  variant: string | null;
   mode: 'dark' | 'light';
   font: SkinFont | null;
   accent: string;
@@ -33,43 +34,53 @@ const VARS = {
   '--panel-card-bg-opacity': '100%',
 } as CSSProperties;
 
-export function SkinSamplePanel({ skin, variant, mode, font, accent, scene, overlay, zoom = 1 }: SkinSamplePanelProps) {
+export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom = 1 }: SkinSamplePanelProps) {
   useEffect(() => { if (skin) void loadSkinStyles(skin); }, [skin]);
   const def = SCENES.find(s => s.id === scene) ?? SCENES[0];
   const side = 4 * CELL + 3 * GAP;
   const sk = skinDef(skin);
+  const open = new URLSearchParams(location.search).get('open') === '1';
   // Stock panel: the user's accent through the existing derivation. A style
   // skin reads --skin-accent instead; a screen skin ignores the accent.
   const accentVars = !sk ? deriveAccentVars(accent, mode)
     : sk.accent ? skinAccentVars(sk.id, accent) : {};
+  const themeVars = { ...VARS, ...accentVars, ...skinFontVars(font) } as CSSProperties;
+  const skinAttrs: Record<string, string> = skin ? {
+    'data-panel-skin': skin,
+    'data-skin-overlay': overlay ? 'on' : 'off',
+  } : {};
+  const scope = skin ? { attrs: { ...skinAttrs, 'data-theme': mode, 'data-surface': 'phone' }, style: themeVars } : null;
   return (
-    <div
-      className="panel-root"
-      data-theme={mode}
-      data-surface="phone"
-      data-panel-skin={skin ?? undefined}
-      data-skin-variant={skin && variant ? variant : undefined}
-      data-skin-overlay={skin ? (overlay ? 'on' : 'off') : undefined}
-      style={{
-        ...VARS,
-        ...accentVars,
-        ...skinFontVars(font),
-        position: 'relative',
-        width: side + 2 * GAP,
-        padding: GAP,
-        boxSizing: 'border-box',
-        background: skin ? undefined : 'var(--backdrop-base)',
-        zoom,
-      } as CSSProperties}
-    >
-      <div className={panelStyles.grid} style={def.gauges ? { height: side } : undefined}>
-        {def.gauges && <GaugeSampler />}
-        {def.widgets.map(wd => {
-          const app = lookupApp(wd.type);
-          if (!app) return null;
-          return <PanelCatalogCell key={wd.id} widget={wd} surface="phone" label={wd.type} showLabel={false} />;
-        })}
+    <PanelSkinScope scope={scope}>
+      <div
+        className="panel-root"
+        data-theme={mode}
+        data-surface="phone"
+        {...skinAttrs}
+        data-skin-root={skin ? '' : undefined}
+        style={{
+          ...themeVars,
+          position: 'relative',
+          width: side + 2 * GAP,
+          padding: GAP,
+          boxSizing: 'border-box',
+          background: skin ? undefined : 'var(--backdrop-base)',
+          zoom,
+          ...(def.chrome ? { height: side + 2 * GAP, overflow: 'hidden' } : {}),
+        } as CSSProperties}
+      >
+        {skin && <div data-skin-part="backdrop" aria-hidden="true" />}
+        {def.chrome ? <ChromeScene open={open} themeMode={mode} themeVars={themeVars} /> : (
+          <div className={panelStyles.grid} style={def.gauges ? { height: side } : undefined}>
+            {def.gauges && <GaugeSampler />}
+            {def.widgets.map(wd => {
+              const app = lookupApp(wd.type);
+              if (!app) return null;
+              return <PanelCatalogCell key={wd.id} widget={wd} surface="phone" label={wd.type} showLabel={false} />;
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </PanelSkinScope>
   );
 }

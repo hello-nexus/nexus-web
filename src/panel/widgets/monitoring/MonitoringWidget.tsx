@@ -28,7 +28,7 @@ import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
-import { defaultValueColorReverse, designSupportsValueColor, gaugeAccentVars, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
+import { defaultValueColorReverse, designSupportsValueColor, gaugeAccentVars, gaugeValueStateAttrs, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
 import { accentShadowAlpha } from '../../../lib/settings';
 import styles from './MonitoringWidget.module.scss';
 
@@ -429,7 +429,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   // The tint rides on an inner layout-less wrapper so the slot's own chrome
   // (the editor's selection ring) keeps the panel accent.
   const content = gradeStyle
-    ? <div className={styles.slotPaint} style={gradeStyle}><GaugeComponent {...props} /></div>
+    ? <div className={styles.slotPaint} style={gradeStyle} {...(stops ? gaugeValueStateAttrs(stops, scaleFraction) : {})}><GaugeComponent {...props} /></div>
     : <GaugeComponent {...props} />;
 
   if (!onSelect) {

@@ -248,6 +248,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
         <span role={action ? undefined : 'tooltip'} id={action ? undefined : tooltipId}
           ref={tooltipRef}
           className={styles.tooltip}
+          data-skin-part="surface"
           style={{
             top: coords?.top ?? 0,
             left: coords?.left ?? 0,

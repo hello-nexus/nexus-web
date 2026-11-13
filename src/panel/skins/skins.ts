@@ -11,34 +11,29 @@ import { PANEL_FONTS, panelFontVars, type PanelFontId } from '../theme/panelFont
 // added to the bundle.
 export type SkinFont = PanelFontId | 'pixel';
 
-export interface SkinVariant { id: string; label: string; swatch: string }
-
 export interface SkinDef {
   id: string;
   label: string;
   kind: 'screen' | 'style';
   font: SkinFont;
   fontLocked: boolean;
-  // Style skins only: the default accent; screen skins use variants instead.
+  // Style skins only: the default accent.
   accent: string | null;
   accentLocked: boolean;
   // The mode the skin is drawn in. With modeLocked the dark/light setting is ignored.
   mode: 'dark' | 'light';
   modeLocked: boolean;
-  variants: readonly SkinVariant[];
 }
 
 export const PANEL_SKINS = [
-  { id: 'pixel', label: 'Pixel', kind: 'style', font: 'pixel', fontLocked: true, accent: '#41a6f6', accentLocked: false, mode: 'dark', modeLocked: false, variants: [] },
-  { id: 'lcd', label: 'LCD', kind: 'screen', font: 'jura', fontLocked: true, accent: null, accentLocked: true, mode: 'dark', modeLocked: true,
-    variants: [{ id: 'green', label: 'Classic green', swatch: '#b4c19a' }, { id: 'blue', label: 'Blue backlight', swatch: '#2f6fe8' }, { id: 'orange', label: 'Orange backlight', swatch: '#f0902a' }] },
-  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: true, variants: [] },
-  { id: 'vfd', label: 'VFD', kind: 'screen', font: 'jura', fontLocked: true, accent: null, accentLocked: true, mode: 'dark', modeLocked: true,
-    variants: [{ id: 'teal', label: 'Teal', swatch: '#7dfff0' }, { id: 'blue', label: 'Blue', swatch: '#7fb4ff' }, { id: 'amber', label: 'Amber', swatch: '#ffc24d' }] },
-  { id: 'hud', label: 'HUD', kind: 'style', font: 'tektur', fontLocked: false, accent: '#2fd8ff', accentLocked: false, mode: 'dark', modeLocked: false, variants: [] },
-  { id: 'neon', label: 'Neon', kind: 'style', font: 'oswald', fontLocked: false, accent: '#ff2bd6', accentLocked: false, mode: 'dark', modeLocked: true, variants: [] },
-  { id: 'blueprint', label: 'Blueprint', kind: 'style', font: 'jura', fontLocked: false, accent: '#1a4fa8', accentLocked: false, mode: 'dark', modeLocked: true, variants: [] },
-  { id: 'eink', label: 'E-ink', kind: 'screen', font: 'piazzolla', fontLocked: false, accent: null, accentLocked: true, mode: 'light', modeLocked: true, variants: [] },
+  { id: 'pixel', label: 'Pixel', kind: 'style', font: 'pixel', fontLocked: true, accent: '#41a6f6', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'lcd', label: 'LCD', kind: 'screen', font: 'jura', fontLocked: true, accent: null, accentLocked: true, mode: 'dark', modeLocked: true },
+  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: true },
+  { id: 'vfd', label: 'VFD', kind: 'screen', font: 'jura', fontLocked: true, accent: null, accentLocked: true, mode: 'dark', modeLocked: true },
+  { id: 'hud', label: 'HUD', kind: 'style', font: 'tektur', fontLocked: false, accent: '#2fd8ff', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'neon', label: 'Neon', kind: 'style', font: 'oswald', fontLocked: false, accent: '#ff2bd6', accentLocked: false, mode: 'dark', modeLocked: true },
+  { id: 'blueprint', label: 'Blueprint', kind: 'style', font: 'jura', fontLocked: false, accent: '#1a4fa8', accentLocked: false, mode: 'dark', modeLocked: true },
+  { id: 'eink', label: 'E-ink', kind: 'screen', font: 'piazzolla', fontLocked: false, accent: null, accentLocked: true, mode: 'light', modeLocked: true },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];

@@ -7,6 +7,7 @@ import { useTranslation } from '../../lib/i18n';
 import { PanelSwipeHint } from '../chrome/PanelSwipeHint';
 import { SWIPE_HINT_PERIOD_MS, SWIPE_HINT_VISIBLE_MS } from '../engine/usePanelSwipeOnboarding';
 import styles from './PanelImmersiveOverlay.module.scss';
+import { usePanelSkinAttrs } from '../../components/common/ThemeScope/PanelSkinScope';
 
 interface PanelImmersiveOverlayProps {
   open: boolean;
@@ -43,6 +44,7 @@ export const NOTCH_FADE_DELAY_MS = 1500;
 export const CONFIRM_WINDOW_MS = 3000;
 
 export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false, swipeHint = false, seeThrough = false, onExitStart }: PanelImmersiveOverlayProps) {
+  const skinAttrs = usePanelSkinAttrs();
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -236,6 +238,7 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     <div
       ref={overlayRef}
       className={`panel-root ${styles.overlay}`}
+      {...skinAttrs}
       data-state={mountState === 'exiting' ? 'exiting' : 'open'}
       data-drag={swipe.state === 'idle' ? undefined : swipe.state}
       data-entered={didEnter ? 'true' : undefined}

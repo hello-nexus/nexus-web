@@ -158,6 +158,7 @@ export function Popover({
       className={classNames(styles.popover, portal ? styles.portaled : styles[`placement_${placement.replace('-', '_')}`], className)}
       style={portal ? { top: coords?.top ?? 0, left: coords?.left ?? 0, visibility: coords ? undefined : 'hidden' } : undefined}
       data-portaled-popover={portal || undefined}
+      data-skin-part="surface"
     >
       {children}
     </div>

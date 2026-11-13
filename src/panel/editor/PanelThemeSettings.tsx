@@ -7,6 +7,8 @@ import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
 import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
+import { PANEL_SKINS, skinFontLabel, type PanelSkinId } from '../skins/skins';
+import { resolveSkin } from '../theme/panelSkin';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
 import { loadSystemFonts, useSystemFonts } from '../theme/systemFontsCache';
@@ -102,11 +104,14 @@ export interface PanelThemeSettingsState {
   textColor: string;
   // Null is the app font.
   font: PanelFont | null;
+  // Null is the stock look.
+  skin: PanelSkinId | null;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
 
 const OPTIONS_TAB = 'options';
+const NO_SKIN_KEY = 'none';
 
 export interface PanelThemeSettingsProps {
   theme: PanelThemeSettingsState;
@@ -141,6 +146,7 @@ export interface PanelThemeSettingsProps {
   onTextColorPreview: (hex: string) => void;
   onTextColorCommit: (hex: string) => void;
   onFontCommit: (font: PanelFont | null) => void;
+  onSkinCommit: (skin: PanelSkinId | null) => void;
   /** List installed host fonts under the bundled ones. Only for panels rendered on this PC's own OS. */
   showSystemFonts?: boolean;
   /** Show the media background tab. All display-backed surfaces support it; the
@@ -216,6 +222,7 @@ export function PanelThemeSettings({
   onTextColorPreview,
   onTextColorCommit,
   onFontCommit,
+  onSkinCommit,
   showMediaTab = false,
   showSystemFonts = false,
   deviceAspect = 9 / 16,
@@ -276,7 +283,17 @@ export function PanelThemeSettings({
   ];
   const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
   const systemFonts = useSystemFonts(showSystemFonts && showTheme);
-  const fontOptions = buildPanelFontOptions(
+  const skin = resolveSkin(theme);
+  const skinLabel = skin?.def.label ?? '';
+  const lockedNote = label('skin.locked', 'Set by the {skin} skin').replace('{skin}', () => skinLabel);
+  const modeLocked = !!skin?.mode;
+  const fontLocked = !!skin?.def.fontLocked;
+  const accentLocked = !!skin && (skin.def.accentLocked || skin.def.accent === null);
+  const skinOptions = [
+    { key: NO_SKIN_KEY, label: label('skin.none', 'None') },
+    ...PANEL_SKINS.map(s => ({ key: s.id as string, label: s.label })),
+  ];
+  const fontOptionsBase = buildPanelFontOptions(
     showSystemFonts
       ? { status: systemFonts.status, families: systemFonts.families, onLoad: () => { void loadSystemFonts(); } }
       : null,
@@ -291,6 +308,9 @@ export function PanelThemeSettings({
     },
     recentFonts,
   );
+  const fontOptions = skin?.font === 'pixel'
+    ? [{ value: 'pixel', label: skinFontLabel('pixel') }, ...fontOptionsBase]
+    : fontOptionsBase;
   const textColorDescription = theme.textColorMode === 'custom'
     ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
     : theme.textColorMode === 'theme'
@@ -424,19 +444,31 @@ export function PanelThemeSettings({
 
       {showTheme && (
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
+        <SettingRow label={label('skin.title', 'Skin')} stackOnNarrow>
+          <ChipGroup
+            wrap
+            ariaLabel={label('skin.title', 'Skin')}
+            activeKey={theme.skin ?? NO_SKIN_KEY}
+            onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
+            options={skinOptions}
+          />
+        </SettingRow>
         <div className={styles.toggleReveal}>
           <SettingToggle
             label={syncWithDesktopLabel}
-            checked={theme.themeSyncWithDesktop}
+            checked={modeLocked ? false : theme.themeSyncWithDesktop}
             onChange={onThemeSyncCommit}
+            disabled={modeLocked}
+            description={modeLocked ? lockedNote : undefined}
           />
-          {!theme.themeSyncWithDesktop && (
+          {(modeLocked || !theme.themeSyncWithDesktop) && (
             <ChipGroup
               options={THEME_MODES.map(mode => ({
                 key: mode,
                 label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
+                disabled: modeLocked,
               }))}
-              activeKey={theme.themeMode}
+              activeKey={skin?.mode ?? theme.themeMode}
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
               fullWidth
@@ -474,8 +506,10 @@ export function PanelThemeSettings({
         </div>
         <SettingSelect
           label={label('panel.settings.font', 'Font')}
-          value={theme.font ?? DEFAULT_PANEL_FONT}
+          value={skin ? skin.font : theme.font ?? DEFAULT_PANEL_FONT}
           options={fontOptions}
+          disabled={fontLocked}
+          description={fontLocked ? lockedNote : undefined}
           onChange={value => {
             const family = systemFontFamily(value);
             if (family) setRecentFonts(pushRecentSystemFont(family));
@@ -490,10 +524,12 @@ export function PanelThemeSettings({
         <div className={styles.toggleReveal}>
           <SettingToggle
             label={syncWithDesktopLabel}
-            checked={theme.accentSyncWithDesktop}
+            checked={accentLocked ? false : theme.accentSyncWithDesktop}
             onChange={onAccentSyncCommit}
+            disabled={accentLocked}
+            description={accentLocked ? lockedNote : undefined}
           />
-          {!theme.accentSyncWithDesktop && (
+          {!accentLocked && !theme.accentSyncWithDesktop && (
             <ColorPickerWithPresets
               value={theme.accentColor || theme.appAccentColor}
               presets={PRESET_ACCENTS}

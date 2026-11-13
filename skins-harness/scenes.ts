@@ -4,7 +4,7 @@ import type { PanelWidget } from '../src/panel/types';
 const w = (id: string, type: string, size: PanelWidget['size'], col: number, row: number, config?: PanelWidget['config']): PanelWidget =>
   ({ id, type, size, col, row, config });
 
-export const SCENES: Array<{ id: string; label: string; widgets: PanelWidget[]; gauges?: boolean }> = [
+export const SCENES: Array<{ id: string; label: string; widgets: PanelWidget[]; gauges?: boolean; chrome?: boolean }> = [
   {
     id: 'main',
     label: 'Main',
@@ -52,4 +52,5 @@ export const SCENES: Array<{ id: string; label: string; widgets: PanelWidget[]; 
     label: 'Big tiles',
     widgets: [w('mon4', 'monitoring', '4x2', 0, 0), w('diag', 'diagnostics', '2x2', 0, 2), w('clock4', 'clock', '2x2', 2, 2)],
   },
+  { id: 'chrome', label: 'Chrome', widgets: [], chrome: true },
 ];

@@ -9,8 +9,7 @@ import { SCENES } from './scenes';
 function Gallery() {
   const [view, setV] = useState<View>(readView);
   const [mode, setMode] = useState<'dark' | 'light'>(readSkinState().ownMode);
-  const items = [{ id: null, label: 'Stock', variant: null as string | null }, ...PANEL_SKINS.flatMap(k =>
-    (k.variants.length ? k.variants.map(v => ({ id: k.id as string | null, label: `${k.label} ${v.label}`, variant: v.id as string | null })) : [{ id: k.id as string | null, label: k.label, variant: null as string | null }]))];
+  const items = [{ id: null, label: 'Stock', variant: null as string | null }, ...PANEL_SKINS.map(k => ({ id: k.id as string | null, label: k.label, variant: null as string | null }))];
   return (
     <>
       <div className="bar">
@@ -24,7 +23,7 @@ function Gallery() {
           const e = effective(st);
           return (
             <figure key={`${it.id}-${it.variant}`}>
-              <SkinSamplePanel skin={e.skin} variant={e.variant} mode={e.mode} font={e.font} accent={e.accent} scene={view.scene} overlay={view.overlay} />
+              <SkinSamplePanel skin={e.skin} mode={e.mode} font={e.font} accent={e.accent} scene={view.scene} overlay={view.overlay} />
               <figcaption>{it.label}{e.skin && e.modeLocked ? ` (${e.mode} only)` : ''}</figcaption>
             </figure>
           );
