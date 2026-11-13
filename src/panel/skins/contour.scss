@@ -16,7 +16,7 @@
 @mixin contour-common {
   @include kit-radius(8px, 4px, 999px);
   @include kit-weights(800, 400, 700, 800, 500);
-  --skin-card-inset: 10px;
+  --skin-card-inset: 2px;
   --skin-bar-height: 6px;
   --skin-card-image: none;
   --skin-card-frame: none;
