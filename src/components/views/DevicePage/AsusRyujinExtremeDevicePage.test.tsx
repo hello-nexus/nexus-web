@@ -1,0 +1,92 @@
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AsusRyujinExtremeDevicePage } from './AsusRyujinExtremeDevicePage';
+
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
+  }),
+}));
+
+const mockGet = vi.fn();
+const mockSet = vi.fn();
+const mockPush = vi.fn();
+
+vi.mock('../../common/Toast/Toast', () => ({
+  useToast: () => ({ push: mockPush }),
+}));
+
+vi.mock('../../../api/asus-ryujin-extreme', () => ({
+  getRyujinDisplay: () => mockGet(),
+  setRyujinDisplay: (patch: unknown) => mockSet(patch),
+  RYUJIN_MIN_BRIGHTNESS: 10,
+  RYUJIN_MAX_BRIGHTNESS: 100,
+}));
+
+const base = { isConnected: true, brightness: 60, rotation: 0 };
+
+async function mount(state = base) {
+  mockGet.mockResolvedValue(state);
+  await act(async () => {
+    render(<AsusRyujinExtremeDevicePage />);
+  });
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockSet.mockResolvedValue(true);
+});
+
+describe('AsusRyujinExtremeDevicePage', () => {
+  it('renders the stored brightness and rotation', async () => {
+    await mount({ ...base, rotation: 90 });
+    const slider = screen.getByRole('slider', { name: /brightnessAria/ });
+    expect(slider).toHaveValue('60');
+    expect(slider).toHaveAttribute('min', '10');
+    expect(slider).toHaveAttribute('max', '100');
+    expect(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"0"\}/ })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('a brightness commit sends only the brightness', async () => {
+    await mount();
+    const slider = screen.getByRole('slider', { name: /brightnessAria/ });
+    await act(async () => {
+      fireEvent.change(slider, { target: { value: '35' } });
+      fireEvent.pointerUp(slider);
+    });
+    // The slider defers its commit one tick after release.
+    await waitFor(() => expect(mockSet).toHaveBeenCalled());
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith({ brightness: 35 });
+  });
+
+  it('a rotation chip sends only the rotation and checks at once', async () => {
+    await mount();
+    mockGet.mockReturnValue(new Promise(() => {}));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ rotation: 90 });
+    expect(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('rolls the rotation back and toasts when the save is refused', async () => {
+    await mount();
+    mockSet.mockResolvedValue(false);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ }));
+    });
+    expect(mockPush).toHaveBeenCalledWith({
+      title: 'devices.asus-ryujin-extreme.failedTitle',
+      body: 'devices.asus-ryujin-extreme.failedBody',
+    });
+    expect(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"0"\}/ })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('disables the controls while the device is not connected', async () => {
+    await mount({ ...base, isConnected: false });
+    expect(screen.getByRole('slider', { name: /brightnessAria/ })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: /rotationDegrees:\{"n":"90"\}/ })).toBeDisabled();
+  });
+});
