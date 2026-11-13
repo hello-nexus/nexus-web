@@ -621,8 +621,11 @@ export function PanelCatalogCell({
   onEditAdded,
   onPointerLeave,
   drag,
+  previewStyle,
 }: {
   widget: PanelWidget;
+  /** Applied to the preview alone, for a host whose chrome is not drawn in the panel's font. */
+  previewStyle?: CSSProperties;
   surface?: PanelSurface;
   deviceTouch?: boolean;
   label: string;
@@ -710,7 +713,7 @@ export function PanelCatalogCell({
       onBlur={onPointerLeave}
     >
       <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
-        <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
+        <div className={styles.cellScaler} style={{ ...previewStyle, pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
             <PanelPreviewProvider value={true}>
               <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />

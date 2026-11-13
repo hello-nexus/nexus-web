@@ -3,6 +3,7 @@ import { ArrowLeft, Trash2, Upload, Sparkles, LayoutDashboard, Palette, Settings
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
+import { splitPanelFontStyle } from '../../../panel/theme/panelFont';
 import { WidgetContextMenu } from '../../../panel/widgets/common/WidgetContextMenu';
 import { BackgroundQuickImport, type BackgroundQuickImportHandle } from '../../../panel/background/BackgroundQuickImport';
 import { onBackgroundMediaCommitted } from '../../../api/panelBackgroundMedia';
@@ -696,6 +697,9 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     () => buildPanelThemeVars(skinnedTheme, desktopResolvedThemeMode),
     [skinnedTheme, desktopResolvedThemeMode],
   );
+
+  // The dashboard's own menus take the panel's accent but keep the app font.
+  const dashboardMenuThemeStyle = useMemo(() => splitPanelFontStyle(panelPreviewThemeStyle).chrome, [panelPreviewThemeStyle]);
 
   useEffect(() => {
     if (!open) return;
@@ -2368,7 +2372,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
           // eslint-disable-next-line i18next/no-literal-string -- surface id
           surface="desktop"
           themeMode={desktopResolvedThemeMode}
-          themeStyle={panelPreviewThemeStyle}
+          themeStyle={dashboardMenuThemeStyle}
           onOpen={openBackgroundOptions}
           items={[
             // eslint-disable-next-line i18next/no-literal-string -- menu item id

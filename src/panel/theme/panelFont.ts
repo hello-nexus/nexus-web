@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 // Fonts a panel theme can draw every widget in; @font-face lives in global.scss.
 export const PANEL_FONTS = [
   { id: 'lexend', family: 'Lexend' },
@@ -80,4 +81,16 @@ export function panelFontStack(font: PanelFont | null, explicit = false): string
 export function panelFontVars(id: PanelFont | null, explicit = false): Record<string, string> {
   const stack = panelFontStack(id, explicit);
   return stack ? { '--panel-font': stack, '--font-sans': stack } : {};
+}
+
+// Splits the font variables out of a panel theme style. A surface that sits in the desktop app (its chrome
+// belongs to the app) keeps the rest on its root and applies the font to the previews alone.
+export function splitPanelFontStyle(style: CSSProperties | undefined): { chrome: CSSProperties; font: CSSProperties | undefined } {
+  if (!style) return { chrome: {}, font: undefined };
+  const { '--panel-font': panelFont, '--font-sans': fontSans, ...chrome } = style as Record<string, unknown>;
+  const stack = typeof panelFont === 'string' ? panelFont : undefined;
+  return {
+    chrome: chrome as CSSProperties,
+    font: stack ? ({ '--panel-font': stack, '--font-sans': fontSans, fontFamily: stack } as CSSProperties) : undefined,
+  };
 }

@@ -21,6 +21,7 @@ import {
 } from '../../widgets/marketplaceRegistry';
 import { DEV_TOOLS } from '../../lib/devTools';
 import { PanelCatalogCell, type CatalogCellDrag } from '../dnd/PanelDragCells';
+import { splitPanelFontStyle } from '../theme/panelFont';
 import { playlistDisplayOrder } from '../engine/widgetPlaylist';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import panelStyles from '../PanelApp.module.scss';
@@ -347,6 +348,7 @@ export function PanelWidgetCatalog({
         <PanelCatalogCell
           key={w.id}
           widget={w}
+          previewStyle={previewFont}
           surface={surface}
           deviceTouch={deviceTouch}
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
@@ -384,8 +386,12 @@ export function PanelWidgetCatalog({
 
   // The widget browser always renders cards opaque; the device's widget-opacity
   // setting applies only on-device and in the device preview, not while browsing.
+  // In the desktop app the catalog chrome (search, chips, captions) keeps the app font; only the previews take the panel's.
+  const { chrome: chromeThemeStyle, font: previewFont } = variant === 'desktop-modal'
+    ? splitPanelFontStyle(themeStyle)
+    : { chrome: themeStyle, font: undefined };
   const catalogStyle = {
-    ...themeStyle,
+    ...chromeThemeStyle,
     ...panelGridVars,
     '--panel-card-bg-opacity': '100%',
   } as CSSProperties;
