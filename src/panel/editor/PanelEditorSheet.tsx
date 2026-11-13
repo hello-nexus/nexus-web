@@ -93,6 +93,7 @@ export function PanelEditorSheet({
   onThemeTextColorCommit,
   onThemeFontCommit,
   onThemeSkinCommit,
+  onThemeSkinReset,
   onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
@@ -186,6 +187,7 @@ export function PanelEditorSheet({
   onThemeTextColorCommit: (hex: string) => void;
   onThemeFontCommit: (font: PanelFont | null) => void;
   onThemeSkinCommit: (skin: PanelSkinId | null) => void;
+  onThemeSkinReset: () => void;
   onThemeWidgetPaddingPreview: (percent: number) => void;
   onThemeWidgetPaddingCommit: (percent: number) => void;
   showSystemFonts?: boolean;
@@ -513,6 +515,7 @@ export function PanelEditorSheet({
               onTextColorCommit={onThemeTextColorCommit}
               onFontCommit={onThemeFontCommit}
               onSkinCommit={onThemeSkinCommit}
+              onSkinReset={onThemeSkinReset}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}
               showImmersiveBackdrop={surfaceSupportsTouch(surface, deviceTouch)}
             />

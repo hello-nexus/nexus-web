@@ -1,8 +1,9 @@
 import type { PanelBackgroundBase, PanelBackgroundMode } from '../background/panelBackground';
 import { panelFontVars, type PanelFont } from './panelFont';
+import type { SkinOverrides } from '../skins/skinOverrides';
 import { normalizePanelSkin, skinAccentVars, skinDef, type PanelSkinId, type SkinDef } from '../skins/skins';
 
-// A skin is a preset layered over the user's theme at render time; accent and font picked while it is active are stored as skin-level overrides, so None restores the user's own.
+// A skin is a preset layered over the user's theme at render time; accent and font picked while it is active are remembered per skin, so None restores the user's own.
 
 export interface SkinThemeFields {
   skin: PanelSkinId | null;
@@ -10,8 +11,7 @@ export interface SkinThemeFields {
   accentColor: string;
   font: PanelFont | null;
   widgetOpacity: number;
-  skinAccent: string | null;
-  skinFont: string | null;
+  skinOverrides: SkinOverrides;
   backgroundMode: PanelBackgroundMode;
   // The mode the background falls back to when a Skin background has no skin.
   backgroundModeBefore: PanelBackgroundBase;
@@ -33,8 +33,9 @@ export interface ResolvedSkin {
 export function resolveSkin(theme: SkinThemeFields): ResolvedSkin | null {
   const def = skinDef(theme.skin);
   if (!def || !theme.skin) return null;
-  const font = theme.skinFont ?? def.font;
-  const accent = theme.skinAccent ?? def.accent;
+  const override = theme.skinOverrides[theme.skin];
+  const font = override?.font ?? def.font;
+  const accent = override?.accent ?? def.accent;
   return {
     id: theme.skin,
     def,

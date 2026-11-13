@@ -32,9 +32,9 @@ describe('panel skin render-time overrides', () => {
   });
 
   it('uses the skin font by default and a skin-level font override on every skin', () => {
-    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'lcd', skinFont: 'oswald' })))?.font).toBe('oswald');
-    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'pixel', skinFont: 'lexend' })))?.font).toBe('lexend');
-    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', skinFont: 'oswald' })))?.font).toBe('oswald');
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'lcd', skinOverrides: { lcd: { font: 'oswald' } } })))?.font).toBe('oswald');
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'pixel', skinOverrides: { pixel: { font: 'lexend' } } })))?.font).toBe('lexend');
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', skinOverrides: { hud: { font: 'oswald' } } })))?.font).toBe('oswald');
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', font: 'oswald' })))?.font).toBe('tektur');
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud' })))?.font).toBe('tektur');
   });
@@ -42,13 +42,13 @@ describe('panel skin render-time overrides', () => {
   it('flags a skin font that differs from the skin default', () => {
     const attrs = (r: Partial<PanelDeviceRecord>) => panelSkinAttrs(buildPanelTheme(null, record({ skin: 'lcd', ...r })));
     expect(attrs({})).not.toHaveProperty('data-skin-font-custom');
-    expect(attrs({ skinFont: 'jura' })).not.toHaveProperty('data-skin-font-custom');
-    expect(attrs({ skinFont: 'oswald' })).toHaveProperty('data-skin-font-custom');
+    expect(attrs({ skinOverrides: { lcd: { font: 'jura' } } })).not.toHaveProperty('data-skin-font-custom');
+    expect(attrs({ skinOverrides: { lcd: { font: 'oswald' } } })).toHaveProperty('data-skin-font-custom');
   });
 
   it('keeps Lexend as an explicit skin font choice', () => {
-    const picked = buildPanelTheme(null, record({ skin: 'hud', skinFont: 'lexend' }));
-    expect(picked.skinFont).toBe('lexend');
+    const picked = buildPanelTheme(null, record({ skin: 'hud', skinOverrides: { hud: { font: 'lexend' } } }));
+    expect(picked.skinOverrides.hud?.font).toBe('lexend');
     expect(resolveSkin(picked)?.font).toBe('lexend');
   });
 
@@ -63,11 +63,11 @@ describe('panel skin render-time overrides', () => {
   it('applies the skin accent, ignoring the user accent; a skin-level override wins', () => {
     const own = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
     expect(own.accentColor).toBe('#2fd8ff');
-    const override = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', skinAccent: '#00ff00' })));
+    const override = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', skinOverrides: { hud: { accent: '#00ff00' } } })));
     expect(override.accentColor).toBe('#00ff00');
-    const steam = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinAccent: '#ff0000' })));
+    const steam = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinOverrides: { steampunk: { accent: '#ff0000' } } })));
     expect(steam.accentColor).toBe('#ff0000');
-    const lcd = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinAccent: '#ff0000' })));
+    const lcd = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinOverrides: { lcd: { accent: '#ff0000' } } })));
     expect(lcd.accentColor).toBe('#ff0000');
   });
 

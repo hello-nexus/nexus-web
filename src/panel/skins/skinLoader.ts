@@ -52,8 +52,23 @@ export async function loadSkinStyles(id: PanelSkinId): Promise<void> {
   await once(id, LOADERS[id]);
 }
 
+// Every skin's sheet, for the picker's thumbnails. Nothing is applied: each sheet is scoped to its own data-panel-skin.
+export async function loadAllSkinStyles(): Promise<void> {
+  await Promise.all((Object.keys(LOADERS) as PanelSkinId[]).map(loadSkinStyles));
+}
+
 // True once the skin's CSS is in the page (always true without a skin). The panel keeps the stock look
 // until then, and a failed load stays stock and is retried the next time the skin is applied.
+export function useAllSkinStyles(): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let live = true;
+    loadAllSkinStyles().then(() => { if (live) setReady(true); }, () => {});
+    return () => { live = false; };
+  }, []);
+  return ready;
+}
+
 export function useSkinStyles(id: PanelSkinId | null): boolean {
   const [ready, setReady] = useState<PanelSkinId | null>(null);
   useEffect(() => {

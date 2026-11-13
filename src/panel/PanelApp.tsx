@@ -2921,6 +2921,7 @@ export function PanelContent({
           onThemeTextColorCommit={panelTheme.commitTextColor}
           onThemeFontCommit={panelTheme.commitFont}
           onThemeSkinCommit={panelTheme.commitSkin}
+          onThemeSkinReset={panelTheme.resetSkin}
           onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
           onThemeImmersiveBackdropCommit={panelTheme.commitImmersiveBackdrop}

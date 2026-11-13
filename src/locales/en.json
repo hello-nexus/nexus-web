@@ -6021,6 +6021,7 @@
   "skin.name.swiss": "Swiss",
   "skin.name.vfd": "VFD",
   "skin.none": "None",
+  "skin.reset": "Reset",
   "skin.title": "Skin",
   "slideshow.finishVideos": "Play videos to the end",
   "slideshow.finishVideosHint": "A clip shorter than the interval repeats until it has passed; a longer one plays once before the next item.",

@@ -38,6 +38,7 @@ import { normalizeTextColorMode, type TextColorMode } from './textColor';
 import { normalizePanelFont, panelFontVars, type PanelFont } from './panelFont';
 import { applyPanelSkin, normalizeStoredSkin, panelSkinVars } from './panelSkin';
 import { skinDef, type PanelSkinId } from '../skins/skins';
+import { normalizeSkinOverrides, resetSkinOverride, setSkinOverride } from '../skins/skinOverrides';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -250,8 +251,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     textColor: r?.textColor ?? '',
     font: normalizePanelFont(r?.font),
     skin,
-    skinAccent: r?.skinAccent || null,
-    skinFont: r?.skinFont || null,
+    skinOverrides: normalizeSkinOverrides(r?.skinOverrides),
     gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
@@ -309,8 +309,6 @@ function usePanelPreferences(enabled: boolean): Preferences | null {
 // `prefs.panel`. `deviceId` selects which panel's settings, so editing the Q60
 // never touches the Y70. The only cross-surface link is the desktop app theme
 // (`prefs.theme`), the sync source for theme-mode + accent when sync is on.
-const NO_SKIN_OVERRIDES = { skinAccent: null, skinFont: null } as const;
-const CLEAR_SKIN_OVERRIDES = { skinAccent: '', skinFont: '' } as const;
 
 export function usePanelTheme(
   recordState: PanelRecordState,
@@ -395,15 +393,31 @@ export function usePanelTheme(
     });
   }, [persistPatch]);
 
+  // Stores one field in the active skin's entry and sends the whole map.
+  const writeSkinOverride = useCallback((field: 'accent' | 'font', value: string) => {
+    const cur = themeRef.current;
+    if (!cur.skin) return;
+    const next = setSkinOverride(cur.skinOverrides, cur.skin, field, value);
+    setTheme(prev => ({ ...prev, skinOverrides: next }));
+    persistPatch({ skinOverrides: next });
+  }, [persistPatch]);
+
+  const resetSkin = useCallback(() => {
+    const cur = themeRef.current;
+    if (!cur.skin) return;
+    const next = resetSkinOverride(cur.skinOverrides, cur.skin);
+    setTheme(prev => ({ ...prev, skinOverrides: next }));
+    persistPatch({ skinOverrides: next });
+  }, [persistPatch]);
+
   const commitAccent = useCallback((hex: string) => {
     if (themeRef.current.skin) {
-      setTheme(prev => ({ ...prev, skinAccent: hex }));
-      persistPatch({ skinAccent: hex });
+      writeSkinOverride('accent', hex);
       return;
     }
     setTheme(prev => ({ ...prev, accentColor: hex }));
     persistPatch({ accentColor: hex });
-  }, [persistPatch]);
+  }, [persistPatch, writeSkinOverride]);
 
   const commitBackground = useCallback((hex: string) => {
     // Set both slots from the same column so dark/light stay in the picked hue
@@ -557,33 +571,31 @@ export function usePanelTheme(
 
   const commitFont = useCallback((font: PanelFont | null) => {
     if (themeRef.current.skin) {
-      setTheme(prev => ({ ...prev, skinFont: font }));
-      persistPatch({ skinFont: font ?? '' });
+      writeSkinOverride('font', font ?? skinDef(themeRef.current.skin)?.font ?? '');
       return;
     }
     setTheme(prev => ({ ...prev, font }));
     persistPatch({ font: font ?? '' });
-  }, [persistPatch]);
+  }, [persistPatch, writeSkinOverride]);
 
   const commitSkin = useCallback((skin: PanelSkinId | null) => {
     const cur = themeRef.current;
     // Removing the skin while its backdrop shows restores what it replaced.
     if (!skin && cur.backgroundMode === 'skin') {
       const change = leaveSkinBackground(cur);
-      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, ...change.theme }));
-      persistPatch({ skin: '', ...CLEAR_SKIN_OVERRIDES, ...change.patch });
+      setTheme(prev => ({ ...prev, skin, ...change.theme }));
+      persistPatch({ skin: '', ...change.patch });
       return;
     }
     // A skin that owns its look switches the background to Skin, once.
     if (skin && skinDef(skin)?.prefersSkinBackground && cur.backgroundMode !== 'skin') {
       const change = enterSkinBackground(cur);
-      setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES, ...change.theme }));
-      persistPatch({ skin, ...CLEAR_SKIN_OVERRIDES, ...change.patch });
+      setTheme(prev => ({ ...prev, skin, ...change.theme }));
+      persistPatch({ skin, ...change.patch });
       return;
     }
-    // A skin change drops the skin-level font and accent overrides.
-    setTheme(prev => ({ ...prev, skin, ...NO_SKIN_OVERRIDES }));
-    persistPatch({ skin: skin ?? '', ...CLEAR_SKIN_OVERRIDES });
+    setTheme(prev => ({ ...prev, skin }));
+    persistPatch({ skin: skin ?? '' });
   }, [persistPatch]);
 
   const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
@@ -607,7 +619,7 @@ export function usePanelTheme(
     commitThemeMode,
     commitThemeModePinned,
     commitAccentSync,
-    previewAccent: (hex: string) => setTheme(prev => (prev.skin ? { ...prev, skinAccent: hex } : { ...prev, accentColor: hex })),
+    previewAccent: (hex: string) => setTheme(prev => (prev.skin ? { ...prev, skinOverrides: { ...prev.skinOverrides, [prev.skin]: { ...prev.skinOverrides[prev.skin], accent: hex } } } : { ...prev, accentColor: hex })),
     commitAccent,
     previewBackground: (hex: string) => setTheme(prev => (
       resolvedModeRef.current === 'light'
@@ -647,6 +659,7 @@ export function usePanelTheme(
     commitTextColor,
     commitFont,
     commitSkin,
+    resetSkin,
     previewGaugeGradient,
     commitGaugeGradient,
     prefs,

@@ -1,0 +1,88 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 8px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover .frame { box-shadow: 0 0 0 2px var(--border-strong); }
+  &:focus-visible { outline: none; }
+  &:focus-visible .frame { box-shadow: 0 0 0 2px var(--text); }
+  &[aria-pressed='true'] { color: var(--text); }
+  &[aria-pressed='true'] .frame { box-shadow: 0 0 0 2px var(--bg-elevated), 0 0 0 4px var(--text); }
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  max-width: 84px;
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+}
+
+.name {
+  margin: 6px -4px 0;
+  text-align: center;
+  white-space: nowrap;
+  font-size: var(--type-mini);
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 52px;
+  // Inherited from the frame: a skin sheet redefines --radius-sm on the thumbnail itself.
+  border-radius: inherit;
+  overflow: hidden;
+  // Skin sheets size their decorations in panel cells; a small cell scales them to the thumbnail.
+  --panel-cell-size: 22px;
+  --panel-gap: 2px;
+  --panel-columns: 4;
+  --panel-rows: 3;
+}
+
+.none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.card {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 80px;
+  height: 60px;
+  display: block;
+  z-index: 1;
+}
+
+.glyph {
+  position: absolute;
+  left: 9px;
+  top: 8px;
+  // Fixed system face and size: the numeral is artwork, so it ignores the type scale and the skin's font.
+  font-family: system-ui, sans-serif;
+  font-size: var(--type-body);
+  color: var(--skin-accent-ink-dark, var(--skin-accent, var(--text)));
+}
+.thumb[data-theme='light'] .glyph { color: var(--skin-accent-ink-light, var(--skin-accent, var(--text))); }
+.thumb[data-thumb-ink='text'] .glyph { color: var(--text); }

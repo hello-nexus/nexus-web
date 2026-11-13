@@ -134,9 +134,8 @@ export interface PanelDeviceRecord {
   font?: string;
   // Panel skin id (panel/theme/panelSkin.ts); null or unknown is the stock look.
   skin?: string | null;
-  // What the user picked while the skin is active; cleared on every skin change.
-  skinAccent?: string | null;
-  skinFont?: string | null;
+  // Per-skin accent and font the user picked, keyed by skin id; omitted when none.
+  skinOverrides?: Record<string, { accent?: string; font?: string }> | null;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Device ids last selected on this panel's Lighting view; absent until set.
@@ -263,9 +262,8 @@ export interface PanelDevicePatch {
   font?: string;
   // Skin id; an empty string clears.
   skin?: string;
-  // Skin-level overrides; an empty string clears.
-  skinAccent?: string;
-  skinFont?: string;
+  // The whole map replaces the stored one; an empty object clears it.
+  skinOverrides?: Record<string, { accent?: string; font?: string }>;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Full list (the client sends the whole selection); empty means none.

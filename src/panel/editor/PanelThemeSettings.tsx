@@ -7,7 +7,10 @@ import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
 import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
-import { PANEL_SKINS, type PanelSkinId } from '../skins/skins';
+import type { PanelSkinId } from '../skins/skins';
+import type { SkinOverrides } from '../skins/skinOverrides';
+import { SkinPicker } from './SkinPicker';
+import { Button } from '../../components/common/Button/Button';
 import { offersSkinBackground, resolveSkin } from '../theme/panelSkin';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
@@ -112,15 +115,13 @@ export interface PanelThemeSettingsState {
   font: PanelFont | null;
   // Null is the stock look.
   skin: PanelSkinId | null;
-  // User choices made while the skin is active; null follows the skin's own look.
-  skinAccent: string | null;
-  skinFont: string | null;
+  // Accent and font picked per skin; a skin absent from the map uses its own look.
+  skinOverrides: SkinOverrides;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
 
 const OPTIONS_TAB = 'options';
-const NO_SKIN_KEY = 'none';
 
 export interface PanelThemeSettingsProps {
   theme: PanelThemeSettingsState;
@@ -156,6 +157,8 @@ export interface PanelThemeSettingsProps {
   onTextColorCommit: (hex: string) => void;
   onFontCommit: (font: PanelFont | null) => void;
   onSkinCommit: (skin: PanelSkinId | null) => void;
+  // Drops the active skin's remembered accent and font.
+  onSkinReset: () => void;
   /** List installed host fonts under the bundled ones. Only for panels rendered on this PC's own OS. */
   showSystemFonts?: boolean;
   /** Show the media background tab. All display-backed surfaces support it; the
@@ -232,6 +235,7 @@ export function PanelThemeSettings({
   onTextColorCommit,
   onFontCommit,
   onSkinCommit,
+  onSkinReset,
   showMediaTab = false,
   showSystemFonts = false,
   deviceAspect = 9 / 16,
@@ -295,11 +299,6 @@ export function PanelThemeSettings({
   ];
   const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
   const systemFonts = useSystemFonts(showSystemFonts && showTheme);
-  const skinName = (id: string, fallback: string) => label(`skin.name.${id}`, fallback);
-  const skinOptions = [
-    { value: NO_SKIN_KEY, label: label('skin.none', 'None') },
-    ...PANEL_SKINS.map(s => ({ value: s.id as string, label: skinName(s.id, s.label) })),
-  ];
   const fontOptions = buildPanelFontOptions(
     showSystemFonts
       ? { status: systemFonts.status, families: systemFonts.families, onLoad: () => { void loadSystemFonts(); } }
@@ -449,13 +448,18 @@ export function PanelThemeSettings({
       )}
 
       {showTheme && (
+      <SettingsSection
+        title={label('skin.title', 'Skin')}
+        action={theme.skin && theme.skinOverrides[theme.skin] ? (
+          <Button size="sm" onClick={onSkinReset}>{label('skin.reset', 'Reset')}</Button>
+        ) : undefined}
+      >
+        <SkinPicker value={theme.skin} overrides={theme.skinOverrides} mode={resolvedThemeMode} onChange={onSkinCommit} />
+      </SettingsSection>
+      )}
+
+      {showTheme && (
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
-        <SettingSelect
-          label={label('skin.title', 'Skin')}
-          value={theme.skin ?? NO_SKIN_KEY}
-          options={skinOptions}
-          onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
-        />
         <div className={styles.toggleReveal}>
           <SettingToggle
             label={syncWithDesktopLabel}

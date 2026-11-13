@@ -9,8 +9,7 @@ import { PANEL_SKINS, einkVars, segmentDisplayVars } from './skins';
 
 const base: SkinThemeFields = {
   skin: null,
-  skinAccent: null,
-  skinFont: null,
+  skinOverrides: {},
   accentSyncWithDesktop: false,
   accentColor: '',
   font: null,
@@ -53,7 +52,7 @@ describe('skin defaults and overrides', () => {
     expect(r.accent).toBe('#2fd8ff');
   });
   it('lets a skin-level accent and font override win', () => {
-    const o = { skinAccent: '#00ff00', skinFont: 'jura' };
+    const o = { skinOverrides: { hud: { accent: '#00ff00', font: 'jura' }, lcd: { accent: '#00ff00', font: 'jura' } } };
     expect(resolveSkin({ ...base, skin: 'hud', ...o })).toMatchObject({ accent: '#00ff00', font: 'jura' });
     expect(resolveSkin({ ...base, skin: 'lcd', ...o })).toMatchObject({ accent: '#00ff00', font: 'jura' });
   });
