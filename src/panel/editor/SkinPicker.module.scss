@@ -1,3 +1,19 @@
+// Every custom property the skin sheets declare that no stock sheet does. A thumbnail sits inside the panel's active skin, so without this reset it inherits that skin's values for whatever its own skin leaves unset.
+$skin-owned-props:
+  --ar-bezel, --ar-inner, --ar-strip, --bp-line, --bp-rgb, --bv-hi, --bv-lo, --bv-mid, --bv-well-hi,
+  --bv-well-lo, --ck-ink, --dc-gold, --dc-gold-rgb, --hud-line, --hud-rgb, --input-bg, --mc-plate,
+  --mc-rivet, --mc-seam, --neon, --neon-rgb, --panel-edge-zoom, --px-line, --radius-skin-card, --section-bg,
+  --select-bg, --size-tile-bg, --sk-field, --sk-gap, --sk-h, --sk-hatch, --sk-hatch-tile, --sk-line, --sk-ox,
+  --sk-oy, --sk-row, --sk-w, --skin-back, --skin-backdrop, --skin-backdrop-image, --skin-backdrop-size,
+  --skin-bar-height, --skin-bar-mask, --skin-bar-radius, --skin-bar-track-shadow, --skin-bg, --skin-card-bg,
+  --skin-card-border, --skin-card-clip, --skin-card-deco, --skin-card-deco-pos, --skin-card-deco-repeat,
+  --skin-card-deco-size, --skin-card-frame, --skin-card-image, --skin-card-image-pos, --skin-card-image-size,
+  --skin-card-inset, --skin-card-radius, --skin-card-shadow, --skin-dim, --skin-fill, --skin-ghost,
+  --skin-ink, --skin-ink-rgb, --skin-letter-spacing, --skin-line-cap, --skin-line-join, --skin-numeral-font,
+  --skin-overlay, --skin-overlay-size, --skin-seg-scale, --skin-spark-fill, --skin-spark-fill-opacity,
+  --skin-text-case, --skin-text-rendering, --skin-text-shadow, --sp-hi, --sp-lo, --sp-mid, --tab-active-bg,
+  --toggle-knob-on;
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
@@ -57,13 +73,34 @@
   overflow: hidden;
   // Skin sheets size their decorations in panel cells; a small cell scales them to the thumbnail.
   --panel-cell-size: 22px;
+  // The panel's own content scale is inherited otherwise, and edge zoom would thicken each frame with it.
+  --panel-content-scale: 22px;
   --panel-gap: 2px;
   --panel-columns: 4;
   --panel-rows: 3;
+
+  // Below a skin sheet's specificity, so a thumbnail's own skin re-declares what it sets and nothing else carries over.
+  @each $prop in $skin-owned-props {
+    #{$prop}: initial;
+  }
 }
 
 // Default has no skin backdrop: the stock canvas grey, so the stock card's edge reads in either mode.
 .thumb.thumb[data-thumb='default'] { background: var(--backdrop-base); }
+
+// Default is unskinned, but the active skin's descendant card rules still match it; this restates the stock card above them.
+.thumb.thumb[data-thumb='default'] .card {
+  background-color: var(--panel-card-fill);
+  border: 1px solid var(--panel-card-border);
+  // The stock --radius; the token itself inherits the active skin's value here.
+  border-radius: 10px;
+  box-shadow: none;
+  clip-path: none;
+  text-shadow: none;
+
+  &::before,
+  &::after { content: none; }
+}
 
 .card {
   position: absolute;
