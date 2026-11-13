@@ -6,7 +6,10 @@
 
 .fill {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: block;
   // The thumbnail's own corners, not the skin's: the skin sheet redefines --radius-sm on the panel root.
   border-radius: inherit;
@@ -18,7 +21,9 @@
   &::after {
     content: '';
     position: absolute;
-    inset: auto 0 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     height: 55%;
     background: linear-gradient(to bottom, transparent, rgb(0 0 0 / var(--alpha-medium)));
     pointer-events: none;
@@ -27,7 +32,7 @@
 }
 
 // Light mode: the name is dark ink over a light scrim. The scrim is near white at the name, so the ink
-// keeps well over 4.5:1 even above a dark skin backdrop.
+// keeps its text contrast even above a dark skin backdrop.
 .fillLight::after {
   background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 0.85));
 }

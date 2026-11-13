@@ -47,4 +47,9 @@ describe('normalizeSkinOverrides', () => {
     expect(normalizeSkinOverrides({ arcade: { accent: '#22c55e' }, nope: { accent: '#fff' }, lcd: {} })).toEqual({ arcade: { accent: '#22c55e' } });
     expect(normalizeSkinOverrides(null)).toEqual({});
   });
+
+  it('keeps only a #rrggbb accent and a font the panel can draw', () => {
+    expect(normalizeSkinOverrides({ arcade: { accent: 'red', font: 'comic-nope' }, lcd: { accent: '#9BB36A', font: 'oswald' }, hud: { accent: 'rgb(1,2,3)' } }))
+      .toEqual({ lcd: { accent: '#9BB36A', font: 'oswald' } });
+  });
 });

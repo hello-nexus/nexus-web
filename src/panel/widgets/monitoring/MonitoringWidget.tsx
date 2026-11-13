@@ -432,7 +432,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const content = gradeStyle
     ? (
       <GaugeValueStateContext.Provider value={stateAttrs['data-value-state']}>
-        <div className={styles.slotPaint} style={gradeStyle} {...stateAttrs}><GaugeComponent {...props} /></div>
+        <div className={styles.slotPaint} style={gradeStyle}><GaugeComponent {...props} /></div>
       </GaugeValueStateContext.Provider>
     )
     : <GaugeComponent {...props} />;

@@ -2,8 +2,8 @@
 @use 'kit' as *;
 @use 'derived' as *;
 
-// Ripple: flat tiles with concentric 1px accent outlines in the edge band, each inner one fainter. Every color follows the accent.
-// Each outline is an inset band in the accent topped by an opaque band in the face color, so only a 1px line survives and it follows the corner radius. The face layer paints them; the face color is opaque so the widget opacity scales everything together.
+// Ripple: flat tiles with concentric hairline accent outlines in the edge band, each inner one fainter. Every color follows the accent.
+// Each outline is an inset band in the accent topped by an opaque band in the face color, so only a hairline survives and it follows the corner radius. The face layer paints them; the face color is opaque so the widget opacity scales everything together.
 @mixin ripple-rings($depths, $alphas) {
   $list: ();
   @for $i from 1 through length($depths) {

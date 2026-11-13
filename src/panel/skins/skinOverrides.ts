@@ -1,3 +1,4 @@
+import { normalizePanelFont } from '../theme/panelFont';
 import { normalizePanelSkin, skinDef, type PanelSkinId } from './skins';
 
 export interface SkinOverride {
@@ -8,6 +9,9 @@ export interface SkinOverride {
 // Keyed by skin id; an entry holds only what differs from that skin's defaults.
 export type SkinOverrides = Partial<Record<PanelSkinId, SkinOverride>>;
 
+// The accent picker writes #rrggbb; anything else would reach the skin's color math as NaN.
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
 export function normalizeSkinOverrides(raw?: Record<string, { accent?: string | null; font?: string | null }> | null): SkinOverrides {
   const out: SkinOverrides = {};
   if (!raw) return out;
@@ -15,8 +19,9 @@ export function normalizeSkinOverrides(raw?: Record<string, { accent?: string | 
     const id = normalizePanelSkin(key);
     if (!id) continue;
     const entry: SkinOverride = {};
-    if (value?.accent) entry.accent = value.accent;
-    if (value?.font) entry.font = value.font;
+    if (value?.accent && HEX_COLOR.test(value.accent)) entry.accent = value.accent;
+    const font = normalizePanelFont(value?.font);
+    if (font) entry.font = font;
     if (entry.accent || entry.font) out[id] = entry;
   }
   return out;

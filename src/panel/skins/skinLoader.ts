@@ -1,5 +1,5 @@
 // Skin stylesheets load on demand: a panel without a skin never fetches any of
-// this CSS, and a skin's @font-face rules (pixel, seven-segment) ride in that
+// this CSS, and a skin's @font-face rules (seven-segment) ride in that
 // skin's own chunk, so its fonts download only when the skin is applied.
 import { useEffect, useState } from 'react';
 import type { PanelSkinId } from './skins';
@@ -57,8 +57,7 @@ export async function loadAllSkinStyles(): Promise<void> {
   await Promise.all((Object.keys(LOADERS) as PanelSkinId[]).map(loadSkinStyles));
 }
 
-// True once the skin's CSS is in the page (always true without a skin). The panel keeps the stock look
-// until then, and a failed load stays stock and is retried the next time the skin is applied.
+// True once every skin's sheet is in the page, for the picker's thumbnails.
 export function useAllSkinStyles(): boolean {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -69,6 +68,8 @@ export function useAllSkinStyles(): boolean {
   return ready;
 }
 
+// True once the skin's CSS is in the page (always true without a skin). The panel keeps the stock look
+// until then, and a failed load stays stock and is retried the next time the skin is applied.
 export function useSkinStyles(id: PanelSkinId | null): boolean {
   const [ready, setReady] = useState<PanelSkinId | null>(null);
   useEffect(() => {

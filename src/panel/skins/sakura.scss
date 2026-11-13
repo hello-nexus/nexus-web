@@ -2,7 +2,7 @@
 @use 'kit' as *;
 @use 'derived' as *;
 
-// Sakura: thin hairline tiles over one scattered field of overlapping-petal cherry blossoms, small buds to medium flowers, laid out in panel coordinates so each tile shows the slice of the field under it. The field is a single SVG image built in skins.ts, so the many blossoms cost one background layer per card; its colors are the accent pre-mixed with the card face, kept close to it so text stays readable.
+// Sakura: thin hairline tiles over one scattered field of overlapping-petal cherry blossoms, small buds to medium flowers, laid out in panel coordinates so each tile shows the slice of the field under it. The field is a single SVG image built in sakuraField.ts, so the many blossoms cost one background layer per card; its colors are the accent pre-mixed with the card face, kept close to it so text stays readable.
 
 @mixin sakura-common {
   @include kit-radius(14px, 8px, 999px);
