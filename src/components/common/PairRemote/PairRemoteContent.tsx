@@ -8,7 +8,7 @@ import { PairingQrView } from '../PairingQr/PairingQrView';
 import { PairingOffState } from '../PairingQr/PairingOffState';
 import { EditableText } from '../Editable/EditableText';
 import { Select } from '../Select/Select';
-import { SettingsSection } from '../SettingsSection/SettingsSection';
+import { SettingsBlock, SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../SettingRow/SettingRow';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import { APP_STORE_URL, PLAY_STORE_URL } from '../../../lib/appStore';
@@ -727,7 +727,7 @@ export function PairRemoteContent({
     return (
       <>
         <div className={local.stacked} data-remote-enabled={effRemoteEnabled ? 'true' : 'false'}>
-          {flowSection}
+          <SettingsBlock>{flowSection}</SettingsBlock>
           {connectionSection}
           {sessionsSection}
           {e2eNote}

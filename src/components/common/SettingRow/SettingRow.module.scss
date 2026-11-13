@@ -7,6 +7,7 @@
 // the dashboard.
 .row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -96,11 +97,14 @@
   }
 }
 
+// min-content floors the label at its longest word, so a wide control wraps
+// below the label (margin-inline-start:auto on .control keeps it right-aligned) instead
+// of painting over it.
 .info {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  min-width: 0;
+  min-width: min-content;
   // Fill the space between the (optional leading) icon and the control, so the
   // label/description stay hard-left instead of the row's space-between
   // floating a short info block into the middle.
@@ -201,6 +205,7 @@
   align-items: center;
   gap: 8px;
   flex: none;
+  margin-inline-start: auto;
 }
 
 // A slider row: the control slot takes the shared inline slider width as a share

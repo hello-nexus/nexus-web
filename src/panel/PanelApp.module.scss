@@ -1328,7 +1328,7 @@
   // backdrop+sheet an atomic group under it (see the backdrop rule); overlap
   // is avoided by geometry, not by this z-index.
   z-index: 230;
-  width: min(380px, 88vw);
+  width: min(max(380px, min(600px, 45vw)), 88vw);
   max-width: 100vw;
   height: 100%;
   display: flex;
@@ -1685,9 +1685,13 @@
     .editorSheet {
       zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
       --sheet-zoom: var(--panel-chrome-scale, var(--panel-scale, 1));
-      // The px term is multiplied by the zoom, which is what the drawer
-      // wants; the vw cap is divided because it would be multiplied too.
-      width: min(380px, calc(88vw / var(--panel-chrome-scale, var(--panel-scale, 1))));
+      // Panel units: the px terms are multiplied by the zoom, which is what
+      // the drawer wants; the vw terms are divided because they would be
+      // multiplied too.
+      width: min(
+        max(380px, min(600px, calc(45vw / var(--panel-chrome-scale, var(--panel-scale, 1))))),
+        calc(88vw / var(--panel-chrome-scale, var(--panel-scale, 1)))
+      );
       height: 100%;
       max-height: none;
       border-left: 1px solid var(--panel-border);
