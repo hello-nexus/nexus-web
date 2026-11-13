@@ -53,6 +53,12 @@ $skin-owned-props:
   background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 0.85));
 }
 
+// The name keeps the app chrome type; the panel skin retargets --font-sans and the weight tokens, so the stack is restated here.
+.label {
+  font-family: 'Twemoji Country Flags', 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --weight-display: 800;
+}
+
 .labelLight.labelLight {
   color: #14161a;
   text-shadow: 0 0 4px rgb(255 255 255 / 0.9);
