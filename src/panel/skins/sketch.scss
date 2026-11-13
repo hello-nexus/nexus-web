@@ -22,7 +22,14 @@
   --skin-card-shadow: 3px 3px 0 rgba(58, 54, 40, 0.3);
   --gauge-track: rgba(58, 54, 40, 0.14);
 }
+// Pen cross-hatch: two stroke sets at unrelated angles and periods, so the overlap drifts like hand-drawn lines.
+// A mask keeps the fill's own color (accent or the graded ramp) and the track outline stays whole.
 @include in-skin('sketch', '[data-skin-part="fill"]') {
-  background: repeating-linear-gradient(135deg, var(--skin-fill, var(--accent)) 0, var(--skin-fill, var(--accent)) 2px, transparent 2px, transparent 4px);
-  box-shadow: inset 0 0 0 1.5px var(--skin-fill, var(--accent));
+  --sk-hatch: calc(1px * var(--panel-scale, 1));
+  --sk-hatch-tile:
+    repeating-linear-gradient(45deg, #000 0, #000 calc(var(--sk-hatch) * 1.3), transparent calc(var(--sk-hatch) * 1.3), transparent calc(var(--sk-hatch) * 4.3)),
+    repeating-linear-gradient(-62deg, #000 0, #000 var(--sk-hatch), transparent var(--sk-hatch), transparent calc(var(--sk-hatch) * 5.1));
+  background-color: var(--skin-fill, var(--accent));
+  -webkit-mask-image: var(--sk-hatch-tile);
+  mask-image: var(--sk-hatch-tile);
 }
