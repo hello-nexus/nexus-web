@@ -30,8 +30,8 @@ export function GaugeTrack({ fillPercent, className, gradient }: GaugeTrackProps
     }
     : { width: `${clamped}%` };
   return (
-    <div className={className ? `${styles.track} ${className}` : styles.track}>
-      <div className={styles.fill} style={style} />
+    <div className={className ? `${styles.track} ${className}` : styles.track} data-skin-part="track">
+      <div className={styles.fill} style={style} data-skin-part="fill" />
     </div>
   );
 }

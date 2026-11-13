@@ -1,0 +1,103 @@
+@use 'base' as *;
+
+// Sci-fi HUD: chamfered corners (clip-path), hairline frame, corner brackets
+// and diagonal chamfer lines drawn in the card's decoration layer, tick marks
+// on bar tracks. Tektur is already one of the panel fonts.
+@mixin hud-tokens($ink, $dim, $line, $card, $back, $accent) {
+  --hud-line: #{$line};
+  --skin-backdrop: #{$back};
+  --skin-backdrop-image: linear-gradient(#{rgba($line, 0.05)} 1px, transparent 1px), linear-gradient(90deg, #{rgba($line, 0.05)} 1px, transparent 1px);
+  --skin-backdrop-size: 24px 24px;
+  --skin-card-bg: #{$card};
+  --skin-card-radius: 0;
+  --skin-card-clip: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  --skin-card-frame: inset 0 0 0 1px #{rgba($line, 0.3)};
+  --skin-card-deco:
+    linear-gradient(#{$line}, #{$line}), linear-gradient(#{$line}, #{$line}),
+    linear-gradient(#{$line}, #{$line}), linear-gradient(#{$line}, #{$line}),
+    linear-gradient(135deg, transparent 0, transparent 10px, #{$line} 10px, #{$line} 11.5px, transparent 11.5px),
+    linear-gradient(-45deg, transparent 0, transparent 10px, #{$line} 10px, #{$line} 11.5px, transparent 11.5px);
+  --skin-card-deco-size: 14px 2px, 2px 14px, 14px 2px, 2px 14px, 16px 16px, 16px 16px;
+  --skin-card-deco-pos: 100% 0, 100% 0, 0 100%, 0 100%, 0 0, 100% 100%;
+  --skin-card-deco-repeat: no-repeat;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: none;
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --skin-value-shadow: 0 0 10px #{rgba($accent, 0.45)};
+
+  --panel-font: 'Tektur', 'Lexend', sans-serif;
+  --font-sans: 'Tektur', 'Lexend', sans-serif;
+  --font-mono: 'Tektur', 'Lexend', sans-serif;
+  --weight-display: 600;
+
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --panel-card-radius: 0;
+  --panel-element-radius: 0;
+
+  --bg: #{$card};
+  --bg-elevated: #{$card};
+  --bg-card-hover: #{rgba($line, 0.14)};
+  --border: #{rgba($line, 0.35)};
+  --border-strong: #{rgba($line, 0.7)};
+  --border-hover: #{$line};
+  --surface: #{$card};
+  --surface-hover: #{rgba($line, 0.14)};
+  --text: #{$ink};
+  --text-dim: #{$dim};
+  --separator: #{rgba($line, 0.3)};
+  --gauge-track: #{rgba($line, 0.16)};
+  --accent: #{$accent};
+  --accent-glow: #{$accent};
+  --accent-soft: #{rgba($accent, 0.18)};
+  --accent-deep: #{$accent};
+  --accent-glow-shadow: #{rgba($accent, 0.35)};
+  --accent-text: #{$back};
+  --panel-accent: #{$accent};
+  --panel-accent-glow: #{$accent};
+  --panel-accent-soft: #{rgba($accent, 0.18)};
+  --panel-accent-shadow: #{rgba($accent, 0.35)};
+  --panel-accent-text: #{$back};
+  --panel-control-bg: #{rgba($line, 0.12)};
+  --panel-control-bg-hover: #{rgba($line, 0.2)};
+  --panel-control-bg-active: #{rgba($line, 0.3)};
+  --panel-element-bg: #{rgba($line, 0.12)};
+  --panel-card-bg: #{rgba($line, 0.08)};
+  --panel-control-translucent: #{rgba($line, 0.16)};
+  --panel-border: #{rgba($line, 0.35)};
+  --panel-border-strong: #{rgba($line, 0.7)};
+}
+@include skin('hud') {
+  @include hud-tokens(#d8f3ff, rgba(216, 243, 255, 0.58), #2fd8ff, rgba(6, 22, 36, 0.92), #040d16, #2fd8ff);
+  --good: #3dffb0;
+  --warn: #ffc44d;
+  --bad: #ff5c6c;
+  --chart-line-alt: #ffc44d;
+}
+@include skin-light('hud') {
+  @include hud-tokens(#06304a, rgba(6, 48, 74, 0.62), #0a78a8, rgba(255, 255, 255, 0.9), #dbe9f0, #0a78a8);
+  --good: #07805a;
+  --warn: #a8690a;
+  --bad: #c0283a;
+}
+// Tick marks along every bar track (one per tenth).
+@include in-skin('hud', '[data-skin-part="track"]') {
+  background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 1px), var(--hud-line) calc(10% - 1px), var(--hud-line) 10%);
+  background-size: 100% 3px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  height: 9px;
+}
+@include in-skin('hud', 'svg.lucide') {
+  stroke-width: 1.5;
+}
+@include in-skin('hud', 'svg path, svg line, svg polyline') {
+  stroke-linejoin: miter;
+}
+@include in-skin('hud', 'img') {
+  filter: saturate(0.6) contrast(1.1);
+}

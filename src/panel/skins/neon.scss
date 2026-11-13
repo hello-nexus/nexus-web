@@ -1,0 +1,103 @@
+@use 'base' as *;
+
+// Neon / synthwave: dark violet field, outlined tiles in magenta and cyan
+// with glow, alternating by cell. Tektur for the lettering.
+@include skin('neon') {
+  --skin-backdrop: #0c0618;
+  --skin-backdrop-image:
+    linear-gradient(180deg, transparent 55%, rgba(255, 43, 214, 0.16) 100%),
+    linear-gradient(rgba(0, 240, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.07) 1px, transparent 1px);
+  --skin-backdrop-size: auto, 22px 22px, 22px 22px;
+  --neon: #ff2bd6;
+  --skin-card-bg: rgba(14, 6, 32, 0.9);
+  --skin-card-radius: 14px;
+  --skin-card-frame: inset 0 0 0 2px var(--neon), inset 0 0 16px rgba(255, 43, 214, 0.3);
+  --skin-card-shadow: 0 0 6px var(--neon), 0 0 20px rgba(255, 43, 214, 0.35);
+  --skin-bar-height: 7px;
+  --skin-bar-radius: 4px;
+  --skin-bar-glow: 0 0 8px var(--neon);
+  --skin-value-shadow: 0 0 10px var(--neon);
+
+  --panel-font: 'Tektur', 'Lexend', sans-serif;
+  --font-sans: 'Tektur', 'Lexend', sans-serif;
+  --font-mono: 'Tektur', 'Lexend', sans-serif;
+  --weight-display: 700;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --panel-card-radius: 14px;
+  --panel-element-radius: 10px;
+
+  --bg: rgba(14, 6, 32, 0.92);
+  --bg-elevated: #140a2a;
+  --bg-card-hover: rgba(255, 43, 214, 0.14);
+  --border: rgba(255, 43, 214, 0.5);
+  --border-strong: #ff2bd6;
+  --border-hover: #00f0ff;
+  --surface: rgba(14, 6, 32, 0.9);
+  --surface-hover: rgba(255, 43, 214, 0.14);
+  --text: #fbeaff;
+  --text-dim: rgba(251, 234, 255, 0.6);
+  --separator: rgba(255, 43, 214, 0.4);
+  --gauge-track: rgba(255, 255, 255, 0.12);
+  --accent: var(--neon);
+  --accent-glow: var(--neon);
+  --accent-soft: rgba(255, 43, 214, 0.2);
+  --accent-deep: var(--neon);
+  --accent-glow-shadow: rgba(255, 43, 214, 0.35);
+  --accent-text: #0c0618;
+  --panel-accent: var(--neon);
+  --panel-accent-glow: var(--neon);
+  --panel-accent-soft: rgba(255, 43, 214, 0.2);
+  --panel-accent-shadow: rgba(255, 43, 214, 0.35);
+  --panel-accent-text: #0c0618;
+  --good: #3dffb0;
+  --warn: #ffe14d;
+  --bad: #ff4d6d;
+  --chart-line-alt: #00f0ff;
+  --panel-control-bg: rgba(255, 43, 214, 0.14);
+  --panel-control-bg-hover: rgba(255, 43, 214, 0.24);
+  --panel-control-bg-active: rgba(255, 43, 214, 0.36);
+  --panel-element-bg: rgba(255, 43, 214, 0.14);
+  --panel-card-bg: rgba(255, 43, 214, 0.08);
+  --panel-control-translucent: rgba(255, 43, 214, 0.18);
+  --panel-border: rgba(255, 43, 214, 0.5);
+  --panel-border-strong: #ff2bd6;
+}
+// Cells alternate magenta and cyan. The accent is re-pointed per cell, so the
+// widget's own gauges, links and icons pick the cell's colour up too.
+@include in-skin('neon', '[data-panel-widget-id]:nth-child(even)') {
+  --neon: #00f0ff;
+  --accent: #00f0ff;
+  --accent-glow: #00f0ff;
+  --accent-deep: #00f0ff;
+  --panel-accent: #00f0ff;
+  --panel-accent-glow: #00f0ff;
+  --accent-soft: rgba(0, 240, 255, 0.18);
+  --accent-glow-shadow: rgba(0, 240, 255, 0.35);
+  --panel-accent-soft: rgba(0, 240, 255, 0.18);
+  --panel-accent-shadow: rgba(0, 240, 255, 0.35);
+  --skin-card-frame: inset 0 0 0 2px #00f0ff, inset 0 0 16px rgba(0, 240, 255, 0.3);
+  --skin-card-shadow: 0 0 6px #00f0ff, 0 0 20px rgba(0, 240, 255, 0.35);
+  --panel-control-bg: rgba(0, 240, 255, 0.12);
+  --panel-element-bg: rgba(0, 240, 255, 0.12);
+  --border: rgba(0, 240, 255, 0.5);
+  --border-strong: #00f0ff;
+}
+@include in-skin('neon', '.panel-card') {
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.18);
+}
+@include in-skin('neon', 'svg') {
+  filter: drop-shadow(0 0 4px var(--neon));
+}
+@include in-skin('neon', 'svg.lucide') {
+  stroke-width: 2.2;
+}
+// Everything the cell draws in the accent also gets the outline-only look on
+// big fills: spark areas become a faint wash instead of a slab.
+@include in-skin('neon', '[data-skin-part="spark-fill"]') {
+  fill-opacity: 0.18;
+}

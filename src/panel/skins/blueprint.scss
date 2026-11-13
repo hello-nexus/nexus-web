@@ -1,0 +1,102 @@
+@use 'base' as *;
+
+// Blueprint: grid-paper backdrop, white line work, hatch in place of solid
+// fills, dimension ticks along the card edges. IBM Plex Mono for the lettering.
+@include skin('blueprint') {
+  --skin-backdrop: #123f86;
+  --skin-backdrop-image:
+    linear-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  --skin-backdrop-size: 48px 48px, 48px 48px, 8px 8px, 8px 8px;
+  --skin-card-bg: rgba(18, 63, 134, 0.3);
+  --skin-card-radius: 0;
+  --skin-card-frame: inset 0 0 0 1.5px #f2f7ff;
+  // Dimension ticks: a short tick every 10px along the top and left edges.
+  --skin-card-deco:
+    repeating-linear-gradient(90deg, #f2f7ff 0, #f2f7ff 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(0deg, #f2f7ff 0, #f2f7ff 1px, transparent 1px, transparent 10px);
+  --skin-card-deco-size: 100% 4px, 4px 100%;
+  --skin-card-deco-pos: 0 0, 0 0;
+  --skin-card-deco-repeat: no-repeat;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: none;
+  --skin-bar-track-shadow: inset 0 0 0 1px #f2f7ff;
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --skin-value-shadow: none;
+
+  --panel-font: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Mono', monospace;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --weight-heading: 500;
+  --weight-body: 400;
+  --weight-strong: 500;
+  --weight-display: 500;
+  --weight-small: 400;
+
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --panel-card-radius: 0;
+  --panel-element-radius: 0;
+
+  --bg: rgba(18, 63, 134, 0.9);
+  --bg-elevated: #123f86;
+  --bg-card-hover: rgba(255, 255, 255, 0.12);
+  --border: rgba(242, 247, 255, 0.6);
+  --border-strong: #f2f7ff;
+  --border-hover: #ffffff;
+  --surface: rgba(18, 63, 134, 0.82);
+  --surface-hover: rgba(255, 255, 255, 0.12);
+  --text: #f2f7ff;
+  --text-dim: rgba(242, 247, 255, 0.68);
+  --separator: rgba(242, 247, 255, 0.4);
+  --gauge-track: rgba(242, 247, 255, 0.18);
+  --accent: #f2f7ff;
+  --accent-glow: #f2f7ff;
+  --accent-soft: rgba(242, 247, 255, 0.18);
+  --accent-deep: #f2f7ff;
+  --accent-glow-shadow: rgba(242, 247, 255, 0.3);
+  --accent-text: #123f86;
+  --panel-accent: #f2f7ff;
+  --panel-accent-glow: #f2f7ff;
+  --panel-accent-soft: rgba(242, 247, 255, 0.18);
+  --panel-accent-shadow: rgba(242, 247, 255, 0.3);
+  --panel-accent-text: #123f86;
+  --good: #f2f7ff;
+  --warn: #ffe27a;
+  --bad: #ff9a8a;
+  --chart-line-alt: #ffe27a;
+  --panel-control-bg: rgba(255, 255, 255, 0.1);
+  --panel-control-bg-hover: rgba(255, 255, 255, 0.18);
+  --panel-control-bg-active: rgba(255, 255, 255, 0.28);
+  --panel-element-bg: rgba(255, 255, 255, 0.1);
+  --panel-card-bg: rgba(255, 255, 255, 0.06);
+  --panel-control-translucent: rgba(255, 255, 255, 0.16);
+  --panel-border: rgba(242, 247, 255, 0.6);
+  --panel-border-strong: #f2f7ff;
+}
+// Areas become hatch, not flat colour.
+@include in-skin('blueprint', '[data-skin-part="fill"]') {
+  background: repeating-linear-gradient(45deg, #f2f7ff 0, #f2f7ff 1px, transparent 1px, transparent 4px);
+  box-shadow: inset 0 0 0 1px #f2f7ff;
+}
+@include in-skin('blueprint', '[data-skin-part="spark-fill"]') {
+  fill: url(#skin-hatch);
+  fill-opacity: 1;
+}
+@include in-skin('blueprint', 'svg.lucide') {
+  stroke-width: 1.25;
+}
+@include in-skin('blueprint', 'svg path, svg line, svg polyline') {
+  stroke-linejoin: miter;
+}
+@include in-skin('blueprint', 'img, canvas') {
+  filter: grayscale(1) contrast(1.4) brightness(1.1);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}

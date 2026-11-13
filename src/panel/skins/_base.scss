@@ -1,0 +1,119 @@
+// Structure shared by every skin. A skin file sets the --skin-* variables and
+// the panel tokens; this file turns the variables into card chrome, the
+// backdrop and the post-process layers, so a skin stays a list of values plus
+// a few targeted rules.
+//
+// Selector shape: .panel-root[data-panel-skin='x'][data-theme] is (0,3,0), which
+// outranks tokens.scss (.panel-root, and .panel-root[data-theme='light']) and
+// variables.scss ([data-theme]) without !important.
+
+@mixin skin($id) {
+  .panel-root[data-panel-skin='#{$id}'][data-theme] { @content; }
+}
+@mixin skin-light($id) {
+  .panel-root[data-panel-skin='#{$id}'][data-theme='light'] { @content; }
+}
+// A rule inside a skin's panel, e.g. @include in-skin('pixel', '.panel-card').
+@mixin in-skin($id, $sel) {
+  .panel-root[data-panel-skin='#{$id}'] #{$sel} { @content; }
+}
+
+.panel-root[data-panel-skin] {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--skin-backdrop);
+  background-image: var(--skin-backdrop-image, none);
+  background-size: var(--skin-backdrop-size, auto);
+  font-family: var(--panel-font);
+  // Pure glyph edges for bitmap-style faces; harmless for the rest.
+  text-rendering: var(--skin-text-rendering, auto);
+}
+
+// Card chrome. Set directly rather than through --panel-card-fill because the
+// stock .panel-card fill is a color-mix() that Chromium 83 drops.
+.panel-root[data-panel-skin] .panel-card {
+  background-color: var(--skin-card-bg);
+  background-image: var(--skin-card-image, none);
+  border: var(--skin-card-border, 0 solid transparent);
+  border-radius: var(--skin-card-radius, 0);
+  box-shadow: var(--skin-card-shadow, none);
+  clip-path: var(--skin-card-clip, none);
+  color: var(--text);
+}
+// Frame and decoration layers above the widget content (an inset box-shadow
+// on the card itself would paint under the content). ::after carries the
+// frame, ::before a background-image stack (brackets, grid paper, sheen).
+.panel-root[data-panel-skin] .panel-card::after,
+.panel-root[data-panel-skin] .panel-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: inherit;
+}
+.panel-root[data-panel-skin] .panel-card::after {
+  box-shadow: var(--skin-card-frame, none);
+}
+.panel-root[data-panel-skin] .panel-card::before {
+  background-image: var(--skin-card-deco, none);
+  background-size: var(--skin-card-deco-size, auto);
+  background-repeat: var(--skin-card-deco-repeat, repeat);
+  background-position: var(--skin-card-deco-pos, 0 0);
+}
+// The grid cell wraps the card, so a filter here follows the clipped shape.
+.panel-root[data-panel-skin] [data-panel-widget-id] {
+  filter: var(--skin-cell-filter, none);
+}
+
+// Post-process layer 1: one overlay element on the root. Opt in with
+// --skin-overlay (a background-image stack); the blend mode is per skin.
+.panel-root[data-panel-skin][data-skin-overlay='on']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  background-image: var(--skin-overlay, none);
+  background-size: var(--skin-overlay-size, auto);
+  mix-blend-mode: var(--skin-overlay-blend, normal);
+  opacity: var(--skin-overlay-opacity, 1);
+}
+// Layer 2: vignette or glow, under the overlay.
+.panel-root[data-panel-skin][data-skin-overlay='on']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 59;
+  pointer-events: none;
+  background-image: var(--skin-overlay-under, none);
+}
+
+// Shared primitives, driven by variables (a skin sets only what it changes).
+.panel-root[data-panel-skin] [data-skin-part='track'] {
+  border-radius: var(--skin-bar-radius, var(--radius-pill));
+  height: var(--skin-bar-height, var(--gauge-track-height, 5px));
+  -webkit-mask-image: var(--skin-bar-mask, none);
+  mask-image: var(--skin-bar-mask, none);
+  box-shadow: var(--skin-bar-track-shadow, none);
+}
+.panel-root[data-panel-skin] [data-skin-part='fill'] {
+  border-radius: var(--skin-bar-radius, var(--radius-pill));
+  box-shadow: var(--skin-bar-glow, none);
+}
+.panel-root[data-panel-skin] svg[data-skin-part='spark'] [data-skin-part='spark-line'] {
+  stroke-linejoin: var(--skin-line-join, round);
+  stroke-linecap: var(--skin-line-cap, round);
+}
+.panel-root[data-panel-skin] [data-skin-part='value'] {
+  text-shadow: var(--skin-value-shadow, none);
+}

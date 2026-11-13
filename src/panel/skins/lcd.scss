@@ -1,0 +1,121 @@
+@use 'base' as *;
+
+// Reflective LCD (calculator / handheld). The panel is the dark bezel, each
+// card a recessed grey-green window. Ink is one near-black green; unlit
+// segments show as a faint ghost behind every numeral and in every track.
+// DSEG7 draws the digits (letters fall through to VT323 / Plex Mono).
+@include skin('lcd') {
+  --skin-backdrop: #2c3027;
+  --skin-backdrop-image: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 40%);
+  --skin-card-bg: #b4c19a;
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.18), transparent 35%);
+  --skin-card-radius: 4px;
+  --skin-card-shadow: none;
+  --skin-card-frame: inset 0 0 0 2px #1d2616, inset 0 4px 7px rgba(29, 38, 22, 0.45);
+  --skin-text-rendering: optimizeSpeed;
+  --skin-bar-height: 9px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 4px, transparent 4px, transparent 5px);
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --skin-value-shadow: 2px 2px 0 rgba(29, 38, 22, 0.25);
+  --skin-overlay: linear-gradient(rgba(29, 38, 22, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 38, 22, 0.16) 1px, transparent 1px);
+  --skin-overlay-size: 3px 3px;
+  --skin-overlay-blend: multiply;
+  --skin-overlay-under: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.12), transparent 60%);
+
+  --panel-font: 'VT323', 'IBM Plex Mono', monospace;
+  --font-sans: 'VT323', 'IBM Plex Mono', monospace;
+  --font-mono: 'VT323', 'IBM Plex Mono', monospace;
+  --weight-heading: 400;
+  --weight-body: 400;
+  --weight-strong: 400;
+  --weight-display: 700;
+  --weight-small: 400;
+
+  --radius-sm: 1px;
+  --radius: 2px;
+  --radius-lg: 4px;
+  --radius-pill: 1px;
+  --panel-card-radius: 4px;
+  --panel-element-radius: 2px;
+
+  --ink: #1d2616;
+  --bg: #b4c19a;
+  --bg-elevated: #a3b187;
+  --bg-card-hover: #a3b187;
+  --border: rgba(29, 38, 22, 0.45);
+  --border-strong: #1d2616;
+  --border-hover: #1d2616;
+  --surface: #b4c19a;
+  --surface-hover: #a3b187;
+  --text: #1d2616;
+  --text-dim: rgba(29, 38, 22, 0.62);
+  --separator: rgba(29, 38, 22, 0.3);
+  --gauge-track: rgba(29, 38, 22, 0.13);
+  --accent: #1d2616;
+  --accent-glow: #1d2616;
+  --accent-soft: rgba(29, 38, 22, 0.16);
+  --accent-deep: #1d2616;
+  --accent-glow-shadow: transparent;
+  --accent-text: #b4c19a;
+  --panel-accent: #1d2616;
+  --panel-accent-glow: #1d2616;
+  --panel-accent-soft: rgba(29, 38, 22, 0.16);
+  --panel-accent-shadow: transparent;
+  --panel-accent-text: #b4c19a;
+  --good: #1d2616;
+  --warn: #1d2616;
+  --bad: #1d2616;
+  --chart-line-alt: #1d2616;
+  --panel-control-bg: rgba(29, 38, 22, 0.14);
+  --panel-control-bg-hover: rgba(29, 38, 22, 0.22);
+  --panel-control-bg-active: rgba(29, 38, 22, 0.32);
+  --panel-element-bg: rgba(29, 38, 22, 0.14);
+  --panel-card-bg: rgba(29, 38, 22, 0.1);
+  --panel-control-translucent: rgba(29, 38, 22, 0.16);
+  --panel-border: rgba(29, 38, 22, 0.45);
+  --panel-border-strong: #1d2616;
+  --ease-fast: 0s;
+  --ease: 0s;
+  --ease-slow: 0s;
+}
+
+// Ink: text and glyph shapes drop a hard shadow onto the backplane.
+@include in-skin('lcd', '.panel-card') {
+  text-shadow: 1px 1px 0 rgba(29, 38, 22, 0.28);
+}
+@include in-skin('lcd', 'svg') {
+  filter: drop-shadow(1px 1px 0 rgba(29, 38, 22, 0.3));
+  shape-rendering: crispEdges;
+}
+@include in-skin('lcd', 'svg path, svg line, svg polyline, svg rect, svg circle') {
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+@include in-skin('lcd', 'svg.lucide') {
+  stroke-width: 2.4;
+}
+// Digits in seven segments, with the unlit segments ghosted behind each one.
+@include in-skin('lcd', '[data-skin-part="digit"]') {
+  font-family: 'DSEG7', 'VT323', monospace;
+  font-weight: 700;
+  font-style: normal;
+  // DSEG glyphs run taller than the line box the widgets size for; without
+  // room the fit boxes (overflow hidden) shave the top segment off.
+  padding: 0.14em 0;
+}
+@include in-skin('lcd', '[data-skin-part="digit"]::before') {
+  content: '8';
+  grid-area: 1 / 1;
+  opacity: 0.11;
+  text-shadow: none;
+}
+@include in-skin('lcd', 'img, canvas') {
+  filter: grayscale(1) contrast(1.15);
+  mix-blend-mode: multiply;
+}
+.panel-root[data-panel-skin='lcd'][data-skin-filter='on'],
+.panel-root[data-panel-skin='lcd'][data-skin-filter='bloom'] {
+  filter: url(#skin-filter-lcd);
+}

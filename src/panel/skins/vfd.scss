@@ -1,0 +1,95 @@
+@use 'base' as *;
+
+// Vacuum fluorescent display: cyan-teal glow on black glass behind a fine
+// mesh. DSEG14 draws digits and Latin letters in fourteen segments, with the
+// unlit segments ghosted behind each numeral.
+@include skin('vfd') {
+  --skin-backdrop: #010605;
+  --skin-card-bg: #031412;
+  --skin-card-radius: 6px;
+  --skin-card-frame: inset 0 0 0 1px rgba(95, 255, 234, 0.25), inset 0 0 26px rgba(40, 200, 190, 0.1);
+  --skin-card-shadow: none;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 3px, transparent 3px, transparent 4px);
+  --skin-bar-glow: 0 0 7px #25d0c4;
+  --skin-value-shadow: 0 0 8px #25d0c4, 0 0 22px rgba(37, 208, 196, 0.5);
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0, rgba(0, 0, 0, 0.5) 1px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0, rgba(0, 0, 0, 0.5) 1px, transparent 1px, transparent 2px);
+  --skin-overlay-under: radial-gradient(ellipse at center, rgba(37, 208, 196, 0.08), transparent 70%);
+
+  --panel-font: 'DSEG14', 'IBM Plex Mono', monospace;
+  --font-sans: 'DSEG14', 'IBM Plex Mono', monospace;
+  --font-mono: 'DSEG14', 'IBM Plex Mono', monospace;
+  --weight-heading: 400;
+  --weight-body: 400;
+  --weight-strong: 400;
+  --weight-display: 700;
+  --weight-small: 400;
+
+  --radius-sm: 1px;
+  --radius: 3px;
+  --radius-lg: 6px;
+  --radius-pill: 1px;
+  --panel-card-radius: 6px;
+  --panel-element-radius: 3px;
+
+  --bg: #031412;
+  --bg-elevated: #031412;
+  --bg-card-hover: rgba(95, 255, 234, 0.1);
+  --border: rgba(95, 255, 234, 0.3);
+  --border-strong: rgba(95, 255, 234, 0.6);
+  --border-hover: #7dfff0;
+  --surface: #031412;
+  --surface-hover: rgba(95, 255, 234, 0.1);
+  --text: #8afff2;
+  --text-dim: rgba(138, 255, 242, 0.55);
+  --separator: rgba(95, 255, 234, 0.25);
+  --gauge-track: rgba(95, 255, 234, 0.12);
+  --accent: #7dfff0;
+  --accent-glow: #7dfff0;
+  --accent-soft: rgba(95, 255, 234, 0.16);
+  --accent-deep: #25d0c4;
+  --accent-glow-shadow: rgba(37, 208, 196, 0.35);
+  --accent-text: #010605;
+  --panel-accent: #7dfff0;
+  --panel-accent-glow: #7dfff0;
+  --panel-accent-soft: rgba(95, 255, 234, 0.16);
+  --panel-accent-shadow: rgba(37, 208, 196, 0.35);
+  --panel-accent-text: #010605;
+  --good: #7dfff0;
+  --warn: #7dfff0;
+  --bad: #7dfff0;
+  --chart-line-alt: #25d0c4;
+  --panel-control-bg: rgba(95, 255, 234, 0.1);
+  --panel-control-bg-hover: rgba(95, 255, 234, 0.18);
+  --panel-control-bg-active: rgba(95, 255, 234, 0.28);
+  --panel-element-bg: rgba(95, 255, 234, 0.1);
+  --panel-card-bg: rgba(95, 255, 234, 0.06);
+  --panel-control-translucent: rgba(95, 255, 234, 0.14);
+  --panel-border: rgba(95, 255, 234, 0.3);
+  --panel-border-strong: rgba(95, 255, 234, 0.6);
+}
+@include in-skin('vfd', '.panel-card') {
+  text-shadow: 0 0 5px #25d0c4, 0 0 12px rgba(37, 208, 196, 0.4);
+}
+@include in-skin('vfd', 'svg') {
+  filter: drop-shadow(0 0 3px #25d0c4);
+}
+@include in-skin('vfd', '[data-skin-part="digit"]') {
+  font-family: 'DSEG14', 'IBM Plex Mono', monospace;
+  padding: 0.14em 0;
+  font-size: 0.85em;
+}
+@include in-skin('vfd', '[data-skin-part="digit"]::before') {
+  content: '~';
+  grid-area: 1 / 1;
+  opacity: 0.09;
+  text-shadow: none;
+}
+@include in-skin('vfd', 'img, canvas') {
+  filter: grayscale(1) contrast(1.2) sepia(1) hue-rotate(115deg) saturate(2.5) brightness(0.85);
+}
+.panel-root[data-panel-skin='vfd'][data-skin-filter='on'] { filter: url(#skin-filter-vfd); }
+.panel-root[data-panel-skin='vfd'][data-skin-filter='bloom'] { filter: url(#skin-filter-vfd-bloom); }
+.panel-root[data-panel-skin='vfd'][data-skin-filter='on'] img,
+.panel-root[data-panel-skin='vfd'][data-skin-filter='bloom'] img { filter: none; }

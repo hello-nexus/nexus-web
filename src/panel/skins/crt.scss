@@ -1,0 +1,111 @@
+@use 'base' as *;
+
+// CRT phosphor terminal, green and amber. Black glass, glowing text, scanline
+// overlay, vignette under it, and a faint flicker on the overlay.
+@mixin crt-skin($id, $hi, $mid, $lo, $glow, $hue) {
+  @include skin($id) {
+    --phosphor: #{$hi};
+    --skin-backdrop: #020402;
+    --skin-card-bg: #{rgba($lo, 0.55)};
+    --skin-card-radius: 14px;
+    --skin-card-frame: inset 0 0 0 1px #{rgba($hi, 0.55)}, inset 0 0 22px #{rgba($hi, 0.12)};
+    --skin-card-shadow: 0 0 12px #{rgba($hi, 0.22)};
+    --skin-bar-height: 8px;
+    --skin-bar-radius: 0;
+    --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 5px, transparent 5px, transparent 7px);
+    --skin-bar-glow: 0 0 8px #{$glow};
+    --skin-value-shadow: 0 0 8px #{$glow}, 0 0 20px #{rgba($hi, 0.4)};
+    --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.34) 0, rgba(0, 0, 0, 0.34) 1px, transparent 1px, transparent 3px);
+    --skin-overlay-under: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.72) 100%);
+
+    --panel-font: 'VT323', 'IBM Plex Mono', monospace;
+    --font-sans: 'VT323', 'IBM Plex Mono', monospace;
+    --font-mono: 'VT323', 'IBM Plex Mono', monospace;
+    --weight-heading: 400;
+    --weight-body: 400;
+    --weight-strong: 400;
+    --weight-display: 400;
+    --weight-small: 400;
+
+    --radius-sm: 2px;
+    --radius: 6px;
+    --radius-lg: 14px;
+    --radius-pill: 3px;
+    --panel-card-radius: 14px;
+    --panel-element-radius: 6px;
+
+    --bg: #{rgba($lo, 0.9)};
+    --bg-elevated: #{rgba($lo, 0.9)};
+    --bg-card-hover: #{rgba($hi, 0.12)};
+    --border: #{rgba($hi, 0.4)};
+    --border-strong: #{rgba($hi, 0.7)};
+    --border-hover: #{$hi};
+    --surface: #{rgba($lo, 0.55)};
+    --surface-hover: #{rgba($hi, 0.12)};
+    --text: #{$hi};
+    --text-dim: #{$mid};
+    --separator: #{rgba($hi, 0.3)};
+    --gauge-track: #{rgba($hi, 0.16)};
+    --accent: #{$hi};
+    --accent-glow: #{$hi};
+    --accent-soft: #{rgba($hi, 0.18)};
+    --accent-deep: #{$mid};
+    --accent-glow-shadow: #{rgba($hi, 0.3)};
+    --accent-text: #020402;
+    --panel-accent: #{$hi};
+    --panel-accent-glow: #{$hi};
+    --panel-accent-soft: #{rgba($hi, 0.18)};
+    --panel-accent-shadow: #{rgba($hi, 0.3)};
+    --panel-accent-text: #020402;
+    --good: #{$hi};
+    --warn: #{$hi};
+    --bad: #{$hi};
+    --chart-line-alt: #{$mid};
+    --panel-control-bg: #{rgba($hi, 0.12)};
+    --panel-control-bg-hover: #{rgba($hi, 0.2)};
+    --panel-control-bg-active: #{rgba($hi, 0.3)};
+    --panel-element-bg: #{rgba($hi, 0.12)};
+    --panel-card-bg: #{rgba($hi, 0.08)};
+    --panel-control-translucent: #{rgba($hi, 0.16)};
+    --panel-border: #{rgba($hi, 0.4)};
+    --panel-border-strong: #{rgba($hi, 0.7)};
+  }
+  @include in-skin($id, '.panel-card') {
+    text-shadow: 0 0 5px #{$glow}, 0 0 12px #{rgba($hi, 0.35)};
+  }
+  @include in-skin($id, 'svg') {
+    filter: drop-shadow(0 0 3px #{$glow});
+  }
+  @include in-skin($id, 'img, canvas') {
+    // Photos and art take the phosphor too, even with the SVG filter off.
+    filter: grayscale(1) contrast(1.2) brightness(0.9) sepia(1) hue-rotate(#{$hue}) saturate(3);
+  }
+  .panel-root[data-panel-skin='#{$id}'][data-skin-filter='on'] {
+    filter: url(#skin-filter-#{$id});
+  }
+  .panel-root[data-panel-skin='#{$id}'][data-skin-filter='bloom'] {
+    filter: url(#skin-filter-#{$id}-bloom);
+  }
+  .panel-root[data-panel-skin='#{$id}'][data-skin-filter='on'] img,
+  .panel-root[data-panel-skin='#{$id}'][data-skin-filter='bloom'] img {
+    filter: none;
+  }
+}
+
+@include crt-skin('crt', #33ff66, #1fa84a, #052b10, #1fe05a, 70deg);
+@include crt-skin('crt-amber', #ffb000, #b97c00, #2b1900, #ff9a00, -15deg);
+
+// Faint flicker on the scanline layer. Skipped when the user asks for less motion.
+@keyframes skin-crt-flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 1; }
+  48% { opacity: 0.82; }
+  50% { opacity: 1; }
+  93% { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panel-root[data-panel-skin='crt'][data-skin-overlay='on']::after,
+  .panel-root[data-panel-skin='crt-amber'][data-skin-overlay='on']::after {
+    animation: skin-crt-flicker 4s steps(1, end) infinite;
+  }
+}

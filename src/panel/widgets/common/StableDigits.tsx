@@ -16,7 +16,7 @@ export function StableDigits({ text }: { text: string }) {
     <>
       {Array.from(text).map((ch, i) =>
         ch >= '0' && ch <= '9' ? (
-          <span key={i} className={styles.digit}>
+          <span key={i} className={styles.digit} data-skin-part="digit">
             <span className={styles.sizer} aria-hidden="true">
               {SIZER}
             </span>

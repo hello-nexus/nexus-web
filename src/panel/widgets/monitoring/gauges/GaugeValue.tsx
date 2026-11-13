@@ -96,6 +96,7 @@ export function GaugeValue({ formatted, className, clipTopPercent, textFill, ali
       className={`${styles.fitBox}${className ? ` ${className}` : ''}`}
       role="img"
       aria-label={formatted}
+      data-skin-part="value"
       style={{ ...(align ? { justifyContent: ALIGN_JUSTIFY[align] } : undefined), ...(fontSize ? { fontSize: `${fontSize}px` } : undefined) }}
     >
       <span
