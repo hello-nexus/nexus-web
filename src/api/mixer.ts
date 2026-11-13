@@ -109,7 +109,7 @@ export interface SaveMixerPresetBody {
   includeMaster?: boolean;
   /** False stores no output/input, so applying leaves the endpoints alone. */
   includeDevices?: boolean;
-  /** Omitted captures every strip that is running right now. */
+  /** Omitted captures running default-output apps with a saved level. */
   apps?: AudioMixerPresetEntry[];
 }
 
