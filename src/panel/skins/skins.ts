@@ -40,7 +40,7 @@ export const PANEL_SKINS = [
   { id: 'sketch', label: 'Sketch', font: 'piazzolla', fontLocked: false, accent: '#d9532b', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', fontLocked: false, accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'sakura', label: 'Sakura', font: 'piazzolla', fontLocked: false, accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'track', label: 'Track', font: 'oswald', fontLocked: false, accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'track', label: 'Track', font: 'lexend', fontLocked: false, accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];
@@ -216,7 +216,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
 export const SURFACE_SPECS = {
   bubblegum: { sat: 0.85, light: { back: 0.91, card: 0.975, line: 0.8 }, dark: { back: 0.12, card: 0.17, line: 0.34 } },
   sakura: { sat: 0.55, light: { back: 0.94, card: 0.985, line: 0.84 }, dark: { back: 0.13, card: 0.19, line: 0.38 } },
-  track: { sat: 0.28, light: { back: 0.91, card: 0.99, line: 0.78 }, dark: { back: 0.09, card: 0.15, line: 0.32 } },
+  track: { sat: 0.12, light: { back: 0.91, card: 0.99, line: 0.78 }, dark: { back: 0.09, card: 0.15, line: 0.32 } },
   deco: { sat: 0.35, light: { back: 0.83, card: 0.95, line: 0.5 }, dark: { back: 0.03, card: 0.06, line: 0.5 } },
   steampunk: { sat: 0.5, light: { back: 0.66, card: 0.84, line: 0.45 }, dark: { back: 0.06, card: 0.12, line: 0.35 } },
   nixie: { sat: 0.45, light: { back: 0.72, card: 0.91, line: 0.45 }, dark: { back: 0.03, card: 0.06, line: 0.3 } },
@@ -300,7 +300,7 @@ export function skinSurfaceVars(id: keyof typeof SURFACE_SPECS, accent: string):
     const put = (name: string, c: [number, number, number] | string) => {
       const hex = typeof c === 'string' ? c : rgbToHex(c);
       out[`--skin-sf-${name}-${mode}`] = hex;
-      if (name === 'text' || name === 'line') out[`--skin-sf-${name}-rgb-${mode}`] = hexToRgb(hex).join(', ');
+      if (name === 'text' || name === 'line' || name === 'back') out[`--skin-sf-${name}-rgb-${mode}`] = hexToRgb(hex).join(', ');
     };
     put('back', back); put('card', card); put('text', text); put('line', line); put('dim', dim);
   }

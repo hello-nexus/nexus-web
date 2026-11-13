@@ -121,6 +121,9 @@
   z-index: -1;
   background-color: var(--skin-card-bg);
   background-image: var(--skin-card-image, none);
+  background-size: var(--skin-card-image-size, auto);
+  background-position: var(--skin-card-image-pos, 0 0);
+  background-repeat: no-repeat;
 }
 .panel-root[data-panel-skin] .panel-card::after {
   z-index: 5;

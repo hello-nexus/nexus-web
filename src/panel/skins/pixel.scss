@@ -115,6 +115,3 @@
   stroke-linejoin: miter;
   shape-rendering: crispEdges;
 }
-@include in-skin('pixel', 'img, canvas') {
-  image-rendering: pixelated;
-}
