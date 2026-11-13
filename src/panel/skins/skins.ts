@@ -1,6 +1,7 @@
 // A skin is data-panel-skin="<id>" on the panel root, styled by <id>.scss; this registry holds its presets.
 
 import type { PanelFontId } from '../theme/panelFont';
+import { sakuraFieldUrl } from './sakuraField';
 
 export interface SkinDef {
   id: string;
@@ -306,6 +307,7 @@ export function sakuraBlossomVars(accent: string): Record<string, string> {
     const petal = mode === 'light' ? mixRgb(card, acc, 0.1) : mixRgb(card, hexToRgb(sf['--skin-sf-back-dark']), 0.46);
     out[`--sk-petal-${mode}`] = rgbToHex(petal);
     out[`--sk-core-${mode}`] = rgbToHex(mixRgb(petal, acc, mode === 'light' ? 0.14 : 0.12));
+    out[`--sk-field-${mode}`] = sakuraFieldUrl(out[`--sk-petal-${mode}`], out[`--sk-core-${mode}`]);
   }
   return out;
 }
