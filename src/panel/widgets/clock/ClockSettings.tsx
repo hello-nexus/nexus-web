@@ -1,34 +1,24 @@
-import { useState } from 'react';
-import {
-  Aperture,
-  Binary,
-  ChevronDown,
-  CircleDot,
-  Clock3,
-  FlipHorizontal,
-  Hash,
-  RotateCw,
-  ScanLine,
-  type LucideIcon,
-} from 'lucide-react';
+import { useState, type ComponentType, type SVGProps } from 'react';
+import { Aperture, Binary, ChevronDown, Clock3 } from 'lucide-react';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import type { WidgetSettingsProps } from '../types';
 import { CLOCK_DESIGNS } from '../clock/designs';
 import { VERTICAL_LAYOUT_SIZES } from '../clock/designs/layout';
 import { SettingsRow, SettingsToggle, SettingsSection, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { useTranslation } from '../../../lib/i18n';
+import { DigitalDesignIcon, DotsDesignIcon, LedDesignIcon, RollingDesignIcon, SplitFlapDesignIcon } from './ClockDesignIcons';
 import { TimezonePicker } from './TimezonePicker';
 import { humanizeTimeZone, safeTimeZone } from './timezones';
 import styles from './ClockSettings.module.scss';
 
 const DESIGN_KEYS = Object.keys(CLOCK_DESIGNS);
-const DESIGN_ICONS: Record<string, LucideIcon> = {
-  digital: Hash,
+const DESIGN_ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+  digital: DigitalDesignIcon,
   analog: Clock3,
-  splitflap: FlipHorizontal,
-  rolling: RotateCw,
-  led: ScanLine,
-  dots: CircleDot,
+  splitflap: SplitFlapDesignIcon,
+  rolling: RollingDesignIcon,
+  led: LedDesignIcon,
+  dots: DotsDesignIcon,
   matrix: Binary,
   abstract: Aperture,
 };
