@@ -23,15 +23,24 @@
   --gauge-track: rgba(58, 54, 40, 0.14);
 }
 // Pencil grain: two stroke sets at unrelated angles and periods, so the overlap drifts like hand-drawn lines.
-// Strokes darken the fill by --sk-hatch-ink alpha (mask paths drop to --sk-hatch-mask alpha) and never go finer than one device pixel (moire floor).
+// Sized in device pixels (--sk-hatch = one device px, snapped per DPR) so strokes land on whole pixels instead of anti-aliasing to speckle.
+// One ink strength drives every path (bars, slider layers, scrollbar thumb) so they match.
 @mixin sk-hatch-vars {
-  --sk-hatch: calc(1px * var(--panel-scale, 1));
-  --sk-hatch-ink: 0.07;
-  --sk-hatch-mask: 0.5;
-  --sk-hatch-w-a: max(calc(var(--sk-hatch) * 0.7), 1px);
-  --sk-hatch-p-a: max(calc(var(--sk-hatch) * 1.9), 2.5px);
-  --sk-hatch-w-b: max(calc(var(--sk-hatch) * 0.6), 1px);
-  --sk-hatch-p-b: max(calc(var(--sk-hatch) * 2.3), 3px);
+  --sk-hatch: 1px;
+  @media (min-resolution: 1.25dppx) {
+    --sk-hatch: calc(1px / 1.5);
+  }
+  @media (min-resolution: 1.75dppx) {
+    --sk-hatch: 0.5px;
+  }
+  @media (min-resolution: 2.75dppx) {
+    --sk-hatch: calc(1px / 3);
+  }
+  --sk-hatch-ink: 0.15;
+  --sk-hatch-w-a: calc(var(--sk-hatch) * 2);
+  --sk-hatch-p-a: calc(var(--sk-hatch) * 5);
+  --sk-hatch-w-b: calc(var(--sk-hatch) * 2);
+  --sk-hatch-p-b: calc(var(--sk-hatch) * 6);
 }
 @function sk-hatch-a($c) {
   @return repeating-linear-gradient(45deg, $c 0, $c var(--sk-hatch-w-a), transparent var(--sk-hatch-w-a), transparent var(--sk-hatch-p-a));
@@ -39,16 +48,11 @@
 @function sk-hatch-b($c) {
   @return repeating-linear-gradient(-62deg, $c 0, $c var(--sk-hatch-w-b), transparent var(--sk-hatch-w-b), transparent var(--sk-hatch-p-b));
 }
-// A mask keeps the fill's own color (accent or the graded ramp) and the track outline stays whole.
 @include in-skin('sketch', '[data-skin-part="fill"], [data-skin-part="bar-fill"]') {
   @include sk-hatch-vars;
-  --sk-hatch-mask-lo: rgba(0, 0, 0, var(--sk-hatch-mask));
-  --sk-hatch-tile:
-    repeating-linear-gradient(45deg, var(--sk-hatch-mask-lo) 0, var(--sk-hatch-mask-lo) var(--sk-hatch-w-a), #000 var(--sk-hatch-w-a), #000 var(--sk-hatch-p-a)),
-    repeating-linear-gradient(-62deg, var(--sk-hatch-mask-lo) 0, var(--sk-hatch-mask-lo) var(--sk-hatch-w-b), #000 var(--sk-hatch-w-b), #000 var(--sk-hatch-p-b));
+  --sk-hatch-stroke: rgba(0, 0, 0, var(--sk-hatch-ink));
   background-color: var(--skin-fill, var(--accent));
-  -webkit-mask-image: var(--sk-hatch-tile);
-  mask-image: var(--sk-hatch-tile);
+  background-image: sk-hatch-a(var(--sk-hatch-stroke)), sk-hatch-b(var(--sk-hatch-stroke));
 }
 
 // Range inputs paint their fill as a track gradient, so the grain is drawn as sized background layers (a mask
