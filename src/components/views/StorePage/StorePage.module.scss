@@ -353,10 +353,14 @@ $card-gap: 0.6rem;
   min-width: 0;
 }
 
+// An opaque chip keeps the accent legible over any app's tint.
 .featuredEyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
   @include text-label;
   color: var(--accent);
 }

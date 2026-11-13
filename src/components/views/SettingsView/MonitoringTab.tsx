@@ -3,6 +3,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
+import { DiagnosticsNotificationsSection, DiagnosticsResetSection } from './DiagnosticsSettingsSections';
 import { SmartPollSection } from './SmartPollSection';
 import { RamTemperatureSection } from './RamTemperatureSection';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -14,9 +15,10 @@ export interface MonitoringTabProps {
   settings: NexusSettings;
   updateGeneral: (patch: Partial<NexusSettings['general']>) => void;
   serviceOnline: boolean;
+  onOpenDevices?: () => void;
 }
 
-export function MonitoringTab({ settings, updateGeneral, serviceOnline }: MonitoringTabProps) {
+export function MonitoringTab({ settings, updateGeneral, serviceOnline, onOpenDevices }: MonitoringTabProps) {
   const { t } = useTranslation();
   const { settings: ui, update } = useUiSettings();
 
@@ -60,9 +62,14 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
 
       <MonitoringEventsSettings />
 
-      <RamTemperatureSection serviceOnline={serviceOnline} />
+      <RamTemperatureSection serviceOnline={serviceOnline} onOpenDevices={onOpenDevices} />
 
       <SmartPollSection serviceOnline={serviceOnline} />
+
+
+      <DiagnosticsNotificationsSection />
+
+      <DiagnosticsResetSection />
     </div>
   );
 }

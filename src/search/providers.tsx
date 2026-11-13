@@ -3,7 +3,7 @@ import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
   SlidersHorizontal, UserRound, FlaskConical, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutDashboard, Crosshair,
-  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
+  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText, Gauge,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import {
@@ -32,6 +32,8 @@ import {
   openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport, downloadSupportBundle,
 } from '../api/diagnostics';
 import { postService } from '../api/service';
+import { rowTitles } from '../components/views/DiagnosticsView/sensorAlertHelpers';
+import { watchlistLink } from '../components/views/DiagnosticsView/thermalsHelpers';
 import type { UpdateMode, UpdateChannel } from '../api/update';
 import { canSwitchChannel, requestChannelSwitch } from '../lib/channelSwitch';
 import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
@@ -125,13 +127,12 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
   { view: 'benchmark',  sub: 'leaderboards', viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.leaderboards', keywords: ['benchmark', 'leaderboard', 'ranking', 'compare'], official: true },
   { view: 'devices',    sub: 'firmware', viewLabelKey: 'devices.title', labelKey: 'devices.tabs.firmware', keywords: ['firmware', 'flash', 'fw', 'update'] },
   { view: 'devices',    sub: 'specs',    viewLabelKey: 'devices.title', labelKey: 'devices.tabs.specs',    keywords: ['specs', 'specifications', 'system info', 'hardware info'] },
-  { view: 'diagnostics', sub: 'storage', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.storage', keywords: ['disk', 'ssd', 'nvme', 'smart', 'health', 'storage'] },
+  { view: 'diagnostics', sub: 'storage', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.storage', keywords: ['disk', 'ssd', 'nvme', 'smart', 'health', 'storage', 'drive', 'polling', 'poll', 'interval', 'each drive', 'per drive'] },
   // Memory-test scheduling stays on this tab behind its own confirm (it arms
   // a reboot-time diagnostic), so the subtab is the palette's way in.
   { view: 'diagnostics', sub: 'memory',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.memory',  keywords: ['ram', 'memory', 'memtest', 'memory test', 'health'] },
-  { view: 'diagnostics', sub: 'cooling', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.cooling', keywords: ['thermals', 'temperature', 'throttle', 'health'] },
+  { view: 'diagnostics', sub: 'cooling', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.tab.thermals', keywords: ['thermals', 'cooling', 'fans', 'temperature', 'watchlist', 'sensors', 'alerts', 'throttle', 'health'] },
   { view: 'diagnostics', sub: 'system',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.system',  keywords: ['drivers', 'devices', 'events', 'health'] },
-  { view: 'diagnostics', sub: 'settings', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.tab.settings', keywords: ['thresholds', 'notifications', 'alerts'] },
 ];
 const navSubtabs: SearchSource = (ctx) =>
   SUBTABS.filter((s) => !s.official || OFFICIAL_BUILD).map((s) => go(`nav:${s.view}/${s.sub}`, {
@@ -206,7 +207,6 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.monitoring.label',  anchor: 'set-feature-monitoring',  keywords: ['monitoring', 'history', 'on', 'off', 'switch', 'feature'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.diagnostics.label', anchor: 'set-feature-diagnostics', keywords: ['diagnostics', 'health', 'alerts', 'on', 'off', 'switch', 'feature'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.defaultLabel',  sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-default',   keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'ssd', 'hdd', 'health', 'polling', 'interval', 'spin down', 'sleep'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.perDriveLabel', sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-per-drive', keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'each drive', 'per drive', 'polling', 'interval'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.powerMonitors.label', sectionKey: 'settings.hardwareSensors.title', anchor: 'set-power-monitors', keywords: ['power', 'monitor', 'wireview', 'gpu', 'cable', 'meter', 'watts', 'usb', 'serial', 'sensor'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.ramTemperatures.label', anchor: 'set-read-ram-temperatures', keywords: ['ram', 'memory', 'dimm', 'temperature', 'sensor', 'spd', 'restart', 'boot'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data', 'clear'] },
@@ -895,6 +895,19 @@ const diagnostics: SearchSource = (ctx) => [
   ] : []),
 ];
 
+// Diagnostics > Sensors watchlist entries, found by their name or their sensor and device names.
+const watchlist: SearchSource = (ctx) =>
+  (ctx.live.sensorAlerts ?? []).map((rule) => {
+    const { title, subtitle } = rowTitles(rule, ctx.t, undefined, ctx.settings.language);
+    return go(`watchlist:${rule.id}`, {
+      title: subtitle ? `${title}: ${subtitle}` : title,
+      subtitle: `${ctx.t('diagnostics.title')} › ${ctx.t('diagnostics.tab.thermals')}`,
+      icon: <Gauge size={18} />,
+      keywords: [rule.sensor.name, rule.sensor.parentName, rule.source?.hardwareName ?? ''].filter(Boolean),
+      to: () => ctx.host.goView('diagnostics', watchlistLink(rule.id)),
+    });
+  });
+
 // ── Registry ────────────────────────────────────────────────────────────────
 // Add a source here to add a category of results. Order is cosmetic - entries
 // are ranked by relevance, not source order.
@@ -904,7 +917,7 @@ export const SOURCES: SearchSource[] = [
   cooling, lightingModes, lightingEffects, lightingExtras, lightingDeviceActions,
   smartLightsSource, appearance, updatePrefs,
   actions, quickOpens, remoteAccess, settingsToggles, privacyToggles,
-  integrations, systemMedia, accountExtra, diagnostics,
+  integrations, systemMedia, accountExtra, diagnostics, watchlist,
 ];
 
 /** Every source's entries for the current context, flattened. */

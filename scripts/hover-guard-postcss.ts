@@ -33,7 +33,7 @@ const GUARD = ':where(html:not([data-nx-hover="off"]))'
  * UNhovered element, so guarding it inverts the rule: standing the guard down
  * would drop the resting style instead of the hovered one.
  */
-function hasTopLevelHover(selector: string): boolean {
+export function hasTopLevelHover(selector: string): boolean {
   let depth = 0
   for (let i = 0; i < selector.length; i++) {
     const ch = selector[i]

@@ -50,6 +50,9 @@
 
 .valueGroup {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
   align-items: baseline;
   gap: 0.25rem;
 }
@@ -63,7 +66,9 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 0 0.5rem;
 }
 
 /* Track container: a fixed-height row that hosts the painted underlay,
@@ -157,4 +162,9 @@
   flex-direction: column;
   width: 100%;
   min-width: 0;
+}
+
+// The track box is taller than its bar; pull the live marker up so it hangs close under the bar.
+.markWrap {
+  margin-top: -0.6rem;
 }

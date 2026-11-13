@@ -166,6 +166,7 @@ export function SettingToggle({
   stackOnNarrow,
   mixed,
   labelSuffix,
+  nested,
 }: {
   label: string;
   description?: ReactNode;
@@ -180,6 +181,8 @@ export function SettingToggle({
   /** The controlled targets disagree; see Toggle. */
   mixed?: boolean;
   labelSuffix?: ReactNode;
+  /** Refines the row above it (indented, secondary label); place both in a SettingGroup. */
+  nested?: boolean;
 }) {
   return (
     <SettingRow
@@ -191,6 +194,7 @@ export function SettingToggle({
       disabled={disabled}
       anchorId={anchorId}
       stackOnNarrow={stackOnNarrow}
+      nested={nested}
     >
       <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={ariaLabel ?? label} mixed={mixed} />
     </SettingRow>

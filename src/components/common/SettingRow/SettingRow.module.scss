@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
 
 // Canonical settings row - see SettingRow.tsx. text-body label, no per-row
 // divider (the only rule belongs under section headers, via SectionHeader).
@@ -17,9 +18,9 @@
 .row.selected {
   margin-inline: -0.7rem;
   padding-inline: 0.7rem;
-  border: var(--border-width) solid var(--accent);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--accent-soft);
+  @include interactive-selected;
 }
 
 .disabled {

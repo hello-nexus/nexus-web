@@ -20,6 +20,13 @@
   min-height: 0;
   overflow-y: auto;
   @include scrollbar-visible;
+  // Bottom gap matches the Lighting rail and Cooling list, so a scrolled-to-end tab is not flush.
+  padding-bottom: 1rem;
+}
+
+// The Sensors tab hands its bottom gap to the watchlist's scroller so the scrollbar reaches the bottom edge.
+.tabContentFill {
+  padding-bottom: 0;
 }
 
 // ── Action bar ──
@@ -105,6 +112,11 @@
 
 // ── Component health grid ──
 
+// The status strip sits above the tile grid with the grid's own gap between them.
+.summaryStrip {
+  margin-bottom: 0.75rem;
+}
+
 // Fixed 2x2 of large domain tiles (Storage / Memory / Cooling / System). Two
 // columns on any comfortable width, collapsing to a single column when the
 // content area is too narrow for two readable tiles.
@@ -122,7 +134,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-height: 116px;
+  min-height: 190px;
   // A resting border so each domain reads as a distinct tile - the shared
   // dash-tile hover keeps a transparent border and --surface sits very close
   // to --bg, so without this the four tiles blur into the page.
@@ -132,6 +144,25 @@
   // Own stacking context so the watermark's negative z-index paints above the
   // card surface but beneath the text.
   isolation: isolate;
+}
+
+.okInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.okCount {
+  font-size: var(--type-body);
+  color: var(--text);
+  font-weight: var(--weight-heading);
+}
+
+.okLine {
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }
 
 .reasonList {
@@ -184,6 +215,36 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+// One drive: its name row sits above the container, which holds only content.
+.driveBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.driveHeading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.driveBus {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.driveHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pollLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }
 
 // Overview + (optional) NVMe side by side; a single column fills the card.
@@ -279,25 +340,10 @@
   flex-wrap: wrap;
 }
 
-// ── GPU ──
-
-.gpuGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.throttleBadges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
 // ── Cooling ──
 
-// A two-column split under a chart: Cooling uses it for GPU (left) + Fans
-// (right); System uses it for the 30-day counts (left) + Device problems
-// (right). Stacks when the content area is narrow.
+// A two-column split: System uses it for the 30-day counts (left) + Device
+// problems (right). Stacks when the content area is narrow.
 .diagSplit {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -316,47 +362,14 @@
 }
 
 .coolingList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  align-items: start;
 
-.coolingRow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.8rem;
-  background: var(--surface);
-  border-radius: var(--radius);
-}
-
-// A stalled fan's row reads as a danger callout.
-.coolingRowStalled {
-  border: 1px solid var(--bad);
-  background: color-mix(in srgb, var(--bad) 12%, transparent);
-}
-
-.coolingName {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
-  color: var(--text);
-  font-weight: var(--weight-heading);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.coolingMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  font-family: var(--font-mono);
-  flex-shrink: 0;
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 // ── Temperature history ──
@@ -430,7 +443,7 @@
   padding: 0.45rem 0.6rem;
   cursor: pointer;
 
-  &:hover { background: color-mix(in srgb, var(--bg) 40%, transparent); }
+  &:hover { background: var(--surface-hover); }
 }
 
 .pnpHeaderText {
@@ -576,4 +589,10 @@
 .incidentTooltipMore {
   font-size: var(--type-mini);
   color: var(--text-dim);
+}
+
+.componentSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
 }

@@ -726,7 +726,7 @@
   --effect-template-border-width: var(--picker-border-width);
   --effect-template-border: transparent;
   --effect-template-preview-inset: var(--picker-fill-gap);
-  --effect-template-hover-border: var(--border-strong);
+  --effect-template-hover-border: var(--border-hover);
   // Transparent so the inset preview floats with no plate around it, matching
   // the colour swatches' transparent gap.
   --effect-template-bg: transparent;
@@ -1106,6 +1106,14 @@
     color: var(--text);
     background: var(--surface);
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--border-strong);
+    color: var(--text-dim);
+    background: transparent;
+  }
 }
 
 .deviceCard {
@@ -1120,9 +1128,7 @@
   cursor: pointer;
   transition: border-color var(--ease-fast), background var(--ease-fast);
 
-  &:hover {
-    border-color: var(--border-strong);
-  }
+  @include interactive-hover;
 
   // The selection's border without its fill: a pick lands here. After :hover,
   // like the selected state, so hovering does not drop the accent.
@@ -1149,8 +1155,7 @@
   }
 
   &.deviceCardSelected {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    @include interactive-selected;
   }
 
   // Detection-failed / 0-LED non-resizable zones: dimmed + dashed as a state
@@ -1158,8 +1163,6 @@
   &.deviceCardUnavailable {
     opacity: 0.55;
     border-style: dashed;
-
-    &:hover { border-color: var(--border-strong); }
   }
 
   &.deviceCardNeedsBinding {
@@ -1262,11 +1265,17 @@
 
 .deviceCardStackHeaderSelectable {
   cursor: pointer;
+  transition: background var(--ease-fast);
+
+  // Fill only: the header's outline is open at the bottom and a selected zone
+  // owns its own border, so a hover border here would draw a second outline.
+  &:hover { background: var(--surface-hover); }
 }
 
 // Any zone under the header selected: the fill only, so the selected zone's
 // own accent border stays the one outline in the card.
-.deviceCardStackHeaderSelected {
+.deviceCardStackHeaderSelected,
+.deviceCardStackHeaderSelected:hover {
   background: var(--accent-soft);
 }
 

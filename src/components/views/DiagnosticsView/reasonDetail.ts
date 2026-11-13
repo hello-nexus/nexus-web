@@ -56,13 +56,6 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
       escalation: ctx.t(escalated ? 'diagnostics.reasonDetail.escalated' : 'diagnostics.reasonDetail.notEscalated'),
     });
   },
-  'cooling.sustainedHighTemp': (p, ctx) => {
-    const peak = num(p.peakC);
-    const start = timeText(ctx, stampMs(p.start));
-    const end = timeText(ctx, stampMs(p.end));
-    if (peak === null || start === null || end === null) return null;
-    return ctx.t('diagnostics.reasonDetail.sustainedHighTemp', { peak: temp(ctx, peak), start, end });
-  },
   'cooling.fanStall': stall,
   'cooling.pumpStall': stall,
   'alerts.sensorThreshold': (p, ctx) => {
@@ -72,6 +65,16 @@ const FORMATTERS: Partial<Record<string, Formatter>> = {
     const fmt = (v: number) => formatAlertValue(v, p.type, ctx.monitoringTempUnit, ctx.numberFormat, ctx.monitoringWholeNumbers);
     return ctx.t(p.direction === 'below' ? 'diagnostics.alerts.notice.below' : 'diagnostics.alerts.notice.above', {
       name: p.sensorName, limit: fmt(threshold), value: fmt(value),
+    });
+  },
+  'alerts.sensorThresholdEnded': (p, ctx) => {
+    const peak = num(p.peak);
+    const threshold = num(p.threshold);
+    const ended = timeText(ctx, num(p.ended));
+    if (peak === null || threshold === null || ended === null || !p.type || !p.sensorName) return null;
+    const fmt = (v: number) => formatAlertValue(v, p.type, ctx.monitoringTempUnit, ctx.numberFormat, ctx.monitoringWholeNumbers);
+    return ctx.t('diagnostics.reasonDetail.sensorThresholdEnded', {
+      name: p.sensorName, limit: fmt(threshold), peak: fmt(peak), time: ended,
     });
   },
 };
@@ -86,7 +89,7 @@ function stall(p: Record<string, string>, ctx: ReasonDetailContext): string | nu
 
 // Codes whose service detail is key=value debug text, never prose.
 const DEBUG_DETAIL_CODES: ReadonlySet<string> = new Set([
-  'cooling.thermalGuardTrip', 'cooling.fanStall', 'cooling.pumpStall', 'cooling.sustainedHighTemp', 'alerts.sensorThreshold',
+  'cooling.thermalGuardTrip', 'cooling.fanStall', 'cooling.pumpStall', 'alerts.sensorThreshold', 'alerts.sensorThresholdEnded',
 ]);
 
 const KEY_VALUE_START = /^\s*\w+=/;

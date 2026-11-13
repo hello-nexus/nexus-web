@@ -1,0 +1,121 @@
+@use '../../../styles/text' as *;
+
+// The shared Card supplies the surface and the selected treatment; this only trims its inset
+// so the row's own name button is the click target.
+.card {
+  padding: 0;
+  min-width: 0;
+}
+
+.dimmed .name {
+  color: var(--text-dim);
+}
+
+.danger {
+  border-color: var(--bad);
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  min-width: 0;
+  // Every row matches the tallest layout (chip stacked over its reading), so rows with fewer parts do not shrink.
+  min-height: var(--status-row-min-height, 4.25rem);
+  box-sizing: border-box;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--text-dim);
+  // Air on both sides so a kind icon is not cramped against the edge and the name.
+  padding-inline: var(--space-xs);
+}
+
+// Words wrap at spaces and never mid-word; a single word longer than the row still breaks as a last resort.
+.nameBlock {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.name {
+  // The label size of a standard settings row (SettingRow).
+  @include text-body;
+  display: block;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--text);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+// Two lines at most, then an ellipsis.
+.nameText {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  &.oneLine {
+    -webkit-line-clamp: 1;
+  }
+}
+
+.subtitle {
+  display: block;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.name {
+  cursor: pointer;
+}
+
+.status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+// The chip's line matches the name line's height, so the two sit level.
+.chipLine {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: calc(var(--type-body) * 1.5);
+}
+
+.value {
+  flex-shrink: 0;
+  font-size: var(--type-small);
+  // Same font size and inherited line height as the subtitle, so the reading sits level with it.
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.note {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+}

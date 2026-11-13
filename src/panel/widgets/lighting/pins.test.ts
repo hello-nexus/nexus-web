@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   animatePin, colorPin, MIRROR_PIN, paletteColorPin, pickerMarks, pinGridKey, pinHex, pinnedNamesByEffect,
   clearLegacyLightingKeys, pinModeTargetLabel, pinSignature, pinStripPick, pinTargetLabel, pressReach, isPickTarget, selectAllEligible, selectionPin, staticLookPin,
-  tabPressChangesNothing, withPins, selectionWithoutUnpinned,
+  tabPressChangesNothing, withPins, selectionWithoutUnpinned, reconcileSelectionTab,
 } from './pins';
 import { defaultStateFor } from '../../../types/lighting';
 import { withStacked } from './page/deviceStacks';
@@ -275,5 +275,23 @@ describe('selectionWithoutUnpinned', () => {
     pins = withPins(pins, [...left.ids], animatePin('aurora'));
     expect(pins.a).toBeUndefined();
     expect(pins.b).toEqual(animatePin('aurora'));
+  });
+});
+
+describe('reconcileSelectionTab', () => {
+  it('keeps the opened tab on a remount while the service state is still loading', () => {
+    expect(reconcileSelectionTab('static', 'animate', 'none', false)).toEqual({ tab: 'static', base: 'animate' });
+  });
+
+  it('keeps the opened tab once the loaded mode matches the one it was opened under', () => {
+    expect(reconcileSelectionTab('gif', 'animate', 'animate', true)).toEqual({ tab: 'gif', base: 'animate' });
+  });
+
+  it('drops the tab when the global mode changed while away', () => {
+    expect(reconcileSelectionTab('static', 'animate', 'screen', true)).toEqual({ tab: null, base: 'screen' });
+  });
+
+  it('records the first loaded mode without dropping anything', () => {
+    expect(reconcileSelectionTab(null, null, 'animate', true)).toEqual({ tab: null, base: 'animate' });
   });
 });

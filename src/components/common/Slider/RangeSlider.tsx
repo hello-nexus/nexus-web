@@ -39,6 +39,12 @@ import styles from './RangeSlider.module.scss';
  * track outside the band on the enabled sides, `marker` points a live reading
  * under the track (stacked and bare layouts), and `softBounds` lets a typed
  * value land beyond min/max so the caller can widen the track.
+ *
+ * Open-ended use (`openEnded`, sensor alert limits): both knobs always stay on
+ * screen. A side whose limit is off (`lowEnabled` / `highEnabled` false) parks
+ * its knob at the track end, drawn hollow, and reads its off label. Dragging a
+ * knob onto its end, typing a value at or past it, or clearing the field is
+ * reported as the end value, which the caller reads as "no limit".
  */
 export interface RangeSliderProps {
   label?: string;
@@ -69,6 +75,12 @@ export interface RangeSliderProps {
   outsideTone?: 'warn' | 'bad';
   /** A typed value may go beyond min/max (the caller widens the track); dragging stays inside. */
   softBounds?: boolean;
+  /** Keeps both knobs visible when a side is off: the off knob sits hollow at its track end. */
+  openEnded?: boolean;
+  /** Readout of an off low side (openEnded). */
+  lowOffLabel?: string;
+  /** Readout of an off high side (openEnded). */
+  highOffLabel?: string;
 }
 
 
@@ -89,6 +101,7 @@ export function RangeSlider({
   formatValue, minGap, onChange, onCommit, disabled,
   ariaLabelMin, ariaLabelMax, className,
   lowEnabled = true, highEnabled = true, marker, outsideTone, softBounds = false,
+  openEnded = false, lowOffLabel, highOffLabel,
 }: RangeSliderProps) {
   const [valMin, valMax] = value;
   const span = max - min;
@@ -125,14 +138,14 @@ export function RangeSlider({
 
   const handleMinChange = (raw: number, commit = false) => {
     const lo = softBounds && commit ? Number.NEGATIVE_INFINITY : min;
-    const next = clamp(raw, lo, highEnabled ? valMax - gap : max);
+    const next = clamp(raw, lo, highEnabled || openEnded ? valMax - gap : max);
     if (next === valMin && !commit) return;
     commitValue([next, valMax], commit);
   };
 
   const handleMaxChange = (raw: number, commit = false) => {
     const hi = softBounds && commit ? Number.POSITIVE_INFINITY : max;
-    const next = clamp(raw, lowEnabled ? valMin + gap : min, hi);
+    const next = clamp(raw, lowEnabled || openEnded ? valMin + gap : min, hi);
     if (next === valMax && !commit) return;
     commitValue([valMin, next], commit);
   };
@@ -196,23 +209,31 @@ export function RangeSlider({
   // so pass the slider's true min/max here (not the gap-narrowed bounds) -
   // otherwise on non-integer steps the typed grid is offset from the slider's.
   // The gap clamp happens in handleMinChange / handleMaxChange.
+  const lowShown = lowEnabled || openEnded;
+  const highShown = highEnabled || openEnded;
+  const lowFormat = openEnded && !lowEnabled && lowOffLabel ? () => lowOffLabel : formatValue;
+  const highFormat = openEnded && !highEnabled && highOffLabel ? () => highOffLabel : formatValue;
+  const lowText = openEnded && !lowEnabled && lowOffLabel ? lowOffLabel : fmt(valMin);
+  const highText = openEnded && !highEnabled && highOffLabel ? highOffLabel : fmt(valMax);
   const valueNode = editable ? (
     <span className={styles.valueGroup}>
-      {lowEnabled && (
+      {lowShown && (
         <EditableNumber value={valMin} min={min} max={max} step={step}
-          onCommit={v => handleMinChange(v, true)} format={formatValue} unbounded={softBounds}
+          onCommit={v => handleMinChange(v, true)} format={lowFormat} unbounded={softBounds || openEnded}
+          emptyValue={openEnded ? min : undefined}
           className={styles.value} ariaLabel={ariaLabelMin} disabled={disabled} />
       )}
-      {bothEnabled && <span className={styles.valueSep} aria-hidden="true">-</span>}
-      {highEnabled && (
+      {lowShown && highShown && <span className={styles.valueSep} aria-hidden="true">-</span>}
+      {highShown && (
         <EditableNumber value={valMax} min={min} max={max} step={step}
-          onCommit={v => handleMaxChange(v, true)} format={formatValue} unbounded={softBounds}
+          onCommit={v => handleMaxChange(v, true)} format={highFormat} unbounded={softBounds || openEnded}
+          emptyValue={openEnded ? max : undefined}
           className={styles.value} ariaLabel={ariaLabelMax} disabled={disabled} />
       )}
     </span>
   ) : (
     <span className={styles.value}>
-      {lowEnabled && fmt(valMin)}{bothEnabled && ' - '}{highEnabled && fmt(valMax)}
+      {lowShown && lowText}{lowShown && highShown && ' - '}{highShown && highText}
     </span>
   );
 
@@ -241,27 +262,31 @@ export function RangeSlider({
       <input type="range" min={min} max={max} step={step} value={clamp(valMin, min, max)}
         disabled={disabled} aria-label={ariaLabelMin}
         data-range-knob="min"
-        aria-hidden={lowEnabled ? undefined : true} tabIndex={lowEnabled ? undefined : -1}
+        aria-hidden={lowEnabled || openEnded ? undefined : true} tabIndex={lowEnabled || openEnded ? undefined : -1}
+        data-unset={openEnded && !lowEnabled ? 'true' : undefined}
         style={minPct > 50 ? { zIndex: 1 } : undefined}
         onChange={e => handleMinChange(Number(e.target.value), false)}
         onPointerUp={handleEnd}
         onPointerCancel={handleEnd}
         onKeyUp={handleEnd}
-        className={`${styles.range} ${lowEnabled ? '' : styles.knobOff}`} />
+        className={`${styles.range} ${lowEnabled || openEnded ? '' : styles.knobOff}`} />
       <input type="range" min={min} max={max} step={step} value={clamp(valMax, min, max)}
         disabled={disabled} aria-label={ariaLabelMax}
         data-range-knob="max"
-        aria-hidden={highEnabled ? undefined : true} tabIndex={highEnabled ? undefined : -1}
+        aria-hidden={highEnabled || openEnded ? undefined : true} tabIndex={highEnabled || openEnded ? undefined : -1}
+        data-unset={openEnded && !highEnabled ? 'true' : undefined}
         onChange={e => handleMaxChange(Number(e.target.value), false)}
         onPointerUp={handleEnd}
         onPointerCancel={handleEnd}
         onKeyUp={handleEnd}
-        className={`${styles.range} ${highEnabled ? '' : styles.knobOff}`} />
+        className={`${styles.range} ${highEnabled || openEnded ? '' : styles.knobOff}`} />
     </>
   );
 
   const markNode = marker ? (
-    <SliderMarks marks={[{ value: marker.value, label: marker.label }]} min={min} max={max} knobPx={NATIVE_KNOB_PX} side="below" />
+    <div className={styles.markWrap}>
+      <SliderMarks marks={[{ value: marker.value, label: marker.label }]} min={min} max={max} knobPx={NATIVE_KNOB_PX} side="below" />
+    </div>
   ) : null;
 
   if (orientation === 'bare') {

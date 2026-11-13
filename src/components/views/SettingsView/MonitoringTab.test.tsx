@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MonitoringTab } from './MonitoringTab';
 import { getDefaultSettings } from '../../../lib/settings';
 
+vi.mock('./DiagnosticsSettingsSections', () => ({ DiagnosticsNotificationsSection: () => null, DiagnosticsResetSection: () => null }));
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));

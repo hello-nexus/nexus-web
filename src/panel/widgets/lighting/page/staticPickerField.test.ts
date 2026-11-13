@@ -49,6 +49,25 @@ describe('staticPickerField', () => {
     }
   });
 
+  it('offers pure red and the other five primaries in the vivid row', () => {
+    const vivid = SEGMENT_SWATCHES.slice(3 * PICKER_SEGMENT_COLS, 4 * PICKER_SEGMENT_COLS);
+    expect(vivid[0]).toBe('#ff0000');
+    const step = PICKER_SEGMENT_COLS / 6;
+    expect([0, 1, 2, 3, 4, 5].map(i => vivid[i * step])).toEqual(
+      ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'],
+    );
+  });
+
+  it('wraps a hue just short of red onto column 0 and lands the snap on its swatch', () => {
+    const p = pickerPointFor('#ff0020');
+    expect(segmentCellFor(p.x, p.y).col).toBe(0);
+    expect(segmentCellFor(350 / 360, 0.5).col).toBe(0);
+    expect(segmentCellFor(1, 0.5).col).toBe(0);
+    expect(segmentCellFor(16 / 360, 0.5).col).toBe(1);
+    expect(snapToSegment(350 / 360, 0.5)).toEqual({ x: 0, y: 0.5 });
+    expect(pickerHexAt(0, 0.5)).toBe('#ff0000');
+  });
+
   it('reaches the darkest row from a press at the bottom edge', () => {
     expect(segmentCellFor(0.5, 1).row).toBe(PICKER_SEGMENT_ROWS - 1);
     expect(segmentCellFor(0.5, 0).row).toBe(0);

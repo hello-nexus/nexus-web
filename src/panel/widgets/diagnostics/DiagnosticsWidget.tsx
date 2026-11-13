@@ -8,6 +8,7 @@ import type { DiagnosticsComponent, DiagnosticsStatus } from '../../../api/diagn
 import {
   aggregateDomainTiles,
   DOMAIN_ICON,
+  domainTitleKey,
   reasonLabel,
   statusLabelKey,
   worstReason,
@@ -67,7 +68,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
   }
 
   const worst = worstReason(health.components);
-  const tiles = aggregateDomainTiles(health.components);
+  const tiles = aggregateDomainTiles(health.components, { alertReasons: false });
   const alertComponents = health.components.filter(c => c.kind === 'alerts' && c.status !== 'ok');
   const worstAlert = alertComponents.find(c => c.status === 'act') ?? alertComponents[0];
   const worstOwner = worst ? health.components.find(c => c.reasons.includes(worst)) : undefined;
@@ -87,7 +88,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
                 <span className={styles.blockText}>
                   <span className={styles.blockTitle}>
                     <PanelStatusDot tone={panelToneFor(tile.status)} />
-                    <span className={styles.blockName}>{t(`diagnostics.kind.${tile.domain}`)}</span>
+                    <span className={styles.blockName}>{t(domainTitleKey(tile.domain))}</span>
                   </span>
                   <span className={styles.blockDetail}>{detail}</span>
                 </span>
@@ -125,7 +126,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
       <span className={styles.overall}>{t(statusLabelKey(health.overall))}</span>
       <div className={styles.dots}>
         {tiles.map(tile => {
-          const label = `${t(`diagnostics.kind.${tile.domain}`)}: ${t(statusLabelKey(tile.status))}`;
+          const label = `${t(domainTitleKey(tile.domain))}: ${t(statusLabelKey(tile.status))}`;
           return (
             <HoverTooltip key={tile.domain} body={label} side="top">
               <span className={styles.dotSlot} role="img" aria-label={label} tabIndex={0}>

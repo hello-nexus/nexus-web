@@ -3,24 +3,5 @@
 // Sliders sit between rows, so they take a row's vertical rhythm.
 .sliderBlock {
   padding: 0.5rem 0;
-}
-
-.delayPair {
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.delayField {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.delayLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  white-space: nowrap;
+  min-width: 0;
 }

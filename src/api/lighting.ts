@@ -465,6 +465,9 @@ export const setLockBlackout = (enabled: boolean) =>
 export const SAMPLING_MODES = ['led', 'nearest', 'rows', 'columns'] as const;
 export type SamplingMode = (typeof SAMPLING_MODES)[number];
 
+export const COLOR_SAMPLING_MODES = ['standard', 'vivid', 'ignore-black'] as const;
+export type ColorSamplingMode = (typeof COLOR_SAMPLING_MODES)[number];
+
 export interface LightingDevice {
   id: string;
   /** What the UI shows: the user's custom name once the card is renamed, the hardware name otherwise. */
@@ -494,6 +497,8 @@ export interface LightingDevice {
   maxRateHz?: number | null;
   /** How each LED reads the effect: its own spot, or the nearest area split as cells, rows or columns. */
   sampling?: SamplingMode;
+  /** How the pixels of one LED's read combine into its color; absent means standard. */
+  colorSampling?: ColorSamplingMode;
   /** One polygon per card LED, [u0, v0, u1, v1, ...] in the frame's unrotated 0..1 space (v down), covering the frame with no overlap. Empty for a disabled LED. Present only when sampling is not 'led'. */
   areaCells?: number[][];
   ledCount: number;
@@ -787,6 +792,10 @@ export const setLightingColorAdjust = (ids: string[], patch: LightingColorAdjust
 // Per-device frame-rate cap for slow hardware. null turns the cap off.
 export const setLightingMaxRate = (id: string, maxRateHz: number | null) =>
   postService<ApiEnvelope>('/devices/lighting-devices/max-rate', { id, maxRateHz });
+
+// Per-device color sampling mode.
+export const setLightingColorSampling = (id: string, mode: ColorSamplingMode) =>
+  postService<ApiEnvelope>('/devices/lighting-devices/color-sampling', { id, mode });
 
 // Per-device sampling mode.
 export const setLightingSampling = (id: string, mode: SamplingMode) =>

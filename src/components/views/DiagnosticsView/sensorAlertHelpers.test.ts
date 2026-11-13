@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds,
+  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel, findTrackedRule, rowTitles, isNotReported,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
   id: 'r1', enabled: true,
   sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'CPU Package', type: 'Temperature', parentName: 'CPU' },
   low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
-  notifyDesktop: true, showInHealth: true, repeatMinutes: 0, ...over,
+  notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0, ...over,
 });
 
 const state = (over: Partial<SensorAlertState> = {}): SensorAlertState => ({
@@ -49,7 +49,7 @@ describe('temperature unit conversion', () => {
 
 describe('slider bounds per type', () => {
   it('uses the fixed ranges for temperature and percent types', () => {
-    expect(baseBounds('Temperature', 50, null, 80)).toEqual({ min: 0, max: 120 });
+    expect(baseBounds('Temperature', 50, null, 80)).toEqual({ min: 20, max: 100 });
     for (const type of ['Load', 'Control', 'Level']) expect(baseBounds(type, 50, null, 80)).toEqual({ min: 0, max: 100 });
   });
 
@@ -69,7 +69,7 @@ describe('slider bounds per type', () => {
   });
 
   it('widens to include a limit typed beyond the range, and never shrinks', () => {
-    expect(baseBounds('Temperature', 50, null, 150)).toEqual({ min: 0, max: 150 });
+    expect(baseBounds('Temperature', 50, null, 150)).toEqual({ min: 20, max: 150 });
     expect(widenBounds({ min: 0, max: 120 }, [null, 130, -5])).toEqual({ min: -5, max: 130 });
     expect(widenBounds({ min: 0, max: 120 }, [40])).toEqual({ min: 0, max: 120 });
   });
@@ -113,6 +113,7 @@ describe('new rule defaults', () => {
 describe('alert state helpers', () => {
   it('shows no chip for a disabled rule and the service state otherwise', () => {
     expect(chipState(rule({ enabled: false }), state())).toBeNull();
+    expect(chipState(rule(), state({ state: 'off' }))).toBeNull();
     expect(chipState(rule(), state({ state: 'pending' }))).toBe('pending');
     expect(chipState(rule(), undefined)).toBe('ok');
   });
@@ -209,5 +210,106 @@ describe('active alert banner', () => {
     expect(isBannerAlert(rule(), state({ acknowledged: true }))).toBe(false);
     expect(isBannerAlert(rule(), state({ state: 'pending' }))).toBe(false);
     expect(isBannerAlert(rule(), undefined)).toBe(false);
+  });
+});
+
+describe('padBounds', () => {
+  it('grows both ends by one step, the no-limit stops past the real range', () => {
+    expect(padBounds({ min: 20, max: 100 }, 1)).toEqual({ min: 19, max: 101 });
+    expect(padBounds({ min: 0, max: 1 }, 0.05)).toEqual({ min: -0.05, max: 1.05 });
+  });
+});
+
+describe('stateLabelKey', () => {
+  it('words an unavailable sensor as not reported, never as a fault', () => {
+    expect(stateLabelKey('unavailable', rule())).toBe('diagnostics.sensors.notReported');
+    expect(stateLabelKey('ok', rule())).toBe('diagnostics.status.ok');
+    expect(stateLabelKey('pending', rule())).toBe('diagnostics.status.pending');
+  });
+
+  it('shows an active alert as its rule level', () => {
+    expect(stateLabelKey('active', rule())).toBe('diagnostics.status.watch');
+    expect(stateLabelKey('active', rule({ severity: 'act' }))).toBe('diagnostics.status.act');
+  });
+});
+
+describe('ruleLabel', () => {
+  it('names a built-in by its device name and a user rule by its sensor label', () => {
+    const builtIn = rule({ builtIn: 'gpuTemp', sensor: { category: 'builtin', id: 'gpu-temp:gpu-0', name: 'GPU Alpha', type: 'Temperature', parentName: '' } });
+    expect(ruleLabel(builtIn)).toBe('GPU Alpha');
+    expect(ruleLabel(rule())).toBe('CPU Package');
+  });
+});
+
+describe('findTrackedRule and rowTitles', () => {
+  const mk = (id: string, sensor: Partial<SensorAlertRule['sensor']>, builtIn: SensorAlertRule['builtIn'] = null, source?: SensorAlertRule['source']): SensorAlertRule => ({
+    id, enabled: true, sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU', ...sensor },
+    low: null, high: 80, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch', notifyDesktop: false, notifyMobile: false, showInHealth: true, repeatMinutes: 0, builtIn, source,
+  });
+  const t = (key: string, vars?: Record<string, string | number>) => (vars ? `${key}(${vars.count})` : key);
+  const pkg = { category: 'cpu', id: 'cpu/temp/0', name: 'Package', type: 'Temperature', parentName: 'CPU' };
+
+  it('finds the entry tracking a sensor, comparing a built-in by its source sensor and ignoring the entry being edited', () => {
+    const a = mk('a', { id: 'x' });
+    const cpu = mk('builtin:cpu-temp', { category: 'builtin', id: 'cpu-temp', parentName: '' }, 'cpuTemp', { kind: 'sensor', sensor: pkg, sensors: [], hardwareName: 'CPU' });
+    const drive = mk('builtin:drive-temp:d', { category: 'builtin', id: 'drive-temp:d', parentName: '' }, 'storageTemp', { kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' });
+    expect(findTrackedRule([a, cpu, drive], pkg)).toBe(cpu);
+    expect(findTrackedRule([cpu], pkg, 'builtin:cpu-temp')).toBeUndefined();
+    expect(findTrackedRule([a], a.sensor)).toBe(a);
+    expect(findTrackedRule([drive, mk('b', { id: 'y' })], { ...pkg, id: 'other' })).toBeUndefined();
+    expect(findTrackedRule([a], { ...a.sensor, type: 'Fan' })).toBeUndefined();
+  });
+
+  it('titles a custom entry as the picker did, per category shape', () => {
+    const row = (sensor: Partial<SensorAlertRule['sensor']>) => rowTitles(mk('c', sensor), t);
+    expect(row({ category: 'memory', id: 'ram/load/0', name: 'Memory', type: 'Load', parentName: 'Total Memory' }))
+      .toEqual({ title: 'monitoring.settings.category.memory', subtitle: 'Memory (Load)' });
+    expect(row({ category: 'cpu', name: 'CPU Package', type: 'Temperature' }))
+      .toEqual({ title: 'monitoring.settings.category.cpu', subtitle: 'Package (Temperature)' });
+    expect(row({ category: 'gpu', name: 'GPU Core', type: 'Load' }).subtitle).toBe('Core (Load)');
+    expect(row({ category: 'motherboard', name: 'Chassis Fan #1', type: 'Fan' }).subtitle).toBe('Chassis Fan #1 (Fan)');
+    expect(row({ category: 'motherboard', name: '+12V', type: 'Voltage' }).subtitle).toBe('+12V (Voltage)');
+    expect(row({ category: 'fan', name: 'Fan #2', type: 'Fan' })).toEqual({ title: 'monitoring.settings.category.motherboard', subtitle: 'Fan #2' });
+    expect(row({ category: 'storage', name: 'Temperature', type: 'Temperature' }).subtitle).toBe('Temperature');
+  });
+
+  it('prefers the live picker label when one is supplied and keeps the old shape for an unknown category', () => {
+    expect(rowTitles(mk('c', { category: 'storage', name: 'Temperature' }), t, () => 'Samsung (C:) Temperature').subtitle).toBe('Samsung (C:) Temperature');
+    expect(rowTitles(mk('c', { category: 'weird' }), t)).toEqual({ title: 'CPU', subtitle: 'Package' });
+    expect(rowTitles(mk('c', { category: 'weird', parentName: '' }), t)).toEqual({ title: 'Package', subtitle: undefined });
+  });
+
+  it('titles a fan built-in as its device then the fan, never the same text twice', () => {
+    const fan = (name: string, parentName: string, hardwareName: string) => mk(
+      'builtin:fan:x', { category: 'builtin', name, type: 'Fan', parentName: '' }, 'fanSpeed',
+      { kind: 'sensor', sensor: { category: 'gpu', id: 'f', name, type: 'Fan', parentName }, sensors: [], hardwareName },
+    );
+    expect(rowTitles(fan('GPU Fan 1', 'NVIDIA GeForce RTX 5080', 'NVIDIA GeForce RTX 5080'), t)).toEqual({ title: 'NVIDIA GeForce RTX 5080', subtitle: 'GPU Fan 1' });
+    expect(rowTitles(fan('Fan #1', 'ITE IT8696E', 'Fan #1'), t)).toEqual({ title: 'ITE IT8696E', subtitle: 'Fan #1' });
+    expect(rowTitles(fan('Fan #1', '', 'Fan #1'), t)).toEqual({ title: 'Fan #1', subtitle: undefined });
+  });
+
+  it('titles every entry as device then exact sensor', () => {
+    expect(rowTitles(mk('a', {}), t)).toEqual({ title: 'monitoring.settings.category.cpu', subtitle: 'Package (Temperature)' });
+    const builtIn = (source?: SensorAlertRule['source']) => mk('builtin:x', { category: 'builtin', name: 'AMD Ryzen', parentName: '' }, 'cpuTemp', source);
+    expect(rowTitles(builtIn(), t)).toEqual({ title: 'AMD Ryzen', subtitle: undefined });
+    expect(rowTitles(builtIn({ kind: 'sensor', sensor: pkg, sensors: [], hardwareName: 'CPU' }), t).subtitle).toBe('Package');
+    expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg, pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average.other(2)');
+    expect(rowTitles(builtIn({ kind: 'average', sensor: null, sensors: [pkg], hardwareName: 'Memory' }), t).subtitle).toBe('diagnostics.sensors.source.average.one(1)');
+    expect(rowTitles(builtIn({ kind: 'drive', sensor: null, sensors: [], hardwareName: 'D' }), t).subtitle).toBe('diagnostics.sensors.source.drive');
+    expect(rowTitles(builtIn({ kind: 'channel', sensor: null, sensors: [], hardwareName: 'Fan' }), t).subtitle).toBe('diagnostics.sensors.source.channel');
+  });
+});
+
+describe('isNotReported', () => {
+  const st = (state: string): SensorAlertState => ({ ruleId: 'r1', state: state as SensorAlertState['state'], acknowledged: false });
+  it('is true only for the unavailable verdict, whether or not alerts are on', () => {
+    expect(isNotReported(st('unavailable'))).toBe(true);
+    expect(isNotReported(st('off'))).toBe(false);
+    expect(isNotReported(st('ok'))).toBe(false);
+    expect(isNotReported(undefined)).toBe(false);
+  });
+  it('never raises a banner for a switched-off rule, whatever state the service sends', () => {
+    expect(isBannerAlert(rule({ enabled: false }), st('active'))).toBe(false);
   });
 });

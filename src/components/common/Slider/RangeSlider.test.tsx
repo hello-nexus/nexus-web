@@ -136,3 +136,48 @@ describe('RangeSlider', () => {
     });
   });
 });
+
+describe('RangeSlider openEnded', () => {
+  const open = (props: Partial<React.ComponentProps<typeof RangeSlider>> = {}) => {
+    const onChange = vi.fn();
+    const view = render(
+      <RangeSlider
+        orientation="stacked" editable openEnded value={[20, 70]} min={20} max={100} onChange={onChange}
+        lowEnabled={false} highEnabled lowOffLabel="No lower limit" highOffLabel="No upper limit"
+        ariaLabelMin="Low" ariaLabelMax="High" {...props}
+      />,
+    );
+    return { onChange, ...view };
+  };
+
+  it('keeps both knobs, marks the off one hollow and names it in the readout', () => {
+    open();
+    expect(screen.getByRole('slider', { name: 'Low' })).toHaveAttribute('data-unset', 'true');
+    expect(screen.getByRole('slider', { name: 'High' })).not.toHaveAttribute('data-unset');
+    expect(screen.getByText('No lower limit')).toBeInTheDocument();
+  });
+
+  it('keeps the off knob focusable by keyboard', () => {
+    open();
+    const low = screen.getByRole('slider', { name: 'Low' });
+    expect(low).not.toHaveAttribute('tabindex', '-1');
+    expect(low).not.toHaveAttribute('aria-hidden');
+  });
+
+  it('commits the track end when an emptied field clears a limit', () => {
+    const { onChange } = open({ lowEnabled: true, value: [40, 70] });
+    fireEvent.click(screen.getByRole('button', { name: 'Low' }));
+    const field = document.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(onChange).toHaveBeenLastCalledWith([20, 70], true);
+  });
+
+  it('stops the free knob a gap short of an off knob', () => {
+    const { onChange } = open({ highEnabled: false, lowEnabled: true, value: [40, 100] });
+    fireEvent.change(screen.getByRole('slider', { name: 'Low' }), { target: { value: '100' } });
+    const [next] = onChange.mock.calls.at(-1)![0] as [number, number];
+    expect(next).toBeLessThan(100);
+  });
+});
+

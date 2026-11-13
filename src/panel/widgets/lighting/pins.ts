@@ -17,6 +17,27 @@ export const SELECTED_DEVICES_STORAGE_KEY = 'nexus.lighting.pinSelection';
 /** The selection's anchor device, highlighted on the canvas and 3D scene. */
 export const PRIMARY_DEVICE_STORAGE_KEY = 'nexus.lighting.primaryDevice';
 
+/** The tab a press opened for a selection, kept so leaving the page and coming back reopens it. */
+export const SELECTION_TAB_STORAGE_KEY = 'nexus.lighting.selectionTab';
+
+/** The global mode that tab was opened under, so a change made while away drops it. */
+export const SELECTION_TAB_BASE_STORAGE_KEY = 'nexus.lighting.selectionTabBase';
+
+/**
+ * Keeps the opened selection tab across a remount. A global mode change drops it,
+ * but only once the service state has loaded: before that `mode` is the placeholder
+ * and would wipe the stored tab on every mount.
+ */
+export function reconcileSelectionTab(
+  tab: LightingMode | null,
+  base: LightingMode | null,
+  mode: LightingMode,
+  synced: boolean,
+): { tab: LightingMode | null; base: LightingMode | null } {
+  if (!synced || base === mode) return { tab, base };
+  return { tab: base === null ? tab : null, base: mode };
+}
+
 /** Keys of the per-device-pick era. */
 const LEGACY_LIGHTING_KEYS = [
   'nexus.lighting.selectedDevices',

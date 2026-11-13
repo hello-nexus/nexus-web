@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Fan, Thermometer, ZoomOut } from 'lucide-react';
-import { TimeSeriesChart, type ChartRibbonSpec } from '../../common/TimeSeriesChart/TimeSeriesChart';
+import { TimeSeriesChart, type ChartRibbonSpec, type TimeSeriesBand, type TimeSeriesSeries, type TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../common/TimelineBrush/TimelineBrush';
 import { Select } from '../../common/Select/Select';
@@ -24,10 +24,36 @@ import {
 import { episodeBand, formatTemperatureCelsius } from './temperatureHelpers';
 import { coolingSilhouettePoints, toCoolingTempChartSeries } from './coolingHistoryHelpers';
 import styles from './CoolingHistorySection.module.scss';
+// The chart block shares the Monitoring page's surface, range row and brush styles instead of copying them.
+import chartStyles from '../../../panel/widgets/monitoring/page/MetricHistorySection.module.scss';
 
 export interface CoolingHistorySectionProps {
   history: UseMetricHistoryResult;
   episodes?: readonly DiagnosticsTemperatureEpisode[];
+  /** Rendered in the header beside the live badge (the Thermals mode toggle). */
+  headerControl?: ReactNode;
+  /** The highlighted line, with its limit lines in `thresholds`. */
+  activeSeriesId?: string | null;
+  thresholds?: readonly TimeSeriesThreshold[];
+  /** Where lines leave their watchlist limits, drawn with the episode bands. */
+  rangeBands?: readonly TimeSeriesBand[];
+  onSeriesSelect?: (seriesId: string) => void;
+  /** Header text; the temperature title when omitted. */
+  title?: string;
+  /** Lines drawn instead of the device temperatures (a unit group of watchlist sensors). */
+  lines?: readonly TimeSeriesSeries[];
+  /** Lines added after the device temperatures (custom temperature sensors). */
+  extraLines?: readonly TimeSeriesSeries[];
+  /** Draws the average fan speed strip under the lines; on by default. */
+  fanStrip?: boolean;
+  /** Formats the axis and tooltip values; Celsius shown in the unit preference when omitted. */
+  valueFormat?: (value: number) => string;
+  yDomain?: readonly [number | null, number | null];
+  /** The empty-state text; the temperature one when omitted. */
+  emptyTitle?: string;
+  /** Glyph above the empty-state title; the Thermals chart's thermometer by default. */
+  emptyIcon?: ReactNode;
+  wheelZoomNeedsModifier?: boolean;
 }
 
 const CHART_HEIGHT = 246;
@@ -36,16 +62,21 @@ const CHART_HEIGHT = 246;
  * The Cooling tab's temperature history block: a scrubbable multi-line chart
  * (one line per cpu/gpu/memory/drive temperature sensor) with sustained-high-
  * temperature episodes as bands and average fan speed (RPM) as a band
- * underneath, a range picker, and a seek-bar. Sits above the GPU/fan-pump
- * split.
+ * underneath, a range picker, and a seek-bar. Heads the Thermals tab.
  */
-export function CoolingHistorySection({ history, episodes }: CoolingHistorySectionProps) {
+export function CoolingHistorySection({
+  history, episodes, headerControl, activeSeriesId, thresholds, rangeBands, onSeriesSelect,
+  title, lines, extraLines, fanStrip = true, valueFormat: valueFormatProp, yDomain, emptyTitle, emptyIcon, wheelZoomNeedsModifier,
+}: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat, timeFormat, dateFormat } = useUnitPrefs();
 
-  const chartSeries = useMemo(() => toCoolingTempChartSeries(history.series), [history.series]);
+  const chartSeries = useMemo(
+    () => lines ? [...lines] : [...toCoolingTempChartSeries(history.series), ...(extraLines ?? [])],
+    [lines, extraLines, history.series],
+  );
   const silhouettePoints = useMemo(() => coolingSilhouettePoints(history.silhouette), [history.silhouette]);
-  const rpmPoints = useMemo(() => averageRpmSeries(history.series), [history.series]);
+  const rpmPoints = useMemo(() => (fanStrip ? averageRpmSeries(history.series) : []), [fanStrip, history.series]);
 
   const windowEnd = history.domain[1];
   const windowMs = windowEnd - history.domain[0];
@@ -55,11 +86,11 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   // record, so that is what the chip shows once following goes false.
   const detachedLabel = useMemo(() => formatSelectedFrameTime(windowEnd, windowMs, timeFormat, dateFormat), [windowEnd, windowMs, timeFormat, dateFormat]);
   const valueFormat = useMemo(
-    () => (v: number) => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat),
-    [monitoringTempUnit, numberFormat],
+    () => valueFormatProp ?? ((v: number) => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat)),
+    [valueFormatProp, monitoringTempUnit, numberFormat],
   );
 
-  const bands = useMemo(() => (episodes ?? []).map(episodeBand), [episodes]);
+  const bands = useMemo(() => [...(episodes ?? []).map(episodeBand), ...(rangeBands ?? [])], [episodes, rangeBands]);
 
   // Docked on the same row as the tooltip's own timestamp header - the
   // fan-speed band has no per-series avg/max tooltip row of its own (it
@@ -102,21 +133,24 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   const showEmpty = !history.loading && !history.error && chartSeries.length === 0 && rpmPoints.length === 0;
 
   return (
-    <section className={styles.root}>
+    <section className={chartStyles.root}>
       <div className={styles.headerRow}>
         <div className={styles.headerStatus}>
-          <SectionHeader>{t('diagnostics.temperature.title')}</SectionHeader>
+          <SectionHeader>{title ?? t('diagnostics.temperature.title')}</SectionHeader>
           {history.mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
-        <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
+        <div className={styles.headerActions}>
+          {headerControl}
+          <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
+        </div>
       </div>
 
       {showUnsupported ? (
-        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+        <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
           <EmptyState compact title={t('monitoring.history.unsupported')} />
         </div>
       ) : history.error ? (
-        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+        <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
           <EmptyState
             compact
             title={t('monitoring.history.error')}
@@ -124,10 +158,10 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
           />
         </div>
       ) : showLoadingSkeleton ? (
-        <div className={styles.skeleton} style={{ height: CHART_HEIGHT }} />
+        <div className={chartStyles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : showEmpty ? (
-        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
-          <EmptyState compact icon={<Thermometer size={22} />} title={t('diagnostics.temperature.empty')} />
+        <div className={chartStyles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact icon={emptyIcon ?? <Thermometer size={22} />} title={emptyTitle ?? t('diagnostics.temperature.empty')} />
         </div>
       ) : (
         <>
@@ -140,6 +174,9 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
             avgLabel={t('diagnostics.temperature.avg')}
             maxLabel={t('diagnostics.temperature.max')}
             bands={bands}
+            thresholds={thresholds}
+            activeSeriesId={activeSeriesId}
+            onSeriesSelect={onSeriesSelect}
             tooltipHeaderExtra={tooltipHeaderRpm ?? undefined}
             onRangeSelect={history.onChartDragSelect}
             onWheelZoom={history.onChartWheelZoom}
@@ -147,12 +184,14 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
             yAxisSide="right"
             singleValueTooltip
             ribbons={ribbons}
+            yDomain={yDomain}
+            wheelZoomNeedsModifier={wheelZoomNeedsModifier}
           />
-          <div className={styles.controls}>
+          <div className={chartStyles.controls}>
             {history.rangeKey === 'custom' ? (
               <button
                 type="button"
-                className={styles.resetRange}
+                className={chartStyles.resetRange}
                 style={{ height: TIMELINE_BRUSH_DEFAULT_HEIGHT }}
                 onClick={() => history.setRange(history.lastPresetKey)}
               >
@@ -161,7 +200,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
               </button>
             ) : (
               <Select
-                className={styles.rangeSelect}
+                className={chartStyles.rangeSelect}
                 height={TIMELINE_BRUSH_DEFAULT_HEIGHT}
                 value={history.rangeKey}
                 onChange={key => history.setRange(key as typeof history.lastPresetKey)}
@@ -170,7 +209,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
               />
             )}
             <TimelineBrush
-              className={styles.brush}
+              className={chartStyles.brush}
               domainStart={history.stripDomain[0]}
               domainEnd={history.stripDomain[1]}
               from={history.domain[0]}

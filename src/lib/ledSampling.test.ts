@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ledSample, sampleBox, sampleSpot, type SampleDevice } from './ledSampling';
+import { combinePixels, ledSample, sampleBox, sampleSpot, type SampleDevice } from './ledSampling';
 
 const W = 160;
 const H = 96;
@@ -161,5 +161,40 @@ describe('parity with the service sampler', () => {
     expect(lit.length).toBeGreaterThan(0);
     expect(lit.length).toBeLessThanOrEqual(2);
     for (const i of lit) expect(read(f, d, i, 60)[0]).toBe(255);
+  });
+});
+
+describe('combinePixels color sampling modes', () => {
+  const half = () => {
+    const f = canvas([0, 0, 0]);
+    for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) setPx(f, x, y, (x + y) % 2 === 0 ? [255, 255, 255] : [0, 0, 0]);
+    return f;
+  };
+  it('standard is the plain mean', () => {
+    expect(combinePixels(half(), 0, 0, 1, 1)).toEqual([127, 127, 127]);
+    expect(combinePixels(half(), 0, 0, 1, 1, 'standard')).toEqual([127, 127, 127]);
+  });
+  it('vivid averages in linear light', () => {
+    expect(combinePixels(half(), 0, 0, 1, 1, 'vivid')).toEqual([188, 188, 188]);
+  });
+  it('ignore-black skips near-black pixels', () => {
+    expect(combinePixels(half(), 0, 0, 1, 1, 'ignore-black')).toEqual([255, 255, 255]);
+    const f = canvas([0, 0, 0]);
+    setPx(f, 0, 0, [8, 8, 8]);
+    setPx(f, 1, 0, [100, 0, 0]);
+    expect(combinePixels(f, 0, 0, 1, 0, 'ignore-black')).toEqual([100, 0, 0]);
+  });
+  it('ignore-black falls back to the plain mean when all pixels are near-black', () => {
+    const f = canvas([0, 0, 0]);
+    setPx(f, 0, 0, [8, 8, 8]);
+    expect(combinePixels(f, 0, 0, 1, 0, 'ignore-black')).toEqual([4, 4, 4]);
+  });
+  it('sampleSpot and sampleBox pass the mode through', () => {
+    const f = canvas([0, 0, 0]);
+    setPx(f, 10, 10, [255, 255, 255]);
+    const at = { sx: 10.5, sy: 10.5, halfW: 1, halfH: 1 };
+    expect(sampleSpot(f, at, 'ignore-black')).toEqual([255, 255, 255]);
+    expect(sampleBox(f, at, 'ignore-black')).toEqual([255, 255, 255]);
+    expect(sampleSpot(f, at)).toEqual([28, 28, 28]);
   });
 });

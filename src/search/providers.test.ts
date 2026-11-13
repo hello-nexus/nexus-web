@@ -44,6 +44,12 @@ const LIVE: SearchLiveState = {
   cloud: { accounts: [], activeAccountId: 'acc1' },
   volume: { supported: true, volume: 0.4, muted: false },
   canAutoInstall: true,
+  sensorAlerts: [
+    {
+      id: 'r1', enabled: true, sensor: { category: 'cpu', id: 'cpu/temp/0', name: 'Core Max', type: 'Temperature', parentName: 'AMD Ryzen' },
+      low: null, high: 90, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'act', notifyDesktop: true, showInHealth: true, repeatMinutes: 0, builtIn: null,
+    },
+  ],
 };
 
 function ctx(online: boolean, over?: Partial<CommandContext>): CommandContext {
@@ -333,6 +339,22 @@ describe('buildEntries', () => {
     expect(scoreEntry('/logs', bundle)).toBe(scoreEntry('logs', bundle));
     expect(ranked.some((x) => x.e.id === 'diag:open-data-folder')).toBe(false);
     expect(scoreEntry('folder', entries.find((e) => e.id === 'diag:open-data-folder')!)).not.toBeNull();
+  });
+
+  it('lists watchlist entries by entry, sensor and device name and opens the Sensors tab on that entry', () => {
+    const goView = vi.fn();
+    const entries = buildEntries(ctx(true, { host: { goView, goSection: () => {}, pairPhone: () => {} } }));
+    const entry = entries.find((e) => e.id === 'watchlist:r1')!;
+    expect(entry.kind).toBe('navigate');
+    for (const q of ['core', 'ryzen']) expect(scoreEntry(q, entry)).not.toBeNull();
+    expect(scoreEntry('zzzz', entry)).toBeNull();
+    entry.run();
+    expect(goView).toHaveBeenCalledWith('diagnostics', 'cooling:r1');
+  });
+
+  it('offers no watchlist entries until the rule list is loaded', () => {
+    expect([...idsOf(false)].some((id) => id.startsWith('watchlist:'))).toBe(false);
+    expect([...idsOf(true, { live: { ...LIVE, sensorAlerts: [] } })].some((id) => id.startsWith('watchlist:'))).toBe(false);
   });
 
   it('indexes background modes as appearance actions', () => {

@@ -1,6 +1,10 @@
-import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import classNames from 'classnames';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { Button } from '../Button/Button';
+import { useTranslation } from '../../../lib/i18n';
+import { computeEdges, revealOffset, scrollDelta, type OverflowEdges } from './tabOverflow';
 import styles from './Tabs.module.scss';
 
 export interface TabDef {
@@ -43,7 +47,7 @@ export interface TabsProps {
   disabled?: boolean;
   /** aria-label for the <nav> element. Defaults to "Tabs" if omitted. */
   ariaLabel?: string;
-  /** Optional extra class on the <nav>, e.g. for tighter margins in constrained layouts. */
+  /** Optional extra class on the outer host (strip plus scroll arrows), e.g. for tighter margins in constrained layouts. */
   className?: string;
   /** Stretch the bar to 100% width with each tab sharing the width equally. */
   fullWidth?: boolean;
@@ -62,12 +66,63 @@ function withTooltip(tab: TabDef, button: ReactElement): ReactElement {
  * Text-only and icon+text tabs both flow through this one component.
  */
 export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, fullWidth = false, onHover }: TabsProps) {
-  const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth, className);
+  const { t } = useTranslation();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState<OverflowEdges>({ overflow: false, atStart: true, atEnd: true });
+  const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth);
+
+  const measure = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const next = computeEdges(el.scrollLeft, el.scrollWidth, el.clientWidth, hostRef.current?.clientWidth);
+    setEdges(prev => (prev.overflow === next.overflow && prev.atStart === next.atStart && prev.atEnd === next.atEnd ? prev : next));
+  }, []);
+
+  const revealActive = useCallback(() => {
+    const el = scrollerRef.current;
+    const tab = el?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    if (!el || !tab) return;
+    // A grouped tab (trailing control) reveals its whole pill.
+    const target = tab.parentElement?.getAttribute('role') === 'presentation' ? tab.parentElement : tab;
+    el.scrollLeft = revealOffset(el.scrollLeft, el.clientWidth, target.offsetLeft, target.offsetWidth);
+  }, []);
+
+  // Reveal runs only when the active tab changes (and on mount), so a resize
+  // never discards the user's manual scroll. Layout effect: no first-frame jump.
+  useLayoutEffect(() => { revealActive(); }, [revealActive, activeKey, tabs.length]);
+
+  useLayoutEffect(() => { measure(); }, [measure, tabs, activeKey]);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onResize = () => measure();
+    window.addEventListener('resize', onResize);
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.removeEventListener('resize', onResize);
+    }
+    const ro = new ResizeObserver(onResize);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    if (hostRef.current) ro.observe(hostRef.current);
+    return () => { ro.disconnect(); window.removeEventListener('resize', onResize); };
+  }, [measure]);
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const delta = scrollDelta(dir, el.clientWidth);
+    if (typeof el.scrollTo === 'function') el.scrollTo({ left: el.scrollLeft + delta, behavior: 'smooth' });
+    else el.scrollLeft += delta;
+  };
   const hoverProps = (key: string) => onHover ? {
     onPointerEnter: (e: ReactPointerEvent) => { if (e.pointerType === 'mouse') onHover(key); },
     onPointerLeave: (e: ReactPointerEvent) => { if (e.pointerType === 'mouse') onHover(null); },
   } : {};
   return (
+    <div ref={hostRef} className={classNames(styles.host, fullWidth && styles.hostFull, className)}>
+      <div ref={scrollerRef} className={styles.scroller} onScroll={measure}>
     <nav className={navClass} role="tablist" aria-label={ariaLabel}>
       {tabs.map(tab => {
         const isActive = tab.key === activeKey;
@@ -125,5 +180,13 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
         );
       })}
     </nav>
+      </div>
+      {edges.overflow && (
+        <div className={styles.arrows}>
+          <Button size="sm" tone="ghost" icon={<ChevronLeft size={16} />} aria-label={t('common.tabs.scrollLeft')} disabled={edges.atStart} onClick={() => scrollBy(-1)} />
+          <Button size="sm" tone="ghost" icon={<ChevronRight size={16} />} aria-label={t('common.tabs.scrollRight')} disabled={edges.atEnd} onClick={() => scrollBy(1)} />
+        </div>
+      )}
+    </div>
   );
 }

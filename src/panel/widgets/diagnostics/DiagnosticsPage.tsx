@@ -8,14 +8,16 @@ interface DiagnosticsPageProps {
   // Controlled tab = the route subtab (so /diagnostics/cooling deep-links).
   tab: string | null;
   onTabChange: (tab: string) => void;
+  /** Changes on every navigation, so a repeated link to the same entry applies again. */
+  navKey?: unknown;
   onOpenCooling?: () => void;
 }
 
 // Thin wrapper so the desktop dashboard route and the AppManifest's Page slot
 // both resolve to the same DiagnosticsView the deliverable specifies under
 // components/views/, instead of duplicating its content here.
-export function DiagnosticsPage({ serviceOnline, connectionState, platform, tab, onTabChange, onOpenCooling }: DiagnosticsPageProps) {
+export function DiagnosticsPage({ serviceOnline, connectionState, platform, tab, onTabChange, onOpenCooling, navKey }: DiagnosticsPageProps) {
   return (
-    <DiagnosticsView serviceOnline={serviceOnline} connectionState={connectionState} platform={platform} tab={tab} onTabChange={onTabChange} onOpenCooling={onOpenCooling} />
+    <DiagnosticsView serviceOnline={serviceOnline} connectionState={connectionState} platform={platform} tab={tab} onTabChange={onTabChange} onOpenCooling={onOpenCooling} navKey={navKey} />
   );
 }

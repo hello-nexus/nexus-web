@@ -94,6 +94,7 @@ import { fireSearchSignal } from '../search/signals';
 import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
+import { announcePairPhoneClosed, onPairPhoneRequest } from './pairPhoneRequest';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { FeaturesOnboardingScreen } from '../components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen';
 import { HyteOnboardingScreen } from '../components/common/HyteOnboardingScreen/HyteOnboardingScreen';
@@ -356,7 +357,7 @@ export function Dashboard() {
   // Before useRoute: its canonical-path redirect drops the query this reads.
   useState(() => stashPanelEditorTarget(window.location.pathname, window.location.search));
   const {
-    section, view, subtab,
+    route, section, view, subtab,
     navigate, setView, setSubtab,
     canGoBack: routeCanGoBack, canGoForward: routeCanGoForward, goBack: routeGoBack, goForward: routeGoForward,
   } = useRoute();
@@ -764,6 +765,7 @@ export function Dashboard() {
     setManualOverride(prev => (collapsed ? true : prev === true ? null : prev));
   }, []);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
+  useEffect(() => onPairPhoneRequest(() => setPairPhoneOpen(true)), []);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [startedInstall, setStartedInstall] = useState(false);
@@ -1023,7 +1025,7 @@ export function Dashboard() {
           }}
         />
       );
-      case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenCooling={() => navigate('system', 'cooling')} /></FeatureGate>;
+      case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} navKey={route} onTabChange={setSubtab} onOpenCooling={() => navigate('system', 'cooling')} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
       case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} onOpenCooling={() => navigate('system', 'cooling')} platform={status.ping?.platform ?? ''} />;
@@ -1031,7 +1033,7 @@ export function Dashboard() {
       case 'weather':    return <WeatherPage tab={subtab ?? undefined} />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
-      case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenDeckEditor={target => handleOpenDeckEditor({ ...target, token: 0 })} />;
+      case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} onOpenDeckEditor={target => handleOpenDeckEditor({ ...target, token: 0 })} onOpenDevices={() => navigate('system', 'devices')} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} tab={subtab} onTabChange={setSubtab} />;
       case 'account':    return OFFICIAL_BUILD ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} tab={subtab} onTabChange={setSubtab} onOpenStoreApp={appId => navigate('system', 'store', appId)} onOpenStoreEffect={id => navigate('system', 'store', `effects/${id}`)} /> : <Placeholder title={activeView} />;
       case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
@@ -1280,7 +1282,7 @@ export function Dashboard() {
           connectedCount={serviceState.panel?.phoneSubscribers ?? 0}
           remoteEnabled={remoteControlEnabled}
           onRemoteEnabledChange={setRemoteControlEnabled}
-          onClose={() => setPairPhoneOpen(false)}
+          onClose={() => { setPairPhoneOpen(false); announcePairPhoneClosed(); }}
         />
         {OFFICIAL_BUILD && (
           <AccountSignInModal

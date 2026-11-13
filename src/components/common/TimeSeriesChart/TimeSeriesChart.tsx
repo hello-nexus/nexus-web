@@ -111,6 +111,10 @@ export interface TimeSeriesChartProps {
   /** Dashed horizontal lines across the plot at fixed values (e.g. alert limits); a value outside the y range is not drawn. */
   thresholds?: readonly TimeSeriesThreshold[];
   showLegend?: boolean;
+  /** The highlighted series: it draws heavier and every other line dims. */
+  activeSeriesId?: string | null;
+  /** Makes each legend item a button that reports its series id. */
+  onSeriesSelect?: (id: string) => void;
   /** Force the x-axis window instead of deriving it from the data extent, so a
    *  range wider than the available data shows empty space rather than
    *  stretching the data to fill it. Falls back to the data extent when omitted. */
@@ -181,6 +185,10 @@ export interface TimeSeriesChartProps {
    *  false lets it fall through, e.g. once the window cannot zoom further.
    *  Mostly-horizontal wheel motion is never offered. */
   onWheelZoom?: (anchorT: number, factor: number) => boolean;
+  /** With onWheelZoom: a plain wheel scrolls the page and only Ctrl/Cmd+wheel
+   *  (which is also how a trackpad pinch arrives) zooms. Opt-in; off keeps the
+   *  plain wheel zooming. */
+  wheelZoomNeedsModifier?: boolean;
   /** Renders a thin event lane along the top of the chart, one marker per
    *  event. Omit (the default, `undefined`) to render no lane at all and
    *  keep the plot at its original layout, byte-identical to before this
@@ -243,8 +251,8 @@ const EVENT_CLUSTER_THRESHOLD_PX = EVENT_MARKER_SIZE;
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
-  avgLabel, maxLabel, bands, thresholds, showLegend = true, domain, tooltipExtra, yDomain,
-  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom,
+  avgLabel, maxLabel, bands, thresholds, showLegend = true, activeSeriesId, onSeriesSelect, domain, tooltipExtra, yDomain,
+  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom, wheelZoomNeedsModifier = false,
   events, onEventClick, onAddEventAt, renderEventTooltip,
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
@@ -382,7 +390,8 @@ export function TimeSeriesChart({
   // line's own plot area, into the ribbon gap/band, colliding with the
   // ribbon's fill and value label. Dropping ticks under minV removes only
   // ones with no line data to reference in the first place.
-  const yTicks = useMemo(() => niceTicks(minV, maxV, yTickCount).filter(tick => tick >= minV), [minV, maxV, yTickCount]);
+  // The same goes for a tick rounded above maxV: its y sits over the plot's top edge, where its label clips.
+  const yTicks = useMemo(() => niceTicks(minV, maxV, yTickCount).filter(tick => tick >= minV && tick <= maxV), [minV, maxV, yTickCount]);
 
   const xTicks = useMemo(() => {
     if (!domainT) return [];
@@ -533,6 +542,10 @@ export function TimeSeriesChart({
   useLayoutEffect(() => {
     wheelHandlerRef.current = (e: WheelEvent) => {
       if (!onWheelZoom || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || isDragging) return;
+      const modified = e.ctrlKey || e.metaKey;
+      if (wheelZoomNeedsModifier && !modified) return;
+      // Ctrl+wheel (and a trackpad pinch, which arrives as one) would otherwise zoom the page.
+      if (wheelZoomNeedsModifier) e.preventDefault();
       const svg = svgRef.current;
       if (!svg) return;
       const anchorT = pxToT(tToPx(e.clientX, svg.getBoundingClientRect()));
@@ -779,7 +792,8 @@ export function TimeSeriesChart({
                   d={d}
                   fill="none"
                   stroke={s.color}
-                  strokeWidth="1.6"
+                  strokeWidth={activeSeriesId === s.id ? 2.4 : 1.6}
+                  opacity={activeSeriesId && activeSeriesId !== s.id ? 0.35 : 1}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke"
@@ -939,7 +953,20 @@ export function TimeSeriesChart({
 
       {showLegend && series.length > 0 && (
         <div className={styles.legend}>
-          {series.map(s => (
+          {series.map(s => onSeriesSelect ? (
+            <button
+              key={s.id}
+              type="button"
+              className={`${styles.legendItem} ${styles.legendButton}`}
+              aria-pressed={activeSeriesId === s.id}
+              data-testid="chart-legend-item"
+              data-series-id={s.id}
+              onClick={() => onSeriesSelect(s.id)}
+            >
+              <span className={styles.legendDot} style={{ background: s.color }} />
+              <span className={styles.legendName}>{s.name}</span>
+            </button>
+          ) : (
             <span key={s.id} className={styles.legendItem}>
               <span className={styles.legendDot} style={{ background: s.color }} />
               <span className={styles.legendName}>{s.name}</span>

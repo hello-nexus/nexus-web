@@ -116,8 +116,37 @@ export const fetchGallerySources = () =>
 // Playlists ride on the items read so every surface (a relayed phone too)
 // resolves a widget's playlist without a second request.
 // truncated is present only when the service cap dropped items.
+// sort is the order items already arrive in; absent from a service that predates it.
 export const fetchGalleryItems = () =>
-  fetchService<{ items: GalleryItem[]; playlists?: GalleryPlaylist[]; truncated?: boolean }>('/gallery/items');
+  fetchService<{ items: GalleryItem[]; playlists?: GalleryPlaylist[]; truncated?: boolean; sort?: GallerySort }>('/gallery/items');
+
+// One per system, applied by the service to every surface's item list. Keep in
+// lockstep with GallerySortKeys / GallerySortDirections in nexus-service
+// Models/Gallery/GalleryModels.cs.
+export type GallerySortKey = 'name' | 'modified' | 'added';
+export type GallerySortDirection = 'asc' | 'desc';
+
+export interface GallerySort {
+  by: GallerySortKey;
+  direction: GallerySortDirection;
+}
+
+export const DEFAULT_GALLERY_SORT: GallerySort = { by: 'name', direction: 'asc' };
+
+export interface GallerySortMutation {
+  sort: GallerySort | null;
+  error?: boolean;
+  msg?: string;
+}
+
+export async function updateGallerySort(sort: GallerySort): Promise<boolean> {
+  try {
+    const res = await putService<GallerySortMutation>('/gallery/sort', sort);
+    return !!res && res.error !== true;
+  } catch {
+    return false;
+  }
+}
 
 export interface GalleryPlaylistMutation {
   playlist: GalleryPlaylist | null;

@@ -338,6 +338,29 @@ describe('TimeSeriesChart', () => {
       expect(onWheelZoom.mock.calls[0][1]).toBeLessThan(1);
     });
 
+    it('with wheelZoomNeedsModifier, a plain wheel scrolls the page and Ctrl or Cmd plus wheel zooms', () => {
+      const onWheelZoom = vi.fn(() => true);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} wheelZoomNeedsModifier />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
+      expect(onWheelZoom).not.toHaveBeenCalled();
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, ctrlKey: true })).toBe(false);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, metaKey: true })).toBe(false);
+      expect(onWheelZoom).toHaveBeenCalledTimes(2);
+    });
+
+    it('with wheelZoomNeedsModifier, Ctrl+wheel never zooms the page even when the chart declines the zoom', () => {
+      const onWheelZoom = vi.fn(() => false);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} wheelZoomNeedsModifier />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, ctrlKey: true })).toBe(false);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
+    });
+
     it('lets mostly horizontal wheel motion (a trackpad pan) through untouched', () => {
       const onWheelZoom = vi.fn(() => true);
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);
@@ -767,6 +790,14 @@ describe('TimeSeriesChart', () => {
       expect(screen.getByText('Avg 40C')).toBeInTheDocument();
       expect(screen.getByText('Max 45C')).toBeInTheDocument();
     });
+  });
+
+  it('keeps every y-tick label inside the plot, so the top one is not clipped', () => {
+    const series = [{ id: 'a', name: 'A', color: '#fff', points: [{ t: 0, avg: 41, max: 41 }, { t: HOUR, avg: 77, max: 78 }] }];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    const ys = [...container.querySelectorAll('text')].filter(n => /^\d+C$/.test(n.textContent ?? '')).map(n => Number(n.getAttribute('y')));
+    expect(ys.length).toBeGreaterThan(1);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(12);
   });
 
   describe('yAxisSide', () => {

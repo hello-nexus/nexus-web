@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SmartPollSection } from './SmartPollSection';
 import { fetchSmartPoll, SMART_POLL_CHOICES, SMART_POLL_NEVER } from '../../../api/smartPoll';
@@ -48,34 +48,29 @@ describe('SmartPollSection', () => {
     });
   });
 
-  it('renders one slider per drive beside the default', async () => {
+  it('renders only the shared default, with no per-drive list or switch', async () => {
     render(<SmartPollSection serviceOnline />);
-    await waitFor(() => expect(screen.getByLabelText('ST4000DM004')).toBeInTheDocument());
-    expect(screen.getByLabelText('Samsung 990 PRO')).toBeInTheDocument();
-    expect(screen.getByLabelText('settings.smartPoll.defaultLabel')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('settings.smartPoll.defaultLabel')).toBeInTheDocument());
+    expect(screen.queryByLabelText('ST4000DM004')).toBeNull();
+    expect(screen.queryByLabelText('Samsung 990 PRO')).toBeNull();
+    expect(screen.queryByText('settings.smartPoll.perDriveLabel')).toBeNull();
   });
 
-  it('positions each slider at its own interval, not the index of the value', async () => {
+  it('keeps the shared default editable even when a drive is set apart', async () => {
     render(<SmartPollSection serviceOnline />);
-    await waitFor(() => expect(screen.getByLabelText('ST4000DM004')).toBeInTheDocument());
-    // The slider carries the CHOICE INDEX, so a 30s drive sits at index-of(30).
-    expect(screen.getByLabelText('ST4000DM004')).toHaveValue(String(SMART_POLL_CHOICES.indexOf(30)));
-    expect(screen.getByLabelText('Samsung 990 PRO')).toHaveValue(String(SMART_POLL_CHOICES.indexOf(1)));
+    await waitFor(() => expect(screen.getByLabelText('settings.smartPoll.defaultLabel')).toBeEnabled());
   });
 
-  it('disables the per-drive sliders when one value governs every drive', async () => {
-    uiSettings.smartPollPerDrive = false;
+  it('moves the drives following the default and leaves the one set apart', async () => {
+    uiSettings.smartPollSeconds = { '/hdd/0': 30, '/nvme/0': 5 };
     render(<SmartPollSection serviceOnline />);
-    await waitFor(() => expect(screen.getByLabelText('ST4000DM004')).toBeInTheDocument());
-    expect(screen.getByLabelText('ST4000DM004')).toBeDisabled();
-    expect(screen.getByLabelText('settings.smartPoll.defaultLabel')).toBeEnabled();
-  });
-
-  it('disables the shared default when each drive is set separately', async () => {
-    render(<SmartPollSection serviceOnline />);
-    await waitFor(() => expect(screen.getByLabelText('ST4000DM004')).toBeInTheDocument());
-    expect(screen.getByLabelText('settings.smartPoll.defaultLabel')).toBeDisabled();
-    expect(screen.getByLabelText('ST4000DM004')).toBeEnabled();
+    const slider = await screen.findByLabelText('settings.smartPoll.defaultLabel');
+    fireEvent.change(slider, { target: { value: String(SMART_POLL_CHOICES.indexOf(60)) } });
+    expect(update).toHaveBeenCalledWith({
+      smartPollSeconds: { '/hdd/0': 60, '/nvme/0': 5 },
+      smartPollDefaultSeconds: 60,
+      smartPollPerDrive: true,
+    });
   });
 
   it('keeps Never at the far end of the track', () => {
@@ -106,7 +101,7 @@ describe('SmartPollSection', () => {
   it('keeps the rows when the service omits the flag, whatever the pillars', async () => {
     Object.assign(pillars, { monitoring: false, diagnostics: false });
     render(<SmartPollSection serviceOnline />);
-    await waitFor(() => expect(screen.getByLabelText('ST4000DM004')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('settings.smartPoll.defaultLabel')).toBeInTheDocument());
     expect(screen.queryByText('settings.pillarOff.smartPoll')).toBeNull();
   });
 

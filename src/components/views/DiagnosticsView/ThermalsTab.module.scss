@@ -1,0 +1,96 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/scrollbar' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  // Fills the tab content column so the watchlist can take the height left under the chart; never shorter than its content, so a tall settings panel scrolls the page instead of clipping.
+  flex: 1 0 auto;
+}
+
+.note {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.messageBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+  padding: var(--space-lg);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+// Under the graph: the list and the selected sensor's settings side by side at equal widths. Only a phone-width surface stacks them; the app window never gets that narrow.
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+  // Takes the height left in the page; the list scrolls inside it and a taller settings panel overflows into the page scroll.
+  flex: 1 1 0;
+  min-height: 20rem;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    flex: 0 0 auto;
+  }
+}
+
+.listPane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  min-height: 0;
+}
+
+// The header and search stay put; only the grouped rows scroll.
+.listHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.listScroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  // The end gap lives inside the scrolling content, so the scrollbar runs to the bottom edge (same as the Lighting device rail).
+  padding-bottom: 1rem;
+  @include scrollbar-visible;
+
+  @media (max-width: 600px) {
+    max-height: 24rem;
+  }
+}
+
+// Both columns' headers share this row height, so the first cards line up.
+.groupHeader {
+  min-height: var(--size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  // When the panel is taller than the row it spills into the page scroll; this keeps the end gap.
+  padding-bottom: 1rem;
+}
+
+
