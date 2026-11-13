@@ -7,8 +7,20 @@ vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) 
 const logoOf = (el: JSX.Element) => render(el).container.querySelector('[role="img"]')!;
 
 describe('BuildLogo', () => {
-  it('draws the BUILD string as text, so one artwork serves every host', () => {
-    expect(logoOf(<BuildLogo />).textContent).toBe('panel.widget.build.badge');
+  it('draws the wordmark as vector artwork, so no panel or skin font can reach it', () => {
+    const logo = logoOf(<BuildLogo />);
+    expect(logo.textContent).toBe('');
+    expect(logo.querySelector('text')).toBeNull();
+    const svg = logo.querySelector('svg')!;
+    expect(svg.getAttribute('aria-hidden')).toBe('true');
+    expect(svg.querySelector('path')!.getAttribute('d')!.length).toBeGreaterThan(500);
+    expect(logo.outerHTML).not.toMatch(/font-family/);
+  });
+
+  it('paints the outline and the letters in the current color, so the tone drives them', () => {
+    const svg = logoOf(<BuildLogo />).querySelector('svg')!;
+    expect(svg.querySelector('rect')!.getAttribute('stroke')).toBe('currentColor');
+    expect(svg.querySelector('path')!.getAttribute('fill')).toBe('currentColor');
   });
 
   it('is named for assistive tech, by the host when it passes a name', () => {
@@ -23,14 +35,16 @@ describe('BuildLogo', () => {
     expect(logoOf(<BuildLogo />).outerHTML).not.toMatch(/accent/);
   });
 
-  it('rounds every size the same relative to its height: the radius is in em of the type size, never a fixed length', () => {
-    const radii = [8, 16, 40].map((size) => (logoOf(<BuildLogo fontSize={size} />) as HTMLElement).style.borderRadius);
-    const defaultRadius = (logoOf(<BuildLogo />) as HTMLElement).style.borderRadius;
-    for (const radius of [...radii, defaultRadius]) expect(radius).toMatch(/^[\d.]+em$/);
-    expect(new Set([...radii, defaultRadius]).size).toBe(1);
+  it('keeps one shape at every size: the geometry is in viewBox units, never a fixed length', () => {
+    const shapes = [undefined, 8, 16, 40].map((size) => {
+      const svg = logoOf(<BuildLogo fontSize={size} />).querySelector('svg')!;
+      return [svg.getAttribute('viewBox'), svg.querySelector('rect')!.getAttribute('rx'), svg.querySelector('path')!.getAttribute('d')].join('|');
+    });
+    expect(new Set(shapes).size).toBe(1);
+    expect(shapes[0]).not.toMatch(/px/);
   });
 
-  it('sizes the type only when the host asks', () => {
+  it('sizes the logo only when the host asks', () => {
     const sized = logoOf(<BuildLogo fontSize={10} />) as HTMLElement;
     expect(sized.style.fontSize).toBe('10px');
     expect((logoOf(<BuildLogo />) as HTMLElement).style.fontSize).toBe('');

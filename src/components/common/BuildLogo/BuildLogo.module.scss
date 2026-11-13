@@ -1,19 +1,19 @@
-@use '../../../styles/text' as *;
-
 // Neutral by design, never the accent: a text token, or the theme's full-contrast ink (--logo-contrast: pure white on dark,
-// pure black on light). Set like the Cooling widget's mode label (SILENT) with the label mixin.
+// pure black on light). The wordmark is an SVG in em units, so it ignores every font the panel or a skin sets.
 .logo {
   display: inline-block;
   flex: none;
-  box-sizing: border-box;
-  @include text-label;
-  font-family: var(--panel-font, var(--font-sans));
   font-size: var(--type-body);
-  white-space: nowrap;
+  line-height: 0;
   pointer-events: none;
-  // Padding, stroke and the corner radius are in em, so every size keeps the same proportions.
-  border: 0.1674em solid currentColor;
-  padding: 0.15em 0.4em;
+}
+
+// Doubled with .logo: a host that sizes every svg in its icon slot (Button) must not resize the wordmark.
+.logo .mark {
+  display: block;
+  font-size: inherit;
+  height: 1.885em;
+  width: auto;
 }
 
 .contrast {
