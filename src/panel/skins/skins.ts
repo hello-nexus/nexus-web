@@ -140,6 +140,65 @@ function deepened(hex: string): string {
   return rgbToHex(hslToRgb(h, s, l));
 }
 
+// Card face per skin and mode: the colour accent text sits on. Surface skins
+// compute theirs from the accent (skinSurfaceVars); the translucent Glass faces
+// are the fill composited over the backdrop. Screen skins and Blueprint draw their own ink.
+const CARD_FACE: Record<string, { light: string; dark: string }> = {
+  pixel: { light: '#f4f4f4', dark: '#333c57' },
+  bevel: { light: '#d3d3d3', dark: '#4b4f59' },
+  hud: { light: '#f4fafd', dark: '#071a2a' },
+  neon: { light: '#ffffff', dark: '#0e0620' },
+  hifi: { light: '#efe6cc', dark: '#17140f' },
+  cockpit: { light: '#dfe1e3', dark: '#0d0e10' },
+  arcade: { light: '#fff7de', dark: '#1c0d45' },
+  glass: { light: '#f1f5fd', dark: '#121840' },
+  mecha: { light: '#e4e7ea', dark: '#2c3035' },
+  swiss: { light: '#ffffff', dark: '#151515' },
+  clay: { light: '#fbf4ee', dark: '#3d3a4a' },
+  sketch: { light: '#fbf8ee', dark: '#34373d' },
+};
+
+export const ACCENT_INK_MIN = 4.5;
+
+// The accent moved along lightness, toward whichever of black and white reads
+// better on the face, until it reaches the ratio. An accent that already reads is returned as given.
+export function readableInk(hex: string, face: [number, number, number], min = ACCENT_INK_MIN + 0.1): string {
+  const [h, s, l0] = rgbToHsl(hexToRgb(hex));
+  if (contrastRatio(hexToRgb(hex), face) >= min) return hex;
+  const up = contrastRatio([255, 255, 255], face) >= contrastRatio([0, 0, 0], face);
+  let l = l0;
+  while (l > 0 && l < 1) {
+    l += up ? 0.005 : -0.005;
+    if (contrastRatio(hslToRgb(h, s, l), face) >= min) break;
+  }
+  return rgbToHex(hslToRgb(h, s, Math.min(Math.max(l, 0), 1)));
+}
+
+function cardFace(id: string, mode: 'light' | 'dark', accent: string): [number, number, number] | null {
+  if (id in SURFACE_SPECS) return hexToRgb(skinSurfaceVars(id as keyof typeof SURFACE_SPECS, accent)[`--skin-sf-card-${mode}`]);
+  const f = CARD_FACE[id];
+  return f ? hexToRgb(f[mode]) : null;
+}
+
+// Accent as text, per mode: the dark side starts from the accent, the light side from its deepened form.
+export function skinAccentInk(id: string, accent: string, mode: 'light' | 'dark'): { ink: string; face: string } | null {
+  const face = cardFace(id, mode, accent);
+  if (!face) return null;
+  const a = id === 'pixel' ? snapToPixelPalette(accent) : accent;
+  return { ink: readableInk(mode === 'light' ? deepened(a) : a, face), face: rgbToHex(face) };
+}
+
+function skinAccentInkVars(id: string, accent: string, second: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const mode of ['light', 'dark'] as const) {
+    const r = skinAccentInk(id, accent, mode);
+    if (!r) continue;
+    out[`--skin-accent-ink-${mode}`] = r.ink;
+    if (id === 'neon' && mode === 'dark') out[`--skin-accent2-ink-${mode}`] = readableInk(second, hexToRgb(r.face));
+  }
+  return out;
+}
+
 // Vars a style skin reads; --skin-accent2 only matters for Neon.
 export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, string> {
   const a = id === 'pixel' ? snapToPixelPalette(accent) : accent;
@@ -154,6 +213,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
     '--skin-accent2-rgb': hexToRgb(second).join(', '),
     // The accent darkened for text and lines on a light panel.
     '--skin-accent-deep': deepened(a),
+    ...skinAccentInkVars(id, a, second),
     ...(id in SURFACE_SPECS ? skinSurfaceVars(id as keyof typeof SURFACE_SPECS, a) : {}),
     ...(id in BACKDROP_BASE ? skinBackdropVars(id as keyof typeof BACKDROP_BASE, a) : {}),
     ...(id === 'deco' || id === 'steampunk' || id === 'nixie' ? metalVars(a) : {}),
@@ -283,9 +343,9 @@ function crtPaperVars(h: number, s: number): Record<string, string> {
 export function crtPhosphorVars(accent: string): Record<string, string> {
   const [h, s0, l0] = rgbToHsl(hexToRgb(accent));
   const s = Math.max(s0, 0.55);
-  const ink = rgbToHex(hslToRgb(h, s, Math.max(l0, 0.68)));
-  const dim = rgbToHex(hslToRgb(h, s * 0.9, 0.62));
   const bg = rgbToHex(hslToRgb(h, Math.min(s, 0.8), 0.06));
+  const ink = readableInk(rgbToHex(hslToRgb(h, s, Math.max(l0, 0.68))), hexToRgb(bg));
+  const dim = readableInk(rgbToHex(hslToRgb(h, s * 0.9, 0.62)), hexToRgb(bg));
   const back = rgbToHex(hslToRgb(h, Math.min(s, 0.6), 0.02));
   return {
     '--crt-ink': ink,
@@ -347,7 +407,7 @@ export function segmentDisplayVars(accent: string): Record<string, string> {
   const [h, s0] = rgbToHsl(hexToRgb(accent));
   const hex = (sat: number, l: number) => rgbToHex(hslToRgb(h, sat, l));
   const rgb = (c: string) => hexToRgb(c).join(', ');
-  const lit = hex(Math.max(s0, 0.6), 0.68);
+  const lit = readableInk(hex(Math.max(s0, 0.6), 0.68), hexToRgb(hex(Math.min(s0, 0.7), 0.08)));
   // Near-black ink: the hue survives only as a faint tint, so contrast on the pale cell never depends on the accent.
   const deep = hex(Math.min(s0, 0.3), 0.06);
   // LCD backlight: the cell itself glows in the accent hue. Lightness rises until the near-black ink reads at 7:1 on it.

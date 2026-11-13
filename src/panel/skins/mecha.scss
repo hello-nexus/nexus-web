@@ -24,7 +24,7 @@
   --skin-line-cap: butt;
 }
 @include skin('mecha') {
-  @include kit(#16181b, #2c3035, #eceff2, #b4bbc3, #0b0c0e, var(--skin-accent), var(--skin-accent-rgb), #140a00, #5ee08a, #f5c400, #ff5a4a);
+  @include kit(#16181b, #2c3035, #eceff2, #b4bbc3, #0b0c0e, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #140a00, #5ee08a, #f5c400, #ff5a4a);
   @include mecha-common;
   --mc-seam: #0b0c0e;
   --mc-plate: #3a3f46;
@@ -33,7 +33,7 @@
   --gauge-track: rgba(0, 0, 0, 0.4);
 }
 @include skin-light('mecha') {
-  @include kit(#a7adb3, #e4e7ea, #14181c, #3c444c, #2b3036, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #1f7a4d, #8a6200, #b3261e);
+  @include kit(#a7adb3, #e4e7ea, #14181c, #3c444c, #2b3036, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #1f7a4d, #8a6200, #b3261e);
   --mc-seam: #2b3036;
   --mc-plate: #c3c8cd;
   --mc-rivet: #6a717a;
@@ -41,7 +41,7 @@
   --gauge-track: rgba(20, 24, 28, 0.18);
 }
 @include in-skin('mecha', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }
 @include in-skin('mecha', 'svg.lucide') {
   stroke-width: 2.2;

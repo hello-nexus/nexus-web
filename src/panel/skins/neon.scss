@@ -34,14 +34,14 @@
   --text-dim: #c9b4d6;
   --separator: rgba(var(--neon-rgb), 0.4);
   --gauge-track: rgba(255, 255, 255, 0.14);
-  --accent: var(--neon);
-  --accent-glow: var(--neon);
-  --accent-deep: var(--neon);
+  --accent: var(--skin-accent-ink-dark);
+  --accent-glow: var(--skin-accent-ink-dark);
+  --accent-deep: var(--skin-accent-ink-dark);
   --accent-soft: rgba(var(--neon-rgb), 0.22);
   --accent-glow-shadow: rgba(var(--neon-rgb), 0.35);
   --accent-text: #0c0618;
-  --panel-accent: var(--neon);
-  --panel-accent-glow: var(--neon);
+  --panel-accent: var(--skin-accent-ink-dark);
+  --panel-accent-glow: var(--skin-accent-ink-dark);
   --panel-accent-soft: rgba(var(--neon-rgb), 0.22);
   --panel-accent-shadow: rgba(var(--neon-rgb), 0.35);
   --panel-accent-text: #0c0618;
@@ -71,9 +71,9 @@
   --text: #3a1d55;
   --text-dim: #6f5388;
   --gauge-track: rgba(58, 29, 85, 0.12);
-  --accent: var(--skin-accent-deep);
-  --accent-deep: var(--skin-accent-deep);
-  --panel-accent: var(--skin-accent-deep);
+  --accent: var(--skin-accent-ink-light);
+  --accent-deep: var(--skin-accent-ink-light);
+  --panel-accent: var(--skin-accent-ink-light);
   --accent-text: #ffffff;
   --panel-accent-text: #ffffff;
   --good: #0b9a66;
@@ -87,11 +87,12 @@
 .panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink] {
   --neon: var(--skin-accent2);
   --neon-rgb: var(--skin-accent2-rgb);
-  --accent: var(--skin-accent2);
-  --accent-glow: var(--skin-accent2);
-  --accent-deep: var(--skin-accent2);
-  --panel-accent: var(--skin-accent2);
-  --panel-accent-glow: var(--skin-accent2);
+  --accent: var(--skin-accent2-ink-dark);
+  --accent-glow: var(--skin-accent2-ink-dark);
+  --accent-deep: var(--skin-accent2-ink-dark);
+  --panel-accent: var(--skin-accent2-ink-dark);
+  --panel-accent-glow: var(--skin-accent2-ink-dark);
+  --skin-fill: var(--skin-accent2);
   --accent-soft: rgba(var(--skin-accent2-rgb), 0.22);
   --accent-glow-shadow: rgba(var(--skin-accent2-rgb), 0.35);
   --panel-accent-soft: rgba(var(--skin-accent2-rgb), 0.22);
@@ -105,12 +106,15 @@
 // Pastel text stays on the deep accent; the second colour only draws the outline.
 .panel-root[data-panel-skin='neon'][data-theme='light'] [data-panel-widget-id]:nth-child(even),
 .panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink='dark'] {
-  --accent: var(--skin-accent-deep);
-  --accent-deep: var(--skin-accent-deep);
-  --panel-accent: var(--skin-accent-deep);
+  --accent: var(--skin-accent-ink-light);
+  --accent-deep: var(--skin-accent-ink-light);
+  --panel-accent: var(--skin-accent-ink-light);
   --panel-accent-glow: var(--skin-accent-deep);
   --accent-glow: var(--skin-accent-deep);
 }
 @include in-skin('neon', 'svg.lucide') {
   stroke-width: 2.2;
+}
+@include in-skin('neon', '[data-skin-part="fill"]') {
+  background: var(--skin-fill, var(--accent));
 }

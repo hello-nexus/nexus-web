@@ -18,18 +18,18 @@
   --skin-card-image: none;
 }
 @include skin('track') {
-  @include kit(#15171c, #20232b, #f4f6fa, #b8bfcc, #444a58, var(--skin-accent), var(--skin-accent-rgb), #0a0c10, #5ee08a, #ffd166, #ff6b6b);
+  @include kit(#15171c, #20232b, #f4f6fa, #b8bfcc, #444a58, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #0a0c10, #5ee08a, #ffd166, #ff6b6b);
   @include track-common;
   @include derived(dark);
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-sf-line-rgb-dark), 0.6);
   --skin-card-shadow: none;
 }
 @include skin-light('track') {
-  @include kit(#e6e8ee, #ffffff, #14171f, #4a5160, #c4c9d4, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #8a5a00, #b3261e);
+  @include kit(#e6e8ee, #ffffff, #14171f, #4a5160, #c4c9d4, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #8a5a00, #b3261e);
   @include derived(light);
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-sf-line-rgb-light), 0.8);
   --skin-card-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
 }
 @include in-skin('track', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }

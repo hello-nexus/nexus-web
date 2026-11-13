@@ -32,13 +32,13 @@
   --radius-pill: 0;
   --panel-card-radius: 0;
   --panel-element-radius: 0;
-  --accent: var(--skin-accent);
-  --accent-glow: var(--skin-accent);
-  --accent-deep: var(--skin-accent);
+  --accent: var(--skin-accent-ink-dark);
+  --accent-glow: var(--skin-accent-ink-dark);
+  --accent-deep: var(--skin-accent-ink-dark);
   --accent-soft: rgba(var(--skin-accent-rgb), 0.28);
   --accent-glow-shadow: rgba(var(--skin-accent-rgb), 0.35);
-  --panel-accent: var(--skin-accent);
-  --panel-accent-glow: var(--skin-accent);
+  --panel-accent: var(--skin-accent-ink-dark);
+  --panel-accent-glow: var(--skin-accent-ink-dark);
   --panel-accent-soft: rgba(var(--skin-accent-rgb), 0.28);
   --panel-accent-shadow: rgba(var(--skin-accent-rgb), 0.35);
   --skin-spark-fill: rgba(var(--skin-accent-rgb), 0.35);
@@ -91,10 +91,10 @@
   --text-dim: #3f526b;
   --separator: #94b0c2;
   --gauge-track: #c8d6e0;
-  --accent: var(--skin-accent-deep);
-  --accent-glow: var(--skin-accent-deep);
-  --panel-accent: var(--skin-accent-deep);
-  --panel-accent-glow: var(--skin-accent-deep);
+  --accent: var(--skin-accent-ink-light);
+  --accent-glow: var(--skin-accent-ink-light);
+  --panel-accent: var(--skin-accent-ink-light);
+  --panel-accent-glow: var(--skin-accent-ink-light);
   --accent-text: #f4f4f4;
   --panel-accent-text: #f4f4f4;
   --good: #257179;
@@ -120,4 +120,7 @@
 }
 @include in-skin('pixel', '[data-panel-widget-id]:active .panel-card') {
   transform: translate(3px, 3px);
+}
+@include in-skin('pixel', '[data-skin-part="fill"]') {
+  background: var(--skin-fill, var(--accent));
 }

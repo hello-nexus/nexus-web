@@ -61,6 +61,17 @@
   outline-offset: 2px;
 }
 
+// Accent as text reads from --skin-accent-ink-*; bar fills keep the raw accent (--skin-fill),
+// so a dark accent that needed lightening for text still fills at its own colour.
+.panel-root[data-panel-skin][data-theme='dark'],
+.panel-root[data-panel-skin] [data-ink='light'] {
+  --skin-fill: var(--skin-accent);
+}
+.panel-root[data-panel-skin][data-theme='light'],
+.panel-root[data-panel-skin] [data-ink='dark'] {
+  --skin-fill: var(--skin-accent-deep);
+}
+
 // Card chrome. The fill and the frame are pseudo layers so the user's widget
 // opacity (--panel-card-bg-alpha, 0-1) scales them; Chromium 83 has no
 // color-mix() to scale a fill colour directly. The face sits behind the
@@ -180,6 +191,16 @@ $dim-classes: compactLocation, compactStats, largeLocation, largeCurrentStats, h
   .panel-root[data-panel-skin] [class*='_#{$c}_'] {
     opacity: 1;
     color: var(--text-dim);
+  }
+}
+
+// Single-line labels clip with overflow: hidden at the line box. A skin face with deep descenders
+// (Piazzolla in Steampunk) loses the tail of g, j, p, q and y, so the clip box grows without moving the layout.
+$clip-classes: compactCondition, compactLocation, largeDescription, largeLocation, dailyDay;
+@each $c in $clip-classes {
+  .panel-root[data-panel-skin] [class*='_#{$c}_'] {
+    padding-bottom: 0.2em;
+    margin-bottom: -0.2em;
   }
 }
 

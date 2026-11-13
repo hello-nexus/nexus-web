@@ -19,21 +19,21 @@
   --skin-line-join: miter;
 }
 @include skin('arcade') {
-  @include kit(#12052a, #1c0d45, #ffffff, #d6ccff, #3b2a7a, var(--skin-accent), var(--skin-accent-rgb), #ffffff, #4dff88, #ffe14d, #ff5c6c);
+  @include kit(#12052a, #1c0d45, #ffffff, #d6ccff, #3b2a7a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #ffffff, #4dff88, #ffe14d, #ff5c6c);
   @include arcade-common;
   --ar-bezel: rgba(var(--skin-accent-rgb), 0.45);
   --ar-inner: rgba(0, 0, 0, 0.3);
   --ar-strip: rgba(0, 0, 0, 0.22);
 }
 @include skin-light('arcade') {
-  @include kit(#efe7d2, #fff7de, #1c0d45, #4a3a85, #3b2a7a, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #1a8a4a, #a86a00, #c8202f);
+  @include kit(#efe7d2, #fff7de, #1c0d45, #4a3a85, #3b2a7a, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #1a8a4a, #a86a00, #c8202f);
   --ar-bezel: rgba(var(--skin-accent-rgb), 0.4);
   --ar-inner: rgba(28, 13, 69, 0.18);
   --ar-strip: rgba(28, 13, 69, 0.08);
   --skin-card-image: none;
 }
 @include in-skin('arcade', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }
 @include in-skin('arcade', 'svg.lucide') {
   stroke-width: 2.4;

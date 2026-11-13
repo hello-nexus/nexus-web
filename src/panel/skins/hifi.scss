@@ -10,7 +10,7 @@
     linear-gradient(90deg, #{$mid}, #{$mid});
 }
 @include skin('hifi') {
-  @include kit(#171717, #17140f, #f3e6bd, #cdbd90, #6c6c6c, var(--skin-accent), var(--skin-accent-rgb), #1a1208);
+  @include kit(#171717, #17140f, #f3e6bd, #cdbd90, #6c6c6c, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1a1208);
   @include kit-radius(5px, 3px, 3px);
   @include kit-weights(500, 400, 600, 700, 400);
   --skin-card-image: linear-gradient(rgba(255, 244, 214, 0.1), transparent 45%);
@@ -28,12 +28,12 @@
   @include hifi-ring(#6a6d73, #45474c, #26272a);
 }
 @include skin-light('hifi') {
-  @include kit(#b5b8bc, #efe6cc, #2a2318, #5d5238, #5d5238, var(--skin-accent-deep), var(--skin-accent-rgb), #fff6e0, #2d7a3e, #9a5f00, #a82a1f);
+  @include kit(#b5b8bc, #efe6cc, #2a2318, #5d5238, #5d5238, var(--skin-accent-ink-light), var(--skin-accent-rgb), #fff6e0, #2d7a3e, #9a5f00, #a82a1f);
   --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.35), transparent 45%);
   --skin-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   --gauge-track: rgba(42, 35, 24, 0.16);
   @include hifi-ring(#e9eaec, #bfc2c7, #8c9097);
 }
 @include in-skin('hifi', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }

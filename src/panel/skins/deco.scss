@@ -4,7 +4,7 @@
 
 // Art Deco: stepped corners, double metal hairlines and a ribbed crown on black (dark) or ivory (light). Hairlines and surfaces follow the accent.
 @include skin('deco') {
-  @include kit(#060607, #0d0d10, #f4e9c9, #cdbd8c, #c9a24a, var(--skin-accent), var(--skin-accent-rgb), #120d00, #7fd69a, #e8c15a, #ff7a6a);
+  @include kit(#060607, #0d0d10, #f4e9c9, #cdbd8c, #c9a24a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #120d00, #7fd69a, #e8c15a, #ff7a6a);
   @include kit-radius(0, 0, 0);
   @include kit-weights(500, 400, 600, 600, 400);
   @include derived(dark);
@@ -27,7 +27,7 @@
   --gauge-track: rgba(var(--dc-gold-rgb), 0.16);
 }
 @include skin-light('deco') {
-  @include kit(#d8cfb4, #f6efdc, #14110a, #4d4326, #9a7a2c, var(--skin-accent-deep), var(--skin-accent-rgb), #fff8e0, #2d7a3e, #8a5200, #a82a1f);
+  @include kit(#d8cfb4, #f6efdc, #14110a, #4d4326, #9a7a2c, var(--skin-accent-ink-light), var(--skin-accent-rgb), #fff8e0, #2d7a3e, #8a5200, #a82a1f);
   @include derived(light);
   --dc-gold: var(--skin-metal-deep);
   --dc-gold-rgb: var(--skin-metal-deep-rgb);
@@ -37,5 +37,5 @@
   --gauge-track: rgba(var(--dc-gold-rgb), 0.2);
 }
 @include in-skin('deco', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }
