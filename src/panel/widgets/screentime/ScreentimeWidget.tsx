@@ -45,6 +45,7 @@ export function ScreentimeWidget({ widget }: WidgetProps) {
               <div className={styles.rowBar}>
                 <div
                   className={styles.rowBarFill}
+                  data-skin-part="bar-fill"
                   style={{ width: `${Math.round((app.totalMs / maxMs) * 100)}%` }}
                 />
               </div>

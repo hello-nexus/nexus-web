@@ -270,7 +270,7 @@ function AchievementBar({ achievements, t }: { achievements: SteamAchievement[];
         <span>{unlocked}/{achievements.length}</span>
       </div>
       <div className={styles.achievementTrack}>
-        <div className={styles.achievementFill} style={{ width: `${pct}%` }} />
+        <div className={styles.achievementFill} style={{ width: `${pct}%` }} data-skin-part="bar-fill" />
       </div>
     </div>
   );

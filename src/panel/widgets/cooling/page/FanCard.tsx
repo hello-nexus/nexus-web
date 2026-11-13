@@ -605,12 +605,12 @@ export const FanCard = memo(function FanCard({
             )}
             {isManual ? (
               <>
-                <div className={styles.fanDutyFillActual} style={{ width: `${dutyPct}%` }} />
+                <div className={styles.fanDutyFillActual} style={{ width: `${dutyPct}%` }} data-skin-part="bar-fill" />
                 <div className={styles.fanDutyFillTarget} style={{ width: `${targetPct}%` }} />
                 <div className={styles.fanDutyKnob} style={{ left: `${targetPct}%` }} />
               </>
             ) : (
-              <div className={styles.fanDutyFill} style={{ width: `${dutyPct}%` }} />
+              <div className={styles.fanDutyFill} style={{ width: `${dutyPct}%` }} data-skin-part="bar-fill" />
             )}
           </div>
 
