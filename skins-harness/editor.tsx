@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { mount, readView } from './boot';
 import { SkinSamplePanel } from './SkinSamplePanel';
-import { useSkinState } from './useSkinState';
+import { useSkinState, variantsOf } from './useSkinState';
 import { SettingsSection } from '../src/components/common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect } from '../src/components/common/SettingRow/SettingRow';
 import { ChipGroup } from '../src/components/common/ChipGroup/ChipGroup';
@@ -41,14 +41,14 @@ function Editor() {
               options={[{ key: 'none', label: 'None' }, ...PANEL_SKINS.map(s => ({ key: s.id, label: s.label }))]}
             />
           </div>
-          {def && def.variants.length > 0 && (
+          {def && variantsOf(def).length > 0 && (
             <div className="stack"><div className="stackLabel">Variant</div>
               <ChipGroup
                 wrap
                 ariaLabel="Variant"
-                activeKey={state.variant ?? def.variants[0].id}
+                activeKey={state.variant ?? variantsOf(def)[0].id}
                 onChange={setVariant}
-                options={def.variants.map(v => ({ key: v.id, label: v.label }))}
+                options={variantsOf(def).map(v => ({ key: v.id, label: v.label }))}
               />
             </div>
           )}
@@ -81,7 +81,7 @@ function Editor() {
             allowCustom
             disabled={eff.accentLocked}
           />
-          {eff.accentLocked && <div className="lockNote">{def?.variants.length ? 'Fixed by the skin. Use Variant.' : `Fixed by the ${def?.label} skin`}</div>}
+          {eff.accentLocked && <div className="lockNote">{variantsOf(def).length ? 'Fixed by the skin. Use Variant.' : `Fixed by the ${def?.label} skin`}</div>}
         </SettingsSection>
       </div>
       <div className="editorPanel">

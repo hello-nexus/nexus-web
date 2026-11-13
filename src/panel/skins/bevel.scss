@@ -1,0 +1,45 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Raised bevel tiles with sunken wells and a title strip in the accent.
+@include skin('bevel') {
+  @include kit(#2b2e35, #4b4f59, #f4f4f4, #cfd2d8, #14151a, var(--skin-accent), var(--skin-accent-rgb), #ffffff);
+  @include kit-radius(0, 0, 0);
+  @include kit-weights(600, 500, 600, 700, 500);
+  --bv-hi: #868b98;
+  --bv-lo: #1a1b20;
+  --bv-mid: #62666f;
+  --bv-well-hi: #868b98;
+  --bv-well-lo: #1a1b20;
+  --skin-card-frame: inset 1px 1px 0 var(--bv-hi), inset -1px -1px 0 var(--bv-lo), inset 2px 2px 0 var(--bv-mid), inset -2px -2px 0 #33353c;
+  --skin-card-shadow: 0 0 0 1px #0d0e11;
+  --skin-card-deco: linear-gradient(90deg, var(--skin-accent), rgba(var(--skin-accent-rgb), 0.25));
+  --skin-card-deco-size: calc(100% - 6px) 5px;
+  --skin-card-deco-pos: 3px 3px;
+  --skin-card-deco-repeat: no-repeat;
+  --skin-bar-height: 10px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 6px, transparent 6px, transparent 8px);
+  --skin-bar-track-shadow: inset 1px 1px 0 var(--bv-well-lo), inset -1px -1px 0 var(--bv-well-hi);
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --gauge-track: #23252b;
+}
+@include skin-light('bevel') {
+  @include kit(#7d8794, #d3d3d3, #101114, #3b3f47, #2a2c31, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #b3261e);
+  --bv-hi: #ffffff;
+  --bv-lo: #5e6068;
+  --bv-mid: #ececec;
+  --bv-well-hi: #ffffff;
+  --bv-well-lo: #6b6d75;
+  --skin-card-frame: inset 1px 1px 0 var(--bv-hi), inset -1px -1px 0 var(--bv-lo), inset 2px 2px 0 var(--bv-mid), inset -2px -2px 0 #a2a4ab;
+  --skin-card-shadow: 0 0 0 1px #2a2c31;
+  --skin-card-deco: linear-gradient(90deg, var(--skin-accent-deep), rgba(var(--skin-accent-rgb), 0.3));
+  --gauge-track: #b4b6bc;
+}
+@include in-skin('bevel', '[data-skin-part="fill"]') {
+  background: var(--accent);
+}
+@include in-skin('bevel', 'svg.lucide') {
+  stroke-width: 2;
+}

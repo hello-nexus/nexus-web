@@ -1,0 +1,17 @@
+@use 'mixins' as *;
+
+// One-colour skins mark value states without hue: warn is bold and underlined, critical is inverse video.
+@mixin mono-warn($id, $ink, $plate) {
+  @include in-skin($id, '[data-value-state="warn"]') {
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+  }
+  @include in-skin($id, '[data-value-state="critical"]') {
+    background: $ink;
+    color: $plate;
+    padding: 0 0.2em;
+    text-decoration: none;
+    text-shadow: none;
+  }
+}

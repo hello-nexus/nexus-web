@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { PanelFontId } from '../src/panel/theme/panelFont';
-import { normalizePanelSkin, skinDef, type PanelSkinId, type SkinFont } from '../src/panel/skins/skins';
+import { normalizePanelSkin, skinDef, type PanelSkinId, type SkinDef, type SkinFont, type SkinVariant } from '../src/panel/skins/skins';
+
+// Skins no longer carry variants; the harness keeps reading the field when present.
+export const variantsOf = (def: SkinDef | null | undefined): readonly SkinVariant[] => (def as { variants?: readonly SkinVariant[] } | null | undefined)?.variants ?? [];
 
 // The user's own panel settings (font, accent, mode) are never overwritten by
 // a skin. Picking a skin applies its defaults as overrides; leaving the skin
@@ -37,7 +40,7 @@ export function readSkinState(): SkinState {
   const accent = q.get('accent');
   return {
     skin,
-    variant: def?.variants.length ? (def.variants.find(x => x.id === v)?.id ?? def.variants[0].id) : null,
+    variant: variantsOf(def).length ? (variantsOf(def).find(x => x.id === v)?.id ?? variantsOf(def)[0].id) : null,
     ownMode: q.get('theme') === 'light' ? 'light' : 'dark',
     ownFont: (font as PanelFontId) || null,
     ownAccent: OWN_DEFAULT_ACCENT,
@@ -68,7 +71,7 @@ export function useSkinState() {
   const eff = useMemo(() => effective(s), [s]);
   const setSkin = useCallback((id: PanelSkinId | null) => {
     const def = skinDef(id);
-    setS(p => ({ ...p, skin: id, variant: def?.variants[0]?.id ?? null, ovFont: null, ovAccent: null }));
+    setS(p => ({ ...p, skin: id, variant: variantsOf(def)[0]?.id ?? null, ovFont: null, ovAccent: null }));
   }, []);
   const setVariant = useCallback((variant: string) => setS(p => ({ ...p, variant })), []);
   const setMode = useCallback((m: 'dark' | 'light') => setS(p => ({ ...p, ownMode: m })), []);

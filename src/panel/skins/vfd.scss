@@ -1,15 +1,20 @@
 @use 'mixins' as *;
 @use 'screen' as *;
+@use 'warn' as *;
 
 // DSEG7: digits, colon, period, minus and degree only (unicode-range), so every
 // other glyph falls through to the panel font stack per glyph.
 @font-face { font-family: 'Skin Seg7'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/dseg7.woff2') format('woff2'); unicode-range: U+0030-003A, U+002D, U+002E, U+00B0; }
 
-// Vacuum fluorescent display in teal, blue or amber. Glow text on black glass
+// Vacuum fluorescent display, glow colour from the accent. Glow text on black glass
 // behind one static, faint mesh. Jura in capitals with wide letter-spacing.
 @include skin('vfd') {
   @include screen-tokens;
-  --skin-back: #010605;
+  --skin-back: var(--skin-night-back);
+  --skin-bg: var(--skin-night);
+  --skin-ink: var(--skin-lit);
+  --skin-ink-rgb: var(--skin-lit-rgb);
+  --skin-dim: rgba(var(--skin-lit-rgb), 0.8);
   --skin-card-radius: 6px;
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.3);
   --skin-text-shadow: 0 0 4px rgba(var(--skin-ink-rgb), 0.5);
@@ -32,24 +37,6 @@
   --panel-card-radius: 6px;
   --panel-element-radius: 3px;
 }
-@include skin-variant('vfd', 'teal', true) {
-  --skin-bg: #031412;
-  --skin-ink: #7dfff0;
-  --skin-ink-rgb: 125, 255, 240;
-  --skin-dim: #5fd6ca;
-}
-@include skin-variant('vfd', 'blue') {
-  --skin-bg: #040b1c;
-  --skin-ink: #8fbcff;
-  --skin-ink-rgb: 143, 188, 255;
-  --skin-dim: #6f9ce0;
-}
-@include skin-variant('vfd', 'amber') {
-  --skin-bg: #150d02;
-  --skin-ink: #ffc24d;
-  --skin-ink-rgb: 255, 194, 77;
-  --skin-dim: #dba03a;
-}
 @include in-skin('vfd', 'img, canvas') {
   filter: grayscale(1) contrast(1.15) brightness(0.85);
 }
@@ -66,3 +53,4 @@
   opacity: 0.1;
   text-shadow: none;
 }
+@include mono-warn('vfd', var(--skin-ink), var(--skin-bg));

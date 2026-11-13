@@ -1,4 +1,5 @@
 @use 'mixins' as *;
+@use 'warn' as *;
 @use 'screen' as *;
 
 // CRT phosphor terminal. The phosphor colour is the panel accent (any colour). Black glass, one small glow
@@ -33,3 +34,4 @@
 @include in-skin('crt', 'img, canvas') {
   filter: grayscale(1) contrast(1.15) brightness(0.9);
 }
+@include mono-warn('crt', var(--skin-ink), var(--skin-bg));

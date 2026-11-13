@@ -1,0 +1,49 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Armour plating: chamfered panels with seams, corner rivets, a hazard stripe and stencil capitals.
+@mixin mecha-common {
+  @include kit-radius(0, 0, 0);
+  @include kit-weights(600, 500, 700, 700, 500);
+  --skin-card-clip: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  --skin-card-frame: inset 0 0 0 1px var(--mc-seam), inset 0 0 0 4px var(--mc-plate);
+  --skin-card-deco:
+    repeating-linear-gradient(135deg, #f5c400 0, #f5c400 5px, #15171a 5px, #15171a 10px),
+    radial-gradient(circle at 50% 50%, var(--mc-rivet) 0, var(--mc-rivet) 1.5px, transparent 2px),
+    radial-gradient(circle at 50% 50%, var(--mc-rivet) 0, var(--mc-rivet) 1.5px, transparent 2px),
+    radial-gradient(circle at 50% 50%, var(--mc-rivet) 0, var(--mc-rivet) 1.5px, transparent 2px);
+  --skin-card-deco-size: 28px 4px, 7px 7px, 7px 7px, 7px 7px;
+  --skin-card-deco-pos: 6px calc(100% - 5px), 6px 6px, calc(100% - 20px) 6px, 12px calc(100% - 14px);
+  --skin-card-deco-repeat: no-repeat;
+  --skin-text-case: uppercase;
+  --skin-letter-spacing: 0.05em;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-track-shadow: inset 0 0 0 1px var(--mc-seam);
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 8px, transparent 8px, transparent 10px);
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+}
+@include skin('mecha') {
+  @include kit(#16181b, #2c3035, #eceff2, #b4bbc3, #0b0c0e, var(--skin-accent), var(--skin-accent-rgb), #140a00, #5ee08a, #f5c400, #ff5a4a);
+  @include mecha-common;
+  --mc-seam: #0b0c0e;
+  --mc-plate: #3a3f46;
+  --mc-rivet: #8a919b;
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.08), transparent 40%);
+  --gauge-track: rgba(0, 0, 0, 0.4);
+}
+@include skin-light('mecha') {
+  @include kit(#a7adb3, #e4e7ea, #14181c, #3c444c, #2b3036, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #1f7a4d, #8a6200, #b3261e);
+  --mc-seam: #2b3036;
+  --mc-plate: #c3c8cd;
+  --mc-rivet: #6a717a;
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.5), transparent 40%);
+  --gauge-track: rgba(20, 24, 28, 0.18);
+}
+@include in-skin('mecha', '[data-skin-part="fill"]') {
+  background: var(--accent);
+}
+@include in-skin('mecha', 'svg.lucide') {
+  stroke-width: 2.2;
+}

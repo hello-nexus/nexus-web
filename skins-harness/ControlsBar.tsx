@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { PANEL_FONTS, type PanelFontId } from '../src/panel/theme/panelFont';
 import { PANEL_SKINS, skinDef, skinFontLabel } from '../src/panel/skins/skins';
 import { SCENES } from './scenes';
-import type { EffectiveSkin, useSkinState } from './useSkinState';
+import { variantsOf, type EffectiveSkin, type useSkinState } from './useSkinState';
 
 export function Btn({ on, onClick, disabled, children }: { on: boolean; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return <button type="button" aria-pressed={on} disabled={disabled} onClick={onClick}>{children}</button>;
@@ -23,9 +23,9 @@ export function ControlsBar({ api, view, setView, full = true }: { api: Api; vie
         <Btn on={state.skin === null} onClick={() => setSkin(null)}>None</Btn>
         {PANEL_SKINS.map(k => <Btn key={k.id} on={state.skin === k.id} onClick={() => setSkin(k.id)}>{k.label}</Btn>)}
       </div>
-      {def && def.variants.length > 0 && (
+      {def && variantsOf(def).length > 0 && (
         <div className="grp"><b>Variant</b>
-          {def.variants.map(v => <Btn key={v.id} on={state.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</Btn>)}
+          {variantsOf(def).map(v => <Btn key={v.id} on={state.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</Btn>)}
         </div>
       )}
       <div className="grp"><b>Mode{e.modeLocked ? ' (locked)' : ''}</b>

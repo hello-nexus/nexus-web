@@ -1,0 +1,28 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Comic panel: thick ink border, offset black shadow and a halftone dot field on bright paper (light) or a dark inked page.
+@include skin('comic') {
+  @include kit(#17141f, #262236, #ffffff, #d9d3ee, #000000, var(--skin-accent), var(--skin-accent-rgb), #000000, #6cf09a, #ffe14d, #ff6b6b);
+  @include kit-radius(6px, 3px, 3px);
+  @include kit-weights(700, 600, 800, 900, 600);
+  --skin-card-border: 3px solid #f4f0ff;
+  --skin-card-shadow: 4px 4px 0 var(--skin-accent);
+  --skin-card-deco: radial-gradient(circle, rgba(var(--skin-accent-rgb), 0.16) 1.2px, transparent 1.7px);
+  --skin-card-deco-size: 6px 6px;
+  --skin-card-deco-repeat: repeat;
+  --skin-text-case: uppercase;
+  --skin-bar-height: 9px;
+  --skin-bar-radius: 0;
+  --skin-bar-track-shadow: inset 0 0 0 2px var(--border-strong);
+  --gauge-track: rgba(255, 255, 255, 0.2);
+}
+@include skin-light('comic') {
+  @include kit(#ffe14d, #ffffff, #000000, #2e2a3a, #000000, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #0b8a4a, #9a5f00, #c4102a);
+  --skin-card-border: 3px solid #000000;
+  --skin-card-shadow: 4px 4px 0 #000000;
+  --gauge-track: rgba(0, 0, 0, 0.14);
+}
+@include in-skin('comic', '[data-skin-part="fill"]') {
+  background: var(--accent);
+}

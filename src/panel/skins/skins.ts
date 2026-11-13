@@ -29,16 +29,28 @@ export interface SkinDef {
 }
 
 export const PANEL_SKINS = [
-  { id: 'pixel', label: 'Pixel', kind: 'style', font: 'pixel', fontLocked: true, accent: '#41a6f6', accentLocked: false, mode: 'dark', modeLocked: false, variants: [] },
-  { id: 'lcd', label: 'LCD', kind: 'screen', font: 'jura', fontLocked: true, accent: null, accentLocked: true, mode: 'dark', modeLocked: true,
-    variants: [{ id: 'green', label: 'Classic green', swatch: '#b4c19a' }, { id: 'blue', label: 'Blue backlight', swatch: '#2f6fe8' }, { id: 'orange', label: 'Orange backlight', swatch: '#f0902a' }] },
-  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: true, variants: [] },
-  { id: 'vfd', label: 'VFD', kind: 'screen', font: 'jura', fontLocked: true, accent: null, accentLocked: true, mode: 'dark', modeLocked: true,
-    variants: [{ id: 'teal', label: 'Teal', swatch: '#7dfff0' }, { id: 'blue', label: 'Blue', swatch: '#7fb4ff' }, { id: 'amber', label: 'Amber', swatch: '#ffc24d' }] },
-  { id: 'hud', label: 'HUD', kind: 'style', font: 'tektur', fontLocked: false, accent: '#2fd8ff', accentLocked: false, mode: 'dark', modeLocked: false, variants: [] },
-  { id: 'neon', label: 'Neon', kind: 'style', font: 'oswald', fontLocked: false, accent: '#ff2bd6', accentLocked: false, mode: 'dark', modeLocked: true, variants: [] },
-  { id: 'blueprint', label: 'Blueprint', kind: 'style', font: 'jura', fontLocked: false, accent: '#1a4fa8', accentLocked: false, mode: 'dark', modeLocked: true, variants: [] },
-  { id: 'eink', label: 'E-ink', kind: 'screen', font: 'piazzolla', fontLocked: false, accent: null, accentLocked: true, mode: 'light', modeLocked: true, variants: [] },
+  { id: 'pixel', label: 'Pixel', kind: 'style', font: 'pixel', fontLocked: true, accent: '#41a6f6', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'lcd', label: 'LCD', kind: 'style', font: 'jura', fontLocked: true, accent: '#9bb36a', accentLocked: false, mode: 'light', modeLocked: false },
+  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: true },
+  { id: 'vfd', label: 'VFD', kind: 'style', font: 'jura', fontLocked: true, accent: '#3fd9c8', accentLocked: false, mode: 'dark', modeLocked: true },
+  { id: 'hud', label: 'HUD', kind: 'style', font: 'tektur', fontLocked: false, accent: '#2fd8ff', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'neon', label: 'Neon', kind: 'style', font: 'oswald', fontLocked: false, accent: '#ff2bd6', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'blueprint', label: 'Blueprint', kind: 'style', font: 'jura', fontLocked: false, accent: '#1a4fa8', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'eink', label: 'E-ink', kind: 'screen', font: 'piazzolla', fontLocked: false, accent: null, accentLocked: true, mode: 'light', modeLocked: false },
+  { id: 'bevel', label: 'Bevel', kind: 'style', font: 'lexend', fontLocked: false, accent: '#6f9bff', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'hifi', label: 'Hi-fi', kind: 'style', font: 'oswald', fontLocked: false, accent: '#e2572b', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'cockpit', label: 'Cockpit', kind: 'style', font: 'jura', fontLocked: false, accent: '#ffb000', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'arcade', label: 'Arcade', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff3b30', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'glass', label: 'Glass', kind: 'style', font: 'lexend', fontLocked: false, accent: '#5aa8ff', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'holo', label: 'Holo', kind: 'style', font: 'jura', fontLocked: false, accent: '#7df9ff', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'mecha', label: 'Mecha', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff7a00', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'steampunk', label: 'Steampunk', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', accentLocked: true, mode: 'dark', modeLocked: false },
+  { id: 'nixie', label: 'Nixie', kind: 'style', font: 'jura', fontLocked: false, accent: '#ff8a2a', accentLocked: true, mode: 'dark', modeLocked: true },
+  { id: 'deco', label: 'Art Deco', kind: 'style', font: 'oswald', fontLocked: false, accent: '#c9a24a', accentLocked: true, mode: 'dark', modeLocked: false },
+  { id: 'swiss', label: 'Swiss', kind: 'style', font: 'lexend', fontLocked: false, accent: '#e30613', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'clay', label: 'Clay', kind: 'style', font: 'lexend', fontLocked: false, accent: '#7a5af8', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'sketch', label: 'Sketch', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#d9532b', accentLocked: false, mode: 'dark', modeLocked: false },
+  { id: 'comic', label: 'Comic', kind: 'style', font: 'oswald', fontLocked: false, accent: '#e8222f', accentLocked: false, mode: 'dark', modeLocked: false },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];
@@ -128,6 +140,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
   const a = id === 'pixel' ? snapToPixelPalette(accent) : accent;
   const second = derivedSecondColor(a);
   if (id === 'crt') return crtPhosphorVars(a);
+  if (id === 'lcd' || id === 'vfd') return segmentDisplayVars(a);
   return {
     '--skin-accent': a,
     '--skin-accent-rgb': hexToRgb(a).join(', '),
@@ -154,5 +167,26 @@ export function crtPhosphorVars(accent: string): Record<string, string> {
     '--skin-dim': dim,
     '--skin-bg': bg,
     '--skin-back': back,
+  };
+}
+
+// LCD and VFD: one accent, every material colour derived from its hue. Lit ink
+// is clamped light enough for a black cell, the reflective cell stays pale and
+// its ink dark, so any accent stays legible in both modes.
+export function segmentDisplayVars(accent: string): Record<string, string> {
+  const [h, s0] = rgbToHsl(hexToRgb(accent));
+  const hex = (sat: number, l: number) => rgbToHex(hslToRgb(h, sat, l));
+  const rgb = (c: string) => hexToRgb(c).join(', ');
+  const lit = hex(Math.max(s0, 0.6), 0.68);
+  const deep = hex(Math.min(Math.max(s0, 0.25), 0.5), 0.1);
+  return {
+    '--skin-lit': lit,
+    '--skin-lit-rgb': rgb(lit),
+    '--skin-deep': deep,
+    '--skin-deep-rgb': rgb(deep),
+    '--skin-pale': hex(Math.min(Math.max(s0, 0.2), 0.4), 0.72),
+    '--skin-day-back': hex(Math.min(s0, 0.2), 0.15),
+    '--skin-night': hex(Math.min(s0, 0.7), 0.08),
+    '--skin-night-back': hex(Math.min(s0, 0.6), 0.025),
   };
 }

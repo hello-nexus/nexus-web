@@ -3,14 +3,14 @@ import { mount, readView } from './boot';
 import { SkinSamplePanel } from './SkinSamplePanel';
 import { Btn, type View } from './ControlsBar';
 import { PANEL_SKINS } from '../src/panel/skins/skins';
-import { effective, readSkinState } from './useSkinState';
+import { effective, readSkinState, variantsOf } from './useSkinState';
 import { SCENES } from './scenes';
 
 function Gallery() {
   const [view, setV] = useState<View>(readView);
   const [mode, setMode] = useState<'dark' | 'light'>(readSkinState().ownMode);
   const items = [{ id: null, label: 'Stock', variant: null as string | null }, ...PANEL_SKINS.flatMap(k =>
-    (k.variants.length ? k.variants.map(v => ({ id: k.id as string | null, label: `${k.label} ${v.label}`, variant: v.id as string | null })) : [{ id: k.id as string | null, label: k.label, variant: null as string | null }]))];
+    (variantsOf(k).length ? variantsOf(k).map(v => ({ id: k.id as string | null, label: `${k.label} ${v.label}`, variant: v.id as string | null })) : [{ id: k.id as string | null, label: k.label, variant: null as string | null }]))];
   return (
     <>
       <div className="bar">
