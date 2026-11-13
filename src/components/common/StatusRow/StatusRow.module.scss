@@ -90,6 +90,7 @@ button.name {
   align-items: flex-end;
   text-align: right;
   white-space: nowrap;
+  padding-inline-end: var(--space-xs);
 }
 
 // The chip's line matches the name line's height, so the two sit level.
