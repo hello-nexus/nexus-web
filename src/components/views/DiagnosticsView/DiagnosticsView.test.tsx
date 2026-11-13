@@ -194,6 +194,18 @@ describe('ComponentHealthGrid domain tiles', () => {
     expect(document.body.textContent).not.toContain('active=False');
   });
 
+  it('explains an unknown Memory tile with its reason instead of a bare Unknown', () => {
+    const components: DiagnosticsComponent[] = [
+      {
+        id: 'memory', kind: 'memory', name: 'Memory', status: 'unknown',
+        reasons: [{ code: 'memory.noHealthSource', severity: 'unknown', summary: 'Memory health cannot be read on this system', detail: 'No source here.' }],
+      },
+    ];
+    render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
+    expect(screen.getAllByText('Memory health cannot be read on this system').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'infoTooltip.ariaLabel' })).toBeInTheDocument();
+  });
+
   it('navigates to the matching tab when a tile is clicked', () => {
     const onNavigate = vi.fn();
     render(<ComponentHealthGrid components={[]} onNavigate={onNavigate} />);
