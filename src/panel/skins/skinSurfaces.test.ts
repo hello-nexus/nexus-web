@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SURFACE_SPECS, hexToRgb, skinSurfaceVars } from './skins';
+import { SURFACE_SPECS, hexToRgb, sakuraBlossomVars, skinAccentVars, skinSurfaceVars } from './skins';
 
 function lum(hex: string): number {
   const c = hexToRgb(hex).map(v => v / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -21,4 +21,22 @@ describe('accent-derived skin surfaces', () => {
       }
     }
   }
+});
+
+describe('Sakura blossom colors', () => {
+  for (const accent of ['#e8799a', '#2f6bff', '#ffffff']) {
+    it(`keeps petals opaque and close to the card face for ${accent}`, () => {
+      const vars = sakuraBlossomVars(accent);
+      const sf = skinSurfaceVars('sakura', accent);
+      for (const mode of ['light', 'dark'] as const) {
+        expect(vars[`--sk-petal-${mode}`]).toMatch(/^#[0-9a-f]{6}$/);
+        expect(vars[`--sk-core-${mode}`]).toMatch(/^#[0-9a-f]{6}$/);
+        expect(ratio(vars[`--sk-petal-${mode}`], sf[`--skin-sf-card-${mode}`])).toBeLessThan(1.35);
+      }
+    });
+  }
+
+  it('rides with the skin accent vars', () => {
+    expect(skinAccentVars('sakura', '#e8799a')).toHaveProperty('--sk-petal-light');
+  });
 });

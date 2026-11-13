@@ -379,6 +379,8 @@ export function PanelTouchCell({
     gridRow,
     '--panel-span-cols': span.cols,
     '--panel-span-rows': span.rows,
+    '--panel-cell-col': widget.col,
+    '--panel-cell-row': widget.row,
     '--panel-editor-dock-cols': span.cols,
     '--panel-editor-dock-rows': span.rows,
     ...editorDockMotion?.style,

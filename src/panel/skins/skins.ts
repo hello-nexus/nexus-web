@@ -185,6 +185,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
     '--skin-accent-deep': deepened(a),
     ...skinAccentInkVars(id, a, second),
     ...(id in SURFACE_SPECS ? skinSurfaceVars(id as keyof typeof SURFACE_SPECS, a) : {}),
+    ...(id === 'sakura' ? sakuraBlossomVars(a) : {}),
     ...(id in BACKDROP_BASE ? skinBackdropVars(id as keyof typeof BACKDROP_BASE, a) : {}),
     ...(id === 'deco' || id === 'steampunk' || id === 'nixie' ? metalVars(a) : {}),
   };
@@ -288,6 +289,24 @@ export function skinSurfaceVars(id: keyof typeof SURFACE_SPECS, accent: string):
   out['--skin-petal-rgb'] = hslToRgb(h, 0.75, 0.72).map(Math.round).join(', ');
   out['--skin-dot-a-rgb'] = hslToRgb((h + 320) % 360, 0.8, 0.72).map(Math.round).join(', ');
   out['--skin-dot-b-rgb'] = hslToRgb((h + 40) % 360, 0.8, 0.74).map(Math.round).join(', ');
+  return out;
+}
+
+function mixRgb(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+  return [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * t) as [number, number, number];
+}
+
+// Sakura blossoms are opaque, so overlapping shapes never darken: petal and core are the card face pre-mixed with the accent (light) or the backdrop (dark).
+export function sakuraBlossomVars(accent: string): Record<string, string> {
+  const sf = skinSurfaceVars('sakura', accent);
+  const acc = hexToRgb(accent);
+  const out: Record<string, string> = {};
+  for (const mode of ['light', 'dark'] as const) {
+    const card = hexToRgb(sf[`--skin-sf-card-${mode}`]);
+    const petal = mode === 'light' ? mixRgb(card, acc, 0.05) : mixRgb(card, hexToRgb(sf['--skin-sf-back-dark']), 0.35);
+    out[`--sk-petal-${mode}`] = rgbToHex(petal);
+    out[`--sk-core-${mode}`] = rgbToHex(mixRgb(petal, acc, mode === 'light' ? 0.09 : 0.07));
+  }
   return out;
 }
 
