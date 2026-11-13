@@ -1,0 +1,38 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Y2K: glossy aqua bubble tiles with a bright specular top edge, pill shapes and a chrome-silver rim. Gradients and box-shadows only.
+@mixin y2k-common {
+  @include kit-radius(26px, 999px, 999px);
+  @include kit-weights(500, 400, 600, 700, 400);
+  --skin-card-inset: 3px;
+  --skin-bar-height: 10px;
+}
+@include skin('y2k') {
+  @include kit(#04152b, #0b2a4d, #ecf9ff, #b2d4ea, #9fb4c6, var(--skin-accent), var(--skin-accent-rgb), #031526, #6af2c4, #ffd985, #ff8aa3);
+  @include y2k-common;
+  --skin-backdrop-image:
+    radial-gradient(circle at 12% 18%, rgba(80, 200, 255, 0.28) 0, transparent 22%),
+    radial-gradient(circle at 88% 82%, rgba(120, 140, 255, 0.24) 0, transparent 26%),
+    linear-gradient(180deg, rgba(60, 170, 255, 0.12) 0, rgba(0, 0, 0, 0) 60%);
+  --skin-card-image: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.1) 48%, rgba(255, 255, 255, 0) 50%, rgba(80, 200, 255, 0.18) 100%);
+  --skin-card-frame: inset 0 2px 0 rgba(255, 255, 255, 0.75), inset 0 0 0 2px rgba(190, 205, 220, 0.5);
+  --skin-card-shadow: 0 4px 0 rgba(0, 10, 30, 0.5);
+  --skin-bar-track-shadow: inset 0 2px 0 rgba(0, 10, 30, 0.4);
+  --gauge-track: rgba(0, 10, 30, 0.45);
+}
+@include skin-light('y2k') {
+  @include kit(#c8ecfb, #eefaff, #082844, #2c5372, #aebccb, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a);
+  --skin-backdrop-image:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.85) 0, transparent 24%),
+    radial-gradient(circle at 88% 82%, rgba(150, 190, 255, 0.5) 0, transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0, rgba(120, 210, 255, 0.2) 100%);
+  --skin-card-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.45) 48%, rgba(255, 255, 255, 0) 50%, rgba(110, 205, 250, 0.4) 100%);
+  --skin-card-frame: inset 0 2px 0 #ffffff, inset 0 0 0 2px rgba(160, 176, 194, 0.7);
+  --skin-card-shadow: 0 4px 0 rgba(70, 130, 180, 0.3);
+  --skin-bar-track-shadow: inset 0 2px 0 rgba(70, 130, 180, 0.3);
+  --gauge-track: rgba(70, 130, 180, 0.24);
+}
+@include in-skin('y2k', '[data-skin-part="fill"]') {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0, rgba(255, 255, 255, 0) 55%), var(--accent);
+}
