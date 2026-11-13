@@ -175,7 +175,8 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
   const second = derivedSecondColor(a);
   if (id === 'crt') return crtPhosphorVars(a);
   if (id === 'lcd' || id === 'vfd') return segmentDisplayVars(a);
-  if (id === 'eink') return einkVars(a);
+  // E-ink is in the backdrop tint list, so it needs the --skin-bd-* pair too, or its backdrop resolves to nothing.
+  if (id === 'eink') return { ...einkVars(a), ...skinBackdropVars('eink', a) };
   return {
     '--skin-accent': a,
     '--skin-accent-rgb': hexToRgb(a).join(', '),
