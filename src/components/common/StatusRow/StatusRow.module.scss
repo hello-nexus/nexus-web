@@ -20,6 +20,7 @@
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm);
+  padding-inline-end: calc(var(--space-sm) + var(--space-xs));
   min-width: 0;
   // Every row matches the tallest layout (chip stacked over its reading), so rows with fewer parts do not shrink.
   min-height: var(--status-row-min-height, 4.25rem);
@@ -90,7 +91,6 @@ button.name {
   align-items: flex-end;
   text-align: right;
   white-space: nowrap;
-  padding-inline-end: var(--space-xs);
 }
 
 // The chip's line matches the name line's height, so the two sit level.
