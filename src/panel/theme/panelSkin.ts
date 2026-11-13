@@ -3,7 +3,7 @@ import { PANEL_FONTS, panelFontVars, type PanelFont } from './panelFont';
 import type { SkinOverrides } from '../skins/skinOverrides';
 import { normalizePanelSkin, skinAccentVars, skinDef, type PanelSkinId, type SkinDef } from '../skins/skins';
 
-// A skin is a preset layered over the user's theme at render time; accent and font picked while it is active are remembered per skin, so None restores the user's own.
+// A skin is a preset layered over the user's theme at render time; accent, font and background mode picked while it is active are remembered per skin, so None restores the user's own.
 
 export interface SkinThemeFields {
   skin: PanelSkinId | null;

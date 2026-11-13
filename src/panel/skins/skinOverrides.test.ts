@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeSkinOverrides, resetSkinOverride, setSkinOverride } from './skinOverrides';
+import { normalizeSkinOverrides, resetSkinOverride, setSkinBackground, setSkinOverride } from './skinOverrides';
 import { resolveSkin, type SkinThemeFields } from '../theme/panelSkin';
 import { skinDef } from './skins';
 
@@ -51,5 +51,30 @@ describe('normalizeSkinOverrides', () => {
   it('keeps only a #rrggbb accent and a font the panel can draw', () => {
     expect(normalizeSkinOverrides({ arcade: { accent: 'red', font: 'comic-nope' }, lcd: { accent: '#9BB36A', font: 'oswald' }, hud: { accent: 'rgb(1,2,3)' } }))
       .toEqual({ lcd: { accent: '#9BB36A', font: 'oswald' } });
+  });
+});
+
+describe('skin background overrides', () => {
+  it('keeps only a known mode, and the effect only with shader', () => {
+    expect(normalizeSkinOverrides({
+      neon: { backgroundMode: 'shader', backgroundEffect: 'aurora', backgroundOpacity: 0.3 } as never,
+      lcd: { backgroundMode: 'solid', backgroundEffect: 'aurora' },
+      hud: { backgroundMode: 'shader', backgroundEffect: 'not-an-effect' },
+      crt: { backgroundMode: 'skin' },
+      vfd: { backgroundMode: 'gradient' },
+      arcade: { accent: '#22c55e', backgroundMode: 'media' },
+    })).toEqual({
+      neon: { backgroundMode: 'shader', backgroundEffect: 'aurora' },
+      lcd: { backgroundMode: 'solid' },
+      hud: { backgroundMode: 'shader' },
+      arcade: { accent: '#22c55e', backgroundMode: 'media' },
+    });
+  });
+  it('writes the mode and effect and leaves accent and font alone', () => {
+    const map = { arcade: { accent: '#22c55e', backgroundMode: 'shader' as const, backgroundEffect: 'aurora' } };
+    expect(setSkinBackground(map, 'arcade', 'solid', 'aurora')).toEqual({ arcade: { accent: '#22c55e', backgroundMode: 'solid' } });
+    expect(setSkinBackground(map, 'arcade', 'skin', 'aurora')).toEqual({ arcade: { accent: '#22c55e' } });
+    expect(setSkinBackground({}, 'lcd', 'skin', 'plasma')).toEqual({});
+    expect(map.arcade.backgroundEffect).toBe('aurora');
   });
 });

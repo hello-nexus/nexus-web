@@ -5,7 +5,15 @@ import {
   normalizePanelBackgroundMode,
   skinBackgroundHeld,
 } from '../background/panelBackground';
-import { enterSkinBackground, leaveSkinBackground, type SkinBackgroundFields } from './skinBackgroundSwitch';
+import {
+  chooseBackgroundMode,
+  enterSkinBackground,
+  leaveSkinBackground,
+  pickSkin,
+  type SkinBackgroundFields,
+  type SkinPickFields,
+  type SkinPickSwitch,
+} from './skinBackgroundSwitch';
 
 const wallpaper: SkinBackgroundFields = {
   backgroundMode: 'solid',
@@ -85,5 +93,55 @@ describe('skin background hold', () => {
   it('changes only the mode when nothing was held', () => {
     const legacy: SkinBackgroundFields = { ...shader, backgroundMode: 'skin', backdrop: 'theme', backgroundFrost: 0, backgroundOpacity: 1, backgroundHeld: null };
     expect(leaveSkinBackground(legacy).patch).toEqual({ backgroundMode: 'shader' });
+  });
+});
+
+describe('per-skin background mode', () => {
+  const unskinned = (fields: SkinBackgroundFields): SkinPickFields => ({
+    ...fields, skin: null, skinOverrides: {}, backgroundEffect: 'plasma', backgroundTemplates: { aurora: 2 },
+  });
+  const step = (cur: SkinPickFields, change: SkinPickSwitch): SkinPickFields => ({ ...cur, ...change.theme });
+
+  it('starts every skin on Skin, remembers a mode picked under it, and gives the pre-skin background back', () => {
+    let cur = step(unskinned(wallpaper), pickSkin(unskinned(wallpaper), 'neon'));
+    expect(cur).toMatchObject({ skin: 'neon', backgroundMode: 'skin', backdrop: 'theme', backgroundFrost: 0, backgroundOpacity: 1 });
+
+    const solid = chooseBackgroundMode(cur, 'solid');
+    expect(solid.patch.skinOverrides).toEqual({ neon: { backgroundMode: 'solid' } });
+    cur = step(cur, solid);
+    expect(cur).toMatchObject({ backgroundMode: 'solid', backdrop: 'wallpaper', backgroundFrost: 20, backgroundOpacity: 0.7 });
+
+    cur = step(cur, pickSkin(cur, 'lcd'));
+    expect(cur).toMatchObject({ skin: 'lcd', backgroundMode: 'skin', backgroundModeBefore: 'solid' });
+
+    cur = step(cur, pickSkin(cur, 'neon'));
+    expect(cur).toMatchObject({ skin: 'neon', backgroundMode: 'solid', backdrop: 'wallpaper', backgroundFrost: 20, backgroundOpacity: 0.7 });
+
+    const none = pickSkin(cur, null);
+    expect(none.patch.skin).toBe('');
+    expect(step(cur, none)).toMatchObject({ skin: null, backgroundMode: 'solid', backdrop: 'wallpaper', backgroundFrost: 20, backgroundOpacity: 0.7 });
+  });
+
+  it('keeps the held background across hops between skins on Skin', () => {
+    let cur = step(unskinned(shader), pickSkin(unskinned(shader), 'lcd'));
+    cur = { ...cur, backgroundOpacity: 0.5 };
+    const hop = pickSkin(cur, 'crt');
+    expect(hop.theme).toEqual({ skin: 'crt' });
+    cur = step(cur, hop);
+    expect(step(cur, pickSkin(cur, null))).toMatchObject({ skin: null, backgroundMode: 'shader', backgroundFrost: 30, backgroundOpacity: 0.4 });
+  });
+
+  it('applies the remembered effect with this panel preset for it', () => {
+    const cur = { ...unskinned(shader), skinOverrides: { neon: { backgroundMode: 'shader' as const, backgroundEffect: 'aurora' } } };
+    const change = pickSkin(cur, 'neon');
+    expect(change.theme).toMatchObject({ skin: 'neon', backgroundMode: 'shader', backgroundEffect: 'aurora', backgroundTemplate: 2 });
+    expect(change.patch).toEqual({ skin: 'neon', backgroundMode: 'shader', backgroundEffect: 'aurora', backgroundTemplate: 2 });
+  });
+
+  it('stores the effect only with Animations and nothing without a skin', () => {
+    const cur = { ...unskinned(wallpaper), skin: 'neon' as const };
+    expect(chooseBackgroundMode(cur, 'shader').patch.skinOverrides).toEqual({ neon: { backgroundMode: 'shader', backgroundEffect: 'plasma' } });
+    expect(chooseBackgroundMode({ ...cur, skinOverrides: { neon: { backgroundMode: 'media' } } }, 'skin').patch.skinOverrides).toEqual({});
+    expect(chooseBackgroundMode(unskinned(wallpaper), 'shader').patch).toEqual({ backgroundMode: 'shader' });
   });
 });

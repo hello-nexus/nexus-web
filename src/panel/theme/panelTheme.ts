@@ -10,7 +10,6 @@ import { patchPanelDevice, type PanelDevicePatch, type PanelDeviceRecord } from 
 import { broadcastLayoutChanged } from '../engine/panelSync';
 import type { PanelRecordState } from '../engine/usePanelRecord';
 import {
-  DEFAULT_PANEL_BACKGROUND_TEMPLATE,
   defaultBackgroundOpacityForMode,
   backdropHintFromUrl,
   normalizePanelBackgroundEffect,
@@ -32,13 +31,13 @@ import {
   skinBackgroundHeld,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
-import { enterSkinBackground, leaveSkinBackground } from './skinBackgroundSwitch';
+import { chooseBackgroundMode, pickSkin, selectBackgroundEffect, switchBackgroundMode } from './skinBackgroundSwitch';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { normalizeTextColorMode, type TextColorMode } from './textColor';
 import { normalizePanelFont, panelFontVars, type PanelFont } from './panelFont';
 import { applyPanelSkin, normalizeStoredSkin, panelSkinVars } from './panelSkin';
 import { skinDef, type PanelSkinId } from '../skins/skins';
-import { normalizeSkinOverrides, resetSkinOverride, setSkinOverride } from '../skins/skinOverrides';
+import { normalizeSkinOverrides, resetSkinOverride, setSkinBackground, setSkinOverride } from '../skins/skinOverrides';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -402,12 +401,14 @@ export function usePanelTheme(
     persistPatch({ skinOverrides: next });
   }, [persistPatch]);
 
+  // Reset also returns the background to Skin, the default every skin starts from.
   const resetSkin = useCallback(() => {
     const cur = themeRef.current;
     if (!cur.skin) return;
     const next = resetSkinOverride(cur.skinOverrides, cur.skin);
-    setTheme(prev => ({ ...prev, skinOverrides: next }));
-    persistPatch({ skinOverrides: next });
+    const change = switchBackgroundMode(cur, 'skin');
+    setTheme(prev => ({ ...prev, ...change.theme, skinOverrides: next }));
+    persistPatch({ ...change.patch, skinOverrides: next });
   }, [persistPatch]);
 
   const commitAccent = useCallback((hex: string) => {
@@ -429,16 +430,7 @@ export function usePanelTheme(
 
   // Entering Skin remembers the backdrop, frost and opacity it replaces; picking another mode gives them back.
   const commitBackgroundMode = useCallback((mode: PanelBackgroundMode) => {
-    const cur = themeRef.current;
-    if (mode === 'skin') {
-      const change = enterSkinBackground(cur);
-      setTheme(prev => ({ ...prev, ...change.theme }));
-      persistPatch(change.patch);
-      return;
-    }
-    const change = cur.backgroundMode === 'skin'
-      ? leaveSkinBackground(cur, mode)
-      : { theme: { backgroundMode: mode, backgroundModeBefore: mode }, patch: { backgroundMode: mode } };
+    const change = chooseBackgroundMode(themeRef.current, mode);
     setTheme(prev => ({ ...prev, ...change.theme }));
     persistPatch(change.patch);
   }, [persistPatch]);
@@ -454,14 +446,16 @@ export function usePanelTheme(
   const commitBackgroundEffect = useCallback((effect: string) => {
     const nextEffect = normalizePanelBackgroundEffect(effect);
     setDraftBackgroundState(null);
-    if (themeRef.current.backgroundEffect === nextEffect) return;
+    const cur = themeRef.current;
+    if (cur.backgroundEffect === nextEffect) return;
     // Switch to this panel's REMEMBERED preset for that shader (default 0) - the
     // selection is per-panel, per-shader, so switching never resets it.
-    const nextTemplate = normalizePanelBackgroundTemplate(
-      themeRef.current.backgroundTemplates[nextEffect] ?? DEFAULT_PANEL_BACKGROUND_TEMPLATE,
-    );
-    setTheme(prev => ({ ...prev, backgroundEffect: nextEffect, backgroundTemplate: nextTemplate }));
-    persistPatch({ backgroundEffect: nextEffect, backgroundTemplate: nextTemplate });
+    const selection = selectBackgroundEffect(cur.backgroundTemplates, nextEffect);
+    const skinned = cur.skin && cur.backgroundMode === 'shader'
+      ? { skinOverrides: setSkinBackground(cur.skinOverrides, cur.skin, 'shader', nextEffect) }
+      : {};
+    setTheme(prev => ({ ...prev, ...selection, ...skinned }));
+    persistPatch({ ...selection, ...skinned });
   }, [persistPatch]);
 
   const commitBackgroundTemplate = useCallback((template: number) => {
@@ -579,23 +573,10 @@ export function usePanelTheme(
   }, [persistPatch, writeSkinOverride]);
 
   const commitSkin = useCallback((skin: PanelSkinId | null) => {
-    const cur = themeRef.current;
-    // Removing the skin while its backdrop shows restores what it replaced.
-    if (!skin && cur.backgroundMode === 'skin') {
-      const change = leaveSkinBackground(cur);
-      setTheme(prev => ({ ...prev, skin, ...change.theme }));
-      persistPatch({ skin: '', ...change.patch });
-      return;
-    }
-    // A skin that owns its look switches the background to Skin, once.
-    if (skin && skinDef(skin)?.prefersSkinBackground && cur.backgroundMode !== 'skin') {
-      const change = enterSkinBackground(cur);
-      setTheme(prev => ({ ...prev, skin, ...change.theme }));
-      persistPatch({ skin, ...change.patch });
-      return;
-    }
-    setTheme(prev => ({ ...prev, skin }));
-    persistPatch({ skin: skin ?? '' });
+    const change = pickSkin(themeRef.current, skin);
+    if (change.theme.backgroundEffect !== undefined) setDraftBackgroundState(null);
+    setTheme(prev => ({ ...prev, ...change.theme }));
+    persistPatch(change.patch);
   }, [persistPatch]);
 
   const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {

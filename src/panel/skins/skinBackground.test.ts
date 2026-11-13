@@ -5,7 +5,7 @@ import {
   normalizePanelBackgroundMode,
 } from '../background/panelBackground';
 import { applyPanelSkin, resolveSkin, type SkinThemeFields } from '../theme/panelSkin';
-import { PANEL_SKINS, segmentDisplayVars } from './skins';
+import { segmentDisplayVars } from './skins';
 
 const base: SkinThemeFields = {
   skin: null,
@@ -38,11 +38,6 @@ describe('skin background mode', () => {
   it('falls back to the held mode when the skin is gone', () => {
     expect(applyPanelSkin(base).backgroundMode).toBe('shader');
     expect(applyPanelSkin({ ...base, skin: 'glass' }).backgroundMode).toBe('skin');
-  });
-
-  it('marks the skins that own their backdrop', () => {
-    const owners = PANEL_SKINS.filter(s => s.prefersSkinBackground).map(s => s.id).sort();
-    expect(owners).toEqual(['blueprint', 'crt', 'lcd', 'nixie', 'vfd']);
   });
 });
 
