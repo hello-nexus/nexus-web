@@ -16,12 +16,13 @@
   --control-border: var(--border);
   --control-border-strong: var(--border-strong);
   --control-border-accent: var(--accent);
+}
+// Widget tiles draw their own flat frames; sheets, menus and overlays keep the stock shadows and blur.
+.panel-root[data-panel-skin] .panel-card {
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
   --shadow-xl: none;
-  --blur-backdrop: 0px;
-  --blur-chip: 0px;
 }
 
 .panel-root[data-skin-root] {
@@ -170,18 +171,15 @@ $skin-insets: (
   font-family: var(--skin-numeral-font, var(--panel-font));
 }
 
-// Secondary text on a light skin (and on the backlit LCD, which draws dark
-// segments in both modes). Widgets dim it with an opacity of 0.35 to 0.6,
+// Secondary text on every skin. Widgets dim it with an opacity of 0.35 to 0.6,
 // which on a pale card lands well under 4.5:1 whatever the ink is. A skin
 // already carries a dim ink (--text-dim), so the opacity steps are replaced by
 // that colour; the hierarchy stays, the contrast comes from the token.
 $dim-classes: compactLocation, compactStats, largeLocation, largeCurrentStats, hourlyLabel, dailyLo, artist, album, fraction, indexBadge;
-@each $root in ".panel-root[data-panel-skin][data-theme='light']", ".panel-root[data-panel-skin='lcd'][data-theme='dark']" {
-  @each $c in $dim-classes {
-    #{$root} [class*='_#{$c}_'] {
-      opacity: 1;
-      color: var(--text-dim);
-    }
+@each $c in $dim-classes {
+  .panel-root[data-panel-skin] [class*='_#{$c}_'] {
+    opacity: 1;
+    color: var(--text-dim);
   }
 }
 
@@ -193,7 +191,7 @@ $dim-classes: compactLocation, compactStats, largeLocation, largeCurrentStats, h
 // PanelApp stamps data-widget-padding='none' at 0% padding (flushCards) and
 // panelSkinAttrs stamps data-skin-frameless on the skins whose frame is only a
 // border (framelessAtZeroPadding in skins.ts). Their
-// frame decorations (frame ring, deco strips and brackets, border, outer
+// tiles are square like stock, and their frame decorations (frame ring, deco strips and brackets, border, outer
 // shadow, chamfer clip) are not drawn and the frame inset is 0, so content
 // uses the full tile. The tile face, ink, fonts, overlay and backdrop stay.
 // Above 0% the frame draws as designed with its inset reserved.
@@ -201,6 +199,8 @@ $dim-classes: compactLocation, compactStats, largeLocation, largeCurrentStats, h
   --skin-card-inset: 0px;
 }
 .panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] .panel-card {
+  --panel-card-radius: 0px;
+  border-radius: 0;
   border-width: 0;
   box-shadow: none;
   clip-path: none;

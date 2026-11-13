@@ -1,24 +1,32 @@
 @use 'mixins' as *;
 @use 'warn' as *;
 @use 'kit' as *;
+@use 'derived' as *;
 
-// Nixie tubes (dark only): smoked glass, orange glowing numerals, a brass cap under each tube.
+// Nixie tubes: smoked glass with glowing numerals (dark), or a cream instrument face with deep amber numerals (light); a brass cap under each tube.
 @include skin('nixie') {
   @include kit(#090503, #120a06, #ff9a3c, #d9803a, #7a4a22, var(--skin-accent), var(--skin-accent-rgb), #140700, #ffb347, #ffcf5c, #ff5a3a);
   @include kit-radius(22px, 6px, 999px);
   @include kit-weights(500, 400, 600, 700, 400);
+  @include derived(dark);
   --skin-card-image: linear-gradient(115deg, rgba(255, 255, 255, 0.1), transparent 32%);
-  --skin-card-frame: inset 0 0 0 1px rgba(255, 170, 80, 0.3);
-  --skin-card-deco: linear-gradient(180deg, #a07a2c, #4a3512);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.3);
+  --skin-card-deco: linear-gradient(180deg, var(--skin-metal-mid), var(--skin-metal-lo));
   --skin-card-deco-size: 56% 5px;
   --skin-card-deco-pos: 50% 100%;
   --skin-card-deco-repeat: no-repeat;
-  --skin-text-shadow: 0 0 5px rgba(255, 120, 20, 0.55);
+  --skin-text-shadow: 0 0 5px rgba(var(--skin-accent-rgb), 0.55);
   --skin-bar-height: 4px;
   --skin-bar-radius: 2px;
-  --gauge-track: rgba(255, 154, 60, 0.18);
 }
 @include in-skin('nixie', '[data-skin-part="fill"]') {
   background: var(--accent);
+}
+@include skin-light('nixie') {
+  @include kit(#d9c7a0, #f3e6c8, #5e2a00, #77470f, #a07a2c, var(--skin-accent-deep), var(--skin-accent-rgb), #fff6e0, #3d6b14, #8a5a00, #b3261e);
+  @include derived(light);
+  --skin-card-image: linear-gradient(115deg, rgba(255, 255, 255, 0.55), transparent 32%);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-metal-deep-rgb), 0.7);
+  --skin-text-shadow: none;
 }
 @include mono-warn('nixie', var(--accent), var(--skin-card-bg));

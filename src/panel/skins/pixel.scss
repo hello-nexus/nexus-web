@@ -42,9 +42,6 @@
   --panel-accent-soft: rgba(var(--skin-accent-rgb), 0.28);
   --panel-accent-shadow: rgba(var(--skin-accent-rgb), 0.35);
   --skin-spark-fill: rgba(var(--skin-accent-rgb), 0.35);
-  --ease-fast: 0.12s steps(3, end);
-  --ease: 0.2s steps(4, end);
-  --ease-slow: 0.3s steps(4, end);
 }
 @include skin('pixel') {
   @include pixel-common;

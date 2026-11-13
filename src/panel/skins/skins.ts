@@ -29,9 +29,9 @@ export interface SkinDef {
 
 export const PANEL_SKINS = [
   { id: 'pixel', label: 'Pixel', kind: 'style', font: 'pixel', fontLocked: true, accent: '#41a6f6', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'lcd', label: 'LCD', kind: 'style', font: 'jura', fontLocked: true, accent: '#9bb36a', accentLocked: true, mode: 'light', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: true, prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'vfd', label: 'VFD', kind: 'style', font: 'jura', fontLocked: true, accent: '#3fd9c8', accentLocked: false, mode: 'dark', modeLocked: true, prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'lcd', label: 'LCD', kind: 'style', font: 'jura', fontLocked: true, accent: '#9bb36a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: false },
+  { id: 'crt', label: 'CRT', kind: 'style', font: 'tektur', fontLocked: true, accent: '#33ff66', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'vfd', label: 'VFD', kind: 'style', font: 'jura', fontLocked: true, accent: '#3fd9c8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
   { id: 'hud', label: 'HUD', kind: 'style', font: 'tektur', fontLocked: false, accent: '#2fd8ff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'neon', label: 'Neon', kind: 'style', font: 'oswald', fontLocked: false, accent: '#ff2bd6', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'blueprint', label: 'Blueprint', kind: 'style', font: 'jura', fontLocked: false, accent: '#1a4fa8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: true },
@@ -42,17 +42,15 @@ export const PANEL_SKINS = [
   { id: 'arcade', label: 'Arcade', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff3b30', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'glass', label: 'Glass', kind: 'style', font: 'lexend', fontLocked: false, accent: '#5aa8ff', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'mecha', label: 'Mecha', kind: 'style', font: 'tektur', fontLocked: false, accent: '#ff7a00', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'steampunk', label: 'Steampunk', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', accentLocked: true, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'nixie', label: 'Nixie', kind: 'style', font: 'jura', fontLocked: false, accent: '#ff8a2a', accentLocked: true, mode: 'dark', modeLocked: true, prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'deco', label: 'Art Deco', kind: 'style', font: 'oswald', fontLocked: false, accent: '#c9a24a', accentLocked: true, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'steampunk', label: 'Steampunk', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'nixie', label: 'Nixie', kind: 'style', font: 'jura', fontLocked: false, accent: '#ff8a2a', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: true, framelessAtZeroPadding: false },
+  { id: 'deco', label: 'Art Deco', kind: 'style', font: 'oswald', fontLocked: false, accent: '#c9a24a', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'swiss', label: 'Swiss', kind: 'style', font: 'lexend', fontLocked: false, accent: '#e30613', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'clay', label: 'Clay', kind: 'style', font: 'lexend', fontLocked: false, accent: '#7a5af8', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'sketch', label: 'Sketch', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#d9532b', accentLocked: false, mode: 'dark', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'bubblegum', label: 'Bubblegum', kind: 'style', font: 'lexend', fontLocked: false, accent: '#ff4fa3', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'sakura', label: 'Sakura', kind: 'style', font: 'piazzolla', fontLocked: false, accent: '#e8799a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'y2k', label: 'Y2K', kind: 'style', font: 'tektur', fontLocked: false, accent: '#3bb8ff', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'seventies', label: 'Seventies', kind: 'style', font: 'oswald', fontLocked: false, accent: '#f2822e', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'mint', label: 'Mint', kind: 'style', font: 'lexend', fontLocked: false, accent: '#3fb58a', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'track', label: 'Track', kind: 'style', font: 'oswald', fontLocked: false, accent: '#1e6bff', accentLocked: false, mode: 'light', modeLocked: false, prefersSkinBackground: false, framelessAtZeroPadding: false },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];
@@ -156,12 +154,132 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
     '--skin-accent2-rgb': hexToRgb(second).join(', '),
     // The accent darkened for text and lines on a light panel.
     '--skin-accent-deep': deepened(a),
+    ...(id in SURFACE_SPECS ? skinSurfaceVars(id as keyof typeof SURFACE_SPECS, a) : {}),
+    ...(id in BACKDROP_BASE ? skinBackdropVars(id as keyof typeof BACKDROP_BASE, a) : {}),
+    ...(id === 'deco' || id === 'steampunk' || id === 'nixie' ? metalVars(a) : {}),
   };
+}
+
+// Skins whose palette follows the accent: every surface, ink and line takes the
+// accent's hue, so a new accent recolours the whole skin. Per skin: surface
+// saturation, then lightness of the backdrop, card and line for each mode.
+export const SURFACE_SPECS = {
+  bubblegum: { sat: 0.85, light: { back: 0.91, card: 0.975, line: 0.8 }, dark: { back: 0.12, card: 0.17, line: 0.34 } },
+  sakura: { sat: 0.55, light: { back: 0.94, card: 0.985, line: 0.84 }, dark: { back: 0.13, card: 0.19, line: 0.38 } },
+  track: { sat: 0.28, light: { back: 0.91, card: 0.99, line: 0.78 }, dark: { back: 0.09, card: 0.15, line: 0.32 } },
+  deco: { sat: 0.35, light: { back: 0.83, card: 0.95, line: 0.5 }, dark: { back: 0.03, card: 0.06, line: 0.5 } },
+  steampunk: { sat: 0.5, light: { back: 0.66, card: 0.84, line: 0.45 }, dark: { back: 0.06, card: 0.12, line: 0.35 } },
+  nixie: { sat: 0.45, light: { back: 0.72, card: 0.91, line: 0.45 }, dark: { back: 0.03, card: 0.06, line: 0.3 } },
+} as const;
+
+// The panel backdrop of every other skin keeps its own lightness and takes the
+// accent's hue, so the skin background recolours with the accent. Skins whose
+// backdrop is already drawn from the accent (CRT, VFD, LCD, dark Blueprint) are
+// not listed.
+export const BACKDROP_BASE = {
+  pixel: { light: '#94b0c2', dark: '#1a1c2c' },
+  hud: { light: '#dbe9f0', dark: '#040d16' },
+  neon: { light: '#fff2fb', dark: '#0c0618' },
+  blueprint: { light: '#f4f2ea', dark: '#000000' },
+  eink: { light: '#d9d6cb', dark: '#000000', floor: 0.06 },
+  bevel: { light: '#7d8794', dark: '#2b2e35' },
+  hifi: { light: '#b5b8bc', dark: '#171717' },
+  cockpit: { light: '#b9bdc1', dark: '#050506' },
+  arcade: { light: '#efe7d2', dark: '#12052a' },
+  glass: { light: '#dfe8fb', dark: '#0d1230' },
+  mecha: { light: '#a7adb3', dark: '#16181b' },
+  swiss: { light: '#e9e9e6', dark: '#0c0c0c' },
+  clay: { light: '#ece4dc', dark: '#2a2733' },
+  sketch: { light: '#e4ddc8', dark: '#26282c' },
+} as const;
+
+export function skinBackdropVars(id: keyof typeof BACKDROP_BASE, accent: string): Record<string, string> {
+  const base = BACKDROP_BASE[id];
+  const floor = 'floor' in base ? base.floor : 0.12;
+  const [h, s0] = rgbToHsl(hexToRgb(accent));
+  const out: Record<string, string> = {};
+  for (const mode of ['light', 'dark'] as const) {
+    const [, s, l] = rgbToHsl(hexToRgb(base[mode]));
+    out[`--skin-bd-${mode}`] = rgbToHex(hslToRgb(h, s0 < 0.1 ? 0 : Math.min(Math.max(s, floor), 0.85), l));
+  }
+  return out;
+}
+
+// Metal for the brass and gold skins: three steps of the accent hue, so a new accent gives a new alloy.
+export function metalVars(accent: string): Record<string, string> {
+  const [h, s0] = rgbToHsl(hexToRgb(accent));
+  const s = Math.min(Math.max(s0, 0.45), 0.8);
+  const hex = (l: number) => rgbToHex(hslToRgb(h, s, l));
+  const mid = hex(0.52);
+  const deep = hex(0.36);
+  return {
+    '--skin-metal-hi': hex(0.78),
+    '--skin-metal-mid': mid,
+    '--skin-metal-lo': hex(0.26),
+    '--skin-metal-rgb': hexToRgb(mid).join(', '),
+    '--skin-metal-deep': deep,
+    '--skin-metal-deep-rgb': hexToRgb(deep).join(', '),
+  };
+}
+
+// Secondary ink: starts mid-tone and steps away from the surfaces until it
+// reads at 4.7:1 on both the card and the backdrop.
+function dimInk(h: number, s: number, l0: number, towardDark: boolean, surfaces: [number, number, number][], min = 4.7): string {
+  let l = l0;
+  for (let i = 0; i < 80; i++) {
+    const c = hslToRgb(h, s, l);
+    if (surfaces.every(sf => contrastRatio(c, sf) >= min)) break;
+    l += towardDark ? -0.01 : 0.01;
+    if (l < 0 || l > 1) break;
+  }
+  return rgbToHex(hslToRgb(h, s, Math.min(Math.max(l, 0), 1)));
+}
+
+export function skinSurfaceVars(id: keyof typeof SURFACE_SPECS, accent: string): Record<string, string> {
+  const spec = SURFACE_SPECS[id];
+  const [h, s0] = rgbToHsl(hexToRgb(accent));
+  const sat = s0 < 0.1 ? 0 : spec.sat;
+  const out: Record<string, string> = {};
+  for (const mode of ['light', 'dark'] as const) {
+    const m = spec[mode];
+    const back = hslToRgb(h, sat, m.back);
+    const card = hslToRgb(h, sat, m.card);
+    const text = hslToRgb(h, sat * 0.6, mode === 'light' ? 0.13 : 0.96);
+    const line = hslToRgb(h, sat, m.line);
+    const dim = dimInk(h, sat * 0.5, mode === 'light' ? 0.32 : 0.78, mode === 'light', [back, card]);
+    const put = (name: string, c: [number, number, number] | string) => {
+      const hex = typeof c === 'string' ? c : rgbToHex(c);
+      out[`--skin-sf-${name}-${mode}`] = hex;
+      if (name === 'text' || name === 'line') out[`--skin-sf-${name}-rgb-${mode}`] = hexToRgb(hex).join(', ');
+    };
+    put('back', back); put('card', card); put('text', text); put('line', line); put('dim', dim);
+  }
+  // Blossom and sprinkle hues, one pastel step off the accent.
+  out['--skin-petal-rgb'] = hslToRgb(h, 0.75, 0.72).map(Math.round).join(', ');
+  out['--skin-dot-a-rgb'] = hslToRgb((h + 320) % 360, 0.8, 0.72).map(Math.round).join(', ');
+  out['--skin-dot-b-rgb'] = hslToRgb((h + 40) % 360, 0.8, 0.74).map(Math.round).join(', ');
+  return out;
 }
 
 // CRT: every colour derives from the accent. Ink lightness is clamped so a dark
 // blue or dark red accent still reads on the near-black glass; the glass takes
 // a faint tint of the same hue.
+// CRT in light mode is reverse video: warm-grey glass with dark phosphor-hued ink.
+function crtPaperVars(h: number, s: number): Record<string, string> {
+  const bg = '#e6e3da';
+  const back = '#cdc9bd';
+  const surfaces = [hexToRgb(bg), hexToRgb(back)];
+  const ink = dimInk(h, Math.min(s, 0.8), 0.3, true, surfaces, 7);
+  const dim = dimInk(h, Math.min(s, 0.7), 0.36, true, surfaces, 5);
+  return {
+    '--crt-paper-bg': bg,
+    '--crt-paper-back': back,
+    '--crt-paper-ink': ink,
+    '--crt-paper-ink-rgb': hexToRgb(ink).join(', '),
+    '--crt-paper-dim': dim,
+  };
+}
+
 export function crtPhosphorVars(accent: string): Record<string, string> {
   const [h, s0, l0] = rgbToHsl(hexToRgb(accent));
   const s = Math.max(s0, 0.55);
@@ -175,6 +293,7 @@ export function crtPhosphorVars(accent: string): Record<string, string> {
     '--crt-dim': dim,
     '--crt-bg': bg,
     '--crt-back': back,
+    ...crtPaperVars(h, s),
   };
 }
 
@@ -248,5 +367,22 @@ export function segmentDisplayVars(accent: string): Record<string, string> {
     '--skin-day-back': hex(Math.min(s0, 0.2), 0.15),
     '--skin-night': hex(Math.min(s0, 0.7), 0.08),
     '--skin-night-back': hex(Math.min(s0, 0.6), 0.025),
+    ...vfdDayVars(h, s0),
+  };
+}
+
+// VFD in light mode: pale smoked-grey glass with the segments drawn as dark glyphs in the accent hue.
+function vfdDayVars(h: number, s0: number): Record<string, string> {
+  const bg = '#d3d7da';
+  const back = '#b9bec3';
+  const surfaces = [hexToRgb(bg), hexToRgb(back)];
+  const ink = dimInk(h, Math.max(s0, 0.6), 0.34, true, surfaces, 7);
+  const dim = dimInk(h, Math.max(s0, 0.5), 0.38, true, surfaces, 5);
+  return {
+    '--skin-vfd-day-bg': bg,
+    '--skin-vfd-day-back': back,
+    '--skin-vfd-day-ink': ink,
+    '--skin-vfd-day-ink-rgb': hexToRgb(ink).join(', '),
+    '--skin-vfd-day-dim': dim,
   };
 }

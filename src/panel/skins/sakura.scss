@@ -1,33 +1,52 @@
 @use 'mixins' as *;
 @use 'kit' as *;
+@use 'derived' as *;
 
-// Sakura: warm white tiles in a thin blossom-pink hairline over a soft petal wash; ink navy at night.
+// Sakura: thin hairline tiles with one faint blossom in the top right corner (five petal gradients and a centre dot, in the card decoration layer). Every colour follows the accent.
 @mixin sakura-common {
   @include kit-radius(14px, 8px, 999px);
   @include kit-weights(500, 400, 600, 600, 400);
   --skin-card-inset: 2px;
   --skin-bar-height: 4px;
+  --skin-card-deco:
+    radial-gradient(circle, rgba(var(--skin-accent-rgb), 0.3) 0, rgba(var(--skin-accent-rgb), 0.3) 55%, transparent 65%),
+    radial-gradient(circle, rgba(var(--skin-petal-rgb), var(--sk-petal)) 0, rgba(var(--skin-petal-rgb), var(--sk-petal)) 62%, transparent 70%),
+    radial-gradient(circle, rgba(var(--skin-petal-rgb), var(--sk-petal)) 0, rgba(var(--skin-petal-rgb), var(--sk-petal)) 62%, transparent 70%),
+    radial-gradient(circle, rgba(var(--skin-petal-rgb), var(--sk-petal)) 0, rgba(var(--skin-petal-rgb), var(--sk-petal)) 62%, transparent 70%),
+    radial-gradient(circle, rgba(var(--skin-petal-rgb), var(--sk-petal)) 0, rgba(var(--skin-petal-rgb), var(--sk-petal)) 62%, transparent 70%),
+    radial-gradient(circle, rgba(var(--skin-petal-rgb), var(--sk-petal)) 0, rgba(var(--skin-petal-rgb), var(--sk-petal)) 62%, transparent 70%);
+  --skin-card-deco-size: 4px 4px, 9px 9px, 9px 9px, 9px 9px, 9px 9px, 9px 9px;
+  --skin-card-deco-pos:
+    calc(100% - 16px) 12px,
+    calc(100% - 18.5px) 3.5px,
+    calc(100% - 13.7px) 7px,
+    calc(100% - 15.6px) 12.9px,
+    calc(100% - 21.4px) 12.9px,
+    calc(100% - 23.3px) 7px;
+  --skin-card-deco-repeat: no-repeat;
 }
 @include skin('sakura') {
   @include kit(#0c1330, #151d3f, #fdeff3, #c9bbd0, #59608a, var(--skin-accent), var(--skin-accent-rgb), #1a1030, #8fe8c4, #ffd9a0, #ff9db5);
   @include sakura-common;
+  @include derived(dark);
+  --sk-petal: 0.26;
   --skin-backdrop-image:
-    radial-gradient(ellipse at 18% 22%, rgba(245, 163, 188, 0.14) 0, transparent 38%),
-    radial-gradient(ellipse at 85% 78%, rgba(245, 163, 188, 0.1) 0, transparent 42%);
-  --skin-card-image: linear-gradient(180deg, rgba(245, 163, 188, 0.07) 0, rgba(245, 163, 188, 0) 60%);
-  --skin-card-frame: inset 0 0 0 1px rgba(245, 163, 188, 0.4);
+    radial-gradient(ellipse at 18% 22%, rgba(var(--skin-accent-rgb), 0.12) 0, transparent 38%),
+    radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.08) 0, transparent 42%);
+  --skin-card-image: linear-gradient(180deg, rgba(var(--skin-accent-rgb), 0.06) 0, rgba(var(--skin-accent-rgb), 0) 60%);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.4);
   --skin-card-shadow: none;
-  --gauge-track: rgba(253, 239, 243, 0.14);
 }
 @include skin-light('sakura') {
   @include kit(#fbe6ec, #fffaf7, #3d2830, #6f4d5a, #e7b3c3, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a);
+  @include derived(light);
+  --sk-petal: 0.4;
   --skin-backdrop-image:
     radial-gradient(ellipse at 18% 22%, rgba(255, 255, 255, 0.75) 0, transparent 40%),
-    radial-gradient(ellipse at 85% 78%, rgba(240, 150, 180, 0.28) 0, transparent 45%);
-  --skin-card-image: linear-gradient(180deg, rgba(251, 214, 225, 0.45) 0, rgba(251, 214, 225, 0) 55%);
-  --skin-card-frame: inset 0 0 0 1px rgba(226, 150, 176, 0.75);
-  --skin-card-shadow: 0 2px 0 rgba(226, 150, 176, 0.25);
-  --gauge-track: rgba(226, 150, 176, 0.3);
+    radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.18) 0, transparent 45%);
+  --skin-card-image: linear-gradient(180deg, rgba(var(--skin-accent-rgb), 0.08) 0, rgba(var(--skin-accent-rgb), 0) 55%);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.5);
+  --skin-card-shadow: 0 2px 0 rgba(var(--skin-accent-rgb), 0.2);
 }
 @include in-skin('sakura', '[data-skin-part="fill"]') {
   background: var(--accent);

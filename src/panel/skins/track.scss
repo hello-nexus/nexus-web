@@ -1,0 +1,35 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+@use 'derived' as *;
+
+// Track: crisp flat tiles with three parallel accent stripes along the bottom edge. Every colour follows the accent.
+@mixin track-common {
+  @include kit-radius(10px, 6px, 999px);
+  @include kit-weights(500, 400, 600, 600, 400);
+  --skin-card-inset: 2px;
+  --skin-card-deco:
+    linear-gradient(var(--skin-accent), var(--skin-accent)),
+    linear-gradient(var(--skin-accent), var(--skin-accent)),
+    linear-gradient(var(--skin-accent), var(--skin-accent));
+  --skin-card-deco-size: 100% 3px, 100% 3px, 100% 3px;
+  --skin-card-deco-pos: 0 100%, 0 calc(100% - 6px), 0 calc(100% - 12px);
+  --skin-card-deco-repeat: no-repeat;
+  --skin-bar-height: 6px;
+  --skin-card-image: none;
+}
+@include skin('track') {
+  @include kit(#15171c, #20232b, #f4f6fa, #b8bfcc, #444a58, var(--skin-accent), var(--skin-accent-rgb), #0a0c10, #5ee08a, #ffd166, #ff6b6b);
+  @include track-common;
+  @include derived(dark);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-sf-line-rgb-dark), 0.6);
+  --skin-card-shadow: none;
+}
+@include skin-light('track') {
+  @include kit(#e6e8ee, #ffffff, #14171f, #4a5160, #c4c9d4, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #8a5a00, #b3261e);
+  @include derived(light);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-sf-line-rgb-light), 0.8);
+  --skin-card-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+}
+@include in-skin('track', '[data-skin-part="fill"]') {
+  background: var(--accent);
+}

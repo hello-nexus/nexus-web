@@ -57,14 +57,6 @@
   --skin-hi: var(--skin-hi-dark, #7fa4ff);
   --skin-hi-rgb: var(--skin-hi-dark-rgb, 127, 164, 255);
 }
-// Nothing moves on paper.
-.panel-root[data-panel-skin='eink'],
-.panel-root[data-panel-skin='eink'] *,
-.panel-root[data-panel-skin='eink'] *::before,
-.panel-root[data-panel-skin='eink'] *::after {
-  transition: none !important;
-  animation: none !important;
-}
 @include in-skin('eink', '[data-skin-part="fill"]') {
   background: var(--skin-hi);
 }

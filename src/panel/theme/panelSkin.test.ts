@@ -43,17 +43,17 @@ describe('panel skin render-time overrides', () => {
     expect(own.accentColor).toBe('#2fd8ff');
     const override = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', skinAccent: '#00ff00' })));
     expect(override.accentColor).toBe('#00ff00');
-    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinAccent: '#ff0000' })));
-    expect(locked.accentColor).toBe('#ffb84a');
+    const steam = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinAccent: '#ff0000' })));
+    expect(steam.accentColor).toBe('#ff0000');
     const lcd = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinAccent: '#ff0000' })));
-    expect(lcd.accentColor).toBe('#9bb36a');
+    expect(lcd.accentColor).toBe('#ff0000');
   });
 
   it('applies the skin default mode, ignoring the user mode; a skin-level mode override wins unless locked', () => {
     expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd' }))).themeMode).toBe('light');
     expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' }))).themeMode).toBe('light');
     expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinMode: 'dark' }))).themeMode).toBe('dark');
-    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', skinMode: 'light' }))).themeMode).toBe('dark');
+    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', skinMode: 'light' }))).themeMode).toBe('light');
   });
 
   it('is a no-op without a skin', () => {

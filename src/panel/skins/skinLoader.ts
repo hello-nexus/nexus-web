@@ -26,9 +26,7 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   sketch: () => import('./sketch.scss'),
   bubblegum: () => import('./bubblegum.scss'),
   sakura: () => import('./sakura.scss'),
-  y2k: () => import('./y2k.scss'),
-  seventies: () => import('./seventies.scss'),
-  mint: () => import('./mint.scss'),
+  track: () => import('./track.scss'),
 };
 
 const loaded = new Set<string>();
@@ -37,6 +35,10 @@ export async function loadSkinStyles(id: PanelSkinId): Promise<void> {
   if (!loaded.has('base')) {
     loaded.add('base');
     await import('./skinBase.scss');
+  }
+  if (!loaded.has('tint')) {
+    loaded.add('tint');
+    await import('./skinTint.scss');
   }
   if (loaded.has(id)) return;
   loaded.add(id);
