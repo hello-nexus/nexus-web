@@ -12,6 +12,8 @@ describe('panel skin normalization', () => {
     expect(normalizeStoredSkin('nope')).toBeNull();
     expect(normalizeStoredSkin(null)).toBeNull();
     expect(normalizeStoredSkin('lcd')).toBe('lcd');
+    expect(normalizeStoredSkin('eink')).toBeNull();
+    expect(buildPanelTheme(null, record({ skin: 'eink', skinOverrides: { eink: { accent: '#123456' } } }))).toMatchObject({ skin: null, skinOverrides: {} });
   });
 
   it('builds the skin from the device record', () => {

@@ -29,7 +29,6 @@ describe('accent as text on the card face', () => {
             pairs.push(mode === 'dark' ? [v['--skin-lit'], v['--skin-night']] : [v['--skin-vfd-day-dim'], v['--skin-vfd-day-bg']]);
           }
           if (def.id === 'lcd') pairs.push(mode === 'dark' ? [v['--skin-deep'], v['--skin-glow']] : [v['--skin-deep'], v['--skin-pale']]);
-          if (def.id === 'eink') pairs.push(mode === 'dark' ? [v['--skin-hi-dark'], '#121212'] : [v['--skin-hi-light'], '#efede4']);
           if (def.id === 'blueprint' && mode === 'light') pairs.push([v['--skin-accent-deep'], '#f9f7f0']);
           if (def.id === 'blueprint' && mode === 'dark') return;
           expect(pairs.length).toBeGreaterThan(0);

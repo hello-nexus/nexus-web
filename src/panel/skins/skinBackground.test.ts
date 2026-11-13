@@ -5,7 +5,7 @@ import {
   normalizePanelBackgroundMode,
 } from '../background/panelBackground';
 import { applyPanelSkin, resolveSkin, type SkinThemeFields } from '../theme/panelSkin';
-import { PANEL_SKINS, einkVars, segmentDisplayVars } from './skins';
+import { PANEL_SKINS, segmentDisplayVars } from './skins';
 
 const base: SkinThemeFields = {
   skin: null,
@@ -42,7 +42,7 @@ describe('skin background mode', () => {
 
   it('marks the skins that own their backdrop', () => {
     const owners = PANEL_SKINS.filter(s => s.prefersSkinBackground).map(s => s.id).sort();
-    expect(owners).toEqual(['blueprint', 'crt', 'eink', 'lcd', 'nixie', 'vfd']);
+    expect(owners).toEqual(['blueprint', 'crt', 'lcd', 'nixie', 'vfd']);
   });
 });
 
@@ -64,13 +64,6 @@ describe('skin ink contrast', () => {
     for (const a of accents) {
       const v = segmentDisplayVars(a);
       expect(ratio(v['--skin-deep'], v['--skin-pale'])).toBeGreaterThanOrEqual(7);
-    }
-  });
-  it('keeps the E-ink accent readable on its paper in both modes', () => {
-    for (const a of accents) {
-      const v = einkVars(a);
-      expect(ratio(v['--skin-hi-light'], '#efede4')).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(v['--skin-hi-dark'], '#121212')).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

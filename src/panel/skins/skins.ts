@@ -23,7 +23,6 @@ export const PANEL_SKINS = [
   { id: 'neon', label: 'Neon', font: 'oswald', accent: '#ff2bd6', prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'blueprint', label: 'Blueprint', font: 'jura', accent: '#1a4fa8', prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'eink', label: 'E-ink', font: 'piazzolla', accent: '#2f6fd6', prefersSkinBackground: true, framelessAtZeroPadding: true },
   { id: 'bevel', label: 'Bevel', font: 'lexend', accent: '#6f9bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
   { id: 'sakura', label: 'Sakura', font: 'piazzolla', accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
   { id: 'hifi', label: 'Hi-fi', font: 'oswald', accent: '#e2572b', prefersSkinBackground: false, framelessAtZeroPadding: false },
@@ -176,8 +175,6 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
   const second = derivedSecondColor(a);
   if (id === 'crt') return crtPhosphorVars(a);
   if (id === 'lcd' || id === 'vfd') return segmentDisplayVars(a);
-  // E-ink is in the backdrop tint list, so it needs the --skin-bd-* pair too, or its backdrop resolves to nothing.
-  if (id === 'eink') return { ...einkVars(a), ...skinBackdropVars('eink', a) };
   return {
     '--skin-accent': a,
     '--skin-accent-rgb': hexToRgb(a).join(', '),
@@ -214,7 +211,6 @@ export const BACKDROP_BASE = {
   hud: { light: '#dbe9f0', dark: '#040d16' },
   neon: { light: '#fff2fb', dark: '#0c0618' },
   blueprint: { light: '#f4f2ea', dark: '#000000' },
-  eink: { light: '#d9d6cb', dark: '#000000', floor: 0.06 },
   bevel: { light: '#7d8794', dark: '#2b2e35' },
   hifi: { light: '#b5b8bc', dark: '#171717' },
   cockpit: { light: '#b9bdc1', dark: '#050506' },
@@ -228,12 +224,11 @@ export const BACKDROP_BASE = {
 
 export function skinBackdropVars(id: keyof typeof BACKDROP_BASE, accent: string): Record<string, string> {
   const base = BACKDROP_BASE[id];
-  const floor = 'floor' in base ? base.floor : 0.12;
   const [h, s0] = rgbToHsl(hexToRgb(accent));
   const out: Record<string, string> = {};
   for (const mode of ['light', 'dark'] as const) {
     const [, s, l] = rgbToHsl(hexToRgb(base[mode]));
-    out[`--skin-bd-${mode}`] = rgbToHex(hslToRgb(h, s0 < 0.1 ? 0 : Math.min(Math.max(s, floor), 0.85), l));
+    out[`--skin-bd-${mode}`] = rgbToHex(hslToRgb(h, s0 < 0.1 ? 0 : Math.min(Math.max(s, 0.12), 0.85), l));
   }
   return out;
 }
@@ -358,38 +353,6 @@ function contrastRatio(a: [number, number, number], b: [number, number, number])
 function relLum([r, g, b]: [number, number, number]): number {
   const f = (v: number) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-}
-
-// Lightness is stepped away from the page until the accent reaches the contrast target on it,
-// so accent text and fills read on the paper whatever the user picks.
-function accentOnPage(h: number, s: number, l0: number, page: string, towardDark: boolean): string {
-  const pl = relLum(hexToRgb(page));
-  let l = l0;
-  for (let i = 0; i < 60; i++) {
-    const c = hslToRgb(h, s, l);
-    const cl = relLum(c);
-    const ratio = (Math.max(cl, pl) + 0.05) / (Math.min(cl, pl) + 0.05);
-    if (ratio >= 4.6) break;
-    l += towardDark ? -0.01 : 0.01;
-    if (l < 0 || l > 1) break;
-  }
-  return rgbToHex(hslToRgb(h, s, Math.min(Math.max(l, 0), 1)));
-}
-
-// E-ink: body ink stays black or paper white; the accent is the color of the
-// highlights only (fills, sparkline, headings, active state), one value per
-// page color.
-export function einkVars(accent: string): Record<string, string> {
-  const [h, s0, l0] = rgbToHsl(hexToRgb(accent));
-  const s = Math.min(Math.max(s0, 0.45), 0.85);
-  const light = accentOnPage(h, s, Math.min(l0, 0.5), '#efede4', true);
-  const dark = accentOnPage(h, s, Math.max(l0, 0.6), '#121212', false);
-  return {
-    '--skin-hi-light': light,
-    '--skin-hi-light-rgb': hexToRgb(light).join(', '),
-    '--skin-hi-dark': dark,
-    '--skin-hi-dark-rgb': hexToRgb(dark).join(', '),
-  };
 }
 
 // LCD and VFD: one accent, every material color derived from its hue. Lit ink

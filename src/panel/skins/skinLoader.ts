@@ -12,7 +12,6 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   hud: () => import('./hud.scss'),
   neon: () => import('./neon.scss'),
   blueprint: () => import('./blueprint.scss'),
-  eink: () => import('./eink.scss'),
   bevel: () => import('./bevel.scss'),
   hifi: () => import('./hifi.scss'),
   cockpit: () => import('./cockpit.scss'),

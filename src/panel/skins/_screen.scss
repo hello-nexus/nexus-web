@@ -1,5 +1,5 @@
 @use 'mixins' as *;
-// Shared token block for the screen-type skins (LCD, CRT, VFD, E-ink). A
+// Shared token block for the screen-type skins (LCD, CRT, VFD). A
 // variant sets six variables; everything else follows from them.
 //   --skin-ink       ink color (text, fills)       --skin-ink-rgb
 //   --skin-bg        card (screen) color           --skin-back  panel backdrop
