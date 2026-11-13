@@ -38,7 +38,9 @@
   left: 2px;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  // Knob follows the track's corner token: round on the stock pill, square on
+  // a skin that squares the track (its radius minus the inset).
+  border-radius: min(50%, max(0px, calc(var(--radius-pill) - 2px)));
   // Knob contrasts the off track (--surface): dark over the light-theme
   // near-white, light over the dark-theme near-black. Fades to white when on
   // (sitting over the accent track).
@@ -81,5 +83,5 @@
 
 .toggle[data-on='true'] .thumb {
   transform: translateX(18px);
-  background: #fff;
+  background: var(--toggle-knob-on, #fff);
 }

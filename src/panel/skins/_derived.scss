@@ -1,0 +1,25 @@
+@use 'mixins' as *;
+// Accent-derived palette for the skins that recolor with the accent: the TS
+// side (skinSurfaceVars) precomputes every surface, ink and line per mode and
+// this mixin points the panel tokens at them.
+@mixin derived($m) {
+  --skin-backdrop: var(--skin-sf-back-#{$m});
+  --skin-card-bg: var(--skin-sf-card-#{$m});
+  --bg: var(--skin-sf-card-#{$m});
+  --bg-elevated: var(--skin-sf-card-#{$m});
+  --surface: var(--skin-sf-card-#{$m});
+  --text: var(--skin-sf-text-#{$m});
+  --text-dim: var(--skin-sf-dim-#{$m});
+  --border: #{tint(var(--skin-sf-line-rgb-#{$m}), 0.55)};
+  --border-strong: var(--skin-sf-line-#{$m});
+  --separator: #{tint(var(--skin-sf-line-rgb-#{$m}), 0.4)};
+  --panel-border: #{tint(var(--skin-sf-line-rgb-#{$m}), 0.55)};
+  --panel-border-strong: var(--skin-sf-line-#{$m});
+  --gauge-track: #{tint(var(--skin-sf-line-rgb-#{$m}), 0.35)};
+  --panel-control-bg: #{tint(var(--skin-sf-text-rgb-#{$m}), 0.1)};
+  --panel-control-bg-hover: #{tint(var(--skin-sf-text-rgb-#{$m}), 0.18)};
+  --panel-control-bg-active: #{tint(var(--skin-sf-text-rgb-#{$m}), 0.28)};
+  --panel-element-bg: #{tint(var(--skin-sf-text-rgb-#{$m}), 0.1)};
+  --panel-card-bg: #{tint(var(--skin-sf-text-rgb-#{$m}), 0.06)};
+  --panel-control-translucent: #{tint(var(--skin-sf-text-rgb-#{$m}), 0.14)};
+}

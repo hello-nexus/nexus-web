@@ -1,0 +1,114 @@
+@use 'mixins' as *;
+
+// Neon / synthwave (dark only): violet field, outlined tiles in the accent
+// and a derived second color, alternating by cell. One box-shadow glow on the
+// card edge, no text or SVG glow filters.
+@include skin('neon') {
+  --skin-backdrop: #0c0618;
+  --skin-backdrop-image: linear-gradient(180deg, transparent 55%, rgba(var(--skin-accent-rgb), 0.14) 100%);
+  --neon: var(--skin-accent);
+  --neon-rgb: var(--skin-accent-rgb);
+  --skin-card-bg: #0e0620;
+  --skin-card-radius: 14px;
+  --skin-card-frame: inset 0 0 0 2px var(--neon);
+  --skin-card-shadow: 0 0 10px rgba(var(--neon-rgb), 0.45);
+  --skin-bar-height: 7px;
+  --skin-bar-radius: 4px;
+  --skin-spark-fill: rgba(var(--neon-rgb), 0.2);
+  --weight-display: 700;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --panel-card-radius: 14px;
+  --panel-element-radius: 10px;
+  --bg: #0e0620;
+  --bg-elevated: #140a2a;
+  --bg-card-hover: rgba(var(--neon-rgb), 0.14);
+  --border: rgba(var(--neon-rgb), 0.5);
+  --border-strong: var(--neon);
+  --border-hover: var(--skin-accent2);
+  --surface: #0e0620;
+  --surface-hover: rgba(var(--neon-rgb), 0.14);
+  --text: #fbeaff;
+  --text-dim: #c9b4d6;
+  --separator: rgba(var(--neon-rgb), 0.4);
+  --gauge-track: rgba(255, 255, 255, 0.14);
+  --accent: var(--skin-accent-ink-dark);
+  --accent-glow: var(--skin-accent-ink-dark);
+  --accent-deep: var(--skin-accent-ink-dark);
+  --accent-soft: rgba(var(--neon-rgb), 0.22);
+  --accent-glow-shadow: rgba(var(--neon-rgb), 0.35);
+  --accent-text: #0c0618;
+  --panel-accent: var(--skin-accent-ink-dark);
+  --panel-accent-glow: var(--skin-accent-ink-dark);
+  --panel-accent-soft: rgba(var(--neon-rgb), 0.22);
+  --panel-accent-shadow: rgba(var(--neon-rgb), 0.35);
+  --panel-accent-text: #0c0618;
+  --good: #3dffb0;
+  --warn: #ffe14d;
+  --bad: #ff4d6d;
+  --chart-line-alt: var(--skin-accent2);
+  --panel-control-bg: rgba(var(--neon-rgb), 0.16);
+  --panel-control-bg-hover: rgba(var(--neon-rgb), 0.26);
+  --panel-control-bg-active: rgba(var(--neon-rgb), 0.38);
+  --panel-element-bg: rgba(var(--neon-rgb), 0.16);
+  --panel-card-bg: rgba(var(--neon-rgb), 0.08);
+  --panel-control-translucent: rgba(var(--neon-rgb), 0.2);
+  --panel-border: rgba(var(--neon-rgb), 0.5);
+  --panel-border-strong: var(--neon);
+}
+// Pastel: white sheet, soft tinted tiles, the accent kept for outlines and fills.
+@include skin-light('neon') {
+  --skin-backdrop: #fff2fb;
+  --skin-backdrop-image: linear-gradient(180deg, transparent 50%, rgba(var(--skin-accent-rgb), 0.16) 100%);
+  --skin-card-bg: #ffffff;
+  --skin-card-image: linear-gradient(rgba(var(--neon-rgb), 0.1), transparent 70%);
+  --skin-card-shadow: 0 3px 8px rgba(var(--neon-rgb), 0.3);
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --text: #3a1d55;
+  --text-dim: #6f5388;
+  --gauge-track: rgba(58, 29, 85, 0.12);
+  --accent: var(--skin-accent-ink-light);
+  --accent-deep: var(--skin-accent-ink-light);
+  --panel-accent: var(--skin-accent-ink-light);
+  --accent-text: #ffffff;
+  --panel-accent-text: #ffffff;
+  --good: #0b9a66;
+  --warn: #a8690a;
+  --bad: #d12c52;
+}
+// Even cells take the derived second color; the accent is re-pointed per
+// cell, so gauges, links and icons inside pick it up too.
+// The ink hosts of an even cell re-declare the skin block, so they are listed too.
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even),
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink] {
+  --neon: var(--skin-accent2);
+  --neon-rgb: var(--skin-accent2-rgb);
+  --accent: var(--skin-accent2-ink-dark);
+  --accent-glow: var(--skin-accent2-ink-dark);
+  --accent-deep: var(--skin-accent2-ink-dark);
+  --panel-accent: var(--skin-accent2-ink-dark);
+  --panel-accent-glow: var(--skin-accent2-ink-dark);
+  --skin-fill: var(--skin-accent2);
+  --accent-soft: rgba(var(--skin-accent2-rgb), 0.22);
+  --accent-glow-shadow: rgba(var(--skin-accent2-rgb), 0.35);
+  --panel-accent-soft: rgba(var(--skin-accent2-rgb), 0.22);
+  --panel-accent-shadow: rgba(var(--skin-accent2-rgb), 0.35);
+  --border: rgba(var(--skin-accent2-rgb), 0.5);
+  --border-strong: var(--skin-accent2);
+  --panel-control-bg: rgba(var(--skin-accent2-rgb), 0.16);
+  --panel-element-bg: rgba(var(--skin-accent2-rgb), 0.16);
+  --skin-spark-fill: rgba(var(--skin-accent2-rgb), 0.2);
+}
+// Pastel text stays on the deep accent; the second color only draws the outline.
+.panel-root[data-panel-skin='neon'][data-theme='light'] [data-panel-widget-id]:nth-child(even),
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink='dark'] {
+  --accent: var(--skin-accent-ink-light);
+  --accent-deep: var(--skin-accent-ink-light);
+  --panel-accent: var(--skin-accent-ink-light);
+  --panel-accent-glow: var(--skin-accent-deep);
+  --accent-glow: var(--skin-accent-deep);
+}

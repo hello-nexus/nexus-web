@@ -1,0 +1,105 @@
+@use 'mixins' as *;
+
+// Pixel / 8-bit. Notched corners from stacked 3px box-shadows (no clip-path,
+// no filter), a limited palette, Pixeloid Sans, segmented bars and
+// stepped easing. The accent snaps to the palette (see snapToPixelPalette).
+@mixin pixel-common {
+  --skin-card-radius: 0;
+  // NES-style border: four offset rules give the stepped corners.
+  --skin-card-shadow: 0 -2px 0 0 var(--px-line), 0 2px 0 0 var(--px-line), -2px 0 0 0 var(--px-line), 2px 0 0 0 var(--px-line);
+  --skin-card-frame: inset 0 -6px 0 0 rgba(0, 0, 0, 0.2);
+  --skin-text-rendering: optimizeSpeed;
+  --skin-bar-height: 10px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 6px, transparent 6px, transparent 8px);
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  // Pixel has a regular and a bold face: titles and big values are bold, everything else regular.
+  --weight-heading: 700;
+  --weight-body: 400;
+  --weight-strong: 400;
+  --weight-display: 700;
+  --weight-small: 400;
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --panel-card-radius: 0;
+  --panel-element-radius: 0;
+  --accent: var(--skin-accent-ink-dark);
+  --accent-glow: var(--skin-accent-ink-dark);
+  --accent-deep: var(--skin-accent-ink-dark);
+  --accent-soft: rgba(var(--skin-accent-rgb), 0.28);
+  --accent-glow-shadow: rgba(var(--skin-accent-rgb), 0.35);
+  --panel-accent: var(--skin-accent-ink-dark);
+  --panel-accent-glow: var(--skin-accent-ink-dark);
+  --panel-accent-soft: rgba(var(--skin-accent-rgb), 0.28);
+  --panel-accent-shadow: rgba(var(--skin-accent-rgb), 0.35);
+  --skin-spark-fill: rgba(var(--skin-accent-rgb), 0.35);
+}
+@include skin('pixel') {
+  @include pixel-common;
+  --px-line: #f4f4f4;
+  --skin-backdrop: #1a1c2c;
+  --skin-card-bg: #333c57;
+  --bg: #1a1c2c;
+  --bg-elevated: #29366f;
+  --bg-card-hover: #3b5dc9;
+  --border: #f4f4f4;
+  --border-strong: #f4f4f4;
+  --border-hover: #ffcd75;
+  --surface: #333c57;
+  --surface-hover: #3b5dc9;
+  --text: #f4f4f4;
+  --text-dim: #b4c8d6;
+  --separator: #566c86;
+  --gauge-track: #1a1c2c;
+  --accent-text: #1a1c2c;
+  --panel-accent-text: #1a1c2c;
+  --good: #38b764;
+  --warn: #ffcd75;
+  --bad: #ef7d57;
+  --chart-line-alt: #ffcd75;
+  --panel-control-bg: #29366f;
+  --panel-control-bg-hover: #3b5dc9;
+  --panel-control-bg-active: #566c86;
+  --panel-element-bg: #29366f;
+  --panel-card-bg: #29366f;
+  --panel-control-translucent: #566c86;
+  --panel-border: #f4f4f4;
+  --panel-border-strong: #f4f4f4;
+}
+@include skin-light('pixel') {
+  --px-line: #1a1c2c;
+  --skin-backdrop: #94b0c2;
+  --skin-card-bg: #f4f4f4;
+  --skin-card-frame: inset 0 -6px 0 0 rgba(0, 0, 0, 0.1);
+  --bg: #f4f4f4;
+  --bg-elevated: #c8d6e0;
+  --bg-card-hover: #94b0c2;
+  --border: #1a1c2c;
+  --border-strong: #1a1c2c;
+  --surface: #f4f4f4;
+  --surface-hover: #c8d6e0;
+  --text: #1a1c2c;
+  --text-dim: #3f526b;
+  --separator: #94b0c2;
+  --gauge-track: #c8d6e0;
+  --accent: var(--skin-accent-ink-light);
+  --accent-glow: var(--skin-accent-ink-light);
+  --panel-accent: var(--skin-accent-ink-light);
+  --panel-accent-glow: var(--skin-accent-ink-light);
+  --accent-text: #f4f4f4;
+  --panel-accent-text: #f4f4f4;
+  --good: #257179;
+  --warn: #a4631a;
+  --bad: #b13e53;
+  --panel-control-bg: #c8d6e0;
+  --panel-control-bg-hover: #94b0c2;
+  --panel-control-bg-active: #3b5dc9;
+  --panel-element-bg: #c8d6e0;
+  --panel-card-bg: #c8d6e0;
+  --panel-control-translucent: #94b0c2;
+  --panel-border: #1a1c2c;
+  --panel-border-strong: #1a1c2c;
+}

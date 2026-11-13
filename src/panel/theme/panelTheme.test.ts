@@ -14,6 +14,7 @@ const baseTheme: PanelThemeState = {
   backgroundColor: '',
   backgroundColorLight: '',
   backgroundMode: 'solid',
+  backgroundModeBefore: 'solid',
   backgroundEffect: 'plasma',
   backgroundTemplate: 0,
   backgroundTemplates: {},

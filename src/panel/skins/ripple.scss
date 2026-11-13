@@ -1,0 +1,35 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+@use 'derived' as *;
+
+// Ripple: flat tiles with concentric hairline accent outlines in the edge band, each inner one fainter. Every color follows the accent.
+// Each outline is an inset band in the accent topped by an opaque band in the face color, so only a hairline survives and it follows the corner radius. The face layer paints them; the face color is opaque so the widget opacity scales everything together.
+@mixin ripple-rings($depths, $alphas) {
+  $list: ();
+  @for $i from 1 through length($depths) {
+    $d: nth($depths, $i);
+    $list: append($list, inset 0 0 0 $d var(--skin-card-bg), comma);
+    $list: append($list, inset 0 0 0 ($d + 1px) rgba(var(--skin-accent-rgb), nth($alphas, $i)), comma);
+  }
+  --skin-card-face-shadow: #{$list};
+}
+@mixin ripple-common {
+  @include kit-radius(8px, 4px, 999px);
+  @include kit-weights(800, 400, 700, 800, 500);
+  --skin-card-inset: 2px;
+  --skin-bar-height: 6px;
+  --skin-card-image: none;
+  --skin-card-frame: none;
+  --skin-card-shadow: none;
+}
+@include skin('ripple') {
+  @include kit(#15171c, #20232b, #f4f6fa, #b8bfcc, #444a58, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #0a0c10, #5ee08a, #ffd166, #ff6b6b);
+  @include ripple-common;
+  @include derived(dark);
+  @include ripple-rings(2px 6px 11px 17px 24px, 0.75 0.52 0.34 0.2 0.1);
+}
+@include skin-light('ripple') {
+  @include kit(#e6e8ee, #ffffff, #14171f, #4a5160, #c4c9d4, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #8a5a00, #b3261e);
+  @include derived(light);
+  @include ripple-rings(2px 6px 11px 17px 24px, 0.75 0.52 0.34 0.2 0.1);
+}

@@ -73,6 +73,18 @@ export function gaugeAccentVars(
   };
 }
 
+/** Warning marker for a reading: the top two stops of the gradient read as warn and critical; absent below them. */
+export function gaugeValueStateAttrs(
+  stops: readonly GaugeGradientStop[],
+  at: number,
+): { 'data-value-state'?: 'warn' | 'critical' } {
+  const last = stops.length - 1;
+  if (last < 0) return {};
+  if (at >= stops[last].at) return { 'data-value-state': 'critical' };
+  if (last >= 1 && at >= stops[last - 1].at) return { 'data-value-state': 'warn' };
+  return {};
+}
+
 /** The graded counterpart of --panel-accent-shadow: the gradient at the body's alpha. */
 export function gaugeBodyCss(gradient: GaugeGradient, angleDeg: number): string {
   return gaugeGradientCss(gradient.stops, angleDeg, gradient.bodyAlpha);

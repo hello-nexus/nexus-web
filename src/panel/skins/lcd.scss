@@ -1,0 +1,79 @@
+@use 'mixins' as *;
+@use 'screen' as *;
+@use 'kit' as *;
+@use 'warn' as *;
+
+// DSEG7: digits, colon, period, minus and degree only (unicode-range), so every
+// other glyph falls through to the panel font stack per glyph.
+@font-face { font-family: 'Skin Seg7'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/dseg7.woff2') format('woff2'); unicode-range: U+0030-003A, U+002D, U+002E, U+00B0; }
+
+// Light is the daylight reflective cell, dark is the same cell with its backlight on; both take their hue from the accent and both draw dark segments.
+@include skin('lcd') {
+  @include screen-tokens;
+  --skin-back: var(--skin-day-back);
+  --skin-bg: var(--skin-pale);
+  --skin-ink: var(--skin-deep);
+  --skin-ink-rgb: var(--skin-deep-rgb);
+  --skin-dim: rgba(var(--skin-deep-rgb), 0.92);
+  --skin-card-radius: 4px;
+  --skin-card-image: none;
+  --skin-card-frame: inset 0 0 0 2px var(--skin-ink);
+  --skin-text-shadow: none;
+  --skin-bar-height: 9px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 4px, transparent 4px, transparent 5px);
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --skin-numeral-font: 'Skin Seg7', var(--panel-font);
+  --skin-seg-scale: 0.71;
+  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
+  --skin-overlay-size: 3px 3px;
+  --skin-ghost: 0.07;
+  --weight-heading: 700;
+  --weight-body: 600;
+  --weight-strong: 700;
+  --weight-display: 700;
+  --weight-small: 600;
+  --radius-sm: 1px;
+  --radius: 2px;
+  --radius-lg: 4px;
+  --radius-pill: 1px;
+  --panel-card-radius: 4px;
+  --panel-element-radius: 2px;
+}
+// Backlight on: the cell glows in the accent hue inside a dark bezel, and the
+// segments stay dark on it. LCD is never emissive text on black.
+@include skin-dark('lcd') {
+  --skin-back: var(--skin-night-back);
+  --skin-bg: var(--skin-glow);
+  --skin-ink: var(--skin-deep);
+  --skin-ink-rgb: var(--skin-deep-rgb);
+  --skin-dim: rgba(var(--skin-deep-rgb), 0.92);
+  --skin-card-image: none;
+  --skin-card-frame: inset 0 0 0 2px var(--skin-ink);
+  --skin-text-shadow: none;
+  --skin-ghost: 0.1;
+  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+// Unlit segments ghosted behind each numeral, drawn in the same face.
+@include in-skin('lcd', '[data-skin-part="digit"]') {
+  font-weight: 700;
+  // DSEG ink is exactly one em tall from the baseline while the panel fonts'
+  // digits stand about 0.71em, so the face is scaled down to the stock cap
+  // height. Baselines already match, so every widget keeps its stock gaps.
+  font-size: calc(1em * var(--skin-seg-scale));
+}
+@include in-skin('lcd', '[data-skin-part="digit"]::before') {
+  content: '8';
+  grid-area: 1 / 1;
+  opacity: var(--skin-ghost, 0.1);
+  text-shadow: none;
+}
+.panel-root[data-panel-skin='lcd'][data-skin-font-custom][data-theme] {
+  --skin-numeral-font: var(--panel-font);
+  --skin-seg-scale: 1;
+}
+.panel-root[data-panel-skin='lcd'][data-skin-font-custom] [data-skin-part='digit']::before {
+  content: none;
+}
+@include mono-warn('lcd', var(--skin-ink), var(--skin-bg));

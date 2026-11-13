@@ -116,9 +116,10 @@ export function Sparkline({
       preserveAspectRatio="none"
       style={style}
       aria-hidden="true"
+      data-skin-part="spark"
     >
       {defs}
-      {showFill && <path d={fillPath} fill={color} fillOpacity={resolvedFillOpacity} />}
+      {showFill && <path d={fillPath} fill={color} fillOpacity={resolvedFillOpacity} data-skin-part="spark-fill" />}
       {!fillOnly && (
         <path
           d={linePath}
@@ -128,6 +129,7 @@ export function Sparkline({
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
+          data-skin-part="spark-line"
         />
       )}
     </svg>

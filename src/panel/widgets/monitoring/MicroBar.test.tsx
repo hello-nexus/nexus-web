@@ -2,6 +2,19 @@ import { render, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { hasGaugeReading } from '../../../__tests__/panel/visibleText';
 import { MicroBar } from './MicroBar';
+import { DEFAULT_GAUGE_GRADIENT } from '../../theme/gaugeGradient';
+
+describe('MicroBar value state', () => {
+  it.each(['bar', 'fill', 'backdrop', 'simple'] as const)('%s design stamps the state on the value only, never the row', design => {
+    const { container } = render(
+      <MicroBar label="GPU" formatted="92%" fillPercent={92} design={design} gradient={{ id: 'g', stops: DEFAULT_GAUGE_GRADIENT, bodyAlpha: 1 }} style={{}} />,
+    );
+    const stamped = container.querySelectorAll('[data-value-state]');
+    expect(stamped).toHaveLength(1);
+    expect(stamped[0].getAttribute('data-value-state')).toBe('critical');
+    expect(container.firstElementChild?.hasAttribute('data-value-state')).toBe(false);
+  });
+});
 
 describe('MicroBar designs', () => {
   it('backdrop design renders a filled history Sparkline; bar and fill do not', () => {

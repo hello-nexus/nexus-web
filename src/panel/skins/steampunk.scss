@@ -1,0 +1,39 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+@use 'derived' as *;
+
+// Metal bezels with corner rivets around a leather (dark) or parchment (light) face; the alloy, face and numerals follow the accent.
+@mixin sp-ring($hi, $mid, $lo) {
+  --sp-hi: #{$hi};
+  --sp-mid: #{$mid};
+  --sp-lo: #{$lo};
+}
+@include skin('steampunk') {
+  @include kit(#140c07, #2b1b10, #ffbe55, #d9a35a, #8a6a24, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1c0f00, #8fd16a, #ffbe55, #ff6a4a);
+  @include kit-radius(6px, 3px, 3px);
+  @include kit-weights(600, 500, 700, 800, 500);
+  --skin-card-image: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35));
+  --skin-card-frame: inset 0 0 0 2px var(--sp-hi), inset 0 0 0 4px var(--sp-mid), inset 0 0 0 5px var(--sp-lo);
+  --skin-card-deco:
+    radial-gradient(circle at 35% 35%, #fff2b8 0, var(--sp-hi) 35%, var(--sp-lo) 80%, transparent 85%),
+    radial-gradient(circle at 35% 35%, #fff2b8 0, var(--sp-hi) 35%, var(--sp-lo) 80%, transparent 85%),
+    radial-gradient(circle at 35% 35%, #fff2b8 0, var(--sp-hi) 35%, var(--sp-lo) 80%, transparent 85%),
+    radial-gradient(circle at 35% 35%, #fff2b8 0, var(--sp-hi) 35%, var(--sp-lo) 80%, transparent 85%);
+  --skin-card-deco-size: 8px 8px, 8px 8px, 8px 8px, 8px 8px;
+  --skin-card-deco-pos: 1px 1px, calc(100% - 1px) 1px, 1px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px);
+  --skin-card-deco-repeat: no-repeat;
+  --skin-text-shadow: 0 0 4px rgba(var(--skin-accent-rgb), 0.45);
+  --skin-bar-height: 7px;
+  --skin-bar-radius: 2px;
+  --skin-bar-track-shadow: inset 0 0 0 1px var(--sp-mid);
+    @include sp-ring(var(--skin-metal-hi), var(--skin-metal-mid), var(--skin-metal-lo));
+  @include derived(dark);
+}
+@include skin-light('steampunk') {
+  @include kit(#b9a173, #ead9ab, #3a2410, #6a4a26, #7a5a24, var(--skin-accent-ink-light), var(--skin-accent-rgb), #fff4d6, #3f7a2a, #8a5200, #9e2a1a);
+  --skin-card-image: radial-gradient(ellipse at center, transparent 50%, rgba(140, 95, 30, 0.35));
+  --skin-text-shadow: none;
+  --gauge-track: rgba(58, 36, 16, 0.18);
+  @include sp-ring(var(--skin-metal-hi), var(--skin-metal-mid), var(--skin-metal-lo));
+  @include derived(light);
+}

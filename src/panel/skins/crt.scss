@@ -1,0 +1,44 @@
+@use 'mixins' as *;
+@use 'warn' as *;
+@use 'screen' as *;
+
+// CRT phosphor terminal. The phosphor color is the panel accent (any color). Black glass, one small glow
+// layer on text, and one static scanline overlay. Tektur carries the words and numerals.
+@include skin('crt') {
+  @include screen-tokens;
+  // Defaults (classic green); the panel stamps the accent-derived --crt-* values inline.
+  --skin-back: var(--crt-back, #020402);
+  --skin-bg: var(--crt-bg, #04170a);
+  --skin-ink: var(--crt-ink, #33ff66);
+  --skin-ink-rgb: var(--crt-ink-rgb, 51, 255, 102);
+  --skin-dim: var(--crt-dim, #2fd35a);
+  --skin-card-radius: 8px;
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.55);
+  --skin-text-shadow: 0 0 4px rgba(var(--skin-ink-rgb), 0.45);
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 5px, transparent 5px, transparent 7px);
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px);
+  --weight-heading: 700;
+  --weight-body: 400;
+  --weight-strong: 700;
+  --weight-display: 700;
+  --weight-small: 400;
+  --radius-sm: 2px;
+  --radius: 6px;
+  --radius-lg: 14px;
+  --radius-pill: 3px;
+  --panel-card-radius: 8px;
+  --panel-element-radius: 6px;
+}
+@include mono-warn('crt', var(--skin-ink), var(--skin-bg));
+// Reverse video: warm-grey glass, dark ink tinted by the phosphor color, scanlines kept faint.
+@include skin-light('crt') {
+  --skin-back: var(--crt-paper-back, #cdc9bd);
+  --skin-bg: var(--crt-paper-bg, #e6e3da);
+  --skin-ink: var(--crt-paper-ink, #0c5a22);
+  --skin-ink-rgb: var(--crt-paper-ink-rgb, 12, 90, 34);
+  --skin-dim: var(--crt-paper-dim, #1b6a31);
+  --skin-text-shadow: none;
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.06) 0, rgba(0, 0, 0, 0.06) 1px, transparent 1px, transparent 3px);
+}

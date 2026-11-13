@@ -7,6 +7,11 @@ import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
 import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
+import type { PanelSkinId } from '../skins/skins';
+import type { SkinOverrides } from '../skins/skinOverrides';
+import { SkinPicker } from './SkinPicker';
+import { offersSkinBackground, resolveSkin } from '../theme/panelSkin';
+import { buildPanelThemeVars } from '../theme/panelTheme';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
 import { loadSystemFonts, useSystemFonts } from '../theme/systemFontsCache';
@@ -25,6 +30,8 @@ import {
   resolveBackgroundDrawing,
   resolvePanelBackground,
   type PanelBackdrop,
+  type PanelBackgroundBase,
+  type SkinBackgroundHeld,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
@@ -67,6 +74,10 @@ export interface PanelThemeSettingsState {
   backgroundColor: string;
   backgroundColorLight: string;
   backgroundMode: PanelBackgroundMode;
+  // The mode a Skin background falls back to when the skin is removed.
+  backgroundModeBefore: PanelBackgroundBase;
+  // The backdrop, frost and opacity the Skin background replaced; restored when it is left.
+  backgroundHeld?: SkinBackgroundHeld | null;
   backgroundEffect: string;
   backgroundTemplate: number;
   // Per-shader preset selection for this panel (effect key → preset index).
@@ -102,6 +113,10 @@ export interface PanelThemeSettingsState {
   textColor: string;
   // Null is the app font.
   font: PanelFont | null;
+  // Null is the stock look.
+  skin: PanelSkinId | null;
+  // Accent and font picked per skin; a skin absent from the map uses its own look.
+  skinOverrides: SkinOverrides;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
@@ -141,6 +156,9 @@ export interface PanelThemeSettingsProps {
   onTextColorPreview: (hex: string) => void;
   onTextColorCommit: (hex: string) => void;
   onFontCommit: (font: PanelFont | null) => void;
+  onSkinCommit: (skin: PanelSkinId | null) => void;
+  // Drops the active skin's remembered accent and font.
+  onSkinReset: () => void;
   /** List installed host fonts under the bundled ones. Only for panels rendered on this PC's own OS. */
   showSystemFonts?: boolean;
   /** Show the media background tab. All display-backed surfaces support it; the
@@ -216,6 +234,8 @@ export function PanelThemeSettings({
   onTextColorPreview,
   onTextColorCommit,
   onFontCommit,
+  onSkinCommit,
+  onSkinReset,
   showMediaTab = false,
   showSystemFonts = false,
   deviceAspect = 9 / 16,
@@ -256,12 +276,16 @@ export function PanelThemeSettings({
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
+  const skin = resolveSkin(theme);
+  // A Skin background with no skin reads as the mode held before it.
+  const bgMode = !skin && theme.backgroundMode === 'skin' ? theme.backgroundModeBefore : theme.backgroundMode;
   // Frost blurs whatever the page itself paints, so it applies to the
   // redrawn wallpaper and to a shader/media layer. In see-through mode the
   // page paints nothing, so the host blurs the desktop behind the cards.
+  // A flat solid or skin backdrop has nothing to blur.
   const frostApplies = theme.backdrop === 'wallpaper'
     || theme.backdrop === 'desktop'
-    || (theme.backdrop === 'theme' && theme.backgroundMode !== 'solid');
+    || (theme.backdrop === 'theme' && bgMode !== 'solid' && bgMode !== 'skin');
   // Built outside the JSX so the option keys read as data, matching the other
   // ChipGroup call sites (the i18n lint rule scans JSX only).
   const backdropOptions = [
@@ -335,13 +359,15 @@ export function PanelThemeSettings({
       fullWidth
       options={[
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
+        ...(offersSkinBackground(theme) ? [{ key: 'skin', label: label('skin.title', 'Skin') }] : []),
+        // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'shader', label: label('panel.settings.backgroundMode.animations', 'Animations') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         ...(showMediaTab ? [{ key: 'media', label: label('panel.settings.backgroundMode.media', 'Media') }] : []),
       ]}
-      activeKey={theme.backgroundMode}
+      activeKey={bgMode}
       onChange={key => onBackgroundModeCommit(key as PanelBackgroundMode)}
       ariaLabel={label('panel.settings.backgroundMode', 'Background mode')}
     />
@@ -447,6 +473,19 @@ export function PanelThemeSettings({
       )}
 
       {showTheme && (
+      <SettingsSection title={label('skin.title', 'Skin')}>
+        <SkinPicker
+          value={theme.skin}
+          overrides={theme.skinOverrides}
+          mode={resolvedThemeMode}
+          baseStyle={buildPanelThemeVars({ ...theme, skin: null }, resolvedThemeMode)}
+          onReset={onSkinReset}
+          onChange={onSkinCommit}
+        />
+      </SettingsSection>
+      )}
+
+      {showTheme && (
       <SettingsSection title={label('panel.settings.text', 'Text')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
           <SettingRow
@@ -474,12 +513,13 @@ export function PanelThemeSettings({
         </div>
         <SettingSelect
           label={label('panel.settings.font', 'Font')}
-          value={theme.font ?? DEFAULT_PANEL_FONT}
+          value={skin ? skin.font : theme.font ?? DEFAULT_PANEL_FONT}
           options={fontOptions}
           onChange={value => {
             const family = systemFontFamily(value);
             if (family) setRecentFonts(pushRecentSystemFont(family));
-            onFontCommit(value === DEFAULT_PANEL_FONT ? null : value as PanelFont);
+            // Under a skin every pick is stored as is, so Lexend stays a choice instead of snapping back to the skin's face.
+            onFontCommit(!skin && value === DEFAULT_PANEL_FONT ? null : value as PanelFont);
           }}
         />
       </SettingsSection>
@@ -488,16 +528,18 @@ export function PanelThemeSettings({
       {showTheme && (
       <SettingsSection title={label('devices.y70.theme.accent', 'Accent Color')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
-          <SettingToggle
-            label={syncWithDesktopLabel}
-            checked={theme.accentSyncWithDesktop}
-            onChange={onAccentSyncCommit}
-          />
-          {!theme.accentSyncWithDesktop && (
+          {!skin && (
+            <SettingToggle
+              label={syncWithDesktopLabel}
+              checked={theme.accentSyncWithDesktop}
+              onChange={onAccentSyncCommit}
+            />
+          )}
+          {(skin || !theme.accentSyncWithDesktop) && (
             <ColorPickerWithPresets
-              value={theme.accentColor || theme.appAccentColor}
+              value={skin?.accent ?? (theme.accentColor || theme.appAccentColor)}
               presets={PRESET_ACCENTS}
-              fallback={theme.appAccentColor || DEFAULT_ACCENT}
+              fallback={skin?.def.accent ?? (theme.appAccentColor || DEFAULT_ACCENT)}
               onPreview={onAccentPreview}
               onCommit={onAccentCommit}
               allowCustom
@@ -570,7 +612,9 @@ export function PanelThemeSettings({
             )}
             {theme.backdrop !== 'theme' ? null : (
             <>
-            {theme.backgroundMode === 'solid' ? (
+            {bgMode === 'skin' ? (
+              backgroundModeChips
+            ) : bgMode === 'solid' ? (
               <>
                 {backgroundModeChips}
                 <ColorPickerWithPresets
@@ -582,7 +626,7 @@ export function PanelThemeSettings({
                   allowCustom
                 />
               </>
-            ) : theme.backgroundMode === 'media' ? (
+            ) : bgMode === 'media' ? (
               <>
                 {backgroundModeChips}
                 <BackgroundMediaPicker

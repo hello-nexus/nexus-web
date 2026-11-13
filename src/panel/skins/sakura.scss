@@ -1,0 +1,44 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+@use 'derived' as *;
+
+// Sakura: thin hairline tiles over one scattered field of overlapping-petal cherry blossoms, small buds to medium flowers, laid out in panel coordinates so each tile shows the slice of the field under it. The field is a single SVG image built in sakuraField.ts, so the many blossoms cost one background layer per card; its colors are the accent pre-mixed with the card face, kept close to it so text stays readable.
+
+@mixin sakura-common {
+  @include kit-radius(14px, 8px, 999px);
+  @include kit-weights(500, 400, 600, 600, 400);
+  --skin-card-inset: 2px;
+  --skin-bar-height: 4px;
+  --skin-card-image: var(--sk-field);
+}
+@include in-skin('sakura', '.panel-card') {
+  --sk-gap: var(--panel-gap, 0px);
+  --sk-row: var(--panel-row-size, var(--panel-cell-size));
+  --sk-w: calc(var(--panel-columns, 4) * var(--panel-cell-size) + (var(--panel-columns, 4) - 1) * var(--sk-gap));
+  --sk-h: calc(var(--panel-rows, 4) * var(--sk-row) + (var(--panel-rows, 4) - 1) * var(--sk-gap));
+  --sk-ox: calc(var(--panel-cell-col, 0) * (var(--panel-cell-size) + var(--sk-gap)));
+  --sk-oy: calc(var(--panel-cell-row, 0) * (var(--sk-row) + var(--sk-gap)));
+  --skin-card-image-size: var(--sk-w) var(--sk-h);
+  --skin-card-image-pos: calc(0px - var(--sk-ox)) calc(0px - var(--sk-oy));
+}
+@include skin('sakura') {
+  @include kit(#0c1330, #151d3f, #fdeff3, #c9bbd0, #59608a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1a1030, #8fe8c4, #ffd9a0, #ff9db5);
+  @include sakura-common;
+  @include derived(dark);
+  --sk-field: var(--sk-field-dark);
+  --skin-backdrop-image:
+    radial-gradient(ellipse at 18% 22%, rgba(var(--skin-accent-rgb), 0.12) 0, transparent 38%),
+    radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.08) 0, transparent 42%);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.4);
+  --skin-card-shadow: none;
+}
+@include skin-light('sakura') {
+  @include kit(#fbe6ec, #fffaf7, #3d2830, #6f4d5a, #e7b3c3, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a);
+  @include derived(light);
+  --sk-field: var(--sk-field-light);
+  --skin-backdrop-image:
+    radial-gradient(ellipse at 18% 22%, rgba(255, 255, 255, 0.75) 0, transparent 40%),
+    radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.18) 0, transparent 45%);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.5);
+  --skin-card-shadow: 0 2px 0 rgba(var(--skin-accent-rgb), 0.2);
+}

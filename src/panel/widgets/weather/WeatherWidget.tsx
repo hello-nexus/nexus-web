@@ -8,6 +8,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { Spinner } from '../../../components/common/Spinner/Spinner';
 import { WidgetOfflineState } from '../common/WidgetOfflineState';
 import { widgetSpinnerSize } from '../common/widgetSpinnerSize';
+import { StableDigits } from '../common/StableDigits';
 import type { WidgetProps } from '../types';
 import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
@@ -119,7 +120,7 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   const renderTop = () => (
     <div className={styles.largeTop}>
       <div className={styles.largeCurrent}>
-        <div className={styles.largeTemp}>{tempText}</div>
+        <div className={styles.largeTemp}><StableDigits text={tempText} /></div>
         {renderStats(styles.largeCurrentStats)}
       </div>
       <div className={styles.largeMeta}>
@@ -210,7 +211,7 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
           <WeatherIcon code={snap?.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
         </div>
         <div className={styles.compactReadout}>
-          <div className={styles.compactTemp}>{tempText}</div>
+          <div className={styles.compactTemp}><StableDigits text={tempText} /></div>
         </div>
       </div>
       {full && renderStats(styles.compactStats)}

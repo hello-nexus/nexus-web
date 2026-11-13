@@ -183,9 +183,10 @@ describe('BuildWidget', () => {
     it('sits in the tile corner, outside the specs column, on 4x2 and 4x4, hidden from assistive tech', async () => {
       for (const size of ['4x2', '4x4'] as const) {
         const { container, unmount } = await renderWidget(size);
-        const label = [...container.querySelectorAll('[aria-hidden="true"]')].find((el) => el.textContent === 'panel.widget.build.badge');
+        const label = container.querySelector('[role="img"][aria-label="panel.widget.build.badge"]');
         const list = container.querySelector('ul');
-        expect(label).toBeDefined();
+        expect(label).not.toBeNull();
+        expect(label!.closest('[aria-hidden="true"]')).not.toBeNull();
         expect(list).not.toBeNull();
         expect(label!.parentElement).not.toBe(list!.parentElement);
         expect(label!.closest('ul')).toBeNull();
@@ -209,7 +210,7 @@ describe('BuildWidget', () => {
     it('is absent on 2x2, which is the image alone', async () => {
       const { container } = await renderWidget('2x2');
       expect(container.querySelector('ul')).toBeNull();
-      expect(container.textContent).not.toContain('panel.widget.build.badge');
+      expect(container.querySelector('[role="img"][aria-label="panel.widget.build.badge"]')).toBeNull();
     });
   });
 

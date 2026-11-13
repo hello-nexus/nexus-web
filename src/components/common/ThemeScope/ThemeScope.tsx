@@ -1,9 +1,14 @@
 import { createContext, useContext, useLayoutEffect, useState, type ReactNode, type Ref } from 'react';
+import { useSkinPortalHost } from './PanelSkinScope';
 
 /** Where portaled popovers and menus mount; null means document.body. */
 const PortalRootContext = createContext<HTMLElement | null>(null);
 
-export const usePortalRoot = (): HTMLElement => useContext(PortalRootContext) ?? document.body;
+export const usePortalRoot = (): HTMLElement => {
+  const scoped = useContext(PortalRootContext);
+  const skinHost = useSkinPortalHost();
+  return scoped ?? skinHost ?? document.body;
+};
 
 // The user accent is set inline on <html>; inherit keeps it through the theme token block.
 const ACCENT_INHERIT = {

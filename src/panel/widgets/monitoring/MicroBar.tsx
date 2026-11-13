@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../common/panelHistoryConfig';
-import { GaugeValue } from './gauges/GaugeValue';
+import { GaugeValue, GaugeValueStateContext } from './gauges/GaugeValue';
 import { GaugeTrack } from './gauges/GaugeTrack';
-import type { GaugeGradient } from './valueColor';
+import { gaugeValueStateAttrs, type GaugeGradient } from './valueColor';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
 import type { MicroAlign, MicroDesignKey } from './perfSlots';
 import { useFitWidth } from '../common/useFitWidth';
@@ -40,7 +40,14 @@ function SimpleRow({ label, formatted, align, style }: { label: string; formatte
   );
 }
 
-export function MicroBar({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
+// The state is stamped on the value element only (through the context), never on the row.
+export function MicroBar(props: MicroBarProps) {
+  const { gradient, style, fillPercent } = props;
+  const state = gradient && style ? gaugeValueStateAttrs(gradient.stops, fillPercent / 100)['data-value-state'] : undefined;
+  return <GaugeValueStateContext.Provider value={state}><MicroBarRow {...props} /></GaugeValueStateContext.Provider>;
+}
+
+function MicroBarRow({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
   if (design === 'simple') return <SimpleRow label={label} formatted={formatted} align={align} style={style} />;
 
   const head = (

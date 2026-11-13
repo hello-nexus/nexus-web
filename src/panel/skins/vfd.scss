@@ -1,0 +1,73 @@
+@use 'mixins' as *;
+@use 'screen' as *;
+@use 'warn' as *;
+
+// DSEG7: digits, colon, period, minus and degree only (unicode-range), so every
+// other glyph falls through to the panel font stack per glyph.
+@font-face { font-family: 'Skin Seg7'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/dseg7.woff2') format('woff2'); unicode-range: U+0030-003A, U+002D, U+002E, U+00B0; }
+
+// Vacuum fluorescent display, glow color from the accent. Glow text on black glass
+// behind one static, faint mesh. Jura in capitals with wide letter-spacing.
+@include skin('vfd') {
+  @include screen-tokens;
+  --skin-back: var(--skin-night-back);
+  --skin-bg: var(--skin-night);
+  --skin-ink: var(--skin-lit);
+  --skin-ink-rgb: var(--skin-lit-rgb);
+  --skin-dim: rgba(var(--skin-lit-rgb), 0.92);
+  --skin-card-radius: 6px;
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.3);
+  --skin-text-shadow: 0 0 4px rgba(var(--skin-ink-rgb), 0.5);
+  --skin-text-case: uppercase;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 3px, transparent 3px, transparent 4px);
+  --skin-letter-spacing: 0.06em;
+  --skin-numeral-font: 'Skin Seg7', var(--panel-font);
+  --skin-seg-scale: 0.71;
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 2px);
+  --weight-heading: 500;
+  --weight-body: 400;
+  --weight-strong: 500;
+  --weight-display: 700;
+  --weight-small: 400;
+  --radius-sm: 1px;
+  --radius: 3px;
+  --radius-lg: 6px;
+  --radius-pill: 1px;
+  --panel-card-radius: 6px;
+  --panel-element-radius: 3px;
+}
+// Unlit segments ghosted behind each numeral, drawn in the same face.
+@include in-skin('vfd', '[data-skin-part="digit"]') {
+  font-weight: 700;
+  // DSEG ink is exactly one em tall from the baseline while the panel fonts'
+  // digits stand about 0.71em, so the face is scaled down to the stock cap
+  // height. Baselines already match, so every widget keeps its stock gaps.
+  font-size: calc(1em * var(--skin-seg-scale));
+}
+@include in-skin('vfd', '[data-skin-part="digit"]::before') {
+  content: '8';
+  grid-area: 1 / 1;
+  opacity: 0.1;
+  text-shadow: none;
+}
+.panel-root[data-panel-skin='vfd'][data-skin-font-custom][data-theme] {
+  --skin-numeral-font: var(--panel-font);
+  --skin-seg-scale: 1;
+}
+.panel-root[data-panel-skin='vfd'][data-skin-font-custom] [data-skin-part='digit']::before {
+  content: none;
+}
+@include mono-warn('vfd', var(--skin-ink), var(--skin-bg));
+// Daylight: smoked-grey glass, dark accent-hued glyphs, a faint ghost and a fainter mesh.
+@include skin-light('vfd') {
+  --skin-back: var(--skin-vfd-day-back);
+  --skin-bg: var(--skin-vfd-day-bg);
+  --skin-ink: var(--skin-vfd-day-ink);
+  --skin-ink-rgb: var(--skin-vfd-day-ink-rgb);
+  --skin-dim: var(--skin-vfd-day-dim);
+  --skin-text-shadow: none;
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.45);
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 1px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 1px, transparent 1px, transparent 2px);
+}

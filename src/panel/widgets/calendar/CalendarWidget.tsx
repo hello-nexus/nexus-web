@@ -4,6 +4,7 @@ import { widgetLayoutSize, type PanelWidgetSize } from '../../types';
 import { useTranslation } from '../../../lib/i18n';
 import { buildMonthCells, resolveWeekStart, weekdayInitials, type WeekStartConfig } from './calendar';
 import { FitLine } from '../common/FitLine';
+import { StableDigits } from '../common/StableDigits';
 import styles from './CalendarWidget.module.scss';
 
 /**
@@ -48,7 +49,7 @@ function DateCard({ now, locale, size }: { now: Date; locale: string; size: Pane
   return (
     <div className={`${styles.card} ${styles[`s-${size}`]}`}>
       <FitLine className={styles.weekday} text={weekday} />
-      <div className={styles.day}>{day}</div>
+      <div className={styles.day}><StableDigits text={day} /></div>
       <FitLine className={styles.monthYear} text={monthYear} />
     </div>
   );
@@ -99,7 +100,7 @@ function MonthView({
               .filter(Boolean).join(' ');
             return (
               <span key={i} className={cls}>
-                <span className={styles.dayNum}>{c.day}</span>
+                <span className={styles.dayNum}><StableDigits text={String(c.day)} /></span>
               </span>
             );
           })}

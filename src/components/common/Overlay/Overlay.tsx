@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useModalA11y } from './useModalA11y';
 import { useOverlayScale } from './overlayScale';
 import { acquireBlurScrim, releaseBlurScrim } from './blurScrimGuard';
+import { useSkinPortalHost } from '../ThemeScope/PanelSkinScope';
 import styles from './Overlay.module.scss';
 
 /**
@@ -58,6 +59,7 @@ export function Overlay({
 }: OverlayProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const scale = useOverlayScale();
+  const skinHost = useSkinPortalHost();
   useModalA11y({ open, onClose, onEnter, noEscDismiss, autoFocus, containerRef: surfaceRef });
 
   // Only the centered variants paint a blurring backdrop; sheets bring their
@@ -87,7 +89,7 @@ export function Overlay({
   // ancestor transforms / filters / contain rules (which silently re-anchor
   // fixed children to their bounding box - that's what made dialogs render
   // squished inside animated header slots etc.).
-  const portalTarget = typeof document !== 'undefined' ? document.body : null;
+  const portalTarget = typeof document !== 'undefined' ? skinHost ?? document.body : null;
 
   const content = (
     <div
@@ -103,6 +105,7 @@ export function Overlay({
     >
       <div
         ref={surfaceRef}
+        data-skin-part="surface"
         className={`${styles.surface} ${className ?? ''}`}
         // Sheets are placed by their owner; only centered dialogs follow the host's scale.
         style={variant !== 'sheet' && scale !== 1 ? scaledSurfaceStyle(scale) : undefined}

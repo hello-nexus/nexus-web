@@ -1,0 +1,244 @@
+// Structure shared by every skin, loaded once with the first skin applied. A
+// skin file sets the --skin-* variables and the panel tokens; this file turns
+// the variables into card chrome, the backdrop and the single optional
+// overlay. Plain backgrounds, borders and box-shadows only: no filters, no
+// animation.
+//
+// Every .panel-root a skinned panel mounts (sheets, menus, overlays, the
+// portal host) carries data-panel-skin and so takes the tokens below; only the
+// main panel root (data-skin-root) paints the backdrop and the overlay.
+
+.panel-root[data-panel-skin] {
+  font-family: var(--panel-font);
+  text-rendering: var(--skin-text-rendering, auto);
+  // Chrome tokens the shared controls read that a skin file does not set.
+  --backdrop-base: var(--bg);
+  --control-border: var(--border);
+  --control-border-strong: var(--border-strong);
+  --control-border-accent: var(--accent);
+  // Surface tiers, sheet < section < control < hover. The sheet and the stock
+  // card fill are one color in most skins, and tokens.scss builds the sheet
+  // with color-mix(), which Chromium 83 drops to nothing. The sheet is the
+  // plain elevated fill; every tier above it is the skin's own translucent ink
+  // tint, so a control inside a section stacks one step above it.
+  --panel-sheet-bg: var(--bg-elevated);
+  --section-bg: var(--panel-control-bg);
+  --input-bg: var(--panel-control-bg);
+  --select-bg: var(--panel-control-bg);
+  --tab-active-bg: var(--panel-control-bg);
+  --size-tile-bg: var(--panel-control-bg);
+  // The knob over an accent track takes the ink drawn on the accent, so a pale accent keeps a visible knob.
+  --toggle-knob-on: var(--accent-text);
+}
+// Widget tiles draw their own flat frames; sheets, menus and overlays keep the stock shadows and blur.
+.panel-root[data-panel-skin] .panel-card {
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+}
+
+.panel-root[data-skin-root] {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--skin-backdrop);
+}
+
+// The backdrop pattern lives in its own compositor layer behind the content,
+// so a widget repainting does not re-rasterize it.
+.panel-root[data-skin-root] [data-skin-part='backdrop'] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+  background-color: var(--skin-backdrop);
+  background-image: var(--skin-backdrop-image, none);
+  background-size: var(--skin-backdrop-size, auto);
+}
+
+// Floating and docked chrome (sheets, menus, popovers, tooltips, modals,
+// toasts): a hairline from the skin border color replaces the stock soft
+// shadow. A ring shadow takes no layout, so hit areas are unchanged.
+.panel-root[data-panel-skin] [data-skin-part='surface'],
+[data-skin-part='surface'].panel-root[data-panel-skin] {
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+// Accent as text reads from --skin-accent-ink-*; bar fills keep the raw accent (--skin-fill),
+// so a dark accent that needed lightening for text still fills at its own color.
+.panel-root[data-panel-skin][data-theme='dark'],
+.panel-root[data-panel-skin] [data-ink='light'] {
+  --skin-fill: var(--skin-accent);
+}
+.panel-root[data-panel-skin][data-theme='light'],
+.panel-root[data-panel-skin] [data-ink='dark'] {
+  --skin-fill: var(--skin-accent-deep);
+}
+
+// Card chrome. The fill and the frame are pseudo layers so the user's widget
+// opacity (--panel-card-bg-alpha, 0-1) scales them; Chromium 83 has no
+// color-mix() to scale a fill color directly. The face sits behind the
+// content (the card isolates its own stacking context), the frame above it.
+// An inset box-shadow on the card itself would paint under the content.
+.panel-root[data-panel-skin] .panel-card {
+  isolation: isolate;
+  background-color: transparent;
+  border: var(--skin-card-border, 0 solid transparent);
+  // A skin without --skin-card-radius draws square cards; the token alias keeps the radius on the audited --radius-* scale.
+  --radius-skin-card: var(--skin-card-radius, 0);
+  border-radius: var(--radius-skin-card);
+  clip-path: var(--skin-card-clip, none);
+  color: var(--text);
+  text-shadow: var(--skin-text-shadow, none);
+  text-transform: var(--skin-text-case, none);
+  letter-spacing: var(--skin-letter-spacing, normal);
+}
+// An outer shadow or a real border cannot be scaled; both drop out once the card is mostly faded.
+.panel-root[data-panel-skin][data-skin-card-faded] .panel-card {
+  border-color: transparent;
+}
+.panel-root[data-panel-skin]:not([data-skin-card-faded]) .panel-card {
+  box-shadow: var(--skin-card-shadow, none);
+}
+
+.panel-root[data-panel-skin] .panel-card::before,
+.panel-root[data-panel-skin] .panel-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--panel-card-bg-alpha, 1);
+}
+.panel-root[data-panel-skin] .panel-card::before {
+  z-index: -1;
+  background-color: var(--skin-card-bg);
+  background-image: var(--skin-card-image, none);
+  background-size: var(--skin-card-image-size, auto);
+  background-position: var(--skin-card-image-pos, 0 0);
+  background-repeat: no-repeat;
+  box-shadow: var(--skin-card-face-shadow, none);
+}
+.panel-root[data-panel-skin] .panel-card::after {
+  z-index: 5;
+  box-shadow: var(--skin-card-frame, none);
+  background-image: var(--skin-card-deco, none);
+  background-size: var(--skin-card-deco-size, auto);
+  background-repeat: var(--skin-card-deco-repeat, repeat);
+  background-position: var(--skin-card-deco-pos, 0 0);
+}
+
+// Content never sits under the frame: the stock inner padding (the scaler's
+// inset) reserves the skin's frame thickness, and the user's widget padding
+// still separates the cards on top of it.
+.panel-root[data-panel-skin][data-surface] {
+  --panel-widget-card-inner-pad: var(--skin-card-inset, 0px);
+}
+$skin-insets: (
+  arcade: 6px, clay: 2px, cockpit: 4px, bevel: 3px, blueprint: 2px, eink: 2px, crt: 4px,
+  glass: 2px, hud: 3px, deco: 4px, hifi: 3px, nixie: 2px, lcd: 2px, mecha: 4px,
+  steampunk: 4px, sketch: 2px, pixel: 3px, neon: 3px, vfd: 1px, swiss: 4px,
+);
+@each $id, $px in $skin-insets {
+  .panel-root[data-panel-skin='#{$id}'] { --skin-card-inset: #{$px}; }
+}
+
+// The one optional overlay: a static, low-opacity layer over the panel. It
+// gets its own compositor layer so a widget repainting underneath does not
+// re-rasterize the pattern.
+.panel-root[data-skin-root][data-skin-overlay='on']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  will-change: transform;
+  background-image: var(--skin-overlay, none);
+  background-size: var(--skin-overlay-size, auto);
+}
+
+// Shared primitives, driven by variables (a skin sets only what it changes).
+.panel-root[data-panel-skin] [data-skin-part='track'] {
+  border-radius: var(--skin-bar-radius, var(--radius-pill));
+  height: var(--skin-bar-height, var(--gauge-track-height, 5px));
+  -webkit-mask-image: var(--skin-bar-mask, none);
+  mask-image: var(--skin-bar-mask, none);
+  box-shadow: var(--skin-bar-track-shadow, none);
+}
+.panel-root[data-panel-skin] [data-skin-part='fill'] {
+  border-radius: var(--skin-bar-radius, var(--radius-pill));
+  box-shadow: none;
+}
+$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, ripple, sakura, steampunk, swiss;
+@each $id in $accent-fill {
+  .panel-root[data-panel-skin='#{$id}'] [data-skin-part='fill'] { background: var(--skin-fill, var(--accent)); }
+}
+.panel-root[data-panel-skin] svg[data-skin-part='spark'] [data-skin-part='spark-line'] {
+  stroke-linejoin: var(--skin-line-join, round);
+  stroke-linecap: var(--skin-line-cap, round);
+}
+// The area under a sparkline: a skin-wide fill with its own opacity.
+.panel-root[data-panel-skin] svg[data-skin-part='spark'] [data-skin-part='spark-fill'] {
+  fill: var(--skin-spark-fill, var(--panel-accent-shadow));
+  fill-opacity: var(--skin-spark-fill-opacity, 1);
+}
+// Numerals only: a skin that owns a numeral face sets --skin-numeral-font.
+// The face is limited to digits by unicode-range, so words keep the text font.
+.panel-root[data-panel-skin] [data-skin-part='digit'],
+.panel-root[data-panel-skin] [data-skin-part='value'] {
+  font-family: var(--skin-numeral-font, var(--panel-font));
+}
+
+// Secondary text on every skin. Widgets dim it with an opacity step,
+// which on a pale card lands under the text contrast target whatever the ink is. A skin
+// already carries a dim ink (--text-dim), so the opacity steps are replaced by
+// that color; the hierarchy stays, the contrast comes from the token.
+$dim-classes: compactLocation, compactStats, largeLocation, largeCurrentStats, hourlyLabel, dailyLo, artist, album, fraction, indexBadge;
+@each $c in $dim-classes {
+  .panel-root[data-panel-skin] [class*='_#{$c}_'] {
+    opacity: 1;
+    color: var(--text-dim);
+  }
+}
+
+// Single-line labels clip with overflow: hidden at the line box. A skin face with deep descenders
+// (Piazzolla in Steampunk) loses the tail of g, j, p, q and y, so the clip box grows without moving the layout.
+$clip-classes: compactCondition, compactLocation, largeDescription, largeLocation, dailyDay;
+@each $c in $clip-classes {
+  .panel-root[data-panel-skin] [class*='_#{$c}_'] {
+    padding-bottom: 0.2em;
+    margin-bottom: -0.2em;
+  }
+}
+
+// PanelApp stamps data-widget-padding='none' at zero padding (flushCards) and
+// panelSkinAttrs stamps data-skin-frameless on the skins whose frame is only a
+// border (framelessAtZeroPadding in skins.ts). Their
+// tiles are square like stock, and their frame decorations (frame ring, deco strips and brackets, border, outer
+// shadow, chamfer clip) are not drawn and the frame inset is 0, so content
+// uses the full tile. The tile face, ink, fonts, overlay and backdrop stay.
+// Above zero the frame draws as designed with its inset reserved.
+.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] {
+  --skin-card-inset: 0px;
+}
+.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] .panel-card {
+  --panel-card-radius: 0px;
+  border-radius: 0;
+  border-width: 0;
+  box-shadow: none;
+  clip-path: none;
+}
+.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] .panel-card::after {
+  box-shadow: none;
+  background-image: none;
+}

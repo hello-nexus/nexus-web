@@ -2055,7 +2055,7 @@ function PreviewPanelThemeSettings() {
     appAccentColor: '#8b5cf6', accentSyncWithDesktop: false, accentColor: '#8b5cf6',
     backgroundColor: '', backgroundColorLight: '',
     // Solid keeps the (thumbnail-fetching) animation picker out of the preview.
-    backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0, backgroundTemplates: {},
+    backgroundMode: 'solid', backgroundModeBefore: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0, backgroundTemplates: {},
     backgroundOpacity: 0.4,
     backdrop: 'theme' as const,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
@@ -2064,7 +2064,7 @@ function PreviewPanelThemeSettings() {
     backgroundMediaOrder: [],
     backgroundFrost: 0,
     immersiveBackdrop: true,
-    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '', font: null,
+    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '', font: null, skin: null, skinOverrides: {},
     gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -2109,6 +2109,8 @@ function PreviewPanelThemeSettings() {
         onTextColorPreview={v => set({ textColor: v })}
         onTextColorCommit={v => set({ textColor: v })}
         onFontCommit={v => set({ font: v })}
+        onSkinCommit={v => set({ skin: v })}
+        onSkinReset={() => set({ skinOverrides: {} })}
       />
     </div>
   );

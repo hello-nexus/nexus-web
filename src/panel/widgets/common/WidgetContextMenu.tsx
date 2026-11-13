@@ -6,6 +6,7 @@ import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverToolt
 import { SIZE_ICONS } from './SizeIcons';
 import type { PanelSurface, PanelWidgetSize } from '../../types';
 import styles from './WidgetContextMenu.module.scss';
+import { usePanelSkinAttrs } from '../../../components/common/ThemeScope/PanelSkinScope';
 
 interface WidgetContextMenuProps {
   x: number;
@@ -86,6 +87,7 @@ export function WidgetContextMenu({
   locked,
   onToggleLock,
 }: WidgetContextMenuProps) {
+  const skinAttrs = usePanelSkinAttrs();
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -196,6 +198,8 @@ export function WidgetContextMenu({
     <div
       ref={menuRef}
       className={`panel-root ${styles.menu} ${styles.menuAutoWidth}`}
+      {...skinAttrs}
+      data-skin-part="surface"
       data-theme={themeMode}
       data-surface={surface}
       data-state={closing ? 'closing' : 'open'}

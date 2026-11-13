@@ -1,0 +1,21 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Soft clay: puffy rounded tiles with a lit top edge and a squashed lower shadow.
+@include skin('clay') {
+  @include kit(#2a2733, #3d3a4a, #f7f4ff, #cbc5df, #6a6580, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #ffffff, #7be0a8, #ffd479, #ff8a9a);
+  @include kit-radius(24px, 14px, 999px);
+  @include kit-weights(600, 500, 700, 800, 500);
+  --skin-card-frame: inset 0 3px 0 rgba(255, 255, 255, 0.22), inset 0 -4px 0 rgba(0, 0, 0, 0.22);
+  --skin-card-shadow: 0 5px 0 rgba(0, 0, 0, 0.3);
+  --skin-bar-height: 9px;
+  --skin-bar-track-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.25);
+  --gauge-track: rgba(0, 0, 0, 0.28);
+}
+@include skin-light('clay') {
+  @include kit(#ece4dc, #fbf4ee, #2f2640, #5d5270, #b9aec6, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #c0283a);
+  --skin-card-frame: inset 0 3px 0 rgba(255, 255, 255, 0.9), inset 0 -4px 0 rgba(120, 90, 140, 0.18);
+  --skin-card-shadow: 0 5px 0 rgba(120, 90, 140, 0.25);
+  --skin-bar-track-shadow: inset 0 2px 0 rgba(120, 90, 140, 0.25);
+  --gauge-track: rgba(120, 90, 140, 0.2);
+}

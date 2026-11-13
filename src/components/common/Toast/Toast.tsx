@@ -81,6 +81,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={toast.id}
               className={styles.toast}
+              data-skin-part="surface"
               role="status"
               tabIndex={0}
               onClick={() => dismiss(toast.id)}

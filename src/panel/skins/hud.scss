@@ -1,0 +1,97 @@
+@use 'mixins' as *;
+
+// Sci-fi HUD: chamfered corners, hairline frame, corner brackets and chamfer
+// lines in the card decoration layer, tick marks on bar tracks. The accent is
+// the line and glow color. Tektur by default (a panel font).
+@mixin hud-common {
+  --skin-card-radius: 0;
+  --skin-card-clip: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--hud-rgb), 0.35);
+  --skin-card-deco:
+    linear-gradient(var(--hud-line), var(--hud-line)), linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(var(--hud-line), var(--hud-line)), linear-gradient(var(--hud-line), var(--hud-line)),
+    linear-gradient(135deg, transparent 0, transparent 10px, var(--hud-line) 10px, var(--hud-line) 11.5px, transparent 11.5px),
+    linear-gradient(-45deg, transparent 0, transparent 10px, var(--hud-line) 10px, var(--hud-line) 11.5px, transparent 11.5px);
+  --skin-card-deco-size: 14px 2px, 2px 14px, 14px 2px, 2px 14px, 16px 16px, 16px 16px;
+  --skin-card-deco-pos: 100% 0, 100% 0, 0 100%, 0 100%, 0 0, 100% 100%;
+  --skin-card-deco-repeat: no-repeat;
+  --skin-backdrop-image: linear-gradient(rgba(var(--hud-rgb), 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--hud-rgb), 0.05) 1px, transparent 1px);
+  --skin-backdrop-size: 24px 24px;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --skin-spark-fill: rgba(var(--hud-rgb), 0.3);
+  --weight-display: 600;
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --panel-card-radius: 0;
+  --panel-element-radius: 0;
+  --accent: var(--hud-line);
+  --accent-glow: var(--hud-line);
+  --accent-deep: var(--hud-line);
+  --accent-soft: rgba(var(--hud-rgb), 0.18);
+  --accent-glow-shadow: rgba(var(--hud-rgb), 0.35);
+  --panel-accent: var(--hud-line);
+  --panel-accent-glow: var(--hud-line);
+  --panel-accent-soft: rgba(var(--hud-rgb), 0.18);
+  --panel-accent-shadow: rgba(var(--hud-rgb), 0.35);
+  --bg-card-hover: rgba(var(--hud-rgb), 0.14);
+  --border: rgba(var(--hud-rgb), 0.35);
+  --border-strong: rgba(var(--hud-rgb), 0.7);
+  --border-hover: var(--hud-line);
+  --surface-hover: rgba(var(--hud-rgb), 0.14);
+  --separator: rgba(var(--hud-rgb), 0.3);
+  --gauge-track: rgba(var(--hud-rgb), 0.18);
+  --panel-control-bg: rgba(var(--hud-rgb), 0.12);
+  --panel-control-bg-hover: rgba(var(--hud-rgb), 0.2);
+  --panel-control-bg-active: rgba(var(--hud-rgb), 0.3);
+  --panel-element-bg: rgba(var(--hud-rgb), 0.12);
+  --panel-card-bg: rgba(var(--hud-rgb), 0.08);
+  --panel-control-translucent: rgba(var(--hud-rgb), 0.16);
+  --panel-border: rgba(var(--hud-rgb), 0.35);
+  --panel-border-strong: rgba(var(--hud-rgb), 0.7);
+}
+@include skin('hud') {
+  @include hud-common;
+  --hud-line: var(--skin-accent-ink-dark);
+  --hud-rgb: var(--skin-accent-rgb);
+  --skin-backdrop: #040d16;
+  --skin-card-bg: #071a2a;
+  --bg: #071a2a;
+  --bg-elevated: #071a2a;
+  --surface: #071a2a;
+  --text: #e4f6ff;
+  --text-dim: #9fc3d6;
+  --accent-text: #040d16;
+  --panel-accent-text: #040d16;
+  --good: #3dffb0;
+  --warn: #ffc44d;
+  --bad: #ff5c6c;
+  --chart-line-alt: #ffc44d;
+}
+@include skin-light('hud') {
+  --hud-line: var(--skin-accent-ink-light);
+  --skin-backdrop: #dbe9f0;
+  --skin-card-bg: #f4fafd;
+  --bg: #f4fafd;
+  --bg-elevated: #f4fafd;
+  --surface: #f4fafd;
+  --text: #06304a;
+  --text-dim: #3d6279;
+  --accent-text: #f4fafd;
+  --panel-accent-text: #f4fafd;
+  --good: #07805a;
+  --warn: #a8690a;
+  --bad: #c0283a;
+}
+// Tick marks along every bar track (one per tenth).
+@include in-skin('hud', '[data-skin-part="track"]') {
+  background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 1px), var(--hud-line) calc(10% - 1px), var(--hud-line) 10%);
+  background-size: 100% 3px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  height: 9px;
+}

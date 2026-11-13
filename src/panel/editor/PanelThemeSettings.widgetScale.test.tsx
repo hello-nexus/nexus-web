@@ -34,6 +34,7 @@ const handlers = () => ({
   onTextColorPreview: vi.fn(),
   onTextColorCommit: vi.fn(),
   onFontCommit: vi.fn(),
+  onSkinCommit: vi.fn(),
 });
 
 function renderTheme(widgetScaleRow?: React.ReactNode, extra: Partial<React.ComponentProps<typeof PanelThemeSettings>> = {}) {

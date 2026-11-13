@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 // Fonts a panel theme can draw every widget in; @font-face lives in global.scss.
 export const PANEL_FONTS = [
   { id: 'lexend', family: 'Lexend' },
@@ -5,6 +6,7 @@ export const PANEL_FONTS = [
   { id: 'tektur', family: 'Tektur' },
   { id: 'jura', family: 'Jura' },
   { id: 'piazzolla', family: 'Piazzolla' },
+  { id: 'pixel', family: 'Pixel' },
 ] as const;
 
 export type PanelFontId = (typeof PANEL_FONTS)[number]['id'];
@@ -64,10 +66,11 @@ export function panelSystemFontsAvailable(glassSurface: string | null | undefine
   return !!glassSurface && !REMOTE_GLASS_SURFACES.has(glassSurface);
 }
 
-// Font stack for a non-default choice; undefined keeps the app stack. Lexend
-// stays behind the choice for glyphs it lacks, and for a device without the font.
-export function panelFontStack(font: PanelFont | null): string | undefined {
-  if (font === null || font === DEFAULT_PANEL_FONT) return undefined;
+// Font stack for a non-default choice; undefined keeps the app stack, unless
+// `explicit` asks for the default face spelled out (a skin must override the user's own font).
+// Lexend stays behind the choice for glyphs it lacks, and for a device without the font.
+export function panelFontStack(font: PanelFont | null, explicit = false): string | undefined {
+  if (font === null || (font === DEFAULT_PANEL_FONT && !explicit)) return undefined;
   const system = systemFontFamily(font);
   const face = system ? cssQuoteFamily(system) : `'${panelFontFamily(font as PanelFontId)}'`;
   return `'Twemoji Country Flags', ${face}, 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`;
@@ -75,7 +78,19 @@ export function panelFontStack(font: PanelFont | null): string | undefined {
 
 // Panel-root vars for a font choice. --font-sans is set too: the shared _text.scss
 // mixins read it directly, so --panel-font alone misses most widget labels.
-export function panelFontVars(id: PanelFont | null): Record<string, string> {
-  const stack = panelFontStack(id);
+export function panelFontVars(id: PanelFont | null, explicit = false): Record<string, string> {
+  const stack = panelFontStack(id, explicit);
   return stack ? { '--panel-font': stack, '--font-sans': stack } : {};
+}
+
+// Splits the font variables out of a panel theme style. A surface that sits in the desktop app (its chrome
+// belongs to the app) keeps the rest on its root and applies the font to the previews alone.
+export function splitPanelFontStyle(style: CSSProperties | undefined): { chrome: CSSProperties; font: CSSProperties | undefined } {
+  if (!style) return { chrome: {}, font: undefined };
+  const { '--panel-font': panelFont, '--font-sans': fontSans, ...chrome } = style as Record<string, unknown>;
+  const stack = typeof panelFont === 'string' ? panelFont : undefined;
+  return {
+    chrome: chrome as CSSProperties,
+    font: stack ? ({ '--panel-font': stack, '--font-sans': fontSans, fontFamily: stack } as CSSProperties) : undefined,
+  };
 }

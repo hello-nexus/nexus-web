@@ -31,8 +31,13 @@ import { join, relative, sep } from 'node:path';
 const ROOT = new URL('../src/', import.meta.url).pathname;
 const REPO_ROOT = new URL('../', import.meta.url).pathname;
 
-// Files allowed to set raw values. Exact-match (not pattern-based) so renames
-// are loud, not silent. Each path is relative to src/.
+// Files allowed to set raw values. Paths match exactly so renames are loud, not
+// silent; the one exception is SKIN_PALETTE, a pattern for the per-skin files.
+// Each path is relative to src/.
+// A skin's own file (panel/skins/<id>.scss) is a palette definition. The shared
+// structure files (skinBase, skinTint, _kit, _screen, _mixins, _warn, _derived)
+// stay audited.
+const SKIN_PALETTE = /^panel\/skins\/(?!skin[A-Z])[a-z]+\.scss$/;
 const ALLOWLIST = {
   type: new Set([
     'styles/_text.scss',
@@ -59,6 +64,7 @@ const ALLOWLIST = {
     'panel/PanelOfflineOverlay.module.scss',
     'panel/PanelImmersiveOverlay.module.scss',
     'panel/styles/tokens.scss',
+    'panel/skins/_mixins.scss', // the tint() helper: the one place the shared skin files spell an alpha
   ]),
   blur: new Set([
     'styles/variables.scss',
@@ -159,7 +165,10 @@ function* walk(dir) {
 }
 
 function isAllowed(rel, axis) {
-  return ALLOWLIST[axis]?.has(rel.split(sep).join('/')) ?? false;
+  const path = rel.split(sep).join('/');
+  const list = ALLOWLIST[axis];
+  if (!list) return false;
+  return list.has(path) || ((axis === 'type' || axis === 'alpha') && SKIN_PALETTE.test(path));
 }
 
 const findings = {

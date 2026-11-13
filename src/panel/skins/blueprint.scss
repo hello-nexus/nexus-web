@@ -1,0 +1,104 @@
+@use 'mixins' as *;
+@use 'warn' as *;
+
+// Dark is the blueprint (accent-colored sheet, white lines); light is the whiteprint
+// (off-white sheet, accent lines). Both hatch in place of solid fills.
+@include skin('blueprint') {
+  --bp-line: #f2f7ff;
+  --bp-rgb: 242, 247, 255;
+  --skin-backdrop: var(--skin-accent);
+  --skin-backdrop-image:
+    linear-gradient(rgba(var(--bp-rgb), 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--bp-rgb), 0.2) 1px, transparent 1px),
+    linear-gradient(rgba(var(--bp-rgb), 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--bp-rgb), 0.07) 1px, transparent 1px);
+  --skin-backdrop-size: 48px 48px, 48px 48px, 8px 8px, 8px 8px;
+  --skin-card-bg: rgba(var(--skin-accent-rgb), 0.45);
+  --skin-card-radius: 0;
+  --skin-card-frame: inset 0 0 0 1.5px var(--bp-line);
+  --skin-card-deco:
+    repeating-linear-gradient(90deg, var(--bp-line) 0, var(--bp-line) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(0deg, var(--bp-line) 0, var(--bp-line) 1px, transparent 1px, transparent 10px);
+  --skin-card-deco-size: 100% 4px, 4px 100%;
+  --skin-card-deco-pos: 0 0, 0 0;
+  --skin-card-deco-repeat: no-repeat;
+  --skin-bar-height: 8px;
+  --skin-bar-radius: 0;
+  --skin-bar-track-shadow: inset 0 0 0 1px var(--bp-line);
+  --skin-line-join: miter;
+  --skin-line-cap: butt;
+  --skin-spark-fill: rgba(var(--bp-rgb), 0.22);
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --panel-card-radius: 0;
+  --panel-element-radius: 0;
+  --bg: rgba(var(--skin-accent-rgb), 0.9);
+  --bg-elevated: var(--skin-accent);
+  --bg-card-hover: rgba(255, 255, 255, 0.12);
+  --border: rgba(var(--bp-rgb), 0.6);
+  --border-strong: var(--bp-line);
+  --border-hover: #ffffff;
+  --surface: rgba(var(--skin-accent-rgb), 0.45);
+  --surface-hover: rgba(255, 255, 255, 0.12);
+  --text: #f2f7ff;
+  --text-dim: #d2e0f5;
+  --separator: rgba(var(--bp-rgb), 0.4);
+  --gauge-track: rgba(var(--bp-rgb), 0.2);
+  --accent: var(--bp-line);
+  --accent-glow: var(--bp-line);
+  --accent-soft: rgba(var(--bp-rgb), 0.18);
+  --accent-deep: var(--bp-line);
+  --accent-glow-shadow: rgba(var(--bp-rgb), 0.3);
+  --accent-text: #0b2a5c;
+  --panel-accent: var(--bp-line);
+  --panel-accent-glow: var(--bp-line);
+  --panel-accent-soft: rgba(var(--bp-rgb), 0.18);
+  --panel-accent-shadow: rgba(var(--bp-rgb), 0.3);
+  --panel-accent-text: #0b2a5c;
+  --good: #f2f7ff;
+  --warn: #ffe27a;
+  --bad: #ffb0a2;
+  --chart-line-alt: #ffe27a;
+  --panel-control-bg: rgba(255, 255, 255, 0.1);
+  --panel-control-bg-hover: rgba(255, 255, 255, 0.18);
+  --panel-control-bg-active: rgba(255, 255, 255, 0.28);
+  --panel-element-bg: rgba(255, 255, 255, 0.1);
+  --panel-card-bg: rgba(255, 255, 255, 0.06);
+  --panel-control-translucent: rgba(255, 255, 255, 0.16);
+  --panel-border: rgba(var(--bp-rgb), 0.6);
+  --panel-border-strong: var(--bp-line);
+}
+@include skin-light('blueprint') {
+  --bp-line: var(--skin-accent-deep);
+  --bp-rgb: var(--skin-accent-rgb);
+  --skin-backdrop: #f4f2ea;
+  --skin-card-bg: rgba(255, 255, 255, 0.55);
+  --bg: #f9f7f0;
+  --bg-elevated: #f9f7f0;
+  --surface: rgba(255, 255, 255, 0.55);
+  --bg-card-hover: rgba(var(--bp-rgb), 0.1);
+  --surface-hover: rgba(var(--bp-rgb), 0.1);
+  --border-hover: var(--bp-line);
+  --text: var(--skin-accent-deep);
+  --text-dim: #3d5e96;
+  --accent-text: #f9f7f0;
+  --panel-accent-text: #f9f7f0;
+  --good: #1f7a4d;
+  --warn: #9a5f00;
+  --bad: #b3261e;
+  --chart-line-alt: #9a5f00;
+  --panel-control-bg: rgba(var(--bp-rgb), 0.08);
+  --panel-control-bg-hover: rgba(var(--bp-rgb), 0.14);
+  --panel-control-bg-active: rgba(var(--bp-rgb), 0.22);
+  --panel-element-bg: rgba(var(--bp-rgb), 0.08);
+  --panel-card-bg: rgba(var(--bp-rgb), 0.05);
+  --panel-control-translucent: rgba(var(--bp-rgb), 0.12);
+  --skin-spark-fill: rgba(var(--bp-rgb), 0.16);
+}
+@include in-skin('blueprint', '[data-skin-part="fill"]') {
+  background: repeating-linear-gradient(45deg, var(--bp-line) 0, var(--bp-line) 1px, transparent 1px, transparent 4px);
+  box-shadow: inset 0 0 0 1px var(--bp-line);
+}
+@include mono-warn('blueprint', var(--bp-line), var(--accent-text));

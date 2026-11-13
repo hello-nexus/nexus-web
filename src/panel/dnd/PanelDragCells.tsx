@@ -23,6 +23,7 @@ import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '
 import type { EditorDockMotion } from '../editor/panelEditorDock';
 import type { ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import styles from '../PanelApp.module.scss';
+import { usePanelSkinAttrs } from '../../components/common/ThemeScope/PanelSkinScope';
 
 // A container React renders into but never places itself, so moving it moves
 // its subtree without remounting it.
@@ -378,6 +379,8 @@ export function PanelTouchCell({
     gridRow,
     '--panel-span-cols': span.cols,
     '--panel-span-rows': span.rows,
+    '--panel-cell-col': widget.col,
+    '--panel-cell-row': widget.row,
     '--panel-editor-dock-cols': span.cols,
     '--panel-editor-dock-rows': span.rows,
     ...editorDockMotion?.style,
@@ -618,8 +621,11 @@ export function PanelCatalogCell({
   onEditAdded,
   onPointerLeave,
   drag,
+  previewStyle,
 }: {
   widget: PanelWidget;
+  /** Applied to the preview alone, for a host whose chrome is not drawn in the panel's font. */
+  previewStyle?: CSSProperties;
   surface?: PanelSurface;
   deviceTouch?: boolean;
   label: string;
@@ -707,7 +713,7 @@ export function PanelCatalogCell({
       onBlur={onPointerLeave}
     >
       <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
-        <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
+        <div className={styles.cellScaler} style={{ ...previewStyle, pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
             <PanelPreviewProvider value={true}>
               <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
@@ -768,6 +774,7 @@ export function PanelDragOverlayCell({
   flush?: boolean;
   onSlot: (slot: HTMLElement, attached: boolean) => void;
 }) {
+  const skinAttrs = usePanelSkinAttrs();
   const slotRef = useCallback((slot: HTMLDivElement) => {
     onSlot(slot, true);
     return () => onSlot(slot, false);
@@ -777,6 +784,7 @@ export function PanelDragOverlayCell({
   return (
     <div
       className={`panel-root ${styles.dragOverlayHost}`}
+      {...skinAttrs}
       data-theme={themeMode}
       data-surface={surface}
       // Portaled to body, so it can't inherit the panel root's labels-off state

@@ -1,0 +1,91 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 8px;
+}
+
+.fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  // The thumbnail's own corners, not the skin's: the skin sheet redefines --radius-sm on the panel root.
+  border-radius: inherit;
+  overflow: hidden;
+  // Keeps the skin's own z-indexes below the name EffectCard draws over the thumbnail.
+  isolation: isolate;
+
+  // Scrim under the name EffectCard draws, so it reads over any skin.
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 55%;
+    background: linear-gradient(to bottom, transparent, rgb(0 0 0 / var(--alpha-medium)));
+    pointer-events: none;
+    z-index: 5;
+  }
+}
+
+// Light mode: the name is dark ink over a light scrim. The scrim is near white at the name, so the ink
+// keeps its text contrast even above a dark skin backdrop.
+.fillLight::after {
+  background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 0.85));
+}
+
+.labelLight.labelLight {
+  color: #14161a;
+  text-shadow: 0 0 4px rgb(255 255 255 / 0.9);
+  -webkit-text-stroke: 0.6px rgb(255 255 255 / 0.85);
+}
+
+// The stock .panel-card fades its background on a mode switch, which only the Default card shows (skin cards paint images); thumbnails switch instantly.
+.fill,
+.fill * {
+  transition: none !important;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  // Skin sheets size their decorations in panel cells; a small cell scales them to the thumbnail.
+  --panel-cell-size: 22px;
+  --panel-gap: 2px;
+  --panel-columns: 4;
+  --panel-rows: 3;
+}
+
+// Default has no skin backdrop: the stock canvas grey, so the stock card's edge reads in either mode.
+.thumb.thumb[data-thumb='default'] { background: var(--backdrop-base); }
+
+.card {
+  position: absolute;
+  // Centered with its top edge and corners showing; it runs off the bottom so no lower corners or frame draw.
+  left: 12px;
+  right: 12px;
+  top: 10px;
+  height: 160px;
+  display: block;
+  z-index: 1;
+}
+
+.reset {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  z-index: 3;
+
+  &.reset:hover { background: rgb(0 0 0 / var(--alpha-strong)); color: #fff; }
+}
+
+// No hover to reveal it on: the selected card keeps the action visible.
+@media (hover: none) {
+  .reset { opacity: 1; pointer-events: auto; }
+}

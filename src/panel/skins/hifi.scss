@@ -1,0 +1,36 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+
+// Hi-fi faceplate: a metal frame ring around a cream (light) or lit dark dial face.
+@mixin hifi-ring($hi, $mid, $lo) {
+  --skin-card-deco:
+    linear-gradient(180deg, #{$hi}, #{$mid}),
+    linear-gradient(180deg, #{$mid}, #{$lo}),
+    linear-gradient(90deg, #{$mid}, #{$mid}),
+    linear-gradient(90deg, #{$mid}, #{$mid});
+}
+@include skin('hifi') {
+  @include kit(#171717, #17140f, #f3e6bd, #cdbd90, #6c6c6c, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1a1208);
+  @include kit-radius(5px, 3px, 3px);
+  @include kit-weights(500, 400, 600, 700, 400);
+  --skin-card-image: linear-gradient(rgba(255, 244, 214, 0.1), transparent 45%);
+  --skin-card-frame: inset 0 0 0 1px rgba(0, 0, 0, 0.7);
+  --skin-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+  --skin-card-deco-size: 100% 6px, 100% 6px, 6px 100%, 6px 100%;
+  --skin-card-deco-pos: 0 0, 0 100%, 0 0, 100% 0;
+  --skin-card-deco-repeat: no-repeat;
+  --skin-text-case: uppercase;
+  --skin-letter-spacing: 0.05em;
+  --skin-bar-height: 7px;
+  --skin-bar-radius: 1px;
+  --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 2px, transparent 2px, transparent 4px);
+  --gauge-track: rgba(243, 230, 189, 0.16);
+  @include hifi-ring(#6a6d73, #45474c, #26272a);
+}
+@include skin-light('hifi') {
+  @include kit(#b5b8bc, #efe6cc, #2a2318, #5d5238, #5d5238, var(--skin-accent-ink-light), var(--skin-accent-rgb), #fff6e0, #2d7a3e, #9a5f00, #a82a1f);
+  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.35), transparent 45%);
+  --skin-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  --gauge-track: rgba(42, 35, 24, 0.16);
+  @include hifi-ring(#e9eaec, #bfc2c7, #8c9097);
+}

@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef
 import { createPortal } from 'react-dom';
 import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
 import { isRestoringModalFocus, onModalOpen } from '../Overlay/modalStack';
+import { useSkinPortalHost } from '../ThemeScope/PanelSkinScope';
 import styles from './HoverTooltip.module.scss';
 
 interface HoverTooltipProps {
@@ -56,6 +57,7 @@ type TriggerProps = {
  * surrounding content itself, e.g. a chip button or icon-only control.
  */
 export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTooltipProps) {
+  const skinHost = useSkinPortalHost();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<Element | null>(null);
@@ -246,7 +248,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
       {open && createPortal(
         // Rendered as soon as it opens (hidden until the layout effect measures
         // + clamps it) so getBoundingClientRect has a real box to size against.
-        <span ref={tooltipRef} role="tooltip" id={tooltipId} className={styles.tooltip}
+        <span ref={tooltipRef} role="tooltip" id={tooltipId} className={styles.tooltip} data-skin-part="surface"
           style={{
             top: coords?.top ?? 0,
             left: coords?.left ?? 0,
@@ -255,7 +257,7 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
           {title && <span className={styles.title}>{title}</span>}
           <span className={styles.body}>{body}</span>
         </span>,
-        document.body,
+        skinHost ?? document.body,
       )}
     </>
   );

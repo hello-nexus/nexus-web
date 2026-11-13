@@ -1,0 +1,35 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+@use 'derived' as *;
+
+// Bubblegum: puffy rounded tiles, a glossy top highlight (light) and a sprinkle of dots on the backdrop. Every color follows the accent.
+@mixin bubblegum-common {
+  @include kit-radius(28px, 16px, 999px);
+  @include kit-weights(600, 500, 700, 700, 500);
+  --skin-card-inset: 3px;
+  --skin-backdrop-size: 56px 56px;
+  --skin-bar-height: 10px;
+}
+@include skin('bubblegum') {
+  @include kit(#2b1a30, #3b2442, #fff0f9, #ebc3e4, #7a5a82, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1c0d22, #7ff0bf, #ffd98a, #ff8fb0);
+  @include bubblegum-common;
+  @include derived(dark);
+  --skin-backdrop-image:
+    radial-gradient(circle at 14px 14px, rgba(var(--skin-dot-a-rgb), 0.1) 0, rgba(var(--skin-dot-a-rgb), 0.1) 4px, transparent 4.5px),
+    radial-gradient(circle at 42px 40px, rgba(var(--skin-dot-b-rgb), 0.08) 0, rgba(var(--skin-dot-b-rgb), 0.08) 3px, transparent 3.5px);
+  --skin-card-image: none;
+  --skin-card-frame: inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -4px 0 rgba(0, 0, 0, 0.28);
+  --skin-card-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
+  --skin-bar-track-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+@include skin-light('bubblegum') {
+  @include kit(#ffd6ea, #fff5fb, #4a1647, #7a3a77, #eba0cb, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a);
+  @include derived(light);
+  --skin-backdrop-image:
+    radial-gradient(circle at 14px 14px, rgba(var(--skin-dot-a-rgb), 0.5) 0, rgba(var(--skin-dot-a-rgb), 0.5) 4px, transparent 4.5px),
+    radial-gradient(circle at 42px 40px, rgba(var(--skin-dot-b-rgb), 0.55) 0, rgba(var(--skin-dot-b-rgb), 0.55) 3px, transparent 3.5px);
+  --skin-card-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.35) 40%, rgba(255, 255, 255, 0) 100%);
+  --skin-card-frame: inset 0 3px 0 #ffffff, inset 0 -4px 0 rgba(var(--skin-accent-rgb), 0.28);
+  --skin-card-shadow: 0 5px 0 rgba(var(--skin-accent-rgb), 0.4);
+  --skin-bar-track-shadow: inset 0 2px 0 rgba(var(--skin-accent-rgb), 0.25);
+}

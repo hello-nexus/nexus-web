@@ -3,6 +3,7 @@ import { ArrowLeft, Trash2, Upload, Sparkles, LayoutDashboard, Palette, Settings
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
+import { splitPanelFontStyle } from '../../../panel/theme/panelFont';
 import { WidgetContextMenu } from '../../../panel/widgets/common/WidgetContextMenu';
 import { BackgroundQuickImport, type BackgroundQuickImportHandle } from '../../../panel/background/BackgroundQuickImport';
 import { onBackgroundMediaCommitted } from '../../../api/panelBackgroundMedia';
@@ -135,6 +136,7 @@ import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
 import { syncedAppThemeMode } from '../../../lib/settings';
+import { applyPanelSkin } from '../../../panel/theme/panelSkin';
 import { buildPanelThemeVars, panelAccentColor, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { resolveGaugeGradient } from '../../../panel/theme/gaugeGradient';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
@@ -668,11 +670,13 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     return (options ? stopForWidgetSize(options, widgetSizeStops, mode, densitySlots)?.percent : undefined) ?? 100;
   };
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
-  const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
+  // Same skin pass as PanelApp so the preview resolves the skin accent identically.
+  const skinnedTheme = useMemo(() => applyPanelSkin(theme), [theme]);
+  const effectiveThemeMode = skinnedTheme.themeSyncWithDesktop ? syncedAppMode : skinnedTheme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   // The monitoring settings pane edits the panel's gauge gradient in place; the
   // simulator iframe repaints from the same theme via the postMessage sync.
-  const gaugeAccent = panelAccentColor(theme);
+  const gaugeAccent = panelAccentColor(skinnedTheme);
   const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
     stops: resolveGaugeGradient(theme.gaugeGradient, gaugeAccent),
     source: theme.gaugeGradient,
@@ -689,7 +693,13 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   // where --accent is the desktop app's, not this panel's. Inject the panel's
   // accent vars (at the preview's own resolved mode) so previews highlight in
   // the panel's hue instead of the desktop default.
-  const panelPreviewThemeStyle = buildPanelThemeVars(theme, desktopResolvedThemeMode);
+  const panelPreviewThemeStyle = useMemo(
+    () => buildPanelThemeVars(skinnedTheme, desktopResolvedThemeMode),
+    [skinnedTheme, desktopResolvedThemeMode],
+  );
+
+  // The dashboard's own menus take the panel's accent but keep the app font.
+  const dashboardMenuThemeStyle = useMemo(() => splitPanelFontStyle(panelPreviewThemeStyle).chrome, [panelPreviewThemeStyle]);
 
   useEffect(() => {
     if (!open) return;
@@ -1769,6 +1779,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                             onTextColorPreview={panelTheme.previewTextColor}
                             onTextColorCommit={panelTheme.commitTextColor}
                             onFontCommit={panelTheme.commitFont}
+                            onSkinCommit={panelTheme.commitSkin}
+                            onSkinReset={panelTheme.resetSkin}
                             showMediaTab={surface !== 'desktop'}
                             showSystemFonts={isSimulated ? isLocalPanelClient() : panelSystemFontsAvailable(glassSurface)}
                             backgroundHeldBy={backgroundHeldBy}
@@ -2360,7 +2372,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
           // eslint-disable-next-line i18next/no-literal-string -- surface id
           surface="desktop"
           themeMode={desktopResolvedThemeMode}
-          themeStyle={panelPreviewThemeStyle}
+          themeStyle={dashboardMenuThemeStyle}
           onOpen={openBackgroundOptions}
           items={[
             // eslint-disable-next-line i18next/no-literal-string -- menu item id
