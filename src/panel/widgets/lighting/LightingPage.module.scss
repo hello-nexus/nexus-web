@@ -1303,6 +1303,12 @@
   &:not(.deviceCardStackLast) .deviceControlledBy { border-radius: 0; }
 }
 
+// The one-line explanation under the save strip.
+.deviceSaveNotice {
+  margin: 0.4rem 0 0;
+  padding: 0.4rem 0.6rem;
+}
+
 // Second line of the device card: LED count on the left, action icons
 // flush right, sharing one row to trim card height.
 .deviceMetaRow {

@@ -134,6 +134,7 @@ import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { PresetAppsModal } from './page/PresetAppsModal';
+import { modeBlockedBySavedColors, selectionSavesColors } from './page/savedColorsOnly';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
@@ -1096,7 +1097,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setTabBaseMode(reconciledTab.base);
     setSelectionTab(reconciledTab.tab);
   }
-  const viewMode: LightingMode = selectionTab ?? mode;
+  // A selected card that keeps its colors on the device can only show a still look.
+  const staticOnly = selectionSavesColors(visibleDevices, selectedDeviceIds);
+  const openedMode: LightingMode = selectionTab ?? mode;
+  const viewMode: LightingMode = staticOnly && modeBlockedBySavedColors(openedMode) ? 'static' : openedMode;
   // Nothing selected on a tab other than the running mode: its picks reach no card until a
   // selection gives them one (or a press of the tab starts the mode), so they flash the scope chip.
   const detachedTab = selectedDeviceIds.size === 0 && viewMode !== mode;
@@ -2484,8 +2488,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       return {
         key: m.key,
         label: t(m.labelKey),
-        tooltip: serviceOnline ? t(`${m.labelKey}.desc`) : undefined,
+        tooltip: staticOnly && modeBlockedBySavedColors(m.key) ? t('lighting.mode.savedColorsOnly')
+          : serviceOnline ? t(`${m.labelKey}.desc`) : undefined,
         icon: <Icon size={14} />,
+        disabled: staticOnly && modeBlockedBySavedColors(m.key) ? true : undefined,
         trailing: showPauseToggle ? (
           <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
             <span

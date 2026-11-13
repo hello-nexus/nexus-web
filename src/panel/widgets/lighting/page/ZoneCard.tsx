@@ -19,6 +19,7 @@ import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { DeviceNotice } from './DeviceNotice';
+import { Notice } from '../../../../components/common/Notice/Notice';
 import { ControlledByStrip } from './ControlledByStrip';
 import type { CardAppStrip } from './controlledBy';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
@@ -872,6 +873,9 @@ export function ZoneCard({
       {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} passive />}
       {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
       {showSaveStrip && <ControlledByStrip saveToDevice={saveStripState} onOpen={onOpenSaveToDevice} />}
+      {showSaveStrip && device.savedToDevice && (
+        <Notice tone="info" role="status" className={styles.deviceSaveNotice}>{t('lighting.devices.saveStrip.limit')}</Notice>
+      )}
       {menuEnabled && (
         <MenuArrowButton
           variant="card"
