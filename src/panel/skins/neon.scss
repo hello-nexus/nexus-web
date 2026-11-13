@@ -112,6 +112,3 @@
   --panel-accent-glow: var(--skin-accent-deep);
   --accent-glow: var(--skin-accent-deep);
 }
-@include in-skin('neon', 'svg.lucide') {
-  stroke-width: 2.2;
-}

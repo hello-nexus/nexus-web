@@ -55,13 +55,6 @@
   --skin-ghost: 0.1;
   --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
 }
-@include in-skin('lcd', 'svg path, svg line, svg polyline, svg rect, svg circle') {
-  stroke-linecap: butt;
-  stroke-linejoin: miter;
-}
-@include in-skin('lcd', 'svg.lucide') {
-  stroke-width: 2.4;
-}
 // Unlit segments ghosted behind each numeral, drawn in the same face.
 @include in-skin('lcd', '[data-skin-part="digit"]') {
   font-weight: 700;

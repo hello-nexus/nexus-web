@@ -102,9 +102,3 @@
   --panel-border: #1a1c2c;
   --panel-border-strong: #1a1c2c;
 }
-// Icons and gauge strokes: square caps, hard edges.
-@include in-skin('pixel', 'svg path, svg line, svg polyline, svg circle, svg rect') {
-  stroke-linecap: butt;
-  stroke-linejoin: miter;
-  shape-rendering: crispEdges;
-}

@@ -95,9 +95,3 @@
   background-position: 0 100%;
   height: 9px;
 }
-@include in-skin('hud', 'svg.lucide') {
-  stroke-width: 1.5;
-}
-@include in-skin('hud', 'svg path, svg line, svg polyline') {
-  stroke-linejoin: miter;
-}

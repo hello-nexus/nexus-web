@@ -63,7 +63,4 @@
 @include in-skin('eink', '[data-skin-part="track"]') {
   background: repeating-linear-gradient(45deg, var(--skin-ink) 0, var(--skin-ink) 1px, transparent 1px, transparent 3px);
 }
-@include in-skin('eink', 'svg.lucide') {
-  stroke-width: 2.4;
-}
 @include mono-warn('eink', var(--skin-ink), var(--skin-bg));

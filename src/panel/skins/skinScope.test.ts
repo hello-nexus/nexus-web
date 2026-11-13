@@ -33,4 +33,14 @@ describe('skin stylesheets stay scoped to the skin', () => {
     const loose = selectors(file).filter(sel => !SCOPED.test(sel.trim()));
     expect(loose).toEqual([]);
   });
+
+  // A skin recolors artwork through tokens and restyles only parts a widget marks, never every svg or media element.
+  const ARTWORK = /(^|[\s>+~(,])(svg|path|line|polyline|polygon|rect|circle|ellipse|img|canvas|video)(?![\w-])/;
+  it.each(sheets)('%s never targets bare artwork elements', file => {
+    const bare = selectors(file).filter(sel => {
+      const stripped = sel.replace(/\[[^\]]*\]/g, m => (m.includes('data-skin-part') ? '[part]' : '[]'));
+      return ARTWORK.test(stripped) && !sel.includes('data-skin-part');
+    });
+    expect(bare).toEqual([]);
+  });
 });

@@ -40,6 +40,3 @@
   --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.5), transparent 40%), repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.033) 0, rgba(0, 0, 0, 0.033) 14px, transparent 14px, transparent 28px);
   --gauge-track: rgba(20, 24, 28, 0.18);
 }
-@include in-skin('mecha', 'svg.lucide') {
-  stroke-width: 2.2;
-}
