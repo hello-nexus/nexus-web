@@ -1669,13 +1669,13 @@
   }
 }
 
-// Touch-chrome landscape panels (Xeneon Edge and Y70, one rule): the sheet keeps the desktop
-// dashboard's side-drawer shape but scales with the panel content, zooming so
-// its contents are shaped at their shown size. The drawer hugs the right edge
-// and fills the height. align-items is vestigial at height:100%; left alone
-// rather than changing layout this change was not measured against.
-// Every mode takes it, flush right: the Y70 dock sits at the left edge during
-// widget edit, which a full-width bottom sheet would cover.
+// Touch-chrome landscape panels (Xeneon Edge and Y70): the sheet keeps the
+// desktop dashboard's side-drawer shape but scales with the panel content,
+// zooming so its contents are shaped at their shown size. Every mode takes it;
+// the drawer hugs the right edge and fills the height. The Y70 dock sits at
+// the left edge during widget edit, which a full-width bottom sheet would
+// cover. align-items is vestigial at height:100%; left alone rather than
+// changing layout this change was not measured against.
 @media (orientation: landscape) {
   .editorBackdrop[data-touch-chrome='true'][data-surface] {
     align-items: center;
@@ -1693,7 +1693,7 @@
       );
       height: 100%;
       max-height: none;
-      // The scaled bottom sheet's auto inline margins would centre the drawer.
+      // The scaled bottom sheet's auto inline margins would center the drawer.
       margin-inline: 0;
       border-left: 1px solid var(--panel-border);
       border-radius: 0;
