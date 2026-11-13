@@ -24,6 +24,7 @@
   --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 3px, transparent 3px, transparent 4px);
   --skin-letter-spacing: 0.06em;
   --skin-numeral-font: 'Skin Seg7', var(--panel-font);
+  --skin-seg-scale: 0.71;
   --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 2px);
   --weight-heading: 500;
   --weight-body: 400;
@@ -43,16 +44,10 @@
 // Unlit segments ghosted behind each numeral, drawn in the same face.
 @include in-skin('vfd', '[data-skin-part="digit"]') {
   font-weight: 700;
-  // DSEG ink is exactly one em tall, rising from the baseline, so it sits a
-  // fixed 0.175em above the centre of whatever line box the widget sized.
-  // The shift centres it in that line, so it stays clear of the lines above
-  // and below at any widget padding instead of riding up into them.
-  position: relative;
-  top: 0.1em;
-  // Slack so the fit boxes (overflow hidden) do not shave the top segment,
-  // paid back so the row keeps the height the widget laid out.
-  padding: 0.04em 0;
-  margin: -0.04em 0;
+  // DSEG ink is exactly one em tall from the baseline while the panel fonts'
+  // digits stand about 0.71em, so the face is scaled down to the stock cap
+  // height. Baselines already match, so every widget keeps its stock gaps.
+  font-size: calc(1em * var(--skin-seg-scale));
 }
 @include in-skin('vfd', '[data-skin-part="digit"]::before') {
   content: '8';
