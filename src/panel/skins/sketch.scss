@@ -22,42 +22,57 @@
   --skin-card-shadow: 3px 3px 0 rgba(58, 54, 40, 0.3);
   --gauge-track: rgba(58, 54, 40, 0.14);
 }
-// Pen cross-hatch: two stroke sets at unrelated angles and periods, so the overlap drifts like hand-drawn lines.
-// A mask keeps the fill's own color (accent or the graded ramp) and the track outline stays whole.
-// Strokes run 1.5 to 2 units on a 5 to 6.3 unit period: thinner reads as noise on a 5px bar.
-@include in-skin('sketch', '[data-skin-part="fill"], [data-skin-part="bar-fill"]') {
+// Pencil grain: two stroke sets at unrelated angles and periods, so the overlap drifts like hand-drawn lines.
+// Strokes darken the fill by --sk-hatch-ink alpha (mask paths drop to --sk-hatch-mask alpha) and never go finer than one device pixel (moire floor).
+@mixin sk-hatch-vars {
   --sk-hatch: calc(1px * var(--panel-scale, 1));
+  --sk-hatch-ink: 0.07;
+  --sk-hatch-mask: 0.5;
+  --sk-hatch-w-a: max(calc(var(--sk-hatch) * 0.7), 1px);
+  --sk-hatch-p-a: max(calc(var(--sk-hatch) * 1.9), 2.5px);
+  --sk-hatch-w-b: max(calc(var(--sk-hatch) * 0.6), 1px);
+  --sk-hatch-p-b: max(calc(var(--sk-hatch) * 2.3), 3px);
+}
+@function sk-hatch-a($c) {
+  @return repeating-linear-gradient(45deg, $c 0, $c var(--sk-hatch-w-a), transparent var(--sk-hatch-w-a), transparent var(--sk-hatch-p-a));
+}
+@function sk-hatch-b($c) {
+  @return repeating-linear-gradient(-62deg, $c 0, $c var(--sk-hatch-w-b), transparent var(--sk-hatch-w-b), transparent var(--sk-hatch-p-b));
+}
+// A mask keeps the fill's own color (accent or the graded ramp) and the track outline stays whole.
+@include in-skin('sketch', '[data-skin-part="fill"], [data-skin-part="bar-fill"]') {
+  @include sk-hatch-vars;
+  --sk-hatch-mask-lo: rgba(0, 0, 0, var(--sk-hatch-mask));
   --sk-hatch-tile:
-    repeating-linear-gradient(45deg, #000 0, #000 calc(var(--sk-hatch) * 2), transparent calc(var(--sk-hatch) * 2), transparent calc(var(--sk-hatch) * 5)),
-    repeating-linear-gradient(-62deg, #000 0, #000 calc(var(--sk-hatch) * 1.5), transparent calc(var(--sk-hatch) * 1.5), transparent calc(var(--sk-hatch) * 6.3));
+    repeating-linear-gradient(45deg, var(--sk-hatch-mask-lo) 0, var(--sk-hatch-mask-lo) var(--sk-hatch-w-a), #000 var(--sk-hatch-w-a), #000 var(--sk-hatch-p-a)),
+    repeating-linear-gradient(-62deg, var(--sk-hatch-mask-lo) 0, var(--sk-hatch-mask-lo) var(--sk-hatch-w-b), #000 var(--sk-hatch-w-b), #000 var(--sk-hatch-p-b));
   background-color: var(--skin-fill, var(--accent));
   -webkit-mask-image: var(--sk-hatch-tile);
   mask-image: var(--sk-hatch-tile);
 }
 
-// Range inputs paint their fill as a track gradient, so the hatch is drawn as sized background layers (a mask
-// would also cut the unfilled track): strokes clipped to [0, cap] and [0, end], the unfilled start span re-covered.
-@function sk-hatch-a($c) {
-  @return repeating-linear-gradient(45deg, $c 0, $c calc(var(--sk-hatch) * 2), transparent calc(var(--sk-hatch) * 2), transparent calc(var(--sk-hatch) * 5));
-}
-@function sk-hatch-b($c) {
-  @return repeating-linear-gradient(-62deg, $c 0, $c calc(var(--sk-hatch) * 1.5), transparent calc(var(--sk-hatch) * 1.5), transparent calc(var(--sk-hatch) * 6.3));
-}
+// Range inputs paint their fill as a track gradient, so the grain is drawn as sized background layers (a mask
+// would also cut the unfilled track): fill color plus ink strokes clipped to [0, cap] and [0, end], start span re-covered.
 @include in-skin('sketch', 'input[type="range"][data-fill]::-webkit-slider-runnable-track') {
-  --sk-hatch: calc(1px * var(--panel-scale, 1));
+  @include sk-hatch-vars;
+  --sk-hatch-stroke: rgba(0, 0, 0, var(--sk-hatch-ink));
   background-color: var(--border-strong);
   background-image:
     linear-gradient(var(--border-strong), var(--border-strong)),
-    sk-hatch-a(var(--slider-fill-color, var(--accent-glow, var(--accent)))),
-    sk-hatch-b(var(--slider-fill-color, var(--accent-glow, var(--accent)))),
-    sk-hatch-a(var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent))))),
-    sk-hatch-b(var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))));
+    sk-hatch-a(var(--sk-hatch-stroke)),
+    sk-hatch-b(var(--sk-hatch-stroke)),
+    linear-gradient(var(--slider-fill-color, var(--accent-glow, var(--accent))), var(--slider-fill-color, var(--accent-glow, var(--accent)))),
+    sk-hatch-a(var(--sk-hatch-stroke)),
+    sk-hatch-b(var(--sk-hatch-stroke)),
+    linear-gradient(var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))), var(--slider-fill-color, var(--slider-fill-dim, var(--accent-glow, var(--accent)))));
   background-repeat: no-repeat;
   background-position: 0 0;
   background-size:
     var(--slider-fill-start, 0%) 100%,
     var(--slider-fill-cap, var(--slider-fill-end, 0%)) 100%,
     var(--slider-fill-cap, var(--slider-fill-end, 0%)) 100%,
+    var(--slider-fill-cap, var(--slider-fill-end, 0%)) 100%,
+    var(--slider-fill-end, 0%) 100%,
     var(--slider-fill-end, 0%) 100%,
     var(--slider-fill-end, 0%) 100%;
 }
@@ -69,8 +84,9 @@
   scrollbar-color: auto;
 }
 @include in-skin('sketch', '*::-webkit-scrollbar-thumb, *::-webkit-scrollbar-thumb:hover') {
-  --sk-hatch: calc(1px * var(--panel-scale, 1));
-  background-color: transparent;
-  background-image: sk-hatch-a(var(--skin-fill, var(--accent))), sk-hatch-b(var(--skin-fill, var(--accent)));
+  @include sk-hatch-vars;
+  --sk-hatch-stroke: rgba(0, 0, 0, var(--sk-hatch-ink));
+  background-color: var(--skin-fill, var(--accent));
+  background-image: sk-hatch-a(var(--sk-hatch-stroke)), sk-hatch-b(var(--sk-hatch-stroke));
   border-radius: 0;
 }
