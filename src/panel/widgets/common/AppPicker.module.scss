@@ -44,7 +44,7 @@
   color: var(--text-dim);
   font-size: var(--type-tiny);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
 }
 
 .empty {

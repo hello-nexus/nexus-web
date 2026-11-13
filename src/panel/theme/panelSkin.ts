@@ -1,5 +1,5 @@
 import type { PanelBackgroundBase, PanelBackgroundMode } from '../background/panelBackground';
-import { panelFontVars, type PanelFont } from './panelFont';
+import { PANEL_FONTS, panelFontVars, type PanelFont } from './panelFont';
 import type { SkinOverrides } from '../skins/skinOverrides';
 import { normalizePanelSkin, skinAccentVars, skinDef, type PanelSkinId, type SkinDef } from '../skins/skins';
 
@@ -84,4 +84,11 @@ export function panelSkinAttrs(theme: SkinThemeFields): PanelSkinAttrs {
     // The segment skins draw numerals in their own face only while the user keeps the skin's font.
     ...(r.font !== r.def.font ? { 'data-skin-font-custom': '' } : {}),
   };
+}
+
+// The embedded font the panel root draws in (skin font included), for font-scoped CSS; none for a system font.
+export function panelFontAttrs(theme: SkinThemeFields): { 'data-panel-font'?: string } {
+  const font = resolveSkin(theme)?.font ?? theme.font;
+  const id = PANEL_FONTS.find(f => f.id === font)?.id;
+  return id ? { 'data-panel-font': id } : {};
 }

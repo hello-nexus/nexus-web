@@ -63,6 +63,7 @@
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 0.3em;
   font-weight: var(--weight-heading);
+  letter-spacing: var(--small-tracking, inherit);
   color: var(--text-dim);
   margin-left: 0.3em;
   align-self: flex-end;

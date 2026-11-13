@@ -66,7 +66,7 @@
   font-size: var(--type-gauge-caption);
   font-weight: var(--weight-strong);
   color: var(--text-dim);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--small-tracking, 0em));
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;

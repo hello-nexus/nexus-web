@@ -67,7 +67,7 @@
   font-variant-numeric: tabular-nums;
   font-size: 10px;
   font-weight: var(--weight-strong);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
 }
 
 // Label ("CPU"/"GPU") in accent-glow; value ("67°") in primary text.
@@ -87,7 +87,7 @@
   gap: 6px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   pointer-events: none;
   z-index: 1;
   line-height: 1;

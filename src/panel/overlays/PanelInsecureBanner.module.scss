@@ -14,7 +14,7 @@
   font-family: var(--panel-font);
   font-size: var(--type-mini);
   font-weight: var(--weight-strong);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   color: var(--bg);
   background: var(--warn);
   box-shadow: var(--shadow-sm);

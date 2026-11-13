@@ -13,7 +13,7 @@
   margin-top: 0.55em;
   font-size: var(--clock-date-size, 14px);
   font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--small-tracking, 0em));
   text-transform: uppercase;
   color: var(--text-dim);
   text-align: center;

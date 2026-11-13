@@ -94,6 +94,7 @@
 .ampm {
   font-size: var(--type-mini);
   font-weight: var(--weight-heading);
+  letter-spacing: var(--small-tracking, inherit);
   color: var(--text-dim);
   margin-left: 4px;
   align-self: flex-end;

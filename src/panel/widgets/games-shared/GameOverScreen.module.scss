@@ -50,7 +50,7 @@
   font-size: var(--type-heading);
   font-weight: var(--weight-heading);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--small-tracking, 0em));
 }
 
 .score {
@@ -70,7 +70,7 @@
   color: var(--text-dim);
   font-size: var(--type-small);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--small-tracking, 0em));
 }
 
 .chips {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyPanelSkin, normalizeStoredSkin, panelSkinAttrs, panelSkinVars, resolveSkin } from './panelSkin';
+import { applyPanelSkin, normalizeStoredSkin, panelFontAttrs, panelSkinAttrs, panelSkinVars, resolveSkin } from './panelSkin';
 import { buildPanelTheme, buildPanelThemeVars, resolveEffectivePanelTheme } from './panelTheme';
 import type { PanelDeviceRecord } from '../../api/panel';
 
@@ -104,5 +104,19 @@ describe('panel skin render-time overrides', () => {
     const vars = buildPanelThemeVars(pixel, 'dark') as Record<string, string>;
     expect(vars['--panel-font']).toContain("'Pixel'");
     expect(vars['--skin-accent']).toBeTruthy();
+  });
+});
+
+describe('panel font attribute', () => {
+  it('names the embedded font the panel draws in, skin font included', () => {
+    expect(panelFontAttrs(buildPanelTheme(null, record({ font: 'oswald' })))).toEqual({ 'data-panel-font': 'oswald' });
+    expect(panelFontAttrs(buildPanelTheme(null, record({ skin: 'neon' })))).toEqual({ 'data-panel-font': 'oswald' });
+    expect(panelFontAttrs(buildPanelTheme(null, record({ skin: 'neon', skinOverrides: { neon: { font: 'lexend' } } })))).toEqual({ 'data-panel-font': 'lexend' });
+    expect(panelFontAttrs(buildPanelTheme(null, record({ font: 'oswald', skin: 'hud' })))).toEqual({ 'data-panel-font': 'tektur' });
+  });
+
+  it('is absent for the app font and for a system font', () => {
+    expect(panelFontAttrs(buildPanelTheme(null, record()))).toEqual({});
+    expect(panelFontAttrs(buildPanelTheme(null, record({ font: 'system:Arial' })))).toEqual({});
   });
 });

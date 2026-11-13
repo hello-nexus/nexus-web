@@ -12,6 +12,7 @@
   font-family: var(--panel-font);
   font-size: var(--panel-widget-label-font-size, 12px);
   font-weight: var(--weight-heading);
+  letter-spacing: var(--small-tracking, inherit);
   color: var(--text);
   text-align: center;
   white-space: nowrap;

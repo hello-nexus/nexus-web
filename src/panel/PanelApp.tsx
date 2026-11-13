@@ -83,7 +83,7 @@ import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckInstance';
 import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelSkinScope, type PanelSkinScopeValue } from '../components/common/ThemeScope/PanelSkinScope';
-import { panelSkinAttrs } from './theme/panelSkin';
+import { panelFontAttrs, panelSkinAttrs } from './theme/panelSkin';
 import { useSkinStyles } from './skins/skinLoader';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { PanelDeviceIdProvider } from './widgets/common/PanelDeviceIdContext';
@@ -808,7 +808,7 @@ export function PanelContent({
     if (embedded) return null;
     const skinAttrs = panelSkinAttrs(effectiveTheme);
     if (!skinAttrs['data-panel-skin']) return null;
-    return { attrs: { ...skinAttrs, 'data-theme': resolvedThemeMode, 'data-surface': surface }, style: panelThemeVars };
+    return { attrs: { ...skinAttrs, ...panelFontAttrs(effectiveTheme), 'data-theme': resolvedThemeMode, 'data-surface': surface }, style: panelThemeVars };
   }, [embedded, effectiveTheme, resolvedThemeMode, surface, panelThemeVars]);
   // The panel backdrop is always the theme's dark/light background; the chosen
   // solid colour, shader, or media sits over it as an opacity-controlled
@@ -846,6 +846,7 @@ export function PanelContent({
   // sheet's zoom; hand them the same scale so they match the panel chrome.
   const sheetOverlayScale = touchPanelChrome ? (webkitSafeChromeScale ?? webkitSafePanelScale ?? 1) : 1;
   // Skin background mode replaces the theme layers with the skin backdrop; any other mode draws the skin tiles over the user's background.
+  const fontAttrs = useMemo(() => (embedded ? {} : panelFontAttrs(effectiveTheme)), [embedded, effectiveTheme]);
   const skinned = skinScope !== null;
   // A wallpaper or desktop Rendering choice shows instead of the skin's backdrop, like any other source.
   const skinOwnsBackdrop = skinned && effectiveTheme.backgroundMode === 'skin' && effectiveTheme.backdrop === 'theme';
@@ -2407,6 +2408,7 @@ export function PanelContent({
       <div
         ref={rootRef}
         className={`panel-root ${styles.panelRoot}`}
+        {...fontAttrs}
         {...skinScope?.attrs}
         data-skin-root={skinned ? '' : undefined}
         data-theme={resolvedThemeMode}

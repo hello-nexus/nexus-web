@@ -13,6 +13,24 @@
 .panel-root,
 .panel-root[data-theme] { --font-mono: var(--panel-font); }
 
+// Type weights step down by --weight-shift (never under 400) and small text tracks out by
+// --small-tracking. Both are zero unless the resolved font sets them. The weights are restated
+// here because a light panel root inherits :root's resolved values, which carry no shift.
+.panel-root[data-theme] {
+  --weight-shift: 0;
+  --weight-display-min: 0;
+  --small-tracking: 0em;
+  --weight-heading: max(400, calc(700 - var(--weight-shift)));
+  --weight-body: max(400, calc(500 - var(--weight-shift)));
+  --weight-strong: max(400, calc(600 - var(--weight-shift)));
+}
+// Oswald tops out at 700: values sit at the top of the file, everything smaller steps lighter and opens up.
+.panel-root[data-panel-font='oswald'][data-theme] {
+  --weight-shift: 100;
+  --weight-display-min: 700;
+  --small-tracking: 0.055em;
+}
+
 // --panel-scale: real cell ÷ 90px design base, as a unitless number
 // (tan(atan2(a,b)) == a/b - CSS can't divide two lengths). The single ratio
 // shared by grid content (.cellScaler) and floating chrome; cell == 90px
@@ -287,8 +305,8 @@
   display: inline-block;
   margin-left: 0.18em;
   font-size: 0.55em;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: max(400, calc(700 - var(--weight-shift, 0)));
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   color: var(--text-dim);
   vertical-align: baseline;
 }
@@ -379,7 +397,7 @@
   font-family: var(--panel-font);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   cursor: pointer;
   transition: background-color var(--ease-fast) ease, color var(--ease-fast) ease, border-color var(--ease-fast) ease;
 

@@ -172,8 +172,9 @@
 }
 
 .simpleLabel {
-  font: 700 16px/1 var(--panel-font);
-  letter-spacing: 0.06em;
+  font: 16px/1 var(--panel-font);
+  font-weight: max(400, calc(700 - var(--weight-shift, 0)));
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
   text-transform: uppercase;
   color: var(--text);
   // Full available width - the .simpleCenter padding already keeps the

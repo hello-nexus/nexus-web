@@ -83,6 +83,7 @@
 .ampm {
   font-size: 0.24em;
   font-weight: var(--weight-heading);
+  letter-spacing: var(--small-tracking, inherit);
   color: var(--text-dim);
   margin-left: 0.2em;
   align-self: flex-end;

@@ -210,7 +210,7 @@
   bottom: 0.22em;
   font-size: 0.28em;
   font-weight: var(--weight-heading);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
   color: var(--text-dim);
   z-index: 6;
   pointer-events: none;

@@ -19,7 +19,7 @@
   min-height: 1.2em;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   color: var(--text-dim);
   max-width: 100%;
   overflow: hidden;

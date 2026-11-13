@@ -57,7 +57,7 @@
   gap: 0.2rem;
   font-size: 10px;
   font-weight: var(--weight-heading);
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em + var(--small-tracking, 0em));
   text-transform: uppercase;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
