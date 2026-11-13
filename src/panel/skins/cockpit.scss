@@ -4,7 +4,7 @@
 
 // Instrument panel: black night cockpit with lit amber ink, or a grey day panel with black ink. Tick scales on the card and bar tracks.
 @include skin('cockpit') {
-  @include kit(#050506, #0d0e10, #ffd88a, #d2ae66, #4a4d52, var(--skin-accent), var(--skin-accent-rgb), #120a00, #5fe08a, #ffb000, #ff5a4a);
+  @include kit(#050506, #0d0e10, #ffd88a, #d2ae66, #4a4d52, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #120a00, #5fe08a, #ffb000, #ff5a4a);
   @include kit-radius(10px, 4px, 2px);
   @include kit-weights(500, 400, 600, 700, 400);
   --ck-ink: rgba(255, 216, 138, 0.7);
@@ -25,13 +25,13 @@
   --gauge-track: rgba(255, 216, 138, 0.14);
 }
 @include skin-light('cockpit') {
-  @include kit(#b9bdc1, #dfe1e3, #101214, #3a3f45, #2a2d31, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #b3261e);
+  @include kit(#b9bdc1, #dfe1e3, #101214, #3a3f45, #2a2d31, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #b3261e);
   --ck-ink: rgba(16, 18, 20, 0.7);
   --skin-card-frame: inset 0 0 0 3px #3a3d42, inset 0 0 0 4px #9a9ea4;
   --gauge-track: rgba(16, 18, 20, 0.16);
 }
 @include in-skin('cockpit', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }
 @include in-skin('cockpit', 'svg.lucide') {
   stroke-width: 1.8;

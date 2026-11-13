@@ -56,7 +56,7 @@
 }
 @include skin('hud') {
   @include hud-common;
-  --hud-line: var(--skin-accent);
+  --hud-line: var(--skin-accent-ink-dark);
   --hud-rgb: var(--skin-accent-rgb);
   --skin-backdrop: #040d16;
   --skin-card-bg: #071a2a;
@@ -73,7 +73,7 @@
   --chart-line-alt: #ffc44d;
 }
 @include skin-light('hud') {
-  --hud-line: var(--skin-accent-deep);
+  --hud-line: var(--skin-accent-ink-light);
   --skin-backdrop: #dbe9f0;
   --skin-card-bg: #f4fafd;
   --bg: #f4fafd;
@@ -100,4 +100,7 @@
 }
 @include in-skin('hud', 'svg path, svg line, svg polyline') {
   stroke-linejoin: miter;
+}
+@include in-skin('hud', '[data-skin-part="fill"]') {
+  background: var(--skin-fill, var(--accent));
 }

@@ -22,10 +22,10 @@ describe('panel skin normalization', () => {
 });
 
 describe('panel skin render-time overrides', () => {
-  it('leaves the stored theme alone and pins a locked mode on the effective theme', () => {
+  it('leaves the stored theme alone, and the effective mode follows the Theme controls', () => {
     const base = buildPanelTheme(null, record({ skin: 'crt', font: 'oswald', themeMode: 'light', themeSyncWithDesktop: false }));
     const eff = resolveEffectivePanelTheme(base, 'y70');
-    expect(eff.themeMode).toBe('dark');
+    expect(eff.themeMode).toBe('light');
     expect(eff.themeSyncWithDesktop).toBe(false);
     expect(base.themeMode).toBe('light');
     expect(base.font).toBe('oswald');
@@ -43,19 +43,18 @@ describe('panel skin render-time overrides', () => {
     expect(own.accentColor).toBe('#2fd8ff');
     const override = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', skinAccent: '#00ff00' })));
     expect(override.accentColor).toBe('#00ff00');
-    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinAccent: '#ff0000' })));
-    expect(locked.accentColor).toBe('#ffb84a');
+    const steam = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinAccent: '#ff0000' })));
+    expect(steam.accentColor).toBe('#ff0000');
     const lcd = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinAccent: '#ff0000' })));
-    expect(lcd.accentColor).toBe('#9bb36a');
+    expect(lcd.accentColor).toBe('#ff0000');
   });
 
-  it('leaves the mode to the Theme controls, except where the skin locks it', () => {
+  it('leaves the mode to the Theme controls', () => {
     const own = record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' });
     expect(applyPanelSkin(buildPanelTheme(null, own)).themeMode).toBe('dark');
     expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: true }))).themeSyncWithDesktop).toBe(true);
-    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', themeSyncWithDesktop: true, themeMode: 'light' })));
-    expect(locked.themeMode).toBe('dark');
-    expect(locked.themeSyncWithDesktop).toBe(false);
+    const crt = applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', themeSyncWithDesktop: false, themeMode: 'light' })));
+    expect(crt.themeMode).toBe('light');
   });
 
   it('resolves the same mode and accent for the editor preview as for the panel', () => {
@@ -67,8 +66,6 @@ describe('panel skin render-time overrides', () => {
       expect(viaEditor.themeMode).toBe(viaPanel.themeMode);
       expect(viaEditor.accentColor).toBe(viaPanel.accentColor);
     }
-    const crt = applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', themeSyncWithDesktop: false, themeMode: 'light' })));
-    expect(crt.themeMode).toBe('dark');
   });
 
   it('is a no-op without a skin', () => {

@@ -35,3 +35,16 @@
   filter: grayscale(1) contrast(1.15) brightness(0.9);
 }
 @include mono-warn('crt', var(--skin-ink), var(--skin-bg));
+// Reverse video: warm-grey glass, dark ink tinted by the phosphor colour, scanlines kept faint.
+@include skin-light('crt') {
+  --skin-back: var(--crt-paper-back, #cdc9bd);
+  --skin-bg: var(--crt-paper-bg, #e6e3da);
+  --skin-ink: var(--crt-paper-ink, #0c5a22);
+  --skin-ink-rgb: var(--crt-paper-ink-rgb, 12, 90, 34);
+  --skin-dim: var(--crt-paper-dim, #1b6a31);
+  --skin-text-shadow: none;
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.06) 0, rgba(0, 0, 0, 0.06) 1px, transparent 1px, transparent 3px);
+}
+@include in-skin('crt', '[data-theme="light"] img:not([data-skin-part="true-color"]), [data-theme="light"] canvas:not([data-skin-part="true-color"])') {
+  filter: grayscale(1) contrast(1.1);
+}

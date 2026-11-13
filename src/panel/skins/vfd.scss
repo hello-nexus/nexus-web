@@ -14,7 +14,7 @@
   --skin-bg: var(--skin-night);
   --skin-ink: var(--skin-lit);
   --skin-ink-rgb: var(--skin-lit-rgb);
-  --skin-dim: rgba(var(--skin-lit-rgb), 0.8);
+  --skin-dim: rgba(var(--skin-lit-rgb), 0.92);
   --skin-card-radius: 6px;
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.3);
   --skin-text-shadow: 0 0 4px rgba(var(--skin-ink-rgb), 0.5);
@@ -56,3 +56,14 @@
   text-shadow: none;
 }
 @include mono-warn('vfd', var(--skin-ink), var(--skin-bg));
+// Daylight: smoked-grey glass, dark accent-hued glyphs, a faint ghost and a fainter mesh.
+@include skin-light('vfd') {
+  --skin-back: var(--skin-vfd-day-back);
+  --skin-bg: var(--skin-vfd-day-bg);
+  --skin-ink: var(--skin-vfd-day-ink);
+  --skin-ink-rgb: var(--skin-vfd-day-ink-rgb);
+  --skin-dim: var(--skin-vfd-day-dim);
+  --skin-text-shadow: none;
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.45);
+  --skin-overlay: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 1px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 1px, transparent 1px, transparent 2px);
+}

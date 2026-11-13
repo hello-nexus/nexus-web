@@ -55,11 +55,11 @@ describe('skin defaults and overrides', () => {
     expect(r.accent).toBe('#2fd8ff');
     expect(r.mode).toBeNull();
   });
-  it('lets a skin-level override win except where the skin locks the value', () => {
+  it('lets a skin-level accent and font override win, and leaves the mode to the Theme controls', () => {
     const o = { skinAccent: '#00ff00', skinFont: 'jura' };
     expect(resolveSkin({ ...base, skin: 'hud', ...o })).toMatchObject({ accent: '#00ff00', font: 'jura' });
-    expect(resolveSkin({ ...base, skin: 'lcd', ...o })).toMatchObject({ accent: '#9bb36a', font: 'jura' });
-    expect(resolveSkin({ ...base, skin: 'crt', ...o })!.mode).toBe('dark');
+    expect(resolveSkin({ ...base, skin: 'lcd', ...o })).toMatchObject({ accent: '#00ff00', font: 'jura' });
+    expect(resolveSkin({ ...base, skin: 'crt', ...o })!.mode).toBeNull();
   });
 });
 

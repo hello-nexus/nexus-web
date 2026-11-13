@@ -3,7 +3,7 @@
 
 // Raised bevel tiles with sunken wells and a title strip in the accent.
 @include skin('bevel') {
-  @include kit(#2b2e35, #4b4f59, #f4f4f4, #cfd2d8, #14151a, var(--skin-accent), var(--skin-accent-rgb), #ffffff);
+  @include kit(#2b2e35, #4b4f59, #f4f4f4, #cfd2d8, #14151a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #ffffff);
   @include kit-radius(0, 0, 0);
   @include kit-weights(600, 500, 600, 700, 500);
   --bv-hi: #868b98;
@@ -26,7 +26,7 @@
   --gauge-track: #23252b;
 }
 @include skin-light('bevel') {
-  @include kit(#7d8794, #d3d3d3, #101114, #3b3f47, #2a2c31, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #b3261e);
+  @include kit(#7d8794, #d3d3d3, #101114, #3b3f47, #2a2c31, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #1f7a4d, #9a5f00, #b3261e);
   --bv-hi: #ffffff;
   --bv-lo: #5e6068;
   --bv-mid: #ececec;
@@ -38,7 +38,7 @@
   --gauge-track: #b4b6bc;
 }
 @include in-skin('bevel', '[data-skin-part="fill"]') {
-  background: var(--accent);
+  background: var(--skin-fill, var(--accent));
 }
 @include in-skin('bevel', 'svg.lucide') {
   stroke-width: 2;
