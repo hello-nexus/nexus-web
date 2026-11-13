@@ -27,7 +27,7 @@ const ratio = (a: string, b: string) => (Math.max(lum(a), lum(b)) + 0.05) / (Mat
 
 describe('skin background mode', () => {
   it('stores the previous mode inside the skin value and reads it back', () => {
-    const stored = encodeSkinBackgroundMode('media');
+    const stored = encodeSkinBackgroundMode('skin', 'media');
     expect(normalizePanelBackgroundMode(stored)).toBe('skin');
     expect(backgroundModeBeforeSkin(stored)).toBe('media');
     expect(normalizePanelBackgroundMode('skin')).toBe('skin');

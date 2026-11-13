@@ -31,7 +31,7 @@ import {
   skinBackgroundHeld,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
-import { chooseBackgroundMode, pickSkin, selectBackgroundEffect, switchBackgroundMode } from './skinBackgroundSwitch';
+import { chooseBackgroundMode, pickSkin, selectBackgroundEffect } from './skinBackgroundSwitch';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { normalizeTextColorMode, type TextColorMode } from './textColor';
 import { normalizePanelFont, panelFontVars, type PanelFont } from './panelFont';
@@ -405,10 +405,9 @@ export function usePanelTheme(
   const resetSkin = useCallback(() => {
     const cur = themeRef.current;
     if (!cur.skin) return;
-    const next = resetSkinOverride(cur.skinOverrides, cur.skin);
-    const change = switchBackgroundMode(cur, 'skin');
-    setTheme(prev => ({ ...prev, ...change.theme, skinOverrides: next }));
-    persistPatch({ ...change.patch, skinOverrides: next });
+    const change = chooseBackgroundMode({ ...cur, skinOverrides: resetSkinOverride(cur.skinOverrides, cur.skin) }, 'skin');
+    setTheme(prev => ({ ...prev, ...change.theme }));
+    persistPatch(change.patch);
   }, [persistPatch]);
 
   const commitAccent = useCallback((hex: string) => {
@@ -490,13 +489,13 @@ export function usePanelTheme(
 
   const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha = false) => {
     // Picking media shows it: the theme backdrop and media mode ride in the same patch, since a wallpaper or desktop backdrop hides the theme background. Only a surface that offers the backdrop choice ever holds a non-theme one.
-    const showMedia = mediaId
-      ? { backgroundMode: 'media' as const, ...(themeRef.current.backdrop !== 'theme' ? { backdrop: 'theme' as const } : {}) }
-      : {};
-    setTheme(prev => ({ ...prev, ...showMedia, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
+    // Under a skin the mode change goes through chooseBackgroundMode so the pre-skin hold and the skin's memory stay intact.
+    const change = mediaId ? chooseBackgroundMode(themeRef.current, 'media') : { theme: {}, patch: {} };
+    const toTheme = mediaId && (change.theme.backdrop ?? themeRef.current.backdrop) !== 'theme' ? { backdrop: 'theme' as const } : {};
+    setTheme(prev => ({ ...prev, ...change.theme, ...toTheme, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
     // The service patch-merge ignores a JSON null (means "no change"); an empty
     // string clears the field via NullIfEmpty, same as the other theme fields.
-    persistPatch({ ...showMedia, backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
+    persistPatch({ ...change.patch, ...toTheme, backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
   }, [persistPatch]);
 
   // One patch for the slideshow group so a toggle + interval edit is a single
