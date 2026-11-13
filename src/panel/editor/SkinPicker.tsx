@@ -49,7 +49,7 @@ export function SkinPicker({ value, overrides, mode, baseStyle, onReset, onChang
   })), [overrides]);
 
   const corner = (id: PanelSkinId | null, style: CSSProperties | undefined) => (
-    <span className={styles.fill}>
+    <span className={`${styles.fill} ${mode === 'light' ? styles.fillLight : ''}`}>
       <span
         className={`${styles.thumb} panel-root`}
         data-panel-skin={id && ready ? id : undefined}
@@ -65,6 +65,7 @@ export function SkinPicker({ value, overrides, mode, baseStyle, onReset, onChang
       </span>
     </span>
   );
+  const labelClass = mode === 'light' ? styles.labelLight : undefined;
   const resettable = onReset && value !== null && !!overrides[value];
 
   return (
@@ -72,6 +73,7 @@ export function SkinPicker({ value, overrides, mode, baseStyle, onReset, onChang
       <EffectCard
         overlay
         asDiv
+        labelClassName={labelClass}
         thumbStatic
         thumbAspect={THUMB_ASPECT}
         thumbUrl={null}
@@ -87,6 +89,7 @@ export function SkinPicker({ value, overrides, mode, baseStyle, onReset, onChang
             key={s.id}
             overlay
             asDiv
+            labelClassName={labelClass}
             thumbStatic
             thumbAspect={THUMB_ASPECT}
             thumbUrl={null}

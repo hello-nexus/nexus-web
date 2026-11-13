@@ -42,6 +42,15 @@ describe('SkinPicker', () => {
   });
 });
 
+describe('SkinPicker label ink', () => {
+  it('draws dark names over a light scrim in light mode and keeps the default ink in dark mode', () => {
+    const { container, rerender } = render(<SkinPicker value={null} overrides={{}} mode="light" onChange={() => {}} />);
+    expect(container.querySelectorAll('[class*="labelLight"]')).toHaveLength(PANEL_SKINS.length + 1);
+    rerender(<SkinPicker value={null} overrides={{}} mode="dark" onChange={() => {}} />);
+    expect(container.querySelectorAll('[class*="labelLight"]')).toHaveLength(0);
+  });
+});
+
 describe('SkinPicker reset action', () => {
   const overrides = { arcade: { accent: '#22c55e' } };
 

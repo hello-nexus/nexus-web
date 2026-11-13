@@ -69,6 +69,8 @@ interface EffectCardBaseProps {
   /** Overlay mode only: suppress the on-thumbnail caption (the aria-label still
    *  carries the name). Used by the simple colour swatches, which need no text. */
   hideLabel?: boolean;
+  /** Overlay mode only: extra class for the on-thumbnail caption, for a caller whose thumbnails need another ink. */
+  labelClassName?: string;
   /** Subtitle in the body font instead of monospace, for prose such as a creator's name. */
   metaSans?: boolean;
   /** Greys the card out and ignores clicks, for a choice that waits on work in progress. */
@@ -87,7 +89,7 @@ type EffectCardProps = EffectCardBaseProps & (
 export function EffectCard({
   label, keepCase, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel, editHint, ariaExpanded, layoutKey,
-  asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, metaSans, nonInteractive, disabled,
+  asDiv, noPressedState, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, thumbRound, hideLabel, labelClassName, metaSans, nonInteractive, disabled,
 }: EffectCardProps) {
   const { t } = useTranslation();
   // An image that fails to load leaves the plain tile until a new one arrives, never a broken-image glyph.
@@ -136,7 +138,7 @@ export function EffectCard({
             ariaLabel={deleteAriaLabel ?? t('common.delete')}
           />
         )}
-        {overlay && !hideLabel && <span className={styles.labelOverlay}>{label}</span>}
+        {overlay && !hideLabel && <span className={`${styles.labelOverlay} ${labelClassName ?? ''}`}>{label}</span>}
       </div>
       {!overlay && <span className={`${styles.label} ${keepCase ? styles.labelAsIs : ''}`}>{label}</span>}
       {!overlay && meta !== undefined && <span className={`${styles.meta} ${metaSans ? styles.metaSans : ''}`}>{meta}</span>}

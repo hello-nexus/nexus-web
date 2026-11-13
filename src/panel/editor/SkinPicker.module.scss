@@ -14,7 +14,7 @@
   // Keeps the skin's own z-indexes below the name EffectCard draws over the thumbnail.
   isolation: isolate;
 
-  // Scrim under the name EffectCard draws in white, so it reads over pale skins too.
+  // Scrim under the name EffectCard draws, so it reads over any skin.
   &::after {
     content: '';
     position: absolute;
@@ -24,6 +24,18 @@
     pointer-events: none;
     z-index: 5;
   }
+}
+
+// Light mode: the name is dark ink over a light scrim. The scrim is near white at the name, so the ink
+// keeps well over 4.5:1 even above a dark skin backdrop.
+.fillLight::after {
+  background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 0.85));
+}
+
+.labelLight.labelLight {
+  color: #14161a;
+  text-shadow: 0 0 4px rgb(255 255 255 / 0.9);
+  -webkit-text-stroke: 0.6px rgb(255 255 255 / 0.85);
 }
 
 .thumb {
