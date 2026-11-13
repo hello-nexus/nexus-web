@@ -23,32 +23,18 @@
   flex-direction: column;
 }
 
-.designRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
-  gap: 6px;
-}
-
-// Icon-only cards: prominent icon in a compact near-square button, matching
-// the layout/slots pickers rather than the smaller label-button default.
-.designBtn {
-  width: 100%;
-  min-width: 0;
-  --icon-label-icon-size: 24px;
-  --icon-label-button-height: 46px;
-}
-
-// The Micro design picker has only three options; keep them at their standard
-// button size, left-aligned and wrapping, instead of stretching full-width.
+// Icon-only cards at the default button size, the same tile as the editor's
+// size slots, wrapping left-aligned; only the design icon is enlarged.
+.designRow,
 .microDesignRow {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
+.designBtn,
 .microDesignBtn {
   --icon-label-icon-size: 24px;
-  --icon-label-button-height: 46px;
 }
 
 .rangeRow {
