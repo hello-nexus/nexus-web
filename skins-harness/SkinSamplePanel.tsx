@@ -38,10 +38,24 @@ const VARS = {
 
 export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom = 1, pad = 6, op = 100 }: SkinSamplePanelProps) {
   useEffect(() => { if (skin) void loadSkinStyles(skin); }, [skin]);
+  // ink=light|dark stamps what adaptive text colour stamps on each card host, to check the skin's palettes on it.
+  const inkQ = new URLSearchParams(location.search).get('ink');
+  useEffect(() => {
+    if (inkQ !== 'light' && inkQ !== 'dark') return;
+    const stamp = () => document.querySelectorAll<HTMLElement>('.panel-root .panel-card').forEach(el => { el.dataset.ink = inkQ; });
+    stamp();
+    const t = window.setInterval(stamp, 300);
+    return () => window.clearInterval(t);
+  }, [inkQ]);
   const def = SCENES.find(s => s.id === scene) ?? SCENES[0];
   const side = 4 * CELL + 3 * pad;
   const sk = skinDef(skin);
   const open = new URLSearchParams(location.search).get('open') === '1';
+  // bg=busy or bg=<css color> stands in for the user's own background on a skin that leaves it unlocked.
+  const bgq = new URLSearchParams(location.search).get('bg');
+  const userBg = bgq === 'busy'
+    ? 'repeating-conic-gradient(from 10deg at 30% 40%, #ff2d55 0 12deg, #ffd60a 12deg 25deg, #30d158 25deg 40deg, #0a84ff 40deg 58deg, #ffffff 58deg 70deg, #111111 70deg 82deg)'
+    : bgq ?? undefined;
   // Stock panel: the user's accent through the existing derivation. A style
   // skin reads --skin-accent instead; a screen skin ignores the accent.
   const accentVars = !sk ? deriveAccentVars(accent, mode)
@@ -59,6 +73,7 @@ export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom
     'data-panel-skin': skin,
     'data-skin-overlay': overlay ? 'on' : 'off',
     ...(op < 50 ? { 'data-skin-card-faded': '' } : {}),
+    ...(sk?.framelessAtZeroPadding ? { 'data-skin-frameless': '' } : {}),
   } : {};
   const scope = skin ? { attrs: { ...skinAttrs, 'data-theme': mode, 'data-surface': 'phone' }, style: themeVars } : null;
   return (
@@ -76,12 +91,12 @@ export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom
           width: side + 2 * pad,
           padding: pad,
           boxSizing: 'border-box',
-          background: skin ? undefined : 'var(--backdrop-base)',
+          background: skin ? (!sk?.prefersSkinBackground && userBg ? userBg : undefined) : 'var(--backdrop-base)',
           zoom,
           ...(def.chrome ? { height: side + 2 * pad, overflow: 'hidden' } : {}),
         } as CSSProperties}
       >
-        {skin && <div data-skin-part="backdrop" aria-hidden="true" />}
+        {skin && sk?.prefersSkinBackground && <div data-skin-part="backdrop" aria-hidden="true" />}
         {def.chrome ? <ChromeScene open={open} themeMode={mode} themeVars={themeVars} /> : (
           <div className={panelStyles.grid} style={def.gauges ? { height: side } : undefined}>
             {def.gauges && <GaugeSampler />}

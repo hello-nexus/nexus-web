@@ -27,6 +27,7 @@ import {
   resolveBackgroundDrawing,
   resolvePanelBackground,
   type PanelBackdrop,
+  type PanelBackgroundBase,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
@@ -69,6 +70,8 @@ export interface PanelThemeSettingsState {
   backgroundColor: string;
   backgroundColorLight: string;
   backgroundMode: PanelBackgroundMode;
+  // The mode a Skin background falls back to when the skin is removed.
+  backgroundModeBefore: PanelBackgroundBase;
   backgroundEffect: string;
   backgroundTemplate: number;
   // Per-shader preset selection for this panel (effect key → preset index).
@@ -106,11 +109,16 @@ export interface PanelThemeSettingsState {
   font: PanelFont | null;
   // Null is the stock look.
   skin: PanelSkinId | null;
+  // User choices made while the skin is active; null follows the skin's own look.
+  skinAccent: string | null;
+  skinFont: string | null;
+  skinMode: 'dark' | 'light' | null;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
 
 const OPTIONS_TAB = 'options';
+const SKIN_THEME_MODES: readonly ThemeMode[] = ['dark', 'light'];
 const NO_SKIN_KEY = 'none';
 
 export interface PanelThemeSettingsProps {
@@ -263,12 +271,15 @@ export function PanelThemeSettings({
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
+  const skin = resolveSkin(theme);
+  // A Skin background with no skin reads as the mode held before it.
+  const bgMode = !skin && theme.backgroundMode === 'skin' ? theme.backgroundModeBefore : theme.backgroundMode;
   // Frost blurs whatever the page itself paints, so it applies to the
   // redrawn wallpaper and to a shader/media layer. In see-through mode the
   // page paints nothing, so the host blurs the desktop behind the cards.
   const frostApplies = theme.backdrop === 'wallpaper'
     || theme.backdrop === 'desktop'
-    || (theme.backdrop === 'theme' && theme.backgroundMode !== 'solid');
+    || (theme.backdrop === 'theme' && bgMode !== 'solid');
   // Built outside the JSX so the option keys read as data, matching the other
   // ChipGroup call sites (the i18n lint rule scans JSX only).
   const backdropOptions = [
@@ -283,7 +294,6 @@ export function PanelThemeSettings({
   ];
   const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
   const systemFonts = useSystemFonts(showSystemFonts && showTheme);
-  const skin = resolveSkin(theme);
   const skinLabel = skin?.def.label ?? '';
   const lockedNote = label('skin.locked', 'Set by the {skin} skin').replace('{skin}', () => skinLabel);
   const modeLocked = !!skin?.def.modeLocked;
@@ -355,13 +365,15 @@ export function PanelThemeSettings({
       fullWidth
       options={[
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
+        ...(skin ? [{ key: 'skin', label: label('skin.title', 'Skin') }] : []),
+        // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'shader', label: label('panel.settings.backgroundMode.animations', 'Animations') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         ...(showMediaTab ? [{ key: 'media', label: label('panel.settings.backgroundMode.media', 'Media') }] : []),
       ]}
-      activeKey={theme.backgroundMode}
+      activeKey={bgMode}
       onChange={key => onBackgroundModeCommit(key as PanelBackgroundMode)}
       ariaLabel={label('panel.settings.backgroundMode', 'Background mode')}
     />
@@ -451,26 +463,27 @@ export function PanelThemeSettings({
           onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
         />
         <div className={styles.toggleReveal}>
-          <SettingToggle
-            label={syncWithDesktopLabel}
-            checked={modeLocked ? false : theme.themeSyncWithDesktop}
-            onChange={onThemeSyncCommit}
-            disabled={modeLocked}
-            description={modeLocked ? lockedNote : undefined}
-          />
-          {(modeLocked || !theme.themeSyncWithDesktop) && (
+          {!skin && (
+            <SettingToggle
+              label={syncWithDesktopLabel}
+              checked={theme.themeSyncWithDesktop}
+              onChange={onThemeSyncCommit}
+            />
+          )}
+          {(skin || !theme.themeSyncWithDesktop) && (
             <ChipGroup
-              options={THEME_MODES.map(mode => ({
+              options={(skin ? SKIN_THEME_MODES : THEME_MODES).map(mode => ({
                 key: mode,
                 label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
                 disabled: modeLocked,
               }))}
-              activeKey={skin && modeLocked ? skin.def.mode : theme.themeMode}
+              activeKey={skin ? skin.mode : theme.themeMode}
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
               fullWidth
             />
           )}
+          {modeLocked && <Notice tone="info" role="status">{lockedNote}</Notice>}
         </div>
       </SettingsSection>
       )}
@@ -519,18 +532,19 @@ export function PanelThemeSettings({
       {showTheme && (
       <SettingsSection title={label('devices.y70.theme.accent', 'Accent Color')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
-          <SettingToggle
-            label={syncWithDesktopLabel}
-            checked={accentLocked ? false : theme.accentSyncWithDesktop}
-            onChange={onAccentSyncCommit}
-            disabled={accentLocked}
-            description={accentLocked ? lockedNote : undefined}
-          />
-          {!accentLocked && !theme.accentSyncWithDesktop && (
+          {!skin && (
+            <SettingToggle
+              label={syncWithDesktopLabel}
+              checked={theme.accentSyncWithDesktop}
+              onChange={onAccentSyncCommit}
+            />
+          )}
+          {accentLocked && <Notice tone="info" role="status">{lockedNote}</Notice>}
+          {!accentLocked && (skin || !theme.accentSyncWithDesktop) && (
             <ColorPickerWithPresets
-              value={theme.accentColor || theme.appAccentColor}
+              value={skin?.accent ?? (theme.accentColor || theme.appAccentColor)}
               presets={PRESET_ACCENTS}
-              fallback={theme.appAccentColor || DEFAULT_ACCENT}
+              fallback={skin?.def.accent ?? (theme.appAccentColor || DEFAULT_ACCENT)}
               onPreview={onAccentPreview}
               onCommit={onAccentCommit}
               allowCustom
@@ -548,7 +562,7 @@ export function PanelThemeSettings({
             {backgroundHeldBy && (
               <Notice tone="info" role="status">{label('panel.settings.backgroundHeldByFocus', '{mode} is showing a plain background right now. Your background comes back when it ends.').replace('{mode}', () => backgroundHeldBy)}</Notice>
             )}
-            {showBackdropSelector && (
+            {showBackdropSelector && bgMode !== 'skin' && (
               <SettingRow
                 label={label('panel.settings.backdrop', 'Rendering')}
                 description={backdropDescription}
@@ -593,7 +607,7 @@ export function PanelThemeSettings({
               }}
               onCommit={onBackgroundFrostCommit}
             />
-            {theme.backdrop === 'desktop' ? null : (
+            {theme.backdrop === 'desktop' && bgMode !== 'skin' ? null : (
               <>
                 {backgroundOpacitySlider}
                 {backgroundOpacityPercent === 0 && (
@@ -601,9 +615,9 @@ export function PanelThemeSettings({
                 )}
               </>
             )}
-            {theme.backdrop !== 'theme' ? null : (
+            {bgMode === 'skin' ? backgroundModeChips : theme.backdrop !== 'theme' ? null : (
             <>
-            {theme.backgroundMode === 'solid' ? (
+            {bgMode === 'solid' ? (
               <>
                 {backgroundModeChips}
                 <ColorPickerWithPresets
@@ -615,7 +629,7 @@ export function PanelThemeSettings({
                   allowCustom
                 />
               </>
-            ) : theme.backgroundMode === 'media' ? (
+            ) : bgMode === 'media' ? (
               <>
                 {backgroundModeChips}
                 <BackgroundMediaPicker

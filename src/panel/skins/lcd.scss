@@ -7,26 +7,27 @@
 // other glyph falls through to the panel font stack per glyph.
 @font-face { font-family: 'Skin Seg7'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/dseg7.woff2') format('woff2'); unicode-range: U+0030-003A, U+002D, U+002E, U+00B0; }
 
-// Light is the daylight reflective cell, dark is the same cell with its backlight on; both take their hue from the accent.
+// Light is the daylight reflective cell, dark is the same cell with its backlight on; both take their hue from the accent and both draw dark segments.
 @include skin('lcd') {
   @include screen-tokens;
   --skin-back: var(--skin-day-back);
   --skin-bg: var(--skin-pale);
   --skin-ink: var(--skin-deep);
   --skin-ink-rgb: var(--skin-deep-rgb);
-  --skin-dim: rgba(var(--skin-deep-rgb), 0.78);
+  --skin-dim: rgba(var(--skin-deep-rgb), 0.92);
   --skin-card-radius: 4px;
-  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.14), transparent 35%);
-  --skin-card-frame: inset 0 0 0 2px var(--skin-ink), inset 0 4px 7px rgba(var(--skin-ink-rgb), 0.35);
-  --skin-text-shadow: 1px 1px 0 rgba(var(--skin-ink-rgb), 0.22);
+  --skin-card-image: none;
+  --skin-card-frame: inset 0 0 0 2px var(--skin-ink);
+  --skin-text-shadow: none;
   --skin-bar-height: 9px;
   --skin-bar-radius: 0;
   --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 4px, transparent 4px, transparent 5px);
   --skin-line-join: miter;
   --skin-line-cap: butt;
   --skin-numeral-font: 'Skin Seg7', var(--panel-font);
-  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
   --skin-overlay-size: 3px 3px;
+  --skin-ghost: 0.07;
   --weight-heading: 700;
   --weight-body: 600;
   --weight-strong: 700;
@@ -42,17 +43,19 @@
   --ease: 0s;
   --ease-slow: 0s;
 }
-// Backlight on: dark cell, lit segments.
+// Backlight on: the cell glows in the accent hue inside a dark bezel, and the
+// segments stay dark on it. LCD is never emissive text on black.
 @include skin-dark('lcd') {
   --skin-back: var(--skin-night-back);
-  --skin-bg: var(--skin-night);
-  --skin-ink: var(--skin-lit);
-  --skin-ink-rgb: var(--skin-lit-rgb);
-  --skin-dim: rgba(var(--skin-lit-rgb), 0.82);
-  --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.06), transparent 40%);
-  --skin-card-frame: inset 0 0 0 2px rgba(var(--skin-ink-rgb), 0.6), inset 0 4px 7px rgba(var(--skin-ink-rgb), 0.15);
-  --skin-text-shadow: 0 0 3px rgba(var(--skin-ink-rgb), 0.4);
-  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.25) 1px, transparent 1px);
+  --skin-bg: var(--skin-glow);
+  --skin-ink: var(--skin-deep);
+  --skin-ink-rgb: var(--skin-deep-rgb);
+  --skin-dim: rgba(var(--skin-deep-rgb), 0.92);
+  --skin-card-image: none;
+  --skin-card-frame: inset 0 0 0 2px var(--skin-ink);
+  --skin-text-shadow: none;
+  --skin-ghost: 0.1;
+  --skin-overlay: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
 }
 @include in-skin('lcd', 'svg path, svg line, svg polyline, svg rect, svg circle') {
   stroke-linecap: butt;
@@ -61,7 +64,7 @@
 @include in-skin('lcd', 'svg.lucide') {
   stroke-width: 2.4;
 }
-@include in-skin('lcd', 'img, canvas') {
+@include in-skin('lcd', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
   filter: grayscale(1) contrast(1.1);
 }
 // Unlit segments ghosted behind each numeral, drawn in the same face.
@@ -70,11 +73,13 @@
   // DSEG glyphs run taller than the line box the widgets size for; room keeps
   // the fit boxes (overflow hidden) from shaving the top segment.
   padding: 0.14em 0;
+  // The padding is paid back so the row keeps the height the widget laid out.
+  margin: -0.14em 0;
 }
 @include in-skin('lcd', '[data-skin-part="digit"]::before') {
   content: '8';
   grid-area: 1 / 1;
-  opacity: 0.1;
+  opacity: var(--skin-ghost, 0.1);
   text-shadow: none;
 }
 @include mono-warn('lcd', var(--skin-ink), var(--skin-bg));

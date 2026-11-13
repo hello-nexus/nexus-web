@@ -107,7 +107,7 @@
 @include in-skin('blueprint', 'svg path, svg line, svg polyline') {
   stroke-linejoin: miter;
 }
-@include in-skin('blueprint', 'img, canvas') {
+@include in-skin('blueprint', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
   filter: grayscale(1) contrast(1.3);
   opacity: 0.9;
 }

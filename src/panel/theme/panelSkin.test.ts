@@ -31,25 +31,29 @@ describe('panel skin render-time overrides', () => {
     expect(base.font).toBe('oswald');
   });
 
-  it('uses the skin font when locked and the user font when the skin allows it', () => {
-    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'lcd', font: 'oswald' })))?.font).toBe('jura');
-    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', font: 'oswald' })))?.font).toBe('oswald');
+  it('uses the skin font by default and a skin-level font override only when the skin allows it', () => {
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'lcd', skinFont: 'oswald' })))?.font).toBe('jura');
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', skinFont: 'oswald' })))?.font).toBe('oswald');
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', font: 'oswald' })))?.font).toBe('tektur');
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud' })))?.font).toBe('tektur');
   });
 
-  it('applies the skin accent unless the user chose one on an unlocked skin', () => {
-    const synced = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud' })));
-    expect(synced.accentColor).toBe('#2fd8ff');
+  it('applies the skin accent, ignoring the user accent; a skin-level override wins unless locked', () => {
     const own = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
-    expect(own.accentColor).toBe('#ff0000');
-    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', accentSyncWithDesktop: false, accentColor: '#ff0000' })));
+    expect(own.accentColor).toBe('#2fd8ff');
+    const override = applyPanelSkin(buildPanelTheme(null, record({ skin: 'hud', skinAccent: '#00ff00' })));
+    expect(override.accentColor).toBe('#00ff00');
+    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'steampunk', skinAccent: '#ff0000' })));
     expect(locked.accentColor).toBe('#ffb84a');
+    const lcd = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinAccent: '#ff0000' })));
+    expect(lcd.accentColor).toBe('#9bb36a');
   });
 
-  it('applies the skin default mode while synced and the user mode once pinned', () => {
+  it('applies the skin default mode, ignoring the user mode; a skin-level mode override wins unless locked', () => {
     expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd' }))).themeMode).toBe('light');
-    const pinned = applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' })));
-    expect(pinned.themeMode).toBe('dark');
+    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' }))).themeMode).toBe('light');
+    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinMode: 'dark' }))).themeMode).toBe('dark');
+    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', skinMode: 'light' }))).themeMode).toBe('dark');
   });
 
   it('is a no-op without a skin', () => {

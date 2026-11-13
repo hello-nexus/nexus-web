@@ -844,9 +844,12 @@ export function PanelContent({
   // Dialogs opened from the sheet (a confirm) portal to <body>, outside the
   // sheet's zoom; hand them the same scale so they match the panel chrome.
   const sheetOverlayScale = touchPanelChrome ? (webkitSafeChromeScale ?? webkitSafePanelScale ?? 1) : 1;
-  // A skin owns the backdrop: the theme's shader, media and wallpaper layers do not draw under it.
+  // In the Skin background mode the skin's own backdrop replaces the theme's
+  // shader, media and wallpaper layers. Any other mode draws the skin's tiles
+  // over the user's background. Frost and opacity still apply to the backdrop.
   const skinned = skinScope !== null;
-  const backdrop = wallpaperBackgroundAvailable && showPanelBackground && !skinned
+  const skinOwnsBackdrop = skinned && effectiveTheme.backgroundMode === 'skin';
+  const backdrop = wallpaperBackgroundAvailable && showPanelBackground && !skinOwnsBackdrop
     ? effectiveTheme.backdrop
     : 'theme';
   // Wallpaper redraws the desktop picture in-page; desktop paints nothing at
@@ -855,7 +858,7 @@ export function PanelContent({
   // wallpaper rather than going transparent over the dashboard.
   const seeThrough = backdrop === 'desktop' && !simulator;
   // At 0% nothing of the background shows, so no layer mounts: no video decode, no shader.
-  const backgroundVisible = effectiveTheme.backgroundOpacity > 0 && !skinned;
+  const backgroundVisible = effectiveTheme.backgroundOpacity > 0 && !skinOwnsBackdrop;
   const showWallpaperLayer = (backdrop === 'wallpaper' || (backdrop === 'desktop' && simulator)) && backgroundVisible;
   // html/body carry the app background from global.scss, so a transparent
   // panel root alone still paints over the desktop the kiosk is showing.
@@ -864,7 +867,8 @@ export function PanelContent({
     root.classList.toggle('panel-see-through', seeThrough);
     return () => root.classList.remove('panel-see-through');
   }, [seeThrough]);
-  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive', resolvedThemeMode === 'dark' ? 'light' : 'dark');
+  // The Skin backdrop is known, so the skin's own ink already fits it: nothing to sample.
+  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive' && !skinOwnsBackdrop, resolvedThemeMode === 'dark' ? 'light' : 'dark');
   // Scoped to the widget grids, the editor dock and the drag overlay, so the panel's own sheets and menus keep the theme.
   const customTextStyle = useMemo(
     () => (effectiveTheme.textColorMode === 'custom'
@@ -892,7 +896,7 @@ export function PanelContent({
   // Frosted glass blurs what the page itself painted. Solid mode renders no
   // frost pass (a blurred solid colour is the colour), and see-through has
   // nothing in-page to sample.
-  const backgroundFrost = (showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid' && !mediaShowsSolid))
+  const backgroundFrost = (skinOwnsBackdrop || showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid' && !mediaShowsSolid))
     ? effectiveTheme.backgroundFrost
     : 0;
   const panelSolidColor = useMemo(
@@ -919,7 +923,7 @@ export function PanelContent({
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
-      ...(skinned ? { backgroundColor: 'var(--skin-backdrop)' } as Record<string, string> : { background: themeBackdrop }),
+      ...(skinOwnsBackdrop ? { backgroundColor: effectiveTheme.backgroundOpacity >= 1 ? 'var(--skin-backdrop)' : themeBackdrop } as Record<string, string> : { background: themeBackdrop }),
       '--panel-background-solid': panelSolidColor,
       '--panel-columns': gridColumns,
       // Drag collision clamps drop rows to this.
@@ -947,7 +951,8 @@ export function PanelContent({
       panelSolidColor,
       webkitSafeChromeScale,
       themeBackdrop,
-      skinned,
+      skinOwnsBackdrop,
+      effectiveTheme.backgroundOpacity,
       panelThemeVars,
       runtimeGrid.cellSize,
       gridColumns,
@@ -2450,7 +2455,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
-        {skinned && <div data-skin-part="backdrop" aria-hidden="true" />}
+        {skinOwnsBackdrop && <div data-skin-part="backdrop" aria-hidden="true" style={{ opacity: effectiveTheme.backgroundOpacity }} />}
         {showWallpaperLayer && <PanelBackgroundDesktop opacity={effectiveTheme.backgroundOpacity} />}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader

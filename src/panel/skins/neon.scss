@@ -82,7 +82,9 @@
 }
 // Even cells take the derived second colour; the accent is re-pointed per
 // cell, so gauges, links and icons inside pick it up too.
-@include in-skin('neon', '[data-panel-widget-id]:nth-child(even)') {
+// The ink hosts of an even cell re-declare the skin block, so they are listed too.
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even),
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink] {
   --neon: var(--skin-accent2);
   --neon-rgb: var(--skin-accent2-rgb);
   --accent: var(--skin-accent2);
@@ -101,7 +103,8 @@
   --skin-spark-fill: rgba(var(--skin-accent2-rgb), 0.2);
 }
 // Pastel text stays on the deep accent; the second colour only draws the outline.
-.panel-root[data-panel-skin='neon'][data-theme='light'] [data-panel-widget-id]:nth-child(even) {
+.panel-root[data-panel-skin='neon'][data-theme='light'] [data-panel-widget-id]:nth-child(even),
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink='dark'] {
   --accent: var(--skin-accent-deep);
   --accent-deep: var(--skin-accent-deep);
   --panel-accent: var(--skin-accent-deep);

@@ -37,7 +37,7 @@
   --panel-card-radius: 6px;
   --panel-element-radius: 3px;
 }
-@include in-skin('vfd', 'img, canvas') {
+@include in-skin('vfd', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
   filter: grayscale(1) contrast(1.15) brightness(0.85);
 }
 // Unlit segments ghosted behind each numeral, drawn in the same face.
@@ -46,6 +46,8 @@
   // DSEG glyphs run taller than the line box the widgets size for; room keeps
   // the fit boxes (overflow hidden) from shaving the top segment.
   padding: 0.14em 0;
+  // The padding is paid back so the row keeps the height the widget laid out.
+  margin: -0.14em 0;
 }
 @include in-skin('vfd', '[data-skin-part="digit"]::before') {
   content: '8';

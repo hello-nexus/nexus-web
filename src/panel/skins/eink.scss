@@ -30,7 +30,21 @@
   --radius-pill: 1px;
   --panel-card-radius: 2px;
   --panel-element-radius: 2px;
-  --skin-spark-fill: rgba(var(--skin-ink-rgb), 0.3);
+  --skin-hi: var(--skin-hi-light, #1d4ed8);
+  --skin-hi-rgb: var(--skin-hi-light-rgb, 29, 78, 216);
+  --accent: var(--skin-hi);
+  --accent-glow: var(--skin-hi);
+  --accent-deep: var(--skin-hi);
+  --accent-soft: rgba(var(--skin-hi-rgb), 0.18);
+  --accent-glow-shadow: rgba(var(--skin-hi-rgb), 0.3);
+  --accent-text: var(--skin-bg);
+  --panel-accent: var(--skin-hi);
+  --panel-accent-glow: var(--skin-hi);
+  --panel-accent-soft: rgba(var(--skin-hi-rgb), 0.18);
+  --panel-accent-shadow: rgba(var(--skin-hi-rgb), 0.3);
+  --panel-accent-text: var(--skin-bg);
+  --panel-border-strong: var(--skin-ink);
+  --skin-spark-fill: rgba(var(--skin-hi-rgb), 0.28);
 }
 // Dark inverts the page: paper ink on a black sheet.
 @include skin-dark('eink') {
@@ -40,6 +54,8 @@
   --skin-ink-rgb: 236, 233, 222;
   --skin-dim: #b5b2a7;
   --gauge-track: #2c2c2c;
+  --skin-hi: var(--skin-hi-dark, #7fa4ff);
+  --skin-hi-rgb: var(--skin-hi-dark-rgb, 127, 164, 255);
 }
 // Nothing moves on paper.
 .panel-root[data-panel-skin='eink'],
@@ -50,7 +66,7 @@
   animation: none !important;
 }
 @include in-skin('eink', '[data-skin-part="fill"]') {
-  background: var(--skin-ink);
+  background: var(--skin-hi);
 }
 @include in-skin('eink', '[data-skin-part="track"]') {
   background: repeating-linear-gradient(45deg, var(--skin-ink) 0, var(--skin-ink) 1px, transparent 1px, transparent 3px);
@@ -58,7 +74,7 @@
 @include in-skin('eink', 'svg.lucide') {
   stroke-width: 2.4;
 }
-@include in-skin('eink', 'img, canvas') {
+@include in-skin('eink', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
   filter: grayscale(1) contrast(1.5);
 }
 @include mono-warn('eink', var(--skin-ink), var(--skin-bg));

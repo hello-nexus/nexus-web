@@ -41,6 +41,7 @@
   z-index: 0;
   pointer-events: none;
   will-change: transform;
+  background-color: var(--skin-backdrop);
   background-image: var(--skin-backdrop-image, none);
   background-size: var(--skin-backdrop-size, auto);
 }
@@ -116,9 +117,9 @@
   --panel-widget-card-inner-pad: var(--skin-card-inset, 0px);
 }
 $skin-insets: (
-  arcade: 6px, clay: 4px, cockpit: 4px, bevel: 3px, blueprint: 2px, eink: 2px, crt: 2px,
-  glass: 2px, hud: 3px, deco: 6px, hifi: 6px, nixie: 2px, lcd: 3px, mecha: 4px, holo: 2px,
-  steampunk: 6px, sketch: 2px, pixel: 3px, neon: 3px, vfd: 2px, swiss: 4px,
+  arcade: 6px, clay: 2px, cockpit: 4px, bevel: 3px, blueprint: 2px, eink: 2px, crt: 4px,
+  glass: 2px, hud: 3px, deco: 4px, hifi: 3px, nixie: 2px, lcd: 2px, mecha: 4px, holo: 2px,
+  steampunk: 4px, sketch: 2px, pixel: 3px, neon: 3px, vfd: 1px, swiss: 4px,
 );
 @each $id, $px in $skin-insets {
   .panel-root[data-panel-skin='#{$id}'] { --skin-card-inset: #{$px}; }
@@ -168,3 +169,44 @@ $skin-insets: (
 .panel-root[data-panel-skin] [data-skin-part='value'] {
   font-family: var(--skin-numeral-font, var(--panel-font));
 }
+
+// Secondary text on a light skin (and on the backlit LCD, which draws dark
+// segments in both modes). Widgets dim it with an opacity of 0.35 to 0.6,
+// which on a pale card lands well under 4.5:1 whatever the ink is. A skin
+// already carries a dim ink (--text-dim), so the opacity steps are replaced by
+// that colour; the hierarchy stays, the contrast comes from the token.
+$dim-classes: compactLocation, compactStats, largeLocation, largeCurrentStats, hourlyLabel, dailyLo, artist, album, fraction, indexBadge;
+@each $root in ".panel-root[data-panel-skin][data-theme='light']", ".panel-root[data-panel-skin='lcd'][data-theme='dark']" {
+  @each $c in $dim-classes {
+    #{$root} [class*='_#{$c}_'] {
+      opacity: 1;
+      color: var(--text-dim);
+    }
+  }
+}
+
+// data-skin-part="true-color" marks lighting effect previews and thumbnails:
+// they show real colours, so the monochrome img/canvas filters of the screen
+// skins (LCD, CRT, VFD, E-ink, Blueprint) skip them.
+
+// ---- BEGIN frameless at 0% widget padding (delete this whole block to undo) ----
+// PanelApp stamps data-widget-padding='none' at 0% padding (flushCards) and
+// panelSkinAttrs stamps data-skin-frameless on the skins whose frame is only a
+// border (framelessAtZeroPadding in skins.ts). Their
+// frame decorations (frame ring, deco strips and brackets, border, outer
+// shadow, chamfer clip) are not drawn and the frame inset is 0, so content
+// uses the full tile. The tile face, ink, fonts, overlay and backdrop stay.
+// Above 0% the frame draws as designed with its inset reserved.
+.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] {
+  --skin-card-inset: 0px;
+}
+.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] .panel-card {
+  border-width: 0;
+  box-shadow: none;
+  clip-path: none;
+}
+.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none'] .panel-card::after {
+  box-shadow: none;
+  background-image: none;
+}
+// ---- END frameless at 0% widget padding ----

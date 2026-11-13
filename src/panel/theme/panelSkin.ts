@@ -1,10 +1,12 @@
+import type { PanelBackgroundBase, PanelBackgroundMode } from '../background/panelBackground';
 import { panelFontVars, type PanelFont } from './panelFont';
 import { normalizePanelSkin, skinAccentVars, skinDef, skinFontVars, type PanelSkinId, type SkinDef } from '../skins/skins';
 
 // A panel skin is a preset layered over the user's own theme at render time:
-// its font, accent and mode replace the stored ones only where the skin locks
-// them (or the user never chose one), and the stored values are never written
-// to, so they come straight back when the skin is set to None.
+// picking one applies the skin's own font, accent and mode. A choice the user
+// makes while the skin is active is stored as a skin-level override (cleared
+// on every skin change) and never in their own accent, font or mode, so None
+// brings those straight back. A locked value ignores the override.
 
 export interface SkinThemeFields {
   skin: PanelSkinId | null;
@@ -14,6 +16,12 @@ export interface SkinThemeFields {
   accentColor: string;
   font: PanelFont | null;
   widgetOpacity: number;
+  skinAccent: string | null;
+  skinFont: string | null;
+  skinMode: 'dark' | 'light' | null;
+  backgroundMode: PanelBackgroundMode;
+  // The mode the background falls back to when a Skin background has no skin.
+  backgroundModeBefore: PanelBackgroundBase;
 }
 
 // Null is the stock look. An unknown id reads as null (same rule as panelFont).
@@ -21,16 +29,10 @@ export function normalizeStoredSkin(value?: string | null): PanelSkinId | null {
   return normalizePanelSkin(value);
 }
 
-// The accent the user chose on this panel, if any. Synced or unset means the
-// skin's own default applies.
-function userAccent(theme: SkinThemeFields): string | null {
-  return !theme.accentSyncWithDesktop && theme.accentColor ? theme.accentColor : null;
-}
-
 export interface ResolvedSkin {
   id: PanelSkinId;
   def: SkinDef;
-  mode: 'dark' | 'light' | null;
+  mode: 'dark' | 'light';
   // 'pixel' or a panel font id or a system font value; what the panel draws in.
   font: string;
   accent: string | null;
@@ -39,14 +41,12 @@ export interface ResolvedSkin {
 export function resolveSkin(theme: SkinThemeFields): ResolvedSkin | null {
   const def = skinDef(theme.skin);
   if (!def || !theme.skin) return null;
-  const font = def.fontLocked || !theme.font ? def.font : theme.font;
-  const own = userAccent(theme);
-  const accent = def.accent === null ? null : def.accentLocked ? def.accent : (own ?? def.accent);
+  const font = def.fontLocked ? def.font : (theme.skinFont ?? def.font);
+  const accent = def.accent === null ? null : def.accentLocked ? def.accent : (theme.skinAccent ?? def.accent);
   return {
     id: theme.skin,
     def,
-    // Locked, or the user follows the desktop: the skin's own mode. Otherwise the user's.
-    mode: def.modeLocked || theme.themeSyncWithDesktop ? def.mode : null,
+    mode: def.modeLocked ? def.mode : (theme.skinMode ?? def.mode),
     font,
     accent,
   };
@@ -57,10 +57,12 @@ export function resolveSkin(theme: SkinThemeFields): ResolvedSkin | null {
 // theme only; the stored theme is not touched.
 export function applyPanelSkin<T extends SkinThemeFields>(theme: T): T {
   const r = resolveSkin(theme);
-  if (!r) return theme;
+  // Without a skin there is no skin backdrop: back to the mode held before it.
+  if (!r) return theme.backgroundMode === 'skin' ? { ...theme, backgroundMode: theme.backgroundModeBefore } : theme;
   return {
     ...theme,
-    ...(r.mode ? { themeSyncWithDesktop: false, themeMode: r.mode } : {}),
+    themeSyncWithDesktop: false,
+    themeMode: r.mode,
     ...(r.accent ? { accentSyncWithDesktop: false, accentColor: r.accent } : {}),
   };
 }
@@ -75,11 +77,16 @@ export function panelSkinVars(theme: SkinThemeFields, accentHex: string): Record
 }
 
 // Attributes a panel root carries for the skin stylesheets.
-export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overlay' | 'data-skin-card-faded', string>>;
+export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overlay' | 'data-skin-card-faded' | 'data-skin-frameless', string>>;
 
 export function panelSkinAttrs(theme: SkinThemeFields): PanelSkinAttrs {
   const r = resolveSkin(theme);
   if (!r) return {};
   // Card outer shadows cannot scale with widget opacity; they drop out below half.
-  return { 'data-panel-skin': r.id, 'data-skin-overlay': 'on', ...(theme.widgetOpacity < 0.5 ? { 'data-skin-card-faded': '' } : {}) };
+  return {
+    'data-panel-skin': r.id,
+    'data-skin-overlay': 'on',
+    ...(theme.widgetOpacity < 0.5 ? { 'data-skin-card-faded': '' } : {}),
+    ...(r.def.framelessAtZeroPadding ? { 'data-skin-frameless': '' } : {}),
+  };
 }

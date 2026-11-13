@@ -1,9 +1,9 @@
 @use 'mixins' as *;
 @use 'kit' as *;
 
-// Frosted-glass cards drawn as a translucent gradient over a soft colour field with a bright top edge; no backdrop filter.
+// Frosted-glass cards drawn as a translucent gradient over a soft colour field with a bright top edge; no backdrop filter. The fill is tinted enough that text reads over a busy or pale user background too.
 @include skin('glass') {
-  @include kit(#0d1230, rgba(255, 255, 255, 0.07), #f6f8ff, #c3cbea, #aab6e8, var(--skin-accent), var(--skin-accent-rgb), #08102a, #5df0b0, #ffd166, #ff7a90, #1a2150);
+  @include kit(#0d1230, rgba(16, 22, 56, 0.66), #f6f8ff, #c3cbea, #aab6e8, var(--skin-accent), var(--skin-accent-rgb), #08102a, #5df0b0, #ffd166, #ff7a90, #1a2150);
   @include kit-radius(18px, 10px, 999px);
   @include kit-weights(500, 400, 600, 700, 400);
   --skin-backdrop-image: linear-gradient(135deg, rgba(var(--skin-accent-rgb), 0.5), rgba(150, 90, 255, 0.45));
@@ -14,7 +14,7 @@
   --gauge-track: rgba(255, 255, 255, 0.18);
 }
 @include skin-light('glass') {
-  @include kit(#dfe8fb, rgba(255, 255, 255, 0.55), #14203d, #43517a, #7f90c4, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a, #ffffff);
+  @include kit(#dfe8fb, rgba(255, 255, 255, 0.78), #14203d, #43517a, #7f90c4, var(--skin-accent-deep), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a, #ffffff);
   --skin-backdrop-image: linear-gradient(135deg, rgba(var(--skin-accent-rgb), 0.35), rgba(190, 150, 255, 0.5));
   --skin-card-image: linear-gradient(155deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.1) 60%);
   --skin-card-frame: inset 0 1px 0 #ffffff, inset 0 0 0 1px rgba(255, 255, 255, 0.75);

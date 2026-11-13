@@ -87,7 +87,8 @@
   }
 }
 @mixin skin-dark($id) {
-  .panel-root[data-panel-skin='#{$id}'][data-theme='dark'] { @content; }
+  .panel-root[data-panel-skin='#{$id}'][data-theme='dark'],
+  .panel-root[data-panel-skin='#{$id}'] [data-ink='light'] { @content; }
 }
 @mixin skin-variant-any($id, $variant) {
   .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme] { @content; }

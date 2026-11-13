@@ -70,7 +70,7 @@ function BackgroundEffectPreviewCanvas({ effect, template, effectState, audioRea
 
   return (
     <div className={styles.preview} data-ready={ready && !error ? 'true' : 'false'}>
-      <canvas ref={canvasRef} className={styles.canvas} />
+      <canvas ref={canvasRef} className={styles.canvas} data-skin-part="true-color" />
       {audioShown && (
         <MusicReactiveControl active={music.enabled} onToggle={music.toggle} output={showSource ? audioOutput : undefined} />
       )}

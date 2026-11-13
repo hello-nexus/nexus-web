@@ -6,13 +6,13 @@
 // layer on text, and one static scanline overlay. Tektur carries the words and numerals.
 @include skin('crt') {
   @include screen-tokens;
-  // Defaults (classic green); the panel stamps the accent-derived values inline.
-  --skin-back: #020402;
-  --skin-bg: #04170a;
-  --skin-ink: #33ff66;
-  --skin-ink-rgb: 51, 255, 102;
-  --skin-dim: #2fd35a;
-  --skin-card-radius: 14px;
+  // Defaults (classic green); the panel stamps the accent-derived --crt-* values inline.
+  --skin-back: var(--crt-back, #020402);
+  --skin-bg: var(--crt-bg, #04170a);
+  --skin-ink: var(--crt-ink, #33ff66);
+  --skin-ink-rgb: var(--crt-ink-rgb, 51, 255, 102);
+  --skin-dim: var(--crt-dim, #2fd35a);
+  --skin-card-radius: 8px;
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-ink-rgb), 0.55);
   --skin-text-shadow: 0 0 4px rgba(var(--skin-ink-rgb), 0.45);
   --skin-bar-height: 8px;
@@ -28,10 +28,10 @@
   --radius: 6px;
   --radius-lg: 14px;
   --radius-pill: 3px;
-  --panel-card-radius: 14px;
+  --panel-card-radius: 8px;
   --panel-element-radius: 6px;
 }
-@include in-skin('crt', 'img, canvas') {
+@include in-skin('crt', 'img:not([data-skin-part="true-color"]), canvas:not([data-skin-part="true-color"])') {
   filter: grayscale(1) contrast(1.15) brightness(0.9);
 }
 @include mono-warn('crt', var(--skin-ink), var(--skin-bg));
