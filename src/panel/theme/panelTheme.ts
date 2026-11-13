@@ -250,7 +250,6 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     skin,
     skinAccent: r?.skinAccent || null,
     skinFont: r?.skinFont || null,
-    skinMode: r?.skinMode === 'dark' || r?.skinMode === 'light' ? r.skinMode : null,
     gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
@@ -308,8 +307,8 @@ function usePanelPreferences(enabled: boolean): Preferences | null {
 // `prefs.panel`. `deviceId` selects which panel's settings, so editing the Q60
 // never touches the Y70. The only cross-surface link is the desktop app theme
 // (`prefs.theme`), the sync source for theme-mode + accent when sync is on.
-const NO_SKIN_OVERRIDES = { skinAccent: null, skinFont: null, skinMode: null } as const;
-const CLEAR_SKIN_OVERRIDES = { skinAccent: '', skinFont: '', skinMode: '' } as const;
+const NO_SKIN_OVERRIDES = { skinAccent: null, skinFont: null } as const;
+const CLEAR_SKIN_OVERRIDES = { skinAccent: '', skinFont: '' } as const;
 
 export function usePanelTheme(
   recordState: PanelRecordState,
@@ -367,13 +366,6 @@ export function usePanelTheme(
 
   const commitThemeMode = useCallback((mode: ThemeMode) => {
     const nextMode = normalizePanelThemeMode(mode);
-    // With a skin active the choice is the skin's own override, never the user's stored mode.
-    if (themeRef.current.skin) {
-      const skinMode = nextMode === 'dark' || nextMode === 'light' ? nextMode : null;
-      setTheme(prev => ({ ...prev, skinMode }));
-      persistPatch({ skinMode: skinMode ?? '' });
-      return;
-    }
     setTheme(prev => ({ ...prev, themeMode: nextMode }));
     persistPatch({ themeMode: nextMode });
   }, [persistPatch]);

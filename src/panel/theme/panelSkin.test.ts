@@ -49,11 +49,26 @@ describe('panel skin render-time overrides', () => {
     expect(lcd.accentColor).toBe('#9bb36a');
   });
 
-  it('applies the skin default mode, ignoring the user mode; a skin-level mode override wins unless locked', () => {
-    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd' }))).themeMode).toBe('light');
-    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' }))).themeMode).toBe('light');
-    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', skinMode: 'dark' }))).themeMode).toBe('dark');
-    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', skinMode: 'light' }))).themeMode).toBe('dark');
+  it('leaves the mode to the Theme controls, except where the skin locks it', () => {
+    const own = record({ skin: 'lcd', themeSyncWithDesktop: false, themeMode: 'dark' });
+    expect(applyPanelSkin(buildPanelTheme(null, own)).themeMode).toBe('dark');
+    expect(applyPanelSkin(buildPanelTheme(null, record({ skin: 'lcd', themeSyncWithDesktop: true }))).themeSyncWithDesktop).toBe(true);
+    const locked = applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', themeSyncWithDesktop: true, themeMode: 'light' })));
+    expect(locked.themeMode).toBe('dark');
+    expect(locked.themeSyncWithDesktop).toBe(false);
+  });
+
+  it('resolves the same mode and accent for the editor preview as for the panel', () => {
+    // The editor derives its simulator mode from applyPanelSkin, like PanelApp does.
+    for (const id of ['lcd', 'hud', 'steampunk', 'crt'] as const) {
+      const t = buildPanelTheme(null, record({ skin: id, themeSyncWithDesktop: false, themeMode: 'light' }));
+      const viaEditor = applyPanelSkin(t);
+      const viaPanel = resolveEffectivePanelTheme(t, 'y70');
+      expect(viaEditor.themeMode).toBe(viaPanel.themeMode);
+      expect(viaEditor.accentColor).toBe(viaPanel.accentColor);
+    }
+    const crt = applyPanelSkin(buildPanelTheme(null, record({ skin: 'crt', themeSyncWithDesktop: false, themeMode: 'light' })));
+    expect(crt.themeMode).toBe('dark');
   });
 
   it('is a no-op without a skin', () => {

@@ -18,7 +18,6 @@ export interface SkinThemeFields {
   widgetOpacity: number;
   skinAccent: string | null;
   skinFont: string | null;
-  skinMode: 'dark' | 'light' | null;
   backgroundMode: PanelBackgroundMode;
   // The mode the background falls back to when a Skin background has no skin.
   backgroundModeBefore: PanelBackgroundBase;
@@ -32,7 +31,8 @@ export function normalizeStoredSkin(value?: string | null): PanelSkinId | null {
 export interface ResolvedSkin {
   id: PanelSkinId;
   def: SkinDef;
-  mode: 'dark' | 'light';
+  // Set only for a skin that pins the panel's mode; null follows the normal Theme controls.
+  mode: 'dark' | 'light' | null;
   // 'pixel' or a panel font id or a system font value; what the panel draws in.
   font: string;
   accent: string | null;
@@ -46,10 +46,16 @@ export function resolveSkin(theme: SkinThemeFields): ResolvedSkin | null {
   return {
     id: theme.skin,
     def,
-    mode: def.modeLocked ? def.mode : (theme.skinMode ?? def.mode),
+    mode: def.modeLocked ? def.mode : null,
     font,
     accent,
   };
+}
+
+// The Skin background chip belongs to the active skin, never to the selected
+// mode, so picking another mode leaves it in place.
+export function offersSkinBackground(theme: SkinThemeFields): boolean {
+  return resolveSkin(theme) !== null;
 }
 
 // Render-time overrides: a locked mode pins the panel to the skin's mode, and a
@@ -61,8 +67,7 @@ export function applyPanelSkin<T extends SkinThemeFields>(theme: T): T {
   if (!r) return theme.backgroundMode === 'skin' ? { ...theme, backgroundMode: theme.backgroundModeBefore } : theme;
   return {
     ...theme,
-    themeSyncWithDesktop: false,
-    themeMode: r.mode,
+    ...(r.mode ? { themeSyncWithDesktop: false, themeMode: r.mode } : {}),
     ...(r.accent ? { accentSyncWithDesktop: false, accentColor: r.accent } : {}),
   };
 }

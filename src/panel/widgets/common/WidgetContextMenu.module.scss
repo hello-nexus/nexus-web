@@ -126,7 +126,7 @@
   padding: 6px;
   border-radius: var(--radius-sm);
   border: none;
-  background: transparent;
+  background: var(--size-tile-bg, transparent);
   color: var(--text-dim);
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);

@@ -135,6 +135,7 @@ import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
 import { syncedAppThemeMode } from '../../../lib/settings';
+import { applyPanelSkin } from '../../../panel/theme/panelSkin';
 import { buildPanelThemeVars, panelAccentColor, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { resolveGaugeGradient } from '../../../panel/theme/gaugeGradient';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
@@ -668,11 +669,14 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     return (options ? stopForWidgetSize(options, widgetSizeStops, mode, densitySlots)?.percent : undefined) ?? 100;
   };
   const syncedAppMode = syncedAppThemeMode(theme.appThemeMode, theme.appResolvedThemeMode);
-  const effectiveThemeMode = theme.themeSyncWithDesktop ? syncedAppMode : theme.themeMode;
+  // The mode and accent the real panel resolves: same skin pass as PanelApp, so
+  // a skin that pins the mode or accent drives the preview identically.
+  const skinnedTheme = useMemo(() => applyPanelSkin(theme), [theme]);
+  const effectiveThemeMode = skinnedTheme.themeSyncWithDesktop ? syncedAppMode : skinnedTheme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   // The monitoring settings pane edits the panel's gauge gradient in place; the
   // simulator iframe repaints from the same theme via the postMessage sync.
-  const gaugeAccent = panelAccentColor(theme);
+  const gaugeAccent = panelAccentColor(skinnedTheme);
   const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
     stops: resolveGaugeGradient(theme.gaugeGradient, gaugeAccent),
     source: theme.gaugeGradient,

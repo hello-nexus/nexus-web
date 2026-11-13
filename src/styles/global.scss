@@ -405,7 +405,7 @@ input[type="range"] {
     appearance: none;
     width: var(--slider-thumb-size);
     height: var(--slider-thumb-size);
-    border-radius: 50%;
+    border-radius: min(50%, var(--radius-pill));
     background: var(--accent);
     border: none;
     box-shadow: none;
@@ -425,7 +425,7 @@ input[type="range"] {
   &::-moz-range-thumb {
     width: var(--slider-thumb-size);
     height: var(--slider-thumb-size);
-    border-radius: 50%;
+    border-radius: min(50%, var(--radius-pill));
     background: var(--accent);
     border: none;
     box-shadow: none;

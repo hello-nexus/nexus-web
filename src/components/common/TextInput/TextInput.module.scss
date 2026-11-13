@@ -3,7 +3,7 @@
   box-sizing: border-box;
   border-radius: 8px;
   border: 1px solid var(--border, rgba(255,255,255,0.14));
-  background: var(--surface, rgba(255,255,255,0.05));
+  background: var(--input-bg, var(--surface, rgba(255,255,255,0.05)));
   color: var(--text-input-color, var(--text, currentColor));
   font: inherit;
   outline: none;

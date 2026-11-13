@@ -8,7 +8,7 @@ import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
 import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
 import { PANEL_SKINS, skinFontLabel, type PanelSkinId } from '../skins/skins';
-import { resolveSkin } from '../theme/panelSkin';
+import { offersSkinBackground, resolveSkin } from '../theme/panelSkin';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
 import { loadSystemFonts, useSystemFonts } from '../theme/systemFontsCache';
@@ -112,13 +112,11 @@ export interface PanelThemeSettingsState {
   // User choices made while the skin is active; null follows the skin's own look.
   skinAccent: string | null;
   skinFont: string | null;
-  skinMode: 'dark' | 'light' | null;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
 
 const OPTIONS_TAB = 'options';
-const SKIN_THEME_MODES: readonly ThemeMode[] = ['dark', 'light'];
 const NO_SKIN_KEY = 'none';
 
 export interface PanelThemeSettingsProps {
@@ -365,7 +363,7 @@ export function PanelThemeSettings({
       fullWidth
       options={[
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
-        ...(skin ? [{ key: 'skin', label: label('skin.title', 'Skin') }] : []),
+        ...(offersSkinBackground(theme) ? [{ key: 'skin', label: label('skin.title', 'Skin') }] : []),
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
@@ -463,21 +461,21 @@ export function PanelThemeSettings({
           onChange={key => onSkinCommit(key === NO_SKIN_KEY ? null : key as PanelSkinId)}
         />
         <div className={styles.toggleReveal}>
-          {!skin && (
+          {!modeLocked && (
             <SettingToggle
               label={syncWithDesktopLabel}
               checked={theme.themeSyncWithDesktop}
               onChange={onThemeSyncCommit}
             />
           )}
-          {(skin || !theme.themeSyncWithDesktop) && (
+          {(modeLocked || !theme.themeSyncWithDesktop) && (
             <ChipGroup
-              options={(skin ? SKIN_THEME_MODES : THEME_MODES).map(mode => ({
+              options={THEME_MODES.map(mode => ({
                 key: mode,
                 label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
                 disabled: modeLocked,
               }))}
-              activeKey={skin ? skin.mode : theme.themeMode}
+              activeKey={skin?.mode ?? theme.themeMode}
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
               fullWidth
@@ -562,7 +560,7 @@ export function PanelThemeSettings({
             {backgroundHeldBy && (
               <Notice tone="info" role="status">{label('panel.settings.backgroundHeldByFocus', '{mode} is showing a plain background right now. Your background comes back when it ends.').replace('{mode}', () => backgroundHeldBy)}</Notice>
             )}
-            {showBackdropSelector && bgMode !== 'skin' && (
+            {showBackdropSelector && (
               <SettingRow
                 label={label('panel.settings.backdrop', 'Rendering')}
                 description={backdropDescription}

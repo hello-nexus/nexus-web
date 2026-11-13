@@ -145,7 +145,7 @@ $inline-gap: 0.5rem;
   width: 24px;
   height: 24px;
   box-sizing: border-box;
-  border-radius: 50%;
+  border-radius: min(50%, var(--radius-pill));
   // Solid in the fill color so the track never shows through; the glyph takes the contrast-paired ink.
   background: var(--slider-fill-color, var(--accent));
   color: var(--slider-thumb-ink, var(--accent-text));

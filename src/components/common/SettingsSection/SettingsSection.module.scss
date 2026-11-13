@@ -90,7 +90,7 @@
   padding: 0.5rem 1.1rem 0.85rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--section-bg, var(--surface));
 
   // Hairline between adjacent rows (none before the first, none after the
   // last) - same --separator token + border-top-on-next-sibling idiom as

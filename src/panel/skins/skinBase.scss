@@ -16,6 +16,19 @@
   --control-border: var(--border);
   --control-border-strong: var(--border-strong);
   --control-border-accent: var(--accent);
+  // Surface tiers, sheet < section < control < hover. The sheet and the stock
+  // card fill are one colour in most skins, and tokens.scss builds the sheet
+  // with color-mix(), which Chromium 83 drops to nothing. The sheet is the
+  // plain elevated fill; every tier above it is the skin's own translucent ink
+  // tint, so a control inside a section stacks one step above it.
+  --panel-sheet-bg: var(--bg-elevated);
+  --section-bg: var(--panel-control-bg);
+  --input-bg: var(--panel-control-bg);
+  --select-bg: var(--panel-control-bg);
+  --tab-active-bg: var(--panel-control-bg);
+  --size-tile-bg: var(--panel-control-bg);
+  // The knob over an accent track takes the ink drawn on the accent, so a pale accent keeps a visible knob.
+  --toggle-knob-on: var(--accent-text);
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
