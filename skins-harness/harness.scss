@@ -8,3 +8,11 @@ body { margin: 0; background: #17171a; color: #ddd; font-family: system-ui, sans
 .gallery { padding: 16px; display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; }
 .gallery figure { margin: 0; }
 .gallery figcaption { font-size: 12px; text-align: center; padding: 4px; opacity: 0.8; }
+.bar select { background: #34343c; color: #eee; border: 1px solid #4a4a54; border-radius: 4px; padding: 3px; font-size: 12px; }
+.bar button:disabled { opacity: 0.4; cursor: not-allowed; }
+.editorPage { display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
+.editorCol { width: 380px; display: flex; flex-direction: column; gap: 14px; flex: none; }
+.editorPanel { flex: none; }
+.lockNote { font-size: 12px; opacity: 0.7; padding: 4px 2px; }
+.stack { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 8px; }
+.stackLabel { font-size: 14px; font-weight: 600; }

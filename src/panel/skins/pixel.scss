@@ -1,44 +1,54 @@
-@use 'base' as *;
+@use 'mixins' as *;
 
-// Pixel / 8-bit. Square cards with notched corners, a hard one-colour drop
-// shadow, a 16-colour-style palette, a bitmap face, segmented bars and
-// stepped animation timing. Gauge rings and the sparkline get the SVG
-// pixelate filter when the filter toggle is on.
-@include skin('pixel') {
-  --skin-backdrop: #1a1c2c;
-  --skin-backdrop-image: linear-gradient(rgba(255, 255, 255, 0.03) 50%, transparent 50%);
-  --skin-backdrop-size: 6px 6px;
-  --skin-card-bg: #333c57;
-  --skin-card-border: 0 solid transparent;
-  --skin-card-frame: inset 0 0 0 3px #f4f4f4, inset 0 -9px 0 -3px rgba(0, 0, 0, 0.25);
+// Pixelify Sans, one weight (500), subset per script. Loads only with this skin.
+@font-face { font-family: 'Skin Pixel'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/pixel-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122; }
+@font-face { font-family: 'Skin Pixel'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/pixel-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF; }
+@font-face { font-family: 'Skin Pixel'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/pixel-cyrillic.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+
+// Pixel / 8-bit. Notched corners from stacked 3px box-shadows (no clip-path,
+// no filter), a limited palette, Tektur, segmented bars and
+// stepped easing. The accent snaps to the palette (see snapToPixelPalette).
+@mixin pixel-common {
   --skin-card-radius: 0;
-  // Two-step notched corners (3px steps).
-  --skin-card-clip: polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px));
-  --skin-cell-filter: drop-shadow(4px 4px 0 #0b0b14);
+  // NES-style border: four offset rules give the stepped corners.
+  --skin-card-shadow: 0 -2px 0 0 var(--px-line), 0 2px 0 0 var(--px-line), -2px 0 0 0 var(--px-line), 2px 0 0 0 var(--px-line);
+  --skin-card-frame: inset 0 -6px 0 0 rgba(0, 0, 0, 0.2);
   --skin-text-rendering: optimizeSpeed;
   --skin-bar-height: 10px;
   --skin-bar-radius: 0;
   --skin-bar-mask: repeating-linear-gradient(90deg, #000 0, #000 6px, transparent 6px, transparent 8px);
   --skin-line-join: miter;
   --skin-line-cap: butt;
-  --skin-value-shadow: 2px 2px 0 #0b0b14;
-
-  --panel-font: 'Pixelify Sans', 'IBM Plex Mono', monospace;
-  --font-sans: 'Pixelify Sans', 'IBM Plex Mono', monospace;
-  --font-mono: 'Pixelify Sans', 'IBM Plex Mono', monospace;
   --weight-heading: 600;
   --weight-body: 500;
   --weight-strong: 600;
   --weight-display: 700;
   --weight-small: 500;
-
   --radius-sm: 0;
   --radius: 0;
   --radius-lg: 0;
   --radius-pill: 0;
   --panel-card-radius: 0;
   --panel-element-radius: 0;
-
+  --accent: var(--skin-accent);
+  --accent-glow: var(--skin-accent);
+  --accent-deep: var(--skin-accent);
+  --accent-soft: rgba(var(--skin-accent-rgb), 0.28);
+  --accent-glow-shadow: rgba(var(--skin-accent-rgb), 0.35);
+  --panel-accent: var(--skin-accent);
+  --panel-accent-glow: var(--skin-accent);
+  --panel-accent-soft: rgba(var(--skin-accent-rgb), 0.28);
+  --panel-accent-shadow: rgba(var(--skin-accent-rgb), 0.35);
+  --skin-spark-fill: rgba(var(--skin-accent-rgb), 0.35);
+  --ease-fast: 0.12s steps(3, end);
+  --ease: 0.2s steps(4, end);
+  --ease-slow: 0.3s steps(4, end);
+}
+@include skin('pixel') {
+  @include pixel-common;
+  --px-line: #f4f4f4;
+  --skin-backdrop: #1a1c2c;
+  --skin-card-bg: #333c57;
   --bg: #1a1c2c;
   --bg-elevated: #29366f;
   --bg-card-hover: #3b5dc9;
@@ -48,44 +58,29 @@
   --surface: #333c57;
   --surface-hover: #3b5dc9;
   --text: #f4f4f4;
-  --text-dim: #94b0c2;
+  --text-dim: #b4c8d6;
   --separator: #566c86;
   --gauge-track: #1a1c2c;
-  --accent: #41a6f6;
-  --accent-glow: #41a6f6;
-  --accent-soft: #29366f;
-  --accent-deep: #3b5dc9;
-  --accent-glow-shadow: #29366f;
   --accent-text: #1a1c2c;
-  --panel-accent: #41a6f6;
-  --panel-accent-glow: #41a6f6;
-  --panel-accent-soft: #29366f;
-  --panel-accent-shadow: #29366f;
   --panel-accent-text: #1a1c2c;
   --good: #38b764;
   --warn: #ffcd75;
-  --bad: #b13e53;
-  --chart-line-alt: #ef7d57;
+  --bad: #ef7d57;
+  --chart-line-alt: #ffcd75;
   --panel-control-bg: #29366f;
   --panel-control-bg-hover: #3b5dc9;
-  --panel-control-bg-active: #41a6f6;
+  --panel-control-bg-active: #566c86;
   --panel-element-bg: #29366f;
   --panel-card-bg: #29366f;
   --panel-control-translucent: #566c86;
   --panel-border: #f4f4f4;
   --panel-border-strong: #f4f4f4;
-  // Frame-by-frame motion: any transition or animation that survives steps in 4.
-  --ease-fast: 0.12s steps(3, end);
-  --ease: 0.2s steps(4, end);
-  --ease-slow: 0.3s steps(4, end);
 }
 @include skin-light('pixel') {
+  --px-line: #1a1c2c;
   --skin-backdrop: #94b0c2;
-  --skin-backdrop-image: linear-gradient(rgba(0, 0, 0, 0.05) 50%, transparent 50%);
   --skin-card-bg: #f4f4f4;
-  --skin-card-frame: inset 0 0 0 3px #1a1c2c, inset 0 -9px 0 -3px rgba(0, 0, 0, 0.12);
-  --skin-cell-filter: drop-shadow(4px 4px 0 #566c86);
-  --skin-value-shadow: 2px 2px 0 #94b0c2;
+  --skin-card-frame: inset 0 -6px 0 0 rgba(0, 0, 0, 0.1);
   --bg: #f4f4f4;
   --bg-elevated: #c8d6e0;
   --bg-card-hover: #94b0c2;
@@ -94,18 +89,14 @@
   --surface: #f4f4f4;
   --surface-hover: #c8d6e0;
   --text: #1a1c2c;
-  --text-dim: #566c86;
+  --text-dim: #3f526b;
   --separator: #94b0c2;
   --gauge-track: #c8d6e0;
-  --accent: #3b5dc9;
-  --accent-glow: #3b5dc9;
-  --accent-soft: #c8d6e0;
-  --accent-glow-shadow: #94b0c2;
+  --accent: var(--skin-accent-deep);
+  --accent-glow: var(--skin-accent-deep);
+  --panel-accent: var(--skin-accent-deep);
+  --panel-accent-glow: var(--skin-accent-deep);
   --accent-text: #f4f4f4;
-  --panel-accent: #3b5dc9;
-  --panel-accent-glow: #3b5dc9;
-  --panel-accent-soft: #c8d6e0;
-  --panel-accent-shadow: #94b0c2;
   --panel-accent-text: #f4f4f4;
   --good: #257179;
   --warn: #a4631a;
@@ -119,8 +110,7 @@
   --panel-border: #1a1c2c;
   --panel-border-strong: #1a1c2c;
 }
-
-// Icons and gauge strokes: square caps, no anti-aliasing.
+// Icons and gauge strokes: square caps, hard edges.
 @include in-skin('pixel', 'svg path, svg line, svg polyline, svg circle, svg rect') {
   stroke-linecap: butt;
   stroke-linejoin: miter;
@@ -129,17 +119,6 @@
 @include in-skin('pixel', 'img, canvas') {
   image-rendering: pixelated;
 }
-// Filter toggle: pixelate the vector and bitmap content (rings, sparkline, art).
-.panel-root[data-panel-skin='pixel'][data-skin-filter='on'] svg,
-.panel-root[data-panel-skin='pixel'][data-skin-filter='on'] img,
-.panel-root[data-panel-skin='pixel'][data-skin-filter='on'] canvas {
-  filter: url(#skin-filter-pixelate);
-}
-// Extra: whole panel, text included.
-.panel-root[data-panel-skin='pixel'][data-skin-filter='bloom'] {
-  filter: url(#skin-filter-pixelate);
-}
-// Pressed state moves in whole pixels.
 @include in-skin('pixel', '[data-panel-widget-id]:active .panel-card') {
   transform: translate(3px, 3px);
 }

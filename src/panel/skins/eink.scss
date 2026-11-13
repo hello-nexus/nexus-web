@@ -1,72 +1,34 @@
-@use 'base' as *;
+@use 'mixins' as *;
+@use 'screen' as *;
 
 // E-ink / paper: off-white page, near-black ink, grey carried by dither and
-// hatch rather than alpha, no motion at all. Piazzolla (a panel font already)
-// gives the serif page feel; Cyrillic covered.
+// hatch rather than alpha, no motion, no overlay. Piazzolla by default
+// (Cyrillic covered); the font is free.
 @include skin('eink') {
-  --skin-backdrop: #d9d6cb;
-  --skin-card-bg: #efede4;
+  @include screen-tokens;
+  --skin-back: #d9d6cb;
+  --skin-bg: #efede4;
+  --skin-ink: #111111;
+  --skin-ink-rgb: 17, 17, 17;
+  --skin-dim: #4a4a4a;
   --skin-card-radius: 2px;
   --skin-card-frame: inset 0 0 0 2px #111;
   --skin-bar-height: 9px;
   --skin-bar-radius: 0;
   --skin-bar-mask: none;
   --skin-bar-track-shadow: inset 0 0 0 1.5px #111;
-  --skin-value-shadow: none;
-  --skin-overlay: radial-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px);
-  --skin-overlay-size: 3px 3px;
-  --skin-overlay-blend: multiply;
-
-  --panel-font: 'Piazzolla', 'Lexend', serif;
-  --font-sans: 'Piazzolla', 'Lexend', serif;
-  --font-mono: 'Piazzolla', 'Lexend', serif;
+  --gauge-track: #cfccc0;
   --weight-heading: 700;
   --weight-body: 500;
   --weight-strong: 700;
   --weight-display: 800;
-
   --radius-sm: 1px;
   --radius: 2px;
   --radius-lg: 2px;
   --radius-pill: 1px;
   --panel-card-radius: 2px;
   --panel-element-radius: 2px;
-
-  --bg: #efede4;
-  --bg-elevated: #e4e1d6;
-  --bg-card-hover: #e4e1d6;
-  --border: #111;
-  --border-strong: #111;
-  --border-hover: #111;
-  --surface: #efede4;
-  --surface-hover: #e4e1d6;
-  --text: #111;
-  --text-dim: #555;
-  --separator: #111;
-  --gauge-track: #cfccc0;
-  --accent: #111;
-  --accent-glow: #111;
-  --accent-soft: #cfccc0;
-  --accent-deep: #111;
-  --accent-glow-shadow: transparent;
-  --accent-text: #efede4;
-  --panel-accent: #111;
-  --panel-accent-glow: #111;
-  --panel-accent-soft: #cfccc0;
-  --panel-accent-shadow: transparent;
-  --panel-accent-text: #efede4;
-  --good: #111;
-  --warn: #111;
-  --bad: #111;
-  --chart-line-alt: #555;
-  --panel-control-bg: #e4e1d6;
-  --panel-control-bg-hover: #d3d0c4;
-  --panel-control-bg-active: #bdbaae;
-  --panel-element-bg: #e4e1d6;
-  --panel-card-bg: #e4e1d6;
-  --panel-control-translucent: #d3d0c4;
-  --panel-border: #111;
-  --panel-border-strong: #111;
+  --skin-spark-fill: rgba(17, 17, 17, 0.3);
 }
 // Nothing moves on paper.
 .panel-root[data-panel-skin='eink'],
@@ -75,10 +37,6 @@
 .panel-root[data-panel-skin='eink'] *::after {
   transition: none !important;
   animation: none !important;
-}
-@include in-skin('eink', '[data-skin-part="spark-fill"]') {
-  fill: url(#skin-dither);
-  fill-opacity: 1;
 }
 @include in-skin('eink', '[data-skin-part="fill"]') {
   background: #111;
@@ -90,9 +48,5 @@
   stroke-width: 2.4;
 }
 @include in-skin('eink', 'img, canvas') {
-  filter: grayscale(1) contrast(1.6);
-}
-.panel-root[data-panel-skin='eink'][data-skin-filter='on'],
-.panel-root[data-panel-skin='eink'][data-skin-filter='bloom'] {
-  filter: url(#skin-filter-eink);
+  filter: grayscale(1) contrast(1.5);
 }

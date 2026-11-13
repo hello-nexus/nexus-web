@@ -1,0 +1,29 @@
+// Mixins shared by every skin. A skin file sets the --skin-* variables and
+// the panel tokens; this file turns the variables into card chrome, the
+// backdrop and the single optional overlay, so a skin stays a list of values
+// plus a few targeted rules. No filters, no animation, no per-element glow
+// filters: everything here is a plain background, border or box-shadow.
+//
+// Selector shape: .panel-root[data-panel-skin='x'][data-theme] is (0,3,0), which
+// outranks tokens.scss (.panel-root, .panel-root[data-theme='light']) and
+// variables.scss ([data-theme]) without !important.
+
+@mixin skin($id) {
+  .panel-root[data-panel-skin='#{$id}'][data-theme] { @content; }
+}
+@mixin skin-light($id) {
+  .panel-root[data-panel-skin='#{$id}'][data-theme='light'] { @content; }
+}
+// A variant of a screen skin; the first variant is also the default.
+@mixin skin-variant($id, $variant, $default: false) {
+  @if $default {
+    .panel-root[data-panel-skin='#{$id}'][data-theme]:not([data-skin-variant]),
+    .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme] { @content; }
+  } @else {
+    .panel-root[data-panel-skin='#{$id}'][data-skin-variant='#{$variant}'][data-theme] { @content; }
+  }
+}
+@mixin in-skin($id, $sel) {
+  .panel-root[data-panel-skin='#{$id}'] #{$sel} { @content; }
+}
+

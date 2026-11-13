@@ -1,0 +1,46 @@
+// Shared token block for the screen-type skins (LCD, CRT, VFD, E-ink). A
+// variant sets six variables; everything else follows from them.
+//   --skin-ink       ink colour (text, fills)       --skin-ink-rgb
+//   --skin-bg        card (screen) colour           --skin-back  panel backdrop
+//   --skin-dim       secondary text colour
+@mixin screen-tokens {
+  --skin-backdrop: var(--skin-back);
+  --skin-card-bg: var(--skin-bg);
+  --bg: var(--skin-bg);
+  --bg-elevated: var(--skin-bg);
+  --bg-card-hover: rgba(var(--skin-ink-rgb), 0.14);
+  --border: rgba(var(--skin-ink-rgb), 0.45);
+  --border-strong: var(--skin-ink);
+  --border-hover: var(--skin-ink);
+  --surface: var(--skin-bg);
+  --surface-hover: rgba(var(--skin-ink-rgb), 0.14);
+  --text: var(--skin-ink);
+  --text-dim: var(--skin-dim);
+  --separator: rgba(var(--skin-ink-rgb), 0.3);
+  --gauge-track: rgba(var(--skin-ink-rgb), 0.16);
+  --accent: var(--skin-ink);
+  --accent-glow: var(--skin-ink);
+  --accent-soft: rgba(var(--skin-ink-rgb), 0.18);
+  --accent-deep: var(--skin-ink);
+  --accent-glow-shadow: rgba(var(--skin-ink-rgb), 0.3);
+  --accent-text: var(--skin-bg);
+  --panel-accent: var(--skin-ink);
+  --panel-accent-glow: var(--skin-ink);
+  --panel-accent-soft: rgba(var(--skin-ink-rgb), 0.18);
+  --panel-accent-shadow: rgba(var(--skin-ink-rgb), 0.3);
+  --panel-accent-text: var(--skin-bg);
+  --good: var(--skin-ink);
+  --warn: var(--skin-ink);
+  --bad: var(--skin-ink);
+  --chart-line-alt: var(--skin-dim);
+  --panel-control-bg: rgba(var(--skin-ink-rgb), 0.14);
+  --panel-control-bg-hover: rgba(var(--skin-ink-rgb), 0.22);
+  --panel-control-bg-active: rgba(var(--skin-ink-rgb), 0.32);
+  --panel-element-bg: rgba(var(--skin-ink-rgb), 0.14);
+  --panel-card-bg: rgba(var(--skin-ink-rgb), 0.08);
+  --panel-control-translucent: rgba(var(--skin-ink-rgb), 0.16);
+  --panel-border: rgba(var(--skin-ink-rgb), 0.45);
+  --panel-border-strong: var(--skin-ink);
+  --skin-spark-fill: rgba(var(--skin-ink-rgb), 0.3);
+  --skin-spark-fill-opacity: 1;
+}
