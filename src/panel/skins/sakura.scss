@@ -4,37 +4,33 @@
 @use 'kit' as *;
 @use 'derived' as *;
 
-// Sakura: thin hairline tiles with two large five-petal blossoms cropped by the tile edges, drawn as static gradients under the content. Every color follows the accent.
+// Sakura: thin hairline tiles with two very large five-petal blossoms cropped by the tile edges, drawn as static gradients under the content. Every color follows the accent.
 
-// One blossom as five petal discs plus a core. $cx/$cy are the blossom center measured inward from $corner ('br' or 'tl'); $ring is the petal-center radius, $r the petal radius.
+// One blossom as five petal discs around a core disc. Lengths are multiples of --sk-u (about one tile height), so the shape scales with the grid. $cx/$cy are the center measured inward from $corner ('br' or 'tl'), $ring the petal-center radius, $r the petal radius.
 @function blossom-layers($corner, $cx, $cy, $ring, $r) {
   $grads: ();
   $sizes: ();
   $poss: ();
-  @for $i from 0 through 4 {
+  @for $i from 0 through 5 {
+    $core: $i == 5;
     $a: 72deg * $i - 90deg;
-    $px: $cx + $ring * math.cos($a);
-    $py: $cy + $ring * math.sin($a);
-    $grads: list.append($grads, radial-gradient(circle closest-side, rgba(var(--sk-petal-rgb), var(--sk-petal)) 0, rgba(var(--sk-petal-rgb), var(--sk-petal)) 88%, transparent 100%), comma);
-    $sizes: list.append($sizes, #{2 * $r} #{2 * $r}, comma);
+    $px: if($core, $cx, $cx + $ring * math.cos($a));
+    $py: if($core, $cy, $cy + $ring * math.sin($a));
+    $rad: if($core, $ring * 0.3, $r);
+    $rgb: if($core, var(--skin-accent-rgb), var(--sk-petal-rgb));
+    $alpha: if($core, var(--sk-core), var(--sk-petal));
+    $grads: list.append($grads, radial-gradient(circle closest-side, rgba($rgb, $alpha) 0, rgba($rgb, $alpha) 88%, transparent 100%), comma);
+    $sizes: list.append($sizes, calc(var(--sk-u) * #{2 * $rad}) calc(var(--sk-u) * #{2 * $rad}), comma);
     @if $corner == 'br' {
-      $poss: list.append($poss, calc(100% - #{$px - $r}) calc(100% - #{$py - $r}), comma);
+      $poss: list.append($poss, calc(100% - var(--sk-u) * #{$px - $rad}) calc(100% - var(--sk-u) * #{$py - $rad}), comma);
     } @else {
-      $poss: list.append($poss, #{$px - $r} #{$py - $r}, comma);
+      $poss: list.append($poss, calc(var(--sk-u) * #{$px - $rad}) calc(var(--sk-u) * #{$py - $rad}), comma);
     }
-  }
-  $core: $ring * 0.28;
-  $grads: list.append($grads, radial-gradient(circle closest-side, rgba(var(--skin-accent-rgb), var(--sk-core)) 0, rgba(var(--skin-accent-rgb), var(--sk-core)) 88%, transparent 100%), comma);
-  $sizes: list.append($sizes, #{2 * $core} #{2 * $core}, comma);
-  @if $corner == 'br' {
-    $poss: list.append($poss, calc(100% - #{$cx - $core}) calc(100% - #{$cy - $core}), comma);
-  } @else {
-    $poss: list.append($poss, #{$cx - $core} #{$cy - $core}, comma);
   }
   @return (grads: $grads, sizes: $sizes, poss: $poss);
 }
-$sk-big: blossom-layers('br', 38px, 32px, 34px, 29px);
-$sk-small: blossom-layers('tl', 18px, 16px, 17px, 14px);
+$sk-big: blossom-layers('br', 0.27, 0.22, 0.39, 0.335);
+$sk-small: blossom-layers('tl', 0.2, 0.17, 0.27, 0.23);
 
 @mixin sakura-common {
   @include kit-radius(14px, 8px, 999px);
@@ -42,6 +38,9 @@ $sk-small: blossom-layers('tl', 18px, 16px, 17px, 14px);
   --skin-card-inset: 2px;
   --skin-bar-height: 4px;
   --skin-card-image: #{list.join(map-get($sk-big, grads), map-get($sk-small, grads), comma)};
+}
+@include in-skin('sakura', '.panel-card') {
+  --sk-u: calc(var(--panel-row-size, 66px) * 2);
   --skin-card-image-size: #{list.join(map-get($sk-big, sizes), map-get($sk-small, sizes), comma)};
   --skin-card-image-pos: #{list.join(map-get($sk-big, poss), map-get($sk-small, poss), comma)};
 }
@@ -50,8 +49,8 @@ $sk-small: blossom-layers('tl', 18px, 16px, 17px, 14px);
   @include sakura-common;
   @include derived(dark);
   --sk-petal-rgb: var(--skin-sf-back-rgb-dark);
-  --sk-petal: 0.45;
-  --sk-core: 0.1;
+  --sk-petal: 0.35;
+  --sk-core: 0.07;
   --skin-backdrop-image:
     radial-gradient(ellipse at 18% 22%, rgba(var(--skin-accent-rgb), 0.12) 0, transparent 38%),
     radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.08) 0, transparent 42%);
@@ -62,8 +61,8 @@ $sk-small: blossom-layers('tl', 18px, 16px, 17px, 14px);
   @include kit(#fbe6ec, #fffaf7, #3d2830, #6f4d5a, #e7b3c3, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a);
   @include derived(light);
   --sk-petal-rgb: var(--skin-accent-rgb);
-  --sk-petal: 0.065;
-  --sk-core: 0.2;
+  --sk-petal: 0.05;
+  --sk-core: 0.09;
   --skin-backdrop-image:
     radial-gradient(ellipse at 18% 22%, rgba(255, 255, 255, 0.75) 0, transparent 40%),
     radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.18) 0, transparent 45%);
