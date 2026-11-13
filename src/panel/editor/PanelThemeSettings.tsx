@@ -10,8 +10,8 @@ import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/p
 import type { PanelSkinId } from '../skins/skins';
 import type { SkinOverrides } from '../skins/skinOverrides';
 import { SkinPicker } from './SkinPicker';
-import { Button } from '../../components/common/Button/Button';
 import { offersSkinBackground, resolveSkin } from '../theme/panelSkin';
+import { buildPanelThemeVars } from '../theme/panelTheme';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
 import { loadSystemFonts, useSystemFonts } from '../theme/systemFontsCache';
@@ -448,13 +448,15 @@ export function PanelThemeSettings({
       )}
 
       {showTheme && (
-      <SettingsSection
-        title={label('skin.title', 'Skin')}
-        action={theme.skin && theme.skinOverrides[theme.skin] ? (
-          <Button size="sm" onClick={onSkinReset}>{label('skin.reset', 'Reset')}</Button>
-        ) : undefined}
-      >
-        <SkinPicker value={theme.skin} overrides={theme.skinOverrides} mode={resolvedThemeMode} onChange={onSkinCommit} />
+      <SettingsSection title={label('skin.title', 'Skin')}>
+        <SkinPicker
+          value={theme.skin}
+          overrides={theme.skinOverrides}
+          mode={resolvedThemeMode}
+          baseStyle={buildPanelThemeVars({ ...theme, skin: null }, resolvedThemeMode)}
+          onReset={onSkinReset}
+          onChange={onSkinCommit}
+        />
       </SettingsSection>
       )}
 

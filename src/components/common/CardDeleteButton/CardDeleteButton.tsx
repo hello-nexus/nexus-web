@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './CardDeleteButton.module.scss';
@@ -12,6 +13,8 @@ interface CardDeleteButtonProps {
    * the button is always visible (touch surfaces, simple lists). Default true.
    */
   revealOnHover?: boolean;
+  /** Glyph drawn in the button. Defaults to the X; a card action that is not a delete passes its own icon. */
+  icon?: ReactNode;
   /** Extra class for positioning (absolute top/right is the caller's job). */
   className?: string;
 }
@@ -23,7 +26,7 @@ interface CardDeleteButtonProps {
  * rule lives on the container that owns the hover surface.
  */
 export function CardDeleteButton({
-  onDelete, ariaLabel, title, revealOnHover = true, className,
+  onDelete, ariaLabel, title, revealOnHover = true, icon, className,
 }: CardDeleteButtonProps) {
   return (
     <HoverTooltip body={title ?? ariaLabel} side="top">
@@ -34,7 +37,7 @@ export function CardDeleteButton({
         data-card-delete={revealOnHover ? 'hover' : 'always'}
         onClick={e => { e.stopPropagation(); onDelete(); }}
       >
-        <X size={12} strokeWidth={2.5} />
+        {icon ?? <X size={12} strokeWidth={2.5} />}
       </button>
     </HoverTooltip>
   );
