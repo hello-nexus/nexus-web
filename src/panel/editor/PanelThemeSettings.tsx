@@ -449,19 +449,6 @@ export function PanelThemeSettings({
       )}
 
       {showTheme && (
-      <SettingsSection title={label('skin.title', 'Skin')}>
-        <SkinPicker
-          value={theme.skin}
-          overrides={theme.skinOverrides}
-          mode={resolvedThemeMode}
-          baseStyle={buildPanelThemeVars({ ...theme, skin: null }, resolvedThemeMode)}
-          onReset={onSkinReset}
-          onChange={onSkinCommit}
-        />
-      </SettingsSection>
-      )}
-
-      {showTheme && (
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
           <SettingToggle
@@ -482,6 +469,19 @@ export function PanelThemeSettings({
             />
           )}
         </div>
+      </SettingsSection>
+      )}
+
+      {showTheme && (
+      <SettingsSection title={label('skin.title', 'Skin')}>
+        <SkinPicker
+          value={theme.skin}
+          overrides={theme.skinOverrides}
+          mode={resolvedThemeMode}
+          baseStyle={buildPanelThemeVars({ ...theme, skin: null }, resolvedThemeMode)}
+          onReset={onSkinReset}
+          onChange={onSkinCommit}
+        />
       </SettingsSection>
       )}
 
