@@ -29,6 +29,7 @@ const THUMB_TWEAKS: Partial<Record<PanelSkinId, CSSProperties>> = {
   deco: { '--skin-card-deco-pos': '100% 8px' } as CSSProperties,
   sakura: { '--skin-card-frame': 'inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.85)' } as CSSProperties,
   cockpit: { '--skin-card-deco-pos': '10px 30px, 10px 30px' } as CSSProperties,
+  synthwave: { '--skin-card-image-pos': '50% -21px' } as CSSProperties,
 };
 
 // Wide enough that the name fits inside the thumbnail without the card growing tall.
@@ -64,7 +65,7 @@ export function SkinPicker({ value, overrides, mode, baseStyle, onReset, onChang
       </span>
     </span>
   );
-  const labelClass = mode === 'light' ? styles.labelLight : undefined;
+  const labelClass = mode === 'light' ? `${styles.label} ${styles.labelLight}` : styles.label;
   const resettable = onReset && value !== null && !!overrides[value];
 
   return (

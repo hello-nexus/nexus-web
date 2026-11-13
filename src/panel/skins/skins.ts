@@ -125,7 +125,6 @@ export const CARD_FACE: Record<string, { light: string; dark: string }> = {
   swiss: { light: '#ffffff', dark: '#151515' },
   clay: { light: '#fbf4ee', dark: '#3d3a4a' },
   sketch: { light: '#fbf8ee', dark: '#34373d' },
-  synthwave: { light: '#fff7fb', dark: '#1a1040' },
 };
 
 export const ACCENT_INK_MIN = 4.5;
@@ -146,6 +145,7 @@ export function readableInk(hex: string, face: [number, number, number], min = A
 
 function cardFace(id: string, mode: 'light' | 'dark', accent: string): [number, number, number] | null {
   if (id in SURFACE_SPECS) return hexToRgb(skinSurfaceVars(id as keyof typeof SURFACE_SPECS, accent)[`--skin-sf-card-${mode}`]);
+  if (id === 'synthwave') return hexToRgb(synthwaveVars(accent)[`--sw-card-${mode}`]);
   const f = CARD_FACE[id];
   return f ? hexToRgb(f[mode]) : null;
 }
@@ -185,9 +185,46 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
     ...skinAccentInkVars(id, a, second),
     ...(id in SURFACE_SPECS ? skinSurfaceVars(id as keyof typeof SURFACE_SPECS, a) : {}),
     ...(id === 'sakura' ? sakuraBlossomVars(a) : {}),
-    ...(id === 'synthwave' ? synthwaveGridVars() : {}),
+    ...(id === 'synthwave' ? synthwaveVars(a) : {}),
     ...(id in BACKDROP_BASE ? skinBackdropVars(id as keyof typeof BACKDROP_BASE, a) : {}),
     ...(id === 'deco' || id === 'steampunk' || id === 'nixie' ? metalVars(a) : {}),
+  };
+}
+
+// Synthwave palette: grid rows take the accent, columns and sun wash rotate away from it, and the night tint follows the accent half-way to violet. Lightness is fixed per mode, so every accent keeps the same legibility; the default cyan reproduces the original colors.
+const SYNTH_BASE_HUE = 187;
+const SYNTH_NIGHT_HUE = 255;
+
+export function synthwaveVars(accent: string): Record<string, string> {
+  const [h, s0] = rgbToHsl(hexToRgb(accent));
+  const sat = (min: number, max: number) => (s0 < 0.1 ? 0 : Math.min(Math.max(s0, min), max));
+  const delta = ((h - SYNTH_BASE_HUE + 540) % 360) - 180;
+  const night = (SYNTH_NIGHT_HUE + delta * 0.5 + 360) % 360;
+  const cols = (h + 124) % 360;
+  const sun = (h + 192) % 360;
+  const hex = (hue: number, s: number, l: number) => rgbToHex(hslToRgb(hue, s, l));
+  const rgb = (hue: number, s: number, l: number) => hslToRgb(hue, s, l).map(Math.round).join(', ');
+  const nightSat = (v: number) => (s0 < 0.1 ? 0 : v);
+  const out: Record<string, string> = {
+    '--sw-back-dark': hex(night, nightSat(0.65), 0.11),
+    '--sw-card-dark': hex(night, nightSat(0.6), 0.15),
+    '--sw-line-dark': hex(night, nightSat(0.4), 0.43),
+    '--sw-back-light': hex(night, nightSat(1), 0.95),
+    '--sw-card-light': hex(cols, nightSat(1), 0.99),
+    '--sw-line-light': hex(night, nightSat(0.55), 0.78),
+    '--sw-frame-dark': rgb(cols, sat(0.6, 1), 0.62),
+    '--sw-frame-light': rgb(cols, sat(0.6, 0.8), 0.49),
+    '--sw-sun-dark': rgb(sun, sat(0.9, 1), 0.62),
+    '--sw-sun-light': rgb(sun, sat(0.9, 1), 0.74),
+    '--sw-mid-dark': rgb(cols, sat(0.6, 1), 0.62),
+    '--sw-mid-light': rgb(cols, sat(0.6, 1), 0.8),
+  };
+  return {
+    ...out,
+    ...synthwaveGridVars({
+      dark: { rows: hex(h, sat(0.6, 1), 0.59), columns: hex(cols, sat(0.6, 1), 0.62) },
+      light: { rows: hex(h, sat(0.6, 0.8), 0.43), columns: hex(cols, sat(0.5, 0.65), 0.49) },
+    }),
   };
 }
 
