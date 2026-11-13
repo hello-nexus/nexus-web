@@ -23,7 +23,7 @@ function Gallery() {
           const e = effective(st);
           return (
             <figure key={`${it.id}-${it.variant}`}>
-              <SkinSamplePanel skin={e.skin} mode={e.mode} font={e.font} accent={e.accent} scene={view.scene} overlay={view.overlay} />
+              <SkinSamplePanel skin={e.skin} mode={e.mode} font={e.font} accent={e.accent} scene={view.scene} overlay={view.overlay} pad={view.pad} op={view.op} />
               <figcaption>{it.label}{e.skin && e.modeLocked ? ` (${e.mode} only)` : ''}</figcaption>
             </figure>
           );

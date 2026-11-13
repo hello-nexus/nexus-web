@@ -4,6 +4,7 @@ import type { PanelWidget } from '../../types';
 import { StocksWidget } from './StocksWidget';
 import { formatStockPrice } from './stocksUtils';
 import styles from './StocksWidget.module.scss';
+import { stableText } from '../common/stableText';
 
 const fetchStockQuotesMock = vi.hoisted(() => vi.fn());
 
@@ -58,7 +59,7 @@ describe('StocksWidget', () => {
     });
     render(<StocksWidget widget={stocksWidget('4x2', { mode: 'graph', period: '1M', symbols: 'AAPL' })} />);
     expect(await screen.findByText('AAPL')).toBeInTheDocument();
-    expect(screen.getByText(applePrice)).toBeInTheDocument();
+    expect(screen.getByText(stableText(applePrice))).toBeInTheDocument();
     expect(fetchStockQuotesMock).toHaveBeenCalledWith(['AAPL'], '1M');
     expect(document.querySelector('svg')).toHaveAttribute('height', '28');
   });
@@ -70,7 +71,7 @@ describe('StocksWidget', () => {
     });
     render(<StocksWidget widget={stocksWidget('2x2', { mode: 'graph', period: '1M', symbols: 'AAPL' })} />);
     expect(await screen.findByText('AAPL')).toBeInTheDocument();
-    expect(screen.getByText(applePrice)).toBeInTheDocument();
+    expect(screen.getByText(stableText(applePrice))).toBeInTheDocument();
     expect(screen.getByText('+1.24%')).toBeInTheDocument();
     expect(document.querySelector('svg')).toHaveAttribute('height', '20');
   });

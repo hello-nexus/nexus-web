@@ -19,5 +19,5 @@ export function mount(node: ReactNode) {
 
 export function readView() {
   const q = new URLSearchParams(location.search);
-  return { scene: q.get('scene') ?? 'main', overlay: q.get('overlay') !== '0', zoom: Number(q.get('zoom')) || 1 };
+  return { scene: q.get('scene') ?? 'main', overlay: q.get('overlay') !== '0', zoom: Number(q.get('zoom')) || 1, pad: q.has('pad') ? Number(q.get('pad')) : 6, op: q.has('op') ? Number(q.get('op')) : 100 };
 }

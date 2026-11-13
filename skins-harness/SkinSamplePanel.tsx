@@ -21,6 +21,8 @@ export interface SkinSamplePanelProps {
   scene: string;
   overlay: boolean;
   zoom?: number;
+  pad?: number;
+  op?: number;
 }
 
 const VARS = {
@@ -34,20 +36,29 @@ const VARS = {
   '--panel-card-bg-opacity': '100%',
 } as CSSProperties;
 
-export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom = 1 }: SkinSamplePanelProps) {
+export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom = 1, pad = 6, op = 100 }: SkinSamplePanelProps) {
   useEffect(() => { if (skin) void loadSkinStyles(skin); }, [skin]);
   const def = SCENES.find(s => s.id === scene) ?? SCENES[0];
-  const side = 4 * CELL + 3 * GAP;
+  const side = 4 * CELL + 3 * pad;
   const sk = skinDef(skin);
   const open = new URLSearchParams(location.search).get('open') === '1';
   // Stock panel: the user's accent through the existing derivation. A style
   // skin reads --skin-accent instead; a screen skin ignores the accent.
   const accentVars = !sk ? deriveAccentVars(accent, mode)
     : sk.accent ? skinAccentVars(sk.id, accent) : {};
-  const themeVars = { ...VARS, ...accentVars, ...skinFontVars(font) } as CSSProperties;
+  const themeVars = {
+    ...VARS,
+    '--panel-gap': `${pad}px`,
+    '--panel-widget-padding': `${pad}px`,
+    '--panel-card-bg-opacity': `${op}%`,
+    '--panel-card-bg-alpha': String(op / 100),
+    ...accentVars,
+    ...skinFontVars(font),
+  } as CSSProperties;
   const skinAttrs: Record<string, string> = skin ? {
     'data-panel-skin': skin,
     'data-skin-overlay': overlay ? 'on' : 'off',
+    ...(op < 50 ? { 'data-skin-card-faded': '' } : {}),
   } : {};
   const scope = skin ? { attrs: { ...skinAttrs, 'data-theme': mode, 'data-surface': 'phone' }, style: themeVars } : null;
   return (
@@ -56,17 +67,18 @@ export function SkinSamplePanel({ skin, mode, font, accent, scene, overlay, zoom
         className="panel-root"
         data-theme={mode}
         data-surface="phone"
+        data-widget-padding={pad === 0 ? 'none' : undefined}
         {...skinAttrs}
         data-skin-root={skin ? '' : undefined}
         style={{
           ...themeVars,
           position: 'relative',
-          width: side + 2 * GAP,
-          padding: GAP,
+          width: side + 2 * pad,
+          padding: pad,
           boxSizing: 'border-box',
           background: skin ? undefined : 'var(--backdrop-base)',
           zoom,
-          ...(def.chrome ? { height: side + 2 * GAP, overflow: 'hidden' } : {}),
+          ...(def.chrome ? { height: side + 2 * pad, overflow: 'hidden' } : {}),
         } as CSSProperties}
       >
         {skin && <div data-skin-part="backdrop" aria-hidden="true" />}

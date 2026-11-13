@@ -5995,7 +5995,6 @@
   "skin.locked": "Set by the {skin} skin",
   "skin.none": "None",
   "skin.title": "Skin",
-  "skin.variant": "Variant",
   "slideshow.finishVideos": "Play videos to the end",
   "slideshow.finishVideosHint": "A clip shorter than the interval repeats until it has passed; a longer one plays once before the next item.",
   "slideshow.hours.one": "{count} hour",

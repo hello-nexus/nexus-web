@@ -75,7 +75,10 @@
   text-transform: var(--skin-text-case, none);
   letter-spacing: var(--skin-letter-spacing, normal);
 }
-// An outer shadow cannot be scaled; it drops out once the card is mostly faded.
+// An outer shadow or a real border cannot be scaled; both drop out once the card is mostly faded.
+.panel-root[data-panel-skin][data-skin-card-faded] .panel-card {
+  border-color: transparent;
+}
 .panel-root[data-panel-skin]:not([data-skin-card-faded]) .panel-card {
   box-shadow: var(--skin-card-shadow, none);
 }

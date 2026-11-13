@@ -4,6 +4,7 @@ import type { PanelWidget } from '../../types';
 import { WeatherWidget } from './WeatherWidget';
 import { resetWeatherSnapshotCache, WEATHER_RETRY_MS } from './useWeatherSnapshot';
 import { fetchService } from '../../../api/service';
+import { stableText } from '../common/stableText';
 
 // Hourly forecast times are relative to Date.now() so the widget's
 // stale-hour filter (WeatherWidget's 1-hour lookback) never drops them
@@ -75,7 +76,7 @@ describe('WeatherWidget', () => {
 
   it('renders the compact (2x2) layout with live data', async () => {
     render(<WeatherWidget widget={weatherWidget('2x2')} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     // The label comes from the weather code, not the server's English string.
     expect(screen.getByText('Partly cloudy')).toBeInTheDocument();
     expect(screen.getByText('San Francisco')).toBeInTheDocument();
@@ -83,13 +84,13 @@ describe('WeatherWidget', () => {
 
   it('renders the wide (4x2) layout with the localized hi/lo label', async () => {
     render(<WeatherWidget widget={weatherWidget('4x2')} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(screen.getByText('H:75° L:59°')).toBeInTheDocument();
   });
 
   it('renders the large (4x4) layout with a daily forecast row', async () => {
     render(<WeatherWidget widget={weatherWidget('4x4')} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(screen.getByText('Today')).toBeInTheDocument();
   });
 
@@ -158,34 +159,34 @@ describe('WeatherWidget', () => {
 
   it('shows only the glyph and temperature on a 1x1', async () => {
     render(<WeatherWidget widget={weatherWidget('1x1')} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(screen.queryByText('Partly cloudy')).toBeNull();
     expect(screen.queryByText('San Francisco')).toBeNull();
   });
 
   it('draws no sky unless the widget opts in', async () => {
     const { container } = render(<WeatherWidget widget={weatherWidget('4x2')} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(container.querySelector('canvas')).toBeNull();
   });
 
   it.each(['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'] as const)('puts the %s tile on the animated sky', async (size) => {
     const { container } = render(<WeatherWidget widget={weatherWidget(size, { animatedSky: true })} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(container.querySelector('canvas')).not.toBeNull();
     expect(container.querySelector('[data-sky="true"]')).not.toBeNull();
   });
 
   it('keeps the sky up while a newly picked location loads', async () => {
     const { container, rerender } = render(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true })} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     const canvas = container.querySelector('canvas');
     expect(canvas).not.toBeNull();
     const elsewhere = { lat: 48.1, lon: 11.6, label: 'Munich', cc: 'DE' };
     rerender(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true, location: elsewhere })} />);
-    expect(screen.queryByText('72°')).toBeNull();
+    expect(screen.queryByText(stableText('72°'))).toBeNull();
     expect(container.querySelector('canvas')).toBe(canvas);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(container.querySelector('canvas')).toBe(canvas);
   });
 
@@ -197,7 +198,7 @@ describe('WeatherWidget', () => {
       render(<WeatherWidget widget={weatherWidget('2x2')} />);
       expect(await screen.findByText('No connection')).toBeInTheDocument();
       await act(async () => { await vi.advanceTimersByTimeAsync(WEATHER_RETRY_MS); });
-      expect(await screen.findByText('72°')).toBeInTheDocument();
+      expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
       expect(fetchService).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
@@ -208,7 +209,7 @@ describe('WeatherWidget', () => {
     shader.ready = false;
     shader.error = 'WebGL2 not supported';
     const { container } = render(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true })} />);
-    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(await screen.findByText(stableText('72°'))).toBeInTheDocument();
     expect(container.querySelector('[data-sky="false"]')).not.toBeNull();
   });
 });

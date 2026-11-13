@@ -11,7 +11,7 @@ export function Btn({ on, onClick, disabled, children }: { on: boolean; onClick:
 const ACCENTS = ['#2fd8ff', '#ff2bd6', '#41a6f6', '#38b764', '#ffcd75', '#ef7d57', '#a78bfa'];
 
 type Api = ReturnType<typeof useSkinState>;
-export interface View { scene: string; overlay: boolean; zoom: number }
+export interface View { scene: string; overlay: boolean; zoom: number; pad: number; op: number }
 
 export function ControlsBar({ api, view, setView, full = true }: { api: Api; view: View; setView: (p: Partial<View>) => void; full?: boolean }) {
   const { state, eff, setSkin, setMode, setFont, setAccent } = api;
@@ -44,6 +44,12 @@ export function ControlsBar({ api, view, setView, full = true }: { api: Api; vie
         <div className="grp"><b>Overlay</b><Btn on={view.overlay} onClick={() => setView({ overlay: !view.overlay })}>{view.overlay ? 'On' : 'Off'}</Btn></div>
         <div className="grp"><b>Scene</b>
           {SCENES.map(sc => <Btn key={sc.id} on={view.scene === sc.id} onClick={() => setView({ scene: sc.id })}>{sc.label}</Btn>)}
+        </div>
+        <div className="grp"><b>Padding</b>
+          {[[0, 'None'], [6, 'Default'], [16, 'Large']].map(([v, l]) => <Btn key={v} on={view.pad === v} onClick={() => setView({ pad: v as number })}>{l}</Btn>)}
+        </div>
+        <div className="grp"><b>Opacity</b>
+          {[0, 50, 100].map(v => <Btn key={v} on={view.op === v} onClick={() => setView({ op: v })}>{v}%</Btn>)}
         </div>
         <div className="grp"><b>Zoom</b>
           {[1, 1.5, 2].map(z => <Btn key={z} on={view.zoom === z} onClick={() => setView({ zoom: z })}>{z}x</Btn>)}

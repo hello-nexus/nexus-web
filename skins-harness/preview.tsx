@@ -9,14 +9,14 @@ function Preview() {
   const [view, setV] = useState<View>(readView);
   const { state, eff } = api;
   useEffect(() => {
-    const q = new URLSearchParams({ skin: state.skin ?? '', variant: state.variant ?? '', theme: state.ownMode, scene: view.scene, overlay: view.overlay ? '1' : '0', zoom: String(view.zoom) });
+    const q = new URLSearchParams({ skin: state.skin ?? '', variant: state.variant ?? '', theme: state.ownMode, scene: view.scene, overlay: view.overlay ? '1' : '0', zoom: String(view.zoom), pad: String(view.pad), op: String(view.op) });
     history.replaceState(null, '', `?${q.toString()}`);
   }, [state, view]);
   return (
     <>
       <ControlsBar api={api} view={view} setView={p => setV(v => ({ ...v, ...p }))} />
       <div className="stage" data-harness-stage>
-        <SkinSamplePanel skin={eff.skin} mode={eff.mode} font={eff.font} accent={eff.accent} scene={view.scene} overlay={view.overlay} zoom={view.zoom} />
+        <SkinSamplePanel skin={eff.skin} mode={eff.mode} font={eff.font} accent={eff.accent} scene={view.scene} overlay={view.overlay} zoom={view.zoom} pad={view.pad} op={view.op} />
       </div>
     </>
   );
