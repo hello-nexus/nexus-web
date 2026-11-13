@@ -1,15 +1,11 @@
 // A skin is data-panel-skin="<id>" on the panel root, styled by <id>.scss; this registry holds its presets.
 
-import { PANEL_FONTS, panelFontVars, type PanelFontId } from '../theme/panelFont';
-
-// 'pixel' is the one skin-only face, loaded with the skin.
-export type SkinFont = PanelFontId | 'pixel';
+import type { PanelFontId } from '../theme/panelFont';
 
 export interface SkinDef {
   id: string;
   label: string;
-  font: SkinFont;
-  fontLocked: boolean;
+  font: PanelFontId;
   accent: string;
   // Picking the skin switches the background mode to Skin; the user can pick any other mode.
   prefersSkinBackground: boolean;
@@ -18,29 +14,29 @@ export interface SkinDef {
 }
 
 export const PANEL_SKINS = [
-  { id: 'pixel', label: 'Pixel', font: 'pixel', fontLocked: true, accent: '#41a6f6', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'lcd', label: 'LCD', font: 'jura', fontLocked: true, accent: '#9bb36a', prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'crt', label: 'CRT', font: 'tektur', fontLocked: true, accent: '#33ff66', prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'vfd', label: 'VFD', font: 'jura', fontLocked: true, accent: '#3fd9c8', prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'hud', label: 'HUD', font: 'tektur', fontLocked: false, accent: '#2fd8ff', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'neon', label: 'Neon', font: 'oswald', fontLocked: false, accent: '#ff2bd6', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'blueprint', label: 'Blueprint', font: 'jura', fontLocked: false, accent: '#1a4fa8', prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'eink', label: 'E-ink', font: 'piazzolla', fontLocked: false, accent: '#2f6fd6', prefersSkinBackground: true, framelessAtZeroPadding: true },
-  { id: 'bevel', label: 'Bevel', font: 'lexend', fontLocked: false, accent: '#6f9bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'hifi', label: 'Hi-fi', font: 'oswald', fontLocked: false, accent: '#e2572b', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'cockpit', label: 'Cockpit', font: 'jura', fontLocked: false, accent: '#ffb000', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'arcade', label: 'Arcade', font: 'tektur', fontLocked: false, accent: '#ff3b30', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'glass', label: 'Glass', font: 'lexend', fontLocked: false, accent: '#5aa8ff', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'mecha', label: 'Mecha', font: 'tektur', fontLocked: false, accent: '#ff7a00', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'steampunk', label: 'Steampunk', font: 'piazzolla', fontLocked: false, accent: '#ffb84a', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'nixie', label: 'Nixie', font: 'jura', fontLocked: false, accent: '#ff8a2a', prefersSkinBackground: true, framelessAtZeroPadding: false },
-  { id: 'deco', label: 'Art Deco', font: 'oswald', fontLocked: false, accent: '#c9a24a', prefersSkinBackground: false, framelessAtZeroPadding: false },
-  { id: 'swiss', label: 'Swiss', font: 'lexend', fontLocked: false, accent: '#e30613', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'clay', label: 'Clay', font: 'lexend', fontLocked: false, accent: '#7a5af8', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'sketch', label: 'Sketch', font: 'piazzolla', fontLocked: false, accent: '#d9532b', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', fontLocked: false, accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'sakura', label: 'Sakura', font: 'piazzolla', fontLocked: false, accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
-  { id: 'contour', label: 'Contour', font: 'lexend', fontLocked: false, accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'pixel', label: 'Pixel', font: 'pixel', accent: '#41a6f6', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'lcd', label: 'LCD', font: 'jura', accent: '#9bb36a', prefersSkinBackground: true, framelessAtZeroPadding: false },
+  { id: 'crt', label: 'CRT', font: 'tektur', accent: '#33ff66', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'vfd', label: 'VFD', font: 'jura', accent: '#3fd9c8', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'hud', label: 'HUD', font: 'tektur', accent: '#2fd8ff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'neon', label: 'Neon', font: 'oswald', accent: '#ff2bd6', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'blueprint', label: 'Blueprint', font: 'jura', accent: '#1a4fa8', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'eink', label: 'E-ink', font: 'piazzolla', accent: '#2f6fd6', prefersSkinBackground: true, framelessAtZeroPadding: true },
+  { id: 'bevel', label: 'Bevel', font: 'lexend', accent: '#6f9bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'hifi', label: 'Hi-fi', font: 'oswald', accent: '#e2572b', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'cockpit', label: 'Cockpit', font: 'jura', accent: '#ffb000', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'arcade', label: 'Arcade', font: 'tektur', accent: '#ff3b30', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'glass', label: 'Glass', font: 'lexend', accent: '#5aa8ff', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'mecha', label: 'Mecha', font: 'tektur', accent: '#ff7a00', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'steampunk', label: 'Steampunk', font: 'piazzolla', accent: '#ffb84a', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'nixie', label: 'Nixie', font: 'jura', accent: '#ff8a2a', prefersSkinBackground: true, framelessAtZeroPadding: false },
+  { id: 'deco', label: 'Art Deco', font: 'oswald', accent: '#c9a24a', prefersSkinBackground: false, framelessAtZeroPadding: false },
+  { id: 'swiss', label: 'Swiss', font: 'lexend', accent: '#e30613', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'clay', label: 'Clay', font: 'lexend', accent: '#7a5af8', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'sketch', label: 'Sketch', font: 'piazzolla', accent: '#d9532b', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'bubblegum', label: 'Bubblegum', font: 'lexend', accent: '#ff4fa3', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'sakura', label: 'Sakura', font: 'piazzolla', accent: '#e8799a', prefersSkinBackground: false, framelessAtZeroPadding: true },
+  { id: 'contour', label: 'Contour', font: 'lexend', accent: '#1e6bff', prefersSkinBackground: false, framelessAtZeroPadding: false },
 ] as const satisfies readonly SkinDef[];
 
 export type PanelSkinId = (typeof PANEL_SKINS)[number]['id'];
@@ -52,22 +48,6 @@ export function skinDef(id: PanelSkinId | null): SkinDef | null {
 // Null is the stock look; an unknown id reads as null (same rule as panelFont).
 export function normalizePanelSkin(value?: string | null): PanelSkinId | null {
   return PANEL_SKINS.find(s => s.id === value)?.id ?? null;
-}
-
-export function skinFontLabel(font: SkinFont): string {
-  if (font === 'pixel') return 'Pixelify Sans';
-  return PANEL_FONTS.find(f => f.id === font)?.family ?? 'Lexend';
-}
-
-// Root vars for a font choice: the existing panel font override.
-export function skinFontVars(font: SkinFont | null): Record<string, string> {
-  if (font === 'pixel') {
-    // Same tail as panelFontStack, so CJK and missing glyphs fall through to
-    // Lexend and the system fonts exactly as the panel fonts do.
-    const stack = "'Twemoji Country Flags', 'Skin Pixel Digits', 'Skin Pixel', 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
-    return { '--panel-font': stack, '--font-sans': stack };
-  }
-  return panelFontVars(font);
 }
 
 // ---- accent helpers -------------------------------------------------------

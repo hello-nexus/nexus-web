@@ -5,6 +5,7 @@ export const PANEL_FONTS = [
   { id: 'tektur', family: 'Tektur' },
   { id: 'jura', family: 'Jura' },
   { id: 'piazzolla', family: 'Piazzolla' },
+  { id: 'pixel', family: 'Pixel' },
 ] as const;
 
 export type PanelFontId = (typeof PANEL_FONTS)[number]['id'];

@@ -1,12 +1,5 @@
 @use 'mixins' as *;
 
-// Pixelify Sans, one weight (500), subset per script. Loads only with this skin.
-// Digits and their punctuation come from Jersey 10: Pixelify's 5 and 8 read as S.
-@font-face { font-family: 'Skin Pixel Digits'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/jersey10-digits.woff2') format('woff2'); unicode-range: U+0030-003A, U+002C, U+002E, U+0025, U+002D, U+002B, U+00B0, U+002F; }
-@font-face { font-family: 'Skin Pixel'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/pixel-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122; }
-@font-face { font-family: 'Skin Pixel'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/pixel-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF; }
-@font-face { font-family: 'Skin Pixel'; font-weight: 400 700; font-display: swap; src: url('/fonts/skins/pixel-cyrillic.woff2') format('woff2'); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
-
 // Pixel / 8-bit. Notched corners from stacked 3px box-shadows (no clip-path,
 // no filter), a limited palette, Tektur, segmented bars and
 // stepped easing. The accent snaps to the palette (see snapToPixelPalette).

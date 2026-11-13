@@ -31,11 +31,19 @@ describe('panel skin render-time overrides', () => {
     expect(base.font).toBe('oswald');
   });
 
-  it('uses the skin font by default and a skin-level font override only when the skin allows it', () => {
-    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'lcd', skinFont: 'oswald' })))?.font).toBe('jura');
+  it('uses the skin font by default and a skin-level font override on every skin', () => {
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'lcd', skinFont: 'oswald' })))?.font).toBe('oswald');
+    expect(resolveSkin(buildPanelTheme(null, record({ skin: 'pixel', skinFont: 'lexend' })))?.font).toBe('lexend');
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', skinFont: 'oswald' })))?.font).toBe('oswald');
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud', font: 'oswald' })))?.font).toBe('tektur');
     expect(resolveSkin(buildPanelTheme(null, record({ skin: 'hud' })))?.font).toBe('tektur');
+  });
+
+  it('flags a skin font that differs from the skin default', () => {
+    const attrs = (r: Partial<PanelDeviceRecord>) => panelSkinAttrs(buildPanelTheme(null, record({ skin: 'lcd', ...r })));
+    expect(attrs({})).not.toHaveProperty('data-skin-font-custom');
+    expect(attrs({ skinFont: 'jura' })).not.toHaveProperty('data-skin-font-custom');
+    expect(attrs({ skinFont: 'oswald' })).toHaveProperty('data-skin-font-custom');
   });
 
   it('keeps Lexend as an explicit skin font choice', () => {
@@ -94,7 +102,7 @@ describe('panel skin render-time overrides', () => {
     expect(panelSkinAttrs(eff)).toMatchObject({ 'data-panel-skin': 'lcd' });
     const pixel = resolveEffectivePanelTheme(buildPanelTheme(null, record({ skin: 'pixel' })), 'y70');
     const vars = buildPanelThemeVars(pixel, 'dark') as Record<string, string>;
-    expect(vars['--panel-font']).toContain('Skin Pixel');
+    expect(vars['--panel-font']).toContain("'Pixel'");
     expect(vars['--skin-accent']).toBeTruthy();
   });
 });

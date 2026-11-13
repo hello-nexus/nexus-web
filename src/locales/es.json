@@ -5997,7 +5997,6 @@
   "site.remote.point2": "Cifrado de extremo a extremo, incluso a través de nuestro relay",
   "site.remote.point3": "Conexión P2P directa cuando es posible, con apps para iOS y Android",
   "site.remote.title": "Tu PC, en tu bolsillo.",
-  "skin.locked": "Definido por el skin {skin}",
   "skin.name.arcade": "Arcade",
   "skin.name.bevel": "Bisel",
   "skin.name.blueprint": "Plano",

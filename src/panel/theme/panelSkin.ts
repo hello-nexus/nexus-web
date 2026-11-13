@@ -1,6 +1,6 @@
 import type { PanelBackgroundBase, PanelBackgroundMode } from '../background/panelBackground';
 import { panelFontVars, type PanelFont } from './panelFont';
-import { normalizePanelSkin, skinAccentVars, skinDef, skinFontVars, type PanelSkinId, type SkinDef } from '../skins/skins';
+import { normalizePanelSkin, skinAccentVars, skinDef, type PanelSkinId, type SkinDef } from '../skins/skins';
 
 // A skin is a preset layered over the user's theme at render time; accent and font picked while it is active are stored as skin-level overrides, so None restores the user's own.
 
@@ -25,7 +25,7 @@ export function normalizeStoredSkin(value?: string | null): PanelSkinId | null {
 export interface ResolvedSkin {
   id: PanelSkinId;
   def: SkinDef;
-  // 'pixel' or a panel font id or a system font value; what the panel draws in.
+  // A panel font id or a system font value; what the panel draws in.
   font: string;
   accent: string;
 }
@@ -33,7 +33,7 @@ export interface ResolvedSkin {
 export function resolveSkin(theme: SkinThemeFields): ResolvedSkin | null {
   const def = skinDef(theme.skin);
   if (!def || !theme.skin) return null;
-  const font = def.fontLocked ? def.font : (theme.skinFont ?? def.font);
+  const font = theme.skinFont ?? def.font;
   const accent = theme.skinAccent ?? def.accent;
   return {
     id: theme.skin,
@@ -65,12 +65,11 @@ export function applyPanelSkin<T extends SkinThemeFields>(theme: T): T {
 export function panelSkinVars(theme: SkinThemeFields, accentHex: string): Record<string, string> {
   const r = resolveSkin(theme);
   if (!r) return {};
-  const font = r.font === 'pixel' ? skinFontVars('pixel') : panelFontVars(r.font as PanelFont, true);
-  return { ...font, ...skinAccentVars(r.id, accentHex) };
+  return { ...panelFontVars(r.font as PanelFont, true), ...skinAccentVars(r.id, accentHex) };
 }
 
 // Attributes a panel root carries for the skin stylesheets.
-export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overlay' | 'data-skin-card-faded' | 'data-skin-frameless', string>>;
+export type PanelSkinAttrs = Partial<Record<'data-panel-skin' | 'data-skin-overlay' | 'data-skin-card-faded' | 'data-skin-frameless' | 'data-skin-font-custom', string>>;
 
 export function panelSkinAttrs(theme: SkinThemeFields): PanelSkinAttrs {
   const r = resolveSkin(theme);
@@ -81,5 +80,7 @@ export function panelSkinAttrs(theme: SkinThemeFields): PanelSkinAttrs {
     'data-skin-overlay': 'on',
     ...(theme.widgetOpacity < 0.5 ? { 'data-skin-card-faded': '' } : {}),
     ...(r.def.framelessAtZeroPadding ? { 'data-skin-frameless': '' } : {}),
+    // The segment skins draw numerals in their own face only while the user keeps the skin's font.
+    ...(r.font !== r.def.font ? { 'data-skin-font-custom': '' } : {}),
   };
 }

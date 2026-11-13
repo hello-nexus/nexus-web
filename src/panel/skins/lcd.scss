@@ -76,4 +76,11 @@
   opacity: var(--skin-ghost, 0.1);
   text-shadow: none;
 }
+.panel-root[data-panel-skin='lcd'][data-skin-font-custom][data-theme] {
+  --skin-numeral-font: var(--panel-font);
+  --skin-seg-scale: 1;
+}
+.panel-root[data-panel-skin='lcd'][data-skin-font-custom] [data-skin-part='digit']::before {
+  content: none;
+}
 @include mono-warn('lcd', var(--skin-ink), var(--skin-bg));

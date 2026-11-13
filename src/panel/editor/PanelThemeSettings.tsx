@@ -7,7 +7,7 @@ import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
 import { DEFAULT_PANEL_FONT, systemFontFamily, type PanelFont } from '../theme/panelFont';
-import { PANEL_SKINS, skinFontLabel, type PanelSkinId } from '../skins/skins';
+import { PANEL_SKINS, type PanelSkinId } from '../skins/skins';
 import { offersSkinBackground, resolveSkin } from '../theme/panelSkin';
 import { buildPanelFontOptions } from '../theme/panelFontOptions';
 import { loadRecentSystemFonts, pushRecentSystemFont } from '../theme/recentSystemFonts';
@@ -296,14 +296,11 @@ export function PanelThemeSettings({
   const [recentFonts, setRecentFonts] = useState<string[]>(loadRecentSystemFonts);
   const systemFonts = useSystemFonts(showSystemFonts && showTheme);
   const skinName = (id: string, fallback: string) => label(`skin.name.${id}`, fallback);
-  const skinLabel = skin ? skinName(skin.id, skin.def.label) : '';
-  const lockedNote = label('skin.locked', 'Set by the {skin} skin').replace('{skin}', () => skinLabel);
-  const fontLocked = !!skin?.def.fontLocked;
   const skinOptions = [
     { value: NO_SKIN_KEY, label: label('skin.none', 'None') },
     ...PANEL_SKINS.map(s => ({ value: s.id as string, label: skinName(s.id, s.label) })),
   ];
-  const fontOptionsBase = buildPanelFontOptions(
+  const fontOptions = buildPanelFontOptions(
     showSystemFonts
       ? { status: systemFonts.status, families: systemFonts.families, onLoad: () => { void loadSystemFonts(); } }
       : null,
@@ -318,9 +315,6 @@ export function PanelThemeSettings({
     },
     recentFonts,
   );
-  const fontOptions = skin?.font === 'pixel'
-    ? [{ value: 'pixel', label: skinFontLabel('pixel') }, ...fontOptionsBase]
-    : fontOptionsBase;
   const textColorDescription = theme.textColorMode === 'custom'
     ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
     : theme.textColorMode === 'theme'
@@ -514,8 +508,6 @@ export function PanelThemeSettings({
           label={label('panel.settings.font', 'Font')}
           value={skin ? skin.font : theme.font ?? DEFAULT_PANEL_FONT}
           options={fontOptions}
-          disabled={fontLocked}
-          description={fontLocked ? lockedNote : undefined}
           onChange={value => {
             const family = systemFontFamily(value);
             if (family) setRecentFonts(pushRecentSystemFont(family));

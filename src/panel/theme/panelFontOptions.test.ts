@@ -13,7 +13,7 @@ const headers = (opts: ReturnType<typeof buildPanelFontOptions>) => opts.filter(
 describe('buildPanelFontOptions', () => {
   it('lists only the embedded fonts, without headers, when the System group is off', () => {
     const opts = buildPanelFontOptions(null, null, labels, ['Arial']);
-    expect(opts.map(o => o.value)).toEqual(['lexend', 'oswald', 'tektur', 'jura', 'piazzolla']);
+    expect(opts.map(o => o.value)).toEqual(['lexend', 'oswald', 'tektur', 'jura', 'piazzolla', 'pixel']);
     expect(opts.some(o => o.header)).toBe(false);
   });
 

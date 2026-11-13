@@ -52,6 +52,13 @@
   opacity: 0.1;
   text-shadow: none;
 }
+.panel-root[data-panel-skin='vfd'][data-skin-font-custom][data-theme] {
+  --skin-numeral-font: var(--panel-font);
+  --skin-seg-scale: 1;
+}
+.panel-root[data-panel-skin='vfd'][data-skin-font-custom] [data-skin-part='digit']::before {
+  content: none;
+}
 @include mono-warn('vfd', var(--skin-ink), var(--skin-bg));
 // Daylight: smoked-grey glass, dark accent-hued glyphs, a faint ghost and a fainter mesh.
 @include skin-light('vfd') {
