@@ -27,6 +27,8 @@ import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLa
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, getLianLiWirelessState, setLianLiWirelessChainLighting, type LianLiWirelessFan } from '../../../api/lianli-wireless';
+import { useStreamDecks } from '../../../hooks/useStreamDecks';
+import { GALLEON_SAVE_ANCHOR, galleonDeviceKey, galleonKeyboardCards } from '../../../components/views/DevicePage/galleonKeyboardLighting';
 import { deviceTypeKey, lianLiWirelessDeviceAnchor } from '../../../components/views/DevicePage/LianLiWirelessFansTab';
 import { unboundWirelessCards, unboundWirelessFans } from './page/unboundWireless';
 import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
@@ -282,6 +284,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     scanning: serviceState.lighting?.scanning ?? false,
   };
   const [devices, setDevices] = useState<LightingDevice[]>([]);
+  const { decks: streamDecks } = useStreamDecks(true);
+  const galleonDeckSerials = streamDecks.filter(d => d.displayName.startsWith('Corsair ')).map(d => d.serial);
   // User-made rail groups. The service owns them (they ride the device list),
   // so a write is optimistic and the lighting topic reconciles.
   const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
@@ -3120,6 +3124,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             runningApps={runningApps}
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
+            onOpenSaveToDevice={onSectionNavigate ? deviceId => {
+              const deviceKey = galleonDeviceKey(deviceId, galleonDeckSerials, galleonKeyboardCards(devices).length);
+              if (deviceKey) onSectionNavigate('device', { deviceKey, scrollAnchors: [GALLEON_SAVE_ANCHOR] });
+            } : undefined}
             onOpenFixLighting={deviceName => setFixLighting({ deviceName })}
             onOpenFixLightingLink={showCanvas || viewMode === 'static' ? () => setFixLighting({ deviceName: null }) : undefined}
           />

@@ -535,6 +535,10 @@ export interface LightingDevice {
   writeHealth?: 'failing';
   /** Curated handler whose Nexus Control gate claims this card's hardware (Lian Li / Corsair hubs); the conflict UI folds the card into that handler's row. */
   controlHandlerId?: string;
+  /** True on a card whose device can keep its colors in onboard memory (Galleon 100 SD keyboard); omitted otherwise. */
+  saveToDeviceSupported?: boolean;
+  /** True while the keyboard stays in its own mode with colors saved to it; omitted when off. */
+  savedToDevice?: boolean;
 }
 
 export interface LightingDevicesResponse {
@@ -685,6 +689,10 @@ export const setLightingDevicePower = (id: string, on: boolean) =>
 
 // Excludes the device from the frame push entirely (distinct from power,
 // which drives it to black).
+/** Per-device "Save colors to the keyboard"; `id` is the card's deviceId. */
+export const setLightingDeviceSaveToDevice = (id: string, enabled: boolean) =>
+  postService<{ error: boolean; msg: string }>('/devices/lighting-devices/save-to-device', { id, enabled });
+
 export const setLightingDeviceControlled = (id: string, controlled: boolean) =>
   postService('/devices/lighting-devices/controlled', { id, controlled });
 

@@ -39,7 +39,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip, onOpenFixLighting, onOpenFixLightingLink, unboundWireless, onOpenWirelessBinding }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, pins, versionForSlot, ledFullscreen, pinSource, pinDisabledReason, pinTargetName, onSetPin, pinHintIds, onPinHintPress, onPinHintTarget, pickTargetIds, pulse, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, colorTunedIds, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenDevicePage, onOpenZoneSizes, zoneSizeDeviceIds, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange, runningApps, curatedControl, onOpenAppStrip, onOpenSaveToDevice, onOpenFixLighting, onOpenFixLightingLink, unboundWireless, onOpenWirelessBinding }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -140,6 +140,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
   curatedControl?: CuratedControlByHandler;
   /** Opens the conflict dialog for these app ids. */
   onOpenAppStrip?: (appIds: string[]) => void;
+  /** Press on a keyboard card's save-colors strip; gets the card's deviceId. */
+  onOpenSaveToDevice?: (deviceId: string) => void;
   /** Not-responding strip press, with the card's name. */
   onOpenFixLighting?: (deviceName: string) => void;
   /** Renders the "Lighting doesn't match?" link as the last entry of the list; opens the Fix lighting modal with no device named. */
@@ -510,6 +512,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, f
       pulseSeq={pulse?.ids.has(d.id) ? pulse.seq : undefined}
       appStrip={appStrips.get(d.id)}
       onOpenAppStrip={onOpenAppStrip ? () => onOpenAppStrip(appStrips.get(d.id)?.apps.map(a => a.id) ?? []) : undefined}
+      onOpenSaveToDevice={onOpenSaveToDevice && d.deviceId ? () => onOpenSaveToDevice(d.deviceId as string) : undefined}
       onOpenFixLighting={onOpenFixLighting ? () => onOpenFixLighting(d.name) : undefined}
       onUnstack={stackOf(stacks, d.id) ? () => onStacksChange?.(unstackDevices(stacks, [d.id])) : undefined}
     />

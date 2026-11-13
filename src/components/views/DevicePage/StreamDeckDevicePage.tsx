@@ -42,6 +42,7 @@ import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { Button } from '../../common/Button/Button';
 import styles from './StreamDeckDevicePage.module.scss';
 import { useReportDeviceWaiting } from './deviceDetecting';
+import { GalleonKeyboardLightingSection } from './GalleonKeyboardLightingSection';
 
 const PICKER_KEYS = 'keys';
 const PICKER_DIALS = 'dials';
@@ -522,6 +523,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         tabActions={presetRail}
       />
       <div className={`${styles.pageBody} pageBody`}>
+        <GalleonKeyboardLightingSection serial={serial} />
         {deck.warning && (
           <SettingsBlock>
             <Notice tone="warning" role="status">{t('devices.streamdeck.elgatoConflict')}</Notice>

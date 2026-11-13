@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Eye, Unplug } from 'lucide-react';
 import { useUnifiedDevices, controlGateIsPanel, claimsKey, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -28,6 +28,7 @@ import { StrimerDevicePage } from './StrimerDevicePage';
 import { NollieDevicePage } from './NollieDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
+import { GalleonKeyboardLightingSection } from './GalleonKeyboardLightingSection';
 import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
 import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
 import { Button } from '../../common/Button/Button';
@@ -176,6 +177,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, platform
         requiresBeta={device.requiresBeta}
         panelMode={controlGateIsPanel(device)}
         secondaryMonitorRecordId={device.panelDevice?.secondaryMonitor ? device.panelDevice.panelRecordId : undefined}
+        extra={device.curatedId === 'streamdeck' ? <GalleonKeyboardLightingSection serial={device.streamdeckSerial} /> : undefined}
         onEnable={() => {
           detectReportedRef.current = false;
           setDetectingKey(device.key);
@@ -392,7 +394,7 @@ function BetaRequiredNotice() {
   );
 }
 
-export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, panelMode, secondaryMonitorRecordId, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; panelMode?: boolean; secondaryMonitorRecordId?: string; onEnable: () => void }) {
+export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experimental, requiresBeta, accessDenied, detecting, panelMode, secondaryMonitorRecordId, extra, onEnable }: { deviceKey?: string; deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; accessDenied?: boolean; detecting?: boolean; panelMode?: boolean; secondaryMonitorRecordId?: string; /** Settings that do not depend on the gate, shown above the re-enable switch. */ extra?: ReactNode; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -427,6 +429,7 @@ export function NexusControlOff({ deviceKey, deviceName, conflictAppId, experime
     <section className={styles.page}>
       <div className={styles.controlOff}>
         <h2 className={styles.controlOffTitle}>{deviceName}</h2>
+        {extra && <div className={styles.controlOffExtra}>{extra}</div>}
         <div className={styles.controlOffBody}>
           {accessDenied ? (
             <Notice tone="warning" role="status" className={styles.controlOffNotice}>
