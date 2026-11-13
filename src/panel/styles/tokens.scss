@@ -72,11 +72,7 @@
   // --panel-card-radius (PanelApp.module.scss); it lives here so the grid and
   // the drag clone portaled out of the panel root share one formula. Keys off
   // the smaller cell axis so a wide cell reads as rounded as a small one.
-  --panel-card-radius-auto: clamp(
-    var(--radius-lg),
-    calc(min(var(--panel-cell-size), var(--panel-row-size, var(--panel-cell-size))) * 0.14),
-    40px
-  );
+  --panel-card-radius-auto: clamp(var(--radius-lg), calc(var(--panel-scale, 1) * 12.6px), 40px);
   // The .panel-card fill. Defaults to translucent --surface so embedded hosts
   // (desktop dashboard, floating overlay - both buildEmbeddedPanelThemeVars)
   // keep their frosted look. Live device panels (buildPanelThemeVars) swap in
