@@ -1,47 +1,15 @@
-@use 'sass:math';
-@use 'sass:list';
 @use 'mixins' as *;
 @use 'kit' as *;
 @use 'derived' as *;
 
-// Sakura: thin hairline tiles over one sparse field of large five-petal blossoms laid out in panel coordinates, so each tile shows the slice of the field under it. Petals and cores are opaque pre-mixed colors, so overlaps never darken. Every color follows the accent.
-
-// The field is as wide and tall as the page grid; --sk-ox/--sk-oy are this tile's offset inside it, from the per-cell column and row the grid stamps. --sk-u is the blossom length unit, about two grid rows.
-// One blossom as five petal discs around a core disc: $fx/$fy are the center as fractions of the field, $s the scale, $rot the rotation. $ring is the petal-center radius, $r the petal radius, both in --sk-u.
-@function blossom-layers($blossoms, $ring, $r) {
-  $grads: ();
-  $sizes: ();
-  $poss: ();
-  @each $b in $blossoms {
-    $fx: list.nth($b, 1);
-    $fy: list.nth($b, 2);
-    $s: list.nth($b, 3);
-    $rot: list.nth($b, 4);
-    @for $i from 0 through 5 {
-      $core: $i == 5;
-      $a: 72deg * $i - 90deg + $rot;
-      $dx: if($core, 0, $ring * $s * math.cos($a));
-      $dy: if($core, 0, $ring * $s * math.sin($a));
-      $rad: if($core, $ring * 0.38 * $s, $r * $s);
-      $col: if($core, var(--sk-core), var(--sk-petal));
-      $grads: list.append($grads, radial-gradient(circle closest-side, $col 0, $col 97%, transparent 100%), comma);
-      $sizes: list.append($sizes, calc(var(--sk-u) * #{2 * $rad}) calc(var(--sk-u) * #{2 * $rad}), comma);
-      $poss: list.append($poss, calc(var(--sk-w) * #{$fx} - var(--sk-ox) + var(--sk-u) * #{$dx - $rad}) calc(var(--sk-h) * #{$fy} - var(--sk-oy) + var(--sk-u) * #{$dy - $rad}), comma);
-    }
-  }
-  @return (grads: $grads, sizes: $sizes, poss: $poss);
-}
-$sk-field: blossom-layers(
-  (0.07 0.34 0.9 12deg) (0.2 0.9 1.15 40deg) (0.37 0.12 0.75 24deg) (0.52 0.7 1.05 58deg) (0.69 0.22 1.2 0deg) (0.83 0.92 0.8 33deg) (0.95 0.5 1.05 18deg),
-  0.3, 0.16
-);
+// Sakura: thin hairline tiles over one scattered field of overlapping-petal cherry blossoms, small buds to medium flowers, laid out in panel coordinates so each tile shows the slice of the field under it. The field is a single SVG image built in skins.ts, so the many blossoms cost one background layer per card; its colors are the accent pre-mixed with the card face, kept close to it so text stays readable.
 
 @mixin sakura-common {
   @include kit-radius(14px, 8px, 999px);
   @include kit-weights(500, 400, 600, 600, 400);
   --skin-card-inset: 2px;
   --skin-bar-height: 4px;
-  --skin-card-image: #{map-get($sk-field, grads)};
+  --skin-card-image: var(--sk-field);
 }
 @include in-skin('sakura', '.panel-card') {
   --sk-gap: var(--panel-gap, 0px);
@@ -50,16 +18,14 @@ $sk-field: blossom-layers(
   --sk-h: calc(var(--panel-rows, 4) * var(--sk-row) + (var(--panel-rows, 4) - 1) * var(--sk-gap));
   --sk-ox: calc(var(--panel-cell-col, 0) * (var(--panel-cell-size) + var(--sk-gap)));
   --sk-oy: calc(var(--panel-cell-row, 0) * (var(--sk-row) + var(--sk-gap)));
-  --sk-u: calc(min(var(--sk-w) * 0.5, var(--sk-h)) * 0.355);
-  --skin-card-image-size: #{map-get($sk-field, sizes)};
-  --skin-card-image-pos: #{map-get($sk-field, poss)};
+  --skin-card-image-size: var(--sk-w) var(--sk-h);
+  --skin-card-image-pos: calc(0px - var(--sk-ox)) calc(0px - var(--sk-oy));
 }
 @include skin('sakura') {
   @include kit(#0c1330, #151d3f, #fdeff3, #c9bbd0, #59608a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1a1030, #8fe8c4, #ffd9a0, #ff9db5);
   @include sakura-common;
   @include derived(dark);
-  --sk-petal: var(--sk-petal-dark);
-  --sk-core: var(--sk-core-dark);
+  --sk-field: var(--sk-field-dark);
   --skin-backdrop-image:
     radial-gradient(ellipse at 18% 22%, rgba(var(--skin-accent-rgb), 0.12) 0, transparent 38%),
     radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.08) 0, transparent 42%);
@@ -69,8 +35,7 @@ $sk-field: blossom-layers(
 @include skin-light('sakura') {
   @include kit(#fbe6ec, #fffaf7, #3d2830, #6f4d5a, #e7b3c3, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #9a5f00, #c0283a);
   @include derived(light);
-  --sk-petal: var(--sk-petal-light);
-  --sk-core: var(--sk-core-light);
+  --sk-field: var(--sk-field-light);
   --skin-backdrop-image:
     radial-gradient(ellipse at 18% 22%, rgba(255, 255, 255, 0.75) 0, transparent 40%),
     radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.18) 0, transparent 45%);
