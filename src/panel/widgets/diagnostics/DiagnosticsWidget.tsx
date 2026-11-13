@@ -1,16 +1,19 @@
 import { Stethoscope } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
-import { useFeatureFlags } from '../../../hooks/useUiSettings';
+import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
+import { useFeatureFlags, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { DIAGNOSTICS_PREVIEW } from './diagnosticsPreviewData';
-import type { DiagnosticsStatus } from '../../../api/diagnostics';
+import type { DiagnosticsComponent, DiagnosticsStatus } from '../../../api/diagnostics';
 import {
   aggregateDomainTiles,
   DOMAIN_ICON,
+  domainTitleKey,
   reasonLabel,
   statusLabelKey,
   worstReason,
 } from '../../../components/views/DiagnosticsView/diagnosticsHelpers';
+import { alertLine } from '../../../components/views/DiagnosticsView/sensorAlertHelpers';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelStatusDot, PanelWidgetEmpty, PanelWidgetShell } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -36,6 +39,17 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
   const flags = useFeatureFlags();
   const { health: liveHealth } = useDiagnosticsHealth(!preview && flags.diagnostics);
   const health = preview ? DIAGNOSTICS_PREVIEW : liveHealth;
+  const alerts = useSensorAlerts(!preview && flags.diagnostics);
+  const prefs = useUnitPrefs();
+
+  // The service sends an alert's reason as English text with no parameters, so the line is rebuilt
+  // from the rule and state matched by component id; the service text stays the fallback.
+  const alertText = (component: DiagnosticsComponent): string => {
+    const ruleId = component.id.replace(/^alert:/, '');
+    const rule = alerts.rules.find(r => r.id === ruleId);
+    const state = alerts.states.find(s => s.ruleId === ruleId);
+    return rule && state ? alertLine(t, rule, state, prefs) : (component.reasons[0]?.summary ?? component.name);
+  };
 
   if (!preview && !flags.diagnostics) {
     return (
@@ -54,7 +68,10 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
   }
 
   const worst = worstReason(health.components);
-  const tiles = aggregateDomainTiles(health.components);
+  const tiles = aggregateDomainTiles(health.components, { alertReasons: false });
+  const alertComponents = health.components.filter(c => c.kind === 'alerts' && c.status !== 'ok');
+  const worstAlert = alertComponents.find(c => c.status === 'act') ?? alertComponents[0];
+  const worstOwner = worst ? health.components.find(c => c.reasons.includes(worst)) : undefined;
 
   if (widget.size === '4x2') {
     return (
@@ -71,7 +88,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
                 <span className={styles.blockText}>
                   <span className={styles.blockTitle}>
                     <PanelStatusDot tone={panelToneFor(tile.status)} />
-                    <span className={styles.blockName}>{t(`diagnostics.kind.${tile.domain}`)}</span>
+                    <span className={styles.blockName}>{t(domainTitleKey(tile.domain))}</span>
                   </span>
                   <span className={styles.blockDetail}>{detail}</span>
                 </span>
@@ -92,6 +109,12 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
               <div key={tile.domain} className={styles.block}>{content}</div>
             );
           })}
+          {worstAlert && (
+            <div className={styles.alertLine}>
+              <PanelStatusDot tone={panelToneFor(worstAlert.status)} />
+              <span className={styles.alertText}>{alertText(worstAlert)}</span>
+            </div>
+          )}
         </div>
       </PanelWidgetShell>
     );
@@ -103,7 +126,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
       <span className={styles.overall}>{t(statusLabelKey(health.overall))}</span>
       <div className={styles.dots}>
         {tiles.map(tile => {
-          const label = `${t(`diagnostics.kind.${tile.domain}`)}: ${t(statusLabelKey(tile.status))}`;
+          const label = `${t(domainTitleKey(tile.domain))}: ${t(statusLabelKey(tile.status))}`;
           return (
             <HoverTooltip key={tile.domain} body={label} side="top">
               <span className={styles.dotSlot} role="img" aria-label={label} tabIndex={0}>
@@ -114,7 +137,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
         })}
       </div>
       {health.overall !== 'ok' && worst && (
-        <div className={styles.reason}>{reasonLabel(worst, t)}</div>
+        <div className={styles.reason}>{worstOwner?.kind === 'alerts' ? alertText(worstOwner) : reasonLabel(worst, t)}</div>
       )}
     </PanelWidgetShell>
   );

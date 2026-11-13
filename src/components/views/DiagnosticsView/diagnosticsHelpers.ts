@@ -1,7 +1,7 @@
 // Pure mapping/formatting helpers for the diagnostics view + widget. Kept
 // side-effect-free (no i18n context, no fetch) so they're covered directly
 // by diagnosticsHelpers.test.ts instead of through component rendering.
-import { Fan, HardDrive, MemoryStick, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Gauge, HardDrive, MemoryStick, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
@@ -34,31 +34,46 @@ export function statusLabelKey(status: DiagnosticsStatus): string {
   return `diagnostics.status.${status}`;
 }
 
-export function driveStatusColor(status: DiagnosticsDriveStatus): string {
+/** A drive's SMART verdict on the shared three-level ladder. */
+export function driveStatusLevel(status: DiagnosticsDriveStatus): DiagnosticsStatus {
   switch (status) {
-    case 'good': return 'var(--good)';
-    case 'caution': return 'var(--warn)';
-    case 'warning': return 'var(--warn)';
-    case 'bad': return 'var(--bad)';
-    default: return 'var(--text-dim)';
+    case 'good': return 'ok';
+    case 'caution':
+    case 'warning': return 'watch';
+    case 'bad': return 'act';
+    default: return 'unknown';
   }
+}
+
+export function driveStatusColor(status: DiagnosticsDriveStatus): string {
+  return statusColor(driveStatusLevel(status));
 }
 
 export function driveStatusLabelKey(status: DiagnosticsDriveStatus): string {
-  return `diagnostics.driveStatus.${status}`;
+  return statusLabelKey(driveStatusLevel(status));
 }
 
-export function coolingStatusColor(status: CoolingDeviceStatus): string {
+/** A cooling device's state on the shared three-level ladder. */
+export function coolingStatusLevel(status: CoolingDeviceStatus): DiagnosticsStatus {
   switch (status) {
-    case 'ok': return 'var(--good)';
-    case 'suspect': return 'var(--warn)';
-    case 'stalled': return 'var(--bad)';
-    default: return 'var(--text-dim)';
+    case 'ok': return 'ok';
+    case 'suspect': return 'watch';
+    case 'stalled': return 'act';
+    default: return 'unknown';
   }
 }
 
+export function coolingStatusColor(status: CoolingDeviceStatus): string {
+  return statusColor(coolingStatusLevel(status));
+}
+
 export function coolingStatusLabelKey(status: CoolingDeviceStatus): string {
-  return `diagnostics.cooling.status.${status}`;
+  return statusLabelKey(coolingStatusLevel(status));
+}
+
+/** The specific wording behind a fan's level chip; null when the level says it all. */
+export function coolingDetailKey(status: CoolingDeviceStatus): string | null {
+  return status === 'suspect' || status === 'stalled' ? `diagnostics.cooling.status.${status}` : null;
 }
 
 export function incidentSeverityColor(severity: DiagnosticsIncidentSeverity): string {
@@ -176,16 +191,16 @@ export function resolveSectionState(opts: {
   return 'content';
 }
 
-export type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system' | 'settings';
+export type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system';
 
-const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'storage', 'memory', 'cooling', 'system', 'settings'];
+const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'cooling', 'storage', 'memory', 'system'];
 
 // Windows Memory Diagnostic has no Linux equivalent; macOS exposes none of
-// SMART, PnP problems, or the Windows event log, so only Summary/Cooling/
-// Settings have real content there.
+// SMART, PnP problems, or the Windows event log, so only Summary and
+// Thermals (the 'cooling' key) have real content there.
 const PLATFORM_DIAGNOSTICS_TABS: Record<string, readonly DiagnosticsTab[]> = {
-  linux: ['summary', 'storage', 'cooling', 'system', 'settings'],
-  macos: ['summary', 'cooling', 'settings'],
+  linux: ['summary', 'cooling', 'storage', 'system'],
+  macos: ['summary', 'cooling'],
 };
 
 /** Tab keys with real functionality on the given service platform; an unknown
@@ -195,8 +210,8 @@ export function visibleDiagnosticsTabs(platform: string): readonly DiagnosticsTa
 }
 
 /** One summary tile per hardware domain, aggregating the server's per-device
- *  health.components into a fixed 2x2: Storage / Memory / Cooling / System.
- *  GPU folds into Cooling (its temperature already lives in the Cooling tab's
+ *  health.components into a fixed 2x2: Sensors (cooling) / Storage / Memory / System.
+ *  GPU and the Watchlist alerts fold into Cooling (its temperature already lives in the Cooling tab's
  *  chart; its throttle is a thermal/power signal). Tile status is the worst of
  *  its MEASURED members by STATUS_SEVERITY_RANK; an 'unknown' member is a probe
  *  with no source for that hardware (a GPU no NVML can read) rather than a
@@ -212,22 +227,28 @@ export interface DomainTile {
 }
 
 const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly DiagnosticsKind[] }[] = [
+  { domain: 'cooling', kinds: ['cooling', 'gpu', 'alerts'] },
   { domain: 'storage', kinds: ['storage'] },
   { domain: 'memory', kinds: ['memory'] },
-  { domain: 'cooling', kinds: ['cooling', 'gpu'] },
   { domain: 'system', kinds: ['system'] },
 ];
 
 // Same glyph the domain's own tab uses, so a tile reads as the tab it opens.
-// Cooling folds GPU in, so it takes the Cooling tab's Fan icon.
+// Cooling folds GPU in; the tab is Sensors, so it takes that tab's Gauge icon.
 export const DOMAIN_ICON: Partial<Record<DiagnosticsKind, LucideIcon>> = {
   storage: HardDrive,
   memory: MemoryStick,
-  cooling: Fan,
+  cooling: Gauge,
   system: ShieldCheck,
 };
 
-export function aggregateDomainTiles(components: DiagnosticsComponent[]): DomainTile[] {
+/** The tile's title key: the cooling domain is titled like its tab, Sensors. */
+export function domainTitleKey(domain: DiagnosticsKind): string {
+  return domain === 'cooling' ? 'diagnostics.tab.thermals' : `diagnostics.kind.${domain}`;
+}
+
+/** `alertReasons: false` grades the tile by Watchlist alerts without listing their lines, for a surface that words alerts itself. */
+export function aggregateDomainTiles(components: DiagnosticsComponent[], { alertReasons = true }: { alertReasons?: boolean } = {}): DomainTile[] {
   return DOMAIN_TILE_KINDS.map(({ domain, kinds }) => {
     const members = components.filter(c => kinds.includes(c.kind));
     const measured = members.filter(m => m.status !== 'unknown');
@@ -235,7 +256,9 @@ export function aggregateDomainTiles(components: DiagnosticsComponent[]): Domain
     for (const member of measured) {
       if (STATUS_SEVERITY_RANK[member.status] > STATUS_SEVERITY_RANK[status]) status = member.status;
     }
+    // Watchlist alert reasons name the alerting sensor on the card, like any other fault.
     const reasons = members
+      .filter(m => alertReasons || m.kind !== 'alerts')
       .flatMap(m => m.reasons)
       .sort((a, b) => STATUS_SEVERITY_RANK[b.severity] - STATUS_SEVERITY_RANK[a.severity]);
     return { domain, status, reasons };

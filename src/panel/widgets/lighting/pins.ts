@@ -17,6 +17,27 @@ export const SELECTED_DEVICES_STORAGE_KEY = 'nexus.lighting.pinSelection';
 /** The selection's anchor device, highlighted on the canvas and 3D scene. */
 export const PRIMARY_DEVICE_STORAGE_KEY = 'nexus.lighting.primaryDevice';
 
+/** The tab a press opened for a selection, kept so leaving the page and coming back reopens it. */
+export const SELECTION_TAB_STORAGE_KEY = 'nexus.lighting.selectionTab';
+
+/** The global mode that tab was opened under, so a change made while away drops it. */
+export const SELECTION_TAB_BASE_STORAGE_KEY = 'nexus.lighting.selectionTabBase';
+
+/**
+ * Keeps the opened selection tab across a remount. A global mode change drops it,
+ * but only once the service state has loaded: before that `mode` is the placeholder
+ * and would wipe the stored tab on every mount.
+ */
+export function reconcileSelectionTab(
+  tab: LightingMode | null,
+  base: LightingMode | null,
+  mode: LightingMode,
+  synced: boolean,
+): { tab: LightingMode | null; base: LightingMode | null } {
+  if (!synced || base === mode) return { tab, base };
+  return { tab: base === null ? tab : null, base: mode };
+}
+
 /** Keys of the per-device-pick era. */
 const LEGACY_LIGHTING_KEYS = [
   'nexus.lighting.selectedDevices',
@@ -44,6 +65,25 @@ export function withPins(prev: Pins, ids: readonly string[], pin: Pin | null): P
     }
   }
   return next ?? prev;
+}
+
+/**
+ * The selection after `ids` are unpinned: they leave it, because a later pick
+ * lands on the selection and would pin them again. The other cards stay
+ * selected; the primary falls back to the last remaining one in `order` (device
+ * order, as the device list does). Null when none
+ * of `ids` was selected, so the caller leaves the selection alone.
+ */
+export function selectionWithoutUnpinned(
+  selected: ReadonlySet<string>,
+  primary: string | null,
+  ids: readonly string[],
+  order: readonly string[],
+): { ids: Set<string>; primary: string | null } | null {
+  if (!ids.some(id => selected.has(id))) return null;
+  const next = new Set([...selected].filter(id => !ids.includes(id)));
+  const nextPrimary = primary && next.has(primary) ? primary : ([...order].reverse().find(id => next.has(id)) ?? null);
+  return { ids: next, primary: nextPrimary };
 }
 
 /** The static pin for a pattern picked from the grid. The whole look travels, so

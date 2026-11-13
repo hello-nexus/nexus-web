@@ -403,8 +403,8 @@ input[type="range"] {
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 14px;
-    height: 14px;
+    width: var(--slider-thumb-size);
+    height: var(--slider-thumb-size);
     border-radius: 50%;
     background: var(--accent);
     border: none;
@@ -423,8 +423,8 @@ input[type="range"] {
     border: none;
   }
   &::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: var(--slider-thumb-size);
+    height: var(--slider-thumb-size);
     border-radius: 50%;
     background: var(--accent);
     border: none;
@@ -494,6 +494,9 @@ input[type="range"][data-fill] {
   &[data-custom-thumb]::-moz-range-thumb { width: 24px; height: 24px; background: transparent; box-shadow: none; border: none; }
 }
 
+// The range thumb's diameter: the thumb, and everything placed along its path, read it from here.
+:root { --slider-thumb-size: 14px; }
+
 :root {
   // Single source for the width of every inline slider (track plus value); nothing else sets it.
   --slider-inline-share: 30%;
@@ -552,6 +555,16 @@ input[type="range"][data-range-knob] {
     pointer-events: auto;
     background: var(--text);
     box-shadow: var(--shadow-sm);
+  }
+
+  // An off limit (RangeSlider openEnded): hollow, so the knob reads as parked rather than set.
+  &[data-unset='true']::-webkit-slider-thumb {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 2px var(--text-dim);
+  }
+  &[data-unset='true']::-moz-range-thumb {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 2px var(--text-dim);
   }
 }
 

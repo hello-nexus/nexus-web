@@ -81,30 +81,25 @@ export interface PanelSettings {
   dashboardGaugeGradient?: PanelGaugeGradientStopDto[] | null;
 }
 
-// preferences.diagnostics - thresholds/notifications/component monitoring for
+// preferences.diagnostics - notifications/component monitoring for
 // the Diagnostics Settings tab. Mirrors nexus-service's DiagnosticsSettings
 // POCOs verbatim. Optional on Preferences: an older service omits it,
 // which the client treats as the contract defaults.
-export interface DiagnosticsThresholds {
-  cpuC: number;
-  gpuC: number;
-  storageC: number;
-  ramC: number;
-}
-
 export interface DiagnosticsNotificationPrefs {
   enabled: boolean;
-  highTemp: boolean;
   storageHealth: boolean;
   cooling: boolean;
   memoryTest: boolean;
   systemDevices: boolean;
   gpuThrottle: boolean;
   cooldownMinutes: number;
+  /** Master for sensor-alert desktop notifications, independent of `enabled`. */
+  sensorAlerts: boolean;
+  /** Minimum gap between two toasts for the same sensor rule. */
+  sensorCooldownMinutes: number;
 }
 
 export interface DiagnosticsComponentPrefs {
-  cpu: boolean;
   gpu: boolean;
   storage: boolean;
   ram: boolean;
@@ -113,8 +108,6 @@ export interface DiagnosticsComponentPrefs {
 }
 
 export interface DiagnosticsPrefs {
-  thresholds: DiagnosticsThresholds;
-  warningLingerMinutes: number;
   notifications: DiagnosticsNotificationPrefs;
   components: DiagnosticsComponentPrefs;
   // Health component ids ("storage:<serial>", "cooling:<deviceId>", "gpu:<n>")
@@ -124,8 +117,6 @@ export interface DiagnosticsPrefs {
 }
 
 export interface DiagnosticsPrefsPatch {
-  thresholds?: Partial<DiagnosticsThresholds>;
-  warningLingerMinutes?: number;
   notifications?: Partial<DiagnosticsNotificationPrefs>;
   components?: Partial<DiagnosticsComponentPrefs>;
   // Replaces the whole list when present.
@@ -247,6 +238,9 @@ export interface Preferences {
   // Machine-level (not per-profile): false stops reading the temperature
   // sensor on each memory stick. Applies live. Missing means true.
   readRamTemperatures?: boolean;
+  // Machine-level: false stops scanning USB serial ports for in-line GPU power
+  // meters. Applies live. Missing means true.
+  powerMonitorsEnabled?: boolean;
   // Linux-only, machine-level: lets Nexus drive AMD graphics card lighting.
   // Missing means off. The Applicable flag is read-only and true only on
   // Linux; an older service omits both.
@@ -266,6 +260,9 @@ export interface PreferencesPatch {
   features?: FeaturesPrefs;
   startupDelaySeconds?: number;
   readRamTemperatures?: boolean;
+  // Machine-level: false stops scanning USB serial ports for in-line GPU power
+  // meters. Applies live. Missing means true.
+  powerMonitorsEnabled?: boolean;
   amdGpuLighting?: boolean;
 }
 

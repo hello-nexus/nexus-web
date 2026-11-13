@@ -4,6 +4,9 @@ import type { GaugeProps } from './types';
 import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import styles from './TickRingGauge.module.scss';
 
+// Share of the slot's short side the value may span inside the ring.
+const VALUE_INNER_FRACTION = 0.62;
+
 const TICKS = 60;
 const STROKE = 2.8;
 const OUTER = GAUGE_FIGURE_OUTER - STROKE / 2;
@@ -39,7 +42,7 @@ export function TickRingGauge({ value, formatted, label, gradient }: GaugeProps)
         })}
       </svg>
       <div className={styles.center}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useScheduleSliderProps, type BrightnessScheduleBinding } from '../BrightnessScheduleButton/BrightnessScheduleButton';
 import type { ReactNode } from 'react';
 import { Badge } from '../Badge/Badge';
 import { Toggle } from '../Toggle/Toggle';
@@ -58,6 +59,7 @@ export function SettingRow({
   sliderRow,
   descriptionBelow,
   selected,
+  nested,
 }: {
   label?: string;
   // Inline content after the label text, e.g. a chip naming what the row belongs to.
@@ -104,6 +106,8 @@ export function SettingRow({
   descriptionBelow?: boolean | 'tight';
   // The row the user is currently on (e.g. the active profile): accent outline and fill.
   selected?: boolean;
+  // Refines the row above it (indented, secondary label); place both in a SettingGroup.
+  nested?: boolean;
 }) {
   const cls = [
     styles.row,
@@ -116,6 +120,7 @@ export function SettingRow({
     descriptionBelow === 'tight' && styles.descBelowTight,
     icon && iconLeading && styles.hasLeadingIcon,
     selected && styles.selected,
+    nested && styles.nested,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
@@ -161,6 +166,7 @@ export function SettingToggle({
   stackOnNarrow,
   mixed,
   labelSuffix,
+  nested,
 }: {
   label: string;
   description?: ReactNode;
@@ -175,6 +181,8 @@ export function SettingToggle({
   /** The controlled targets disagree; see Toggle. */
   mixed?: boolean;
   labelSuffix?: ReactNode;
+  /** Refines the row above it (indented, secondary label); place both in a SettingGroup. */
+  nested?: boolean;
 }) {
   return (
     <SettingRow
@@ -186,6 +194,7 @@ export function SettingToggle({
       disabled={disabled}
       anchorId={anchorId}
       stackOnNarrow={stackOnNarrow}
+      nested={nested}
     >
       <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={ariaLabel ?? label} mixed={mixed} />
     </SettingRow>
@@ -233,6 +242,11 @@ export function SettingSelect({
   );
 }
 
+/** Keeps a row and its nested refinements together, so the section's hairline falls between groups, not inside one. */
+export function SettingGroup({ children }: { children: ReactNode }) {
+  return <div className={styles.group}>{children}</div>;
+}
+
 // Right-aligned inline slider bar in the control slot. `editable` makes the
 // value click-to-edit; `trackFill` paints the level accent (brightness/volume).
 export function SettingSlider({
@@ -257,6 +271,9 @@ export function SettingSlider({
   mixed,
   mixedLabel,
   valueText,
+  labelSuffix,
+  schedule,
+  nested,
 }: {
   label?: string;
   description?: ReactNode;
@@ -283,13 +300,19 @@ export function SettingSlider({
   mixed?: boolean;
   mixedLabel?: string;
   valueText?: string;
+  labelSuffix?: ReactNode;
+  /** Binds the slider to the brightness schedule: the sun, and a caret at the level it caps this slider at. */
+  schedule?: BrightnessScheduleBinding;
+  nested?: boolean;
 }) {
+  const sched = useScheduleSliderProps(schedule, value);
   // Built outside the JSX: the variant id is not UI text, and the i18n literal
   // rule scans JSX only.
   const below = descriptionBelow ? 'tight' as const : undefined;
   return (
     <SettingRow
       label={label}
+      labelSuffix={sched.sun || labelSuffix ? <>{sched.sun}{labelSuffix}</> : undefined}
       description={description}
       descriptionBelow={below}
       icon={icon}
@@ -297,6 +320,7 @@ export function SettingSlider({
       disabled={disabled}
       anchorId={anchorId}
       sliderRow
+      nested={nested}
     >
       <Slider
         value={value}
@@ -314,6 +338,9 @@ export function SettingSlider({
         mixed={mixed}
         mixedLabel={mixedLabel}
         valueText={valueText}
+        marker={sched.marker}
+        fillCap={sched.fillCap}
+        markerTooltip={sched.markerTooltip}
       />
     </SettingRow>
   );

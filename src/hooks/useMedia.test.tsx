@@ -15,6 +15,7 @@ vi.mock('../api/service', () => ({
 
 vi.mock('./useMultiplexSocket', () => ({
   useTopic: (topic: string, enabled: boolean) => useTopic(topic, enabled),
+  topicFrameAgeMs: () => 0,
 }));
 
 const session = (playing: boolean): MediaSession => ({

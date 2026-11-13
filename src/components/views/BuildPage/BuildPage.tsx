@@ -110,8 +110,20 @@ export interface HeadlessBuild {
   onUnavailable: () => void;
   /** Also lets the frame render this PC's case image and store it for the dashboard tile. */
   preview?: boolean;
-  /** Lets the frame read and write the shared PC setup in any build. Absent means no sync outside dev-tools builds. */
+  /** Lets the frame read and write the shared PC setup. Absent means a headless frame never syncs; the visible Build always does. */
   syncSetup?: boolean;
+  /** Lets the frame read the shared PC setup and refuses every write to it: for a frame that only draws from the record. Ignored when `syncSetup` is set. */
+  readSetup?: boolean;
+}
+
+/** The visible Build always syncs the shared PC setup; a headless frame only when its host opted in. */
+function setupSyncOffered(headless: HeadlessBuild | undefined): boolean {
+  return headless ? headless.syncSetup === true : true;
+}
+
+/** A headless frame that only reads the record: the read is offered, the write never is. */
+function setupReadOnlyOffered(headless: HeadlessBuild | undefined): boolean {
+  return headless !== undefined && headless.syncSetup !== true && headless.readSetup === true;
 }
 
 function isBuildResolved(data: FrameMessage): data is FrameMessage & BuildResolved {
@@ -140,7 +152,8 @@ interface BuildPageProps {
 export function BuildPage({ path, onOpenBenchmark, onOpenLighting, onOpenCooling, platform, headless }: BuildPageProps) {
   const headlessRef = useRef(headless);
   useEffect(() => { headlessRef.current = headless; }, [headless]);
-  const canSyncSetup = (DEV_TOOLS || headless?.syncSetup === true) && !isRemoteOrigin;
+  const canSyncSetup = setupSyncOffered(headless) && !isRemoteOrigin;
+  const canReadSetup = setupReadOnlyOffered(headless) && !isRemoteOrigin;
   // A headless frame saves the preview only when its host asked; the host decided it is offered.
   const canSavePreview = !isRemoteOrigin && (headless ? headless.preview === true : DEV_TOOLS || (platform !== '' && platform !== 'macos' && !isMacAppShell()));
   const previewSize = usePreviewSize();
@@ -344,7 +357,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, onOpenCooling
           }));
           break;
         case 'nexus-build:setup-get':
-          if (!(DEV_TOOLS || headlessRef.current?.syncSetup === true) || isRemoteOrigin) {
+          if (!(setupSyncOffered(headlessRef.current) || setupReadOnlyOffered(headlessRef.current)) || isRemoteOrigin) {
             // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
             post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
             break;
@@ -355,7 +368,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, onOpenCooling
           });
           break;
         case 'nexus-build:setup-put':
-          if (!(DEV_TOOLS || headlessRef.current?.syncSetup === true) || isRemoteOrigin) {
+          if (!setupSyncOffered(headlessRef.current) || isRemoteOrigin) {
             // A final refusal (anything but `unreachable`), so the frame stops instead of waiting out its timeout and retrying.
             post({ type: 'nexus-build:setup', v: 1, error: 'disabled', ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}) } as FrameMessage);
             break;
@@ -428,6 +441,7 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting, onOpenCooling
       // A scene lands in this machine's service, so only the desktop app offers it.
       ...(sceneExportOffered() ? { canExportScene: true } : {}),
       ...(canSyncSetup ? { canSyncSetup: true } : {}),
+      ...(canReadSetup ? { canReadSetup: true } : {}),
       ...(onOpenLighting ? { canOpenLighting: true } : {}),
       ...(onOpenCooling ? { canOpenCooling: true, coolingEnabled } : {}),
       // The preview lands in this machine's service for the dashboard tile; web and release macOS do not offer it.

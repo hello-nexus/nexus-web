@@ -8,9 +8,10 @@ import {
   ThermometerSun, AlertTriangle, CheckCircle2, Info, Power, TrendingUp,
   TrendingDown, ArrowUpRight, ArrowDownRight, BarChart3, Newspaper, Coins,
   Play, Pause, Square, RotateCcw, ChevronUp, ChevronDown, Plus, Minus, AppWindow,
-  SkipBack, SkipForward, Film, X, Radio, Sticker, ZoomIn, ExternalLink, PackageOpen, Trash2, Image as ImageIcon,
+  SkipBack, SkipForward, Film, X, Radio, Sticker, ZoomIn, ExternalLink, PackageOpen, HandHelping, MessageCircle, LifeBuoy, Trash2, Image as ImageIcon,
   type LucideIcon,
 } from 'lucide-react';
+import { MonitorPc } from './monitorPcIcon';
 
 export const ICON_TABLE: Record<string, LucideIcon> = {
   cpu: Cpu, fan: Fan, lightbulb: Lightbulb, monitor: Monitor, activity: Activity,
@@ -29,5 +30,5 @@ export const ICON_TABLE: Record<string, LucideIcon> = {
   plus: Plus, minus: Minus, 'app-window': AppWindow,
   'skip-back': SkipBack, 'skip-forward': SkipForward, film: Film,
   x: X, radio: Radio, sticker: Sticker, 'zoom-in': ZoomIn,
-  'package-open': PackageOpen, trash: Trash2, image: ImageIcon,
+  'package-open': PackageOpen, 'hand-helping': HandHelping, 'message-circle': MessageCircle, 'life-buoy': LifeBuoy, 'monitor-pc': MonitorPc, trash: Trash2, image: ImageIcon,
 };

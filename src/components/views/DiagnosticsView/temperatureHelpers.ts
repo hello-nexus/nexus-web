@@ -65,6 +65,16 @@ export function temperatureSeriesColor(kind: DiagnosticsTemperatureKind, rank: n
   return mixHex(base, SHADE_MIX_TARGETS[i], SHADE_MIX_PERCENTS[i]);
 }
 
+const LINE_PALETTE: readonly string[] = [0, 1, 2, 3].flatMap(rank =>
+  (Object.keys(KIND_BASE_COLOR) as DiagnosticsTemperatureKind[]).map(kind => temperatureSeriesColor(kind, rank)));
+
+/** `count` distinct line colors from the same hue families, skipping any in `taken` so a chart never repeats one. */
+export function distinctLineColors(count: number, taken: ReadonlySet<string> = new Set()): string[] {
+  const free = LINE_PALETTE.filter(c => !taken.has(c));
+  const pool = free.length > 0 ? free : LINE_PALETTE;
+  return Array.from({ length: count }, (_, i) => pool[i % pool.length]);
+}
+
 /** X-axis tick label granularity appropriate to the selected range. */
 export function xTickFormatForRange(hours: TemperatureRangeHours, timeFormat: TimeFormat, dateFormat: DateFormat): (t: number) => string {
   const hour12 = resolveHour12(timeFormat);

@@ -18,7 +18,7 @@ import type { DeckMonitoringCategory } from './types';
 export const DECK_MONITORING_CATEGORIES: readonly DeckMonitoringCategory[] = [
   'quick', 'cpu', 'gpu', 'memory', 'memoryModule', 'motherboard',
   'storage', 'smart', 'network', 'fps',
-  'battery', 'cooler', 'psu', 'embeddedController',
+  'battery', 'cooler', 'fanSensors', 'psu', 'embeddedController',
 ];
 
 /**

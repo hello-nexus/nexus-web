@@ -1,11 +1,13 @@
 import { useCallback, useMemo } from 'react';
 import { Select } from '../../../../components/common/Select/Select';
 import { useSensors } from '../../../../hooks/useSensors';
-import { useSensorExtras } from '../../../../hooks/useSensorExtras';
+import { EMPTY_SENSOR_EXTRAS, useSensorExtras } from '../../../../hooks/useSensorExtras';
 import { useTranslation } from '../../../../lib/i18n';
 import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from '../../deck/deckMonitoring';
 import type { DeckMonitoringCategory } from '../../deck/types';
 import { buildNicNetworkSensors } from '../networkSensors';
+import { isExtrasBackedDevice } from '../perfSlots';
+import { currentFanProbeName, fanProbeAlias } from '../sensorCategories';
 import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys, type SensorOption } from '../sensorPicker';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import styles from './SensorPicker.module.scss';
@@ -37,7 +39,7 @@ export function useSensorLookup() {
  * receives the resolved sensor (undefined while it has no reading) so a caller
  * can derive a default range.
  */
-export function SensorPicker({ lookup, category, sensor, onChange, disabled, className, categories, sensorTypes, automatic }: {
+export function SensorPicker({ lookup, category, sensor, onChange, disabled, className, categories, sensorTypes, automatic, isUnavailable, unavailableSuffix }: {
   /** The caller's own useSensorLookup, so a row subscribes to the sensors once. */
   lookup: ReturnType<typeof useSensorLookup>;
   category: string;
@@ -51,24 +53,40 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
   sensorTypes?: readonly string[];
   /** Adds a leading option that stands for the caller's own automatic choice; `active` shows it selected. */
   automatic?: { label: string; active: boolean; onSelect: () => void };
+  /** Marks a sensor the caller cannot accept (e.g. one already tracked elsewhere): it is listed disabled with `unavailableSuffix`, never auto-picked, and a device whose sensors are all unavailable is disabled too. The caller keeps its own current sensor available. */
+  isUnavailable?: (category: string, option: SensorOption) => boolean;
+  unavailableSuffix?: string;
 }) {
   const { t } = useTranslation();
   const { sensors, extras, networkSensors, resolve } = lookup;
-  const device = category as DeckMonitoringCategory;
+  // A fan probe saved under Cooler before it had its own category reads, and shows, as a fan sensor.
+  const device = fanProbeAlias(category as DeckMonitoringCategory, sensor, extras) as DeckMonitoringCategory;
+  const savedKey = device === category ? sensor : currentFanProbeName(sensor);
   // FPS has no reading the lighting service can resolve, so it is not offered.
-  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
-    .filter(c => c !== 'fps' && (!categories || c === device || categories.includes(c)))
-    .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]) }));
   const optionsFor = (d: DeckMonitoringCategory) => {
     const all = sensorsForDevice(sensors, networkSensors, extras, d);
     return sensorTypes ? all.filter(o => o.type !== undefined && sensorTypes.includes(o.type)) : all;
   };
-  const sensorOptions: SensorOption[] = automatic ? [{ value: AUTOMATIC_VALUE, label: automatic.label }, ...optionsFor(device)] : optionsFor(device);
-  const listed = sensorOptions.some(o => o.value === sensor || o.sensorName === sensor);
-  const sensorValue = automatic?.active ? AUTOMATIC_VALUE : listed ? selectedSensorValue(sensorOptions, sensor) : '';
+  const allUnavailable = (d: string) => {
+    const options = optionsFor(d as DeckMonitoringCategory);
+    return !!isUnavailable && options.length > 0 && options.every(o => isUnavailable(d, o));
+  };
+  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, device, sensors, networkSensors, extras)
+    .filter(c => c !== 'fps' && (!categories || c === device || categories.includes(c)))
+    .map(c => ({ value: c, label: t(CATEGORY_LABEL_KEYS[c]), disabled: c !== device && allUnavailable(c) }));
+  const marked = (d: string, options: SensorOption[]): SensorOption[] => isUnavailable
+    ? options.map(o => isUnavailable(d, o) ? { ...o, disabled: true, label: unavailableSuffix ? `${o.label} (${unavailableSuffix})` : o.label } : o)
+    : options;
+  const shown = marked(device, optionsFor(device));
+  const sensorOptions: SensorOption[] = automatic ? [{ value: AUTOMATIC_VALUE, label: automatic.label }, ...shown] : shown;
+  const listed = sensorOptions.some(o => o.value === savedKey || o.sensorName === savedKey);
+  const sensorValue = automatic?.active ? AUTOMATIC_VALUE : listed ? selectedSensorValue(sensorOptions, savedKey) : '';
+  // "Missing" needs a loaded extras frame: before the first one a saved sensor is just not listed yet.
+  const sensorMissing = !!sensor && !listed && isExtrasBackedDevice(device) && extras !== EMPTY_SENSOR_EXTRAS;
 
   const pickCategory = (next: string) => {
-    const options = optionsFor(next as DeckMonitoringCategory);
+    const options = optionsFor(next as DeckMonitoringCategory).filter(o => !isUnavailable?.(next, o));
+    if (options.length === 0) return;
     const first = selectedSensorValue(options, '');
     onChange({ category: next, sensor: first }, resolve(next, first));
   };
@@ -77,7 +95,7 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
     <div className={`${styles.row} ${className ?? ''}`}>
       <Select
         className={styles.category}
-        value={category}
+        value={device}
         options={categoryOptions}
         onChange={pickCategory}
         disabled={disabled}
@@ -87,7 +105,7 @@ export function SensorPicker({ lookup, category, sensor, onChange, disabled, cla
         className={styles.sensor}
         value={sensorValue}
         options={sensorOptions}
-        placeholder={t('lighting.sensor.unavailable')}
+        placeholder={sensorMissing ? t('monitoring.sensorMissing') : t('lighting.sensor.unavailable')}
         onChange={next => {
           if (automatic && next === AUTOMATIC_VALUE) {
             automatic.onSelect();

@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
 
 // Canonical settings row - see SettingRow.tsx. text-body label, no per-row
 // divider (the only rule belongs under section headers, via SectionHeader).
@@ -17,9 +18,9 @@
 .row.selected {
   margin-inline: -0.7rem;
   padding-inline: 0.7rem;
-  border: var(--border-width) solid var(--accent);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--accent-soft);
+  @include interactive-selected;
 }
 
 .disabled {
@@ -109,6 +110,23 @@
 .label {
   @include text-body;
   color: var(--text);
+}
+
+// Opt-in (nested prop): a row that refines the row above it. Indented, tighter at the top, secondary label.
+.row.nested {
+  padding-top: 0;
+  padding-inline-start: var(--space-lg);
+
+  .label {
+    font-size: var(--type-small);
+    color: var(--text-dim);
+  }
+}
+
+// One component's rows (a toggle and its nested refinements) as a single unit between the section's hairlines.
+.group {
+  display: flex;
+  flex-direction: column;
 }
 
 // Optional accent glyph before the label text (e.g. the relay satellite).

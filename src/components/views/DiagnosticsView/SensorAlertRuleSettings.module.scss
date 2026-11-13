@@ -1,0 +1,7 @@
+@use '../../../styles/text' as *;
+
+// Sliders sit between rows, so they take a row's vertical rhythm.
+.sliderBlock {
+  padding: 0.5rem 0;
+  min-width: 0;
+}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, ListPlus, ListVideo, Pencil, Play, Plus, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check, FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, ListPlus, ListVideo, Pencil, Play, Plus, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
@@ -11,6 +11,8 @@ import { EmptyState } from '../../../../components/common/EmptyState/EmptyState'
 import { Notice } from '../../../../components/common/Notice/Notice';
 import { Pager } from '../../../../components/common/Pager/Pager';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
+import { Select } from '../../../../components/common/Select/Select';
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -20,6 +22,7 @@ import { postGalleryDrop, subscribeGalleryDropPaths } from '../../../../app/wind
 import {
   addGallerySource,
   createGalleryPlaylist,
+  DEFAULT_GALLERY_SORT,
   GALLERY_ERROR_DUPLICATE,
   GALLERY_ERROR_LIMIT,
   GALLERY_PLAYLIST_NAME_MAX,
@@ -38,10 +41,13 @@ import {
   toggleGalleryPlaylistItem,
   toggleGalleryPlaylistSource,
   updateGalleryPlaylist,
+  updateGallerySort,
   type GalleryItem,
   type GalleryPlaylist,
   type GalleryPlaylistMutation,
   type GalleryPlaylistUse,
+  type GallerySort,
+  type GallerySortKey,
   type GallerySource,
 } from '../../../../api/gallery';
 import { clampGalleryPage, galleryKeepIds, galleryPageCount, galleryPageSlice } from './galleryPaging';
@@ -106,14 +112,35 @@ export function GalleryPage() {
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const pendingSavesRef = useRef(0);
   const editGenerationRef = useRef(0);
+  const [sort, setSort] = useState<GallerySort>(DEFAULT_GALLERY_SORT);
+  // Sort saves run one after another so the last click is also the one
+  // stored. A read's sort is taken only when no save was in flight from
+  // before it went out until it landed, and no change began meanwhile.
+  const sortChainRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSortSavesRef = useRef(0);
+  const sortSaveFailedRef = useRef(false);
+  const sortGenerationRef = useRef(0);
+  // A read applies only if it started after the last read that applied, and
+  // only a read that returned data advances that mark, so a failed newer read
+  // does not block an older good one still in flight.
+  const refreshSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const generation = editGenerationRef.current;
+    const sortGeneration = sortGenerationRef.current;
+    const sortSavesAtStart = pendingSortSavesRef.current;
+    const seq = ++refreshSeqRef.current;
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
+    if (seq <= appliedSeqRef.current || (!src?.sources && !itm?.items)) return;
+    appliedSeqRef.current = seq;
     if (src?.sources) setSources(src.sources);
     if (itm?.items) {
       setItems(itm.items);
       setTruncated(itm.truncated === true);
+      if (itm.sort && sortSavesAtStart === 0 && pendingSortSavesRef.current === 0 && sortGeneration === sortGenerationRef.current) {
+        setSort(itm.sort);
+      }
     }
     if (itm?.items && pendingSavesRef.current === 0 && generation === editGenerationRef.current) {
       setPlaylists(itm.playlists ?? []);
@@ -288,6 +315,35 @@ export function GalleryPage() {
       setPicking(null);
     }
   };
+
+  // A saved sort comes back through the service's 'gallery' broadcast, which
+  // refetches; only a failed save, which broadcasts nothing, reads back here.
+  const changeSort = (next: GallerySort) => {
+    sortGenerationRef.current++;
+    pendingSortSavesRef.current++;
+    setSort(next);
+    sortChainRef.current = sortChainRef.current
+      .then(() => updateGallerySort(next))
+      .then(saved => {
+        // Only the last save's outcome matters: it is what the service keeps.
+        sortSaveFailedRef.current = !saved;
+      })
+      .finally(() => {
+        pendingSortSavesRef.current--;
+        if (pendingSortSavesRef.current === 0 && sortSaveFailedRef.current) {
+          sortSaveFailedRef.current = false;
+          setActionError(t('gallery.page.sort.saveFailed'));
+          void refresh();
+        }
+      });
+  };
+
+  const sortOptions: { value: GallerySortKey; label: string }[] = [
+    { value: 'name', label: t('gallery.page.sort.name') },
+    { value: 'modified', label: t('gallery.page.sort.modified') },
+    { value: 'added', label: t('gallery.page.sort.added') },
+  ];
+  const directionLabel = sort.direction === 'asc' ? t('gallery.page.sort.ascending') : t('gallery.page.sort.descending');
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -469,7 +525,29 @@ export function GalleryPage() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <ViewHeader title={t('panel.widget.gallery')} />
+      <ViewHeader
+        title={t('panel.widget.gallery')}
+        tabActions={(
+          <>
+            <Select
+              value={sort.by}
+              options={sortOptions}
+              ariaLabel={t('gallery.page.sort.label')}
+              onChange={by => changeSort({ ...sort, by: by as GallerySortKey })}
+            />
+            <HoverTooltip body={directionLabel}>
+              <Button
+                size="sm"
+                tone="ghost"
+                icon={sort.direction === 'asc' ? <ArrowUpNarrowWide size={16} /> : <ArrowDownWideNarrow size={16} />}
+                aria-label={directionLabel}
+                onClick={() => changeSort({ ...sort, direction: sort.direction === 'asc' ? 'desc' : 'asc' })}
+              />
+            </HoverTooltip>
+            <InfoTooltip message={t('gallery.page.sort.info')} />
+          </>
+        )}
+      />
       <div className={`${styles.body} pageBody`}>
         {/* Static-width sources column (300px, matching the Lighting /
             Cooling device-column width); the library fills the rest. No

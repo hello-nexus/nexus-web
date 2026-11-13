@@ -4,6 +4,8 @@ import type { GaugeProps } from './types';
 import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import styles from './DialGauge.module.scss';
 
+// Share of the slot's short side the value may span: inside the tick band, clear of the label.
+const VALUE_INNER_FRACTION = 0.62;
 const START = 135;
 const SWEEP = 270;
 const TICKS = 19;
@@ -13,8 +15,6 @@ const TICK_OUTER = GAUGE_FIGURE_OUTER - STROKE / 2;
 const DESIGNED_TICK_OUTER = 43;
 const SCALE = TICK_OUTER / DESIGNED_TICK_OUTER;
 const TICK_INNER = 36 * SCALE;
-const NEEDLE = 33 * SCALE;
-const HUB = 4.5 * SCALE;
 
 function polar(r: number, deg: number): [number, number] {
   const rad = (deg * Math.PI) / 180;
@@ -23,7 +23,6 @@ function polar(r: number, deg: number): [number, number] {
 
 export function DialGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const [nx, ny] = polar(NEEDLE, START + (clamped / 100) * SWEEP);
   const ticks = Array.from({ length: TICKS }, (_, i) => {
     const deg = START + (i / (TICKS - 1)) * SWEEP;
     const [x1, y1] = polar(TICK_OUTER, deg);
@@ -46,12 +45,10 @@ export function DialGauge({ value, formatted, label, gradient }: GaugeProps) {
               style={t.on && gradient ? { stroke: gaugeGradientColorAt(gradient.stops, i / (TICKS - 1)) } : undefined}
             />
           ))}
-          <line x1="50" y1="50" x2={nx.toFixed(2)} y2={ny.toFixed(2)} className={styles.needle} />
-          <circle cx="50" cy="50" r={HUB.toFixed(2)} className={styles.hub} />
         </svg>
       </div>
       <div className={styles.info}>
-        <GaugeValue formatted={formatted} className={styles.value} />
+        <GaugeValue formatted={formatted} className={styles.value} innerFraction={VALUE_INNER_FRACTION} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

@@ -7,6 +7,10 @@ import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
+import { StatusRow } from '../components/common/StatusRow/StatusRow';
+import { groupedRules } from '../components/views/DiagnosticsView/thermalsHelpers';
+import { watchlistFixture } from '../components/views/DiagnosticsView/watchlistFixture';
+import { Badge } from '../components/common/Badge/Badge';
 import { Coachmark } from '../components/common/Coachmark/Coachmark';
 import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
@@ -86,6 +90,7 @@ import { OnboardingNote } from '../components/common/OnboardingNote/OnboardingNo
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
 import { OnboardingHeader } from '../components/common/OnboardingHeader/OnboardingHeader';
 import { OnboardingFooter } from '../components/common/OnboardingFooter/OnboardingFooter';
+import { BrightnessScheduleButton } from '../components/common/BrightnessScheduleButton/BrightnessScheduleButton';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -149,6 +154,8 @@ import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
+import { CurveGraph } from '../panel/widgets/cooling/page/CurveEditor';
+import { ChannelLayout, type ChannelNode } from '../components/common/ChannelLayout/ChannelLayout';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
 import { DEFAULT_GAUGE_GRADIENT, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
@@ -223,6 +230,35 @@ function PreviewSliderRange() {
   const [v, setV] = useState(800);
   return <Slider orientation="stacked" label="DPI" value={v} min={100} max={3200} step={50} showRange
     formatValue={x => `${x} DPI`} onChange={setV} />;
+}
+
+function PreviewCurveGraphEq() {
+  const [bands, setBands] = useState([4, 3, 2, 0, -4, -3, -3, 1, 2, 4]);
+  const hz = ['48Hz', '64Hz', '125Hz', '250Hz', '500Hz', '1KHz', '2KHz', '4KHz', '8KHz', '16KHz'];
+  const db = (v: number) => `${v > 0 ? '+' : ''}${v}dB`;
+  return (
+    <CurveGraph
+      points={bands.map((speed, temp) => ({ temp, speed }))}
+      height={230} tempMin={-0.5} tempMax={9.5} editable easing={'smooth'} keyboardStep={0.5}
+      axis={{ xTicks: bands.map((_, i) => i), formatX: v => hz[v] }}
+      yAxis={{ min: -20, max: 6, step: 0.5, lines: [0], labels: [{ value: 6, label: db(6) }, { value: -20, label: db(-20) }], formatValue: db }}
+      verticalDrag={{ isLocked: () => false, apply: (p, i, v) => p.map((pt, k) => (k === i ? { ...pt, speed: v } : pt)) }}
+      onChange={p => setBands(p.map(pt => pt.speed))}
+    />
+  );
+}
+
+function PreviewChannelLayout() {
+  const [lit, setLit] = useState<string | null>(null);
+  const spots: Record<string, { label: string; x: number; y: number }> = {
+    fl: { label: 'Front left', x: -0.5, y: -0.4 }, c: { label: 'Center', x: 0, y: -0.85 }, fr: { label: 'Front right', x: 0.5, y: -0.4 },
+    rl: { label: 'Rear left', x: -0.5, y: 0.55 }, rr: { label: 'Rear right', x: 0.5, y: 0.55 },
+  };
+  const nodes: ChannelNode[] = Object.entries(spots).map(([id, s]) => ({
+    id, label: s.label, pos: { x: s.x, y: s.y }, icon: <span aria-hidden>{id.toUpperCase()}</span>,
+    control: <StorybookStepper label={`${s.label} volume`} value={10} min={0} max={20} />,
+  }));
+  return <ChannelLayout nodes={nodes} activeId={lit} ariaLabel="Speakers" hint="Click to select." center={<span>Listener</span>} onActivate={setLit} />;
 }
 
 function PreviewEditableText() {
@@ -1294,6 +1330,30 @@ function PreviewRangeSliderSpeed() {
   );
 }
 
+function PreviewRangeSliderAlert() {
+  const [v, setV] = useState<[number, number]>([20, 85]);
+  const [lowOn, setLowOn] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setLowOn(on => !on)}>{lowOn ? 'Low bound on' : 'Low bound off'}</button>
+      <RangeSlider
+        orientation="stacked"
+        editable
+        softBounds
+        label="Temperature"
+        value={v}
+        min={0}
+        max={120}
+        lowEnabled={lowOn}
+        outsideTone="bad"
+        marker={{ value: 62, label: '62°C' }}
+        formatValue={x => `${x}°C`}
+        onChange={setV}
+      />
+    </>
+  );
+}
+
 function PreviewColorPickerWithPresets() {
   const [color, setColor] = useState<string>(PRESET_ACCENTS[0]);
   const [custom, setCustom] = useState('');
@@ -1419,6 +1479,36 @@ function PreviewEndTaskButton() {
   );
 }
 
+function PreviewWatchlistFifty() {
+  const [q, setQ] = useState('');
+  const sections = groupedRules(watchlistFixture(50)).map(sec => ({ ...sec, rules: sec.rules.filter(r => r.sensor.name.toLowerCase().includes(q.trim().toLowerCase())) })).filter(sec => sec.rules.length > 0);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 420, overflowY: 'auto' }}>
+      <SearchInput value={q} onChange={setQ} placeholder="Search sensors" />
+      {sections.map(sec => (
+        <div key={sec.group} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ opacity: 0.6, fontSize: 11 }}>{sec.group}</span>
+          {sec.rules.map(r => (
+            <StatusRow key={r.id} name={r.sensor.name} chip={<Badge label="OK" color="var(--good)" />} value="42" dimmed={!r.enabled} onSelect={() => {}} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PreviewStatusRow() {
+  return (
+    <div className={styles.previewStack}>
+      <StatusRow name="AMD Ryzen 7 9800X3D" subtitle="Core (Tctl/Tdie)" value="61 C" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} onSelect={() => {}} />
+      <StatusRow name="CPU Package" value="45 C" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} selected onSelect={() => {}} />
+      <StatusRow name="GPU Hot Spot" toggle={<Toggle checked={false} onChange={() => {}} ariaLabel="Enabled" />} dimmed onSelect={() => {}} />
+      <StatusRow name="NVIDIA GeForce RTX 5080 GPU Core Voltage" value="0.87 V" chip={<Badge label="OK" color="var(--good)" />} toggle={<Toggle checked onChange={() => {}} ariaLabel="Enabled" />} onSelect={() => {}} />
+      <StatusRow name="Pump" value="1,108 RPM 31%" chip={<Badge label="Stalled" color="var(--bad)" />} danger toggle={<Toggle checked onChange={() => {}} ariaLabel="Monitor" />} />
+    </div>
+  );
+}
+
 function PreviewConflictAppCard() {
   // Swallowed in capture phase, same as PreviewEndTaskButton - the card's End
   // Task button and its owner switch call the real /conflicts/kill endpoint
@@ -1451,6 +1541,16 @@ function PreviewConflictAppCard() {
         ]}
         onDisableAutostart={async () => true}
       />
+    </div>
+  );
+}
+
+function PreviewBrightnessScheduleButton() {
+  const sample = { scheduleOn: true, follows: true, onFollowsChange: () => {}, onTurnOn: () => {}, onEdit: () => {}, statusAt: () => 'Now 40%', capPercent: 40 };
+  return (
+    <div className={styles.previewRow}>
+      <BrightnessScheduleButton binding={{ ...sample, follows: true }} />
+      <BrightnessScheduleButton binding={{ ...sample, follows: false }} />
     </div>
   );
 }
@@ -2528,7 +2628,12 @@ function PreviewAreaCells() {
 
 function PreviewStepper() {
   const [v, setV] = useState(12);
-  return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
+  return (
+    <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+      <StorybookStepper value={v} min={0} max={59} onChange={setV} />
+      <StorybookStepper orientation="horizontal" pad={false} value={v} min={0} max={59} onChange={setV} />
+    </div>
+  );
 }
 
 function PreviewColorSlots() {
@@ -2690,7 +2795,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Stepper', category: 'inputs',
     filePath: 'src/components/common/Stepper/Stepper.tsx',
-    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping and disabled state. Host-renderer bridge for the SDK Stepper element.',
+    description: 'Compact vertical chevron stepper: up/down buttons flanking a zero-padded value display. Supports min/max clamping, disabled state and a label that names it for assistive tech, a horizontal form (minus, value, plus) and an option to show plain numbers instead of zero-padded ones. Host-renderer bridge for the SDK Stepper element.',
     Preview: PreviewStepper,
   },
   {
@@ -2722,6 +2827,16 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Stacked slider with min and max printed under the track. Used by any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
   },
   {
+    name: 'CurveGraph (fixed grid, eased)', category: 'inputs',
+    filePath: 'src/panel/widgets/cooling/page/CurveEditor.tsx',
+    description: 'The cooling fan-curve graph on a fixed grid, as the G560 equalizer uses it. Opt-in props: easing="smooth" draws a monotone cubic through the points (purely visual, values stay linear); axis.xTicks puts grid lines and labels on exact x values; yAxis sets another range, step, horizontal lines, edge labels and the value text; verticalDrag makes points move vertically only; keyboardStep makes each point focusable with up and down arrows (Shift for five steps). Without them the graph is the 0-100 duty curve.', Preview: PreviewCurveGraphEq,
+  },
+  {
+    name: 'ChannelLayout', category: 'inputs',
+    filePath: 'src/components/common/ChannelLayout/ChannelLayout.tsx',
+    description: 'Labeled nodes placed around a center, such as speakers around a listener. Positions run from -1 to 1 on each axis from the center. A click on a node reports onActivate; activeId lights one node. Every node stacks a round button (the icon), its label and an optional control such as a Stepper.', Preview: PreviewChannelLayout,
+  },
+  {
     name: 'RangeSlider (temperature)', category: 'inputs',
     filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'Dual-knob slider. Two thumbs with an accent band painted between them. Used in the cooling fan-curve linear band for temperature.', Preview: PreviewRangeSliderTemp,
@@ -2733,6 +2848,18 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Same RangeSlider primitive with a percent formatter. Used in the cooling fan-curve linear band for speed.', Preview: PreviewRangeSliderSpeed,
   },
   {
+    name: 'RangeSlider (one-sided, live marker)', category: 'inputs',
+    filePath: 'src/components/common/Slider/RangeSlider.tsx',
+    description: 'RangeSlider with lowEnabled / highEnabled (a disabled side hides its knob and the band runs to that edge), outsideTone (shades the track outside the band), marker (a live reading pointed at under the track) and softBounds (a typed value may widen the track). Used for sensor alert bounds.', Preview: PreviewRangeSliderAlert,
+    notes: 'All four props are optional and leave the dual-knob behavior unchanged. A one-sided band cannot be dragged as a unit.',
+  },
+  {
+    name: 'SensorAlertRuleSettings', category: 'cards',
+    filePath: 'src/components/views/DiagnosticsView/SensorAlertRuleSettings.tsx',
+    description: 'The alert settings of one tracked sensor, shown beside the Watchlist list: the sensor picker, an open-ended RangeSlider for the normal range (a knob on its track end means no limit), the raise delay with a one-line legend, the Urgent switch, the desktop notification switch, and Delete or Restore default. The panel opens with the alerts switch for the entry (the list rows carry no switch). Switching alerts off only stops the alerting: every setting stays visible and editable, and the sensor keeps its reading and its line on the chart.',
+    notes: 'No live preview - it reads live sensors through useSensorLookup and writes through useSensorAlerts.',
+  },
+  {
     name: 'SearchInput', category: 'inputs',
     filePath: 'src/components/common/SearchInput/SearchInput.tsx',
     description: 'Themed text input with a leading search icon and a clear button when non-empty. Replaces the duplicate inline implementations in SupportedDevicesModal, AppPicker, and the panel add-widget filter.', Preview: PreviewSearchInput,
@@ -2741,6 +2868,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'RailSearch', category: 'inputs',
     filePath: 'src/components/common/RailSearch/RailSearch.tsx',
     description: 'Looking-glass filter for a page device rail (lighting devices, cooling fans): RailSearchButton sits in the rail header, RailSearchField opens a focused SearchInput above the list, useRailSearch holds the state. Closing (button or Escape) clears the query. Pages match with matchesAllWords and pass the active flag down to switch off rail drag while filtered.', Preview: PreviewRailSearch,
+  },
+  {
+    name: 'BrightnessScheduleButton', category: 'inputs',
+    filePath: 'src/components/common/BrightnessScheduleButton/BrightnessScheduleButton.tsx',
+    description: 'The sun button beside every brightness label (master brightness, panel and display sliders). Accented while the control follows the one universal brightness schedule; opens the shared brightness settings. Left: following. Right: not following. Click opens a popover with the follow switch for the control it sits on, the schedule status and an Edit schedule action.', Preview: PreviewBrightnessScheduleButton,
   },
   {
     name: 'Toggle', category: 'inputs',
@@ -3000,6 +3132,16 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids); `fillHeight` fills the parent height and scrolls the body on its own instead of content-sizing (an inline detail sidebar); `selected` is the rail selected-item treatment (accent border + accent-soft fill, the lighting / cooling device cards); `role`/`ariaLabel` name the root as a landmark.', Preview: PreviewCard,
   },
   {
+    name: 'StatusRow', category: 'cards',
+    filePath: 'src/components/common/StatusRow/StatusRow.tsx',
+    description: 'List row for a monitored thing, built on Card: name on the left, the reading with its status chip stacked beneath it and right-aligned, then the on/off switch at the far right. An optional dim `subtitle` line (the sensor behind the name) keeps the name to one line. The reading never wraps; a long name takes the squeeze (two lines, then an ellipsis with the full name in a tooltip). A row with no reading (switched off) shows name and switch only. Used by the Diagnostics Sensors watchlist (no switch there; the switch lives in the sensor settings panel) and its fans list.', Preview: PreviewStatusRow,
+  },
+  {
+    name: 'Watchlist (50 entries)', category: 'cards',
+    filePath: 'src/components/views/DiagnosticsView/watchlistFixture.ts',
+    description: 'The Sensors watchlist at its 50-entry cap: six unit groups with a heading each, built-ins first, filtered by the search box above.', Preview: PreviewWatchlistFifty,
+  },
+  {
     name: 'DomainGlyph', category: 'cards',
     filePath: 'src/components/common/DomainGlyph/DomainGlyph.tsx',
     description: 'Large faint icon silhouette bled off a card edge, behind its content. Pass any LucideIcon; size defaults to 136. The host card supplies position: relative; overflow: hidden; isolation: isolate so the glyph paints above the card surface but beneath its text.', Preview: PreviewDomainGlyph,
@@ -3070,7 +3212,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'GuardTripNotice', category: 'cards',
     filePath: 'src/components/views/DiagnosticsView/GuardTripNotice.tsx',
-    description: 'Notice at the top of the Diagnostics Cooling tab for a thermal guard trip nobody has dismissed. An ended trip shows when it happened, the peak and the cause with a Dismiss button; a trip still in progress shows an Open Cooling link and no Dismiss; a failed dismissal shows an inline error. Gone once acknowledged.',
+    description: 'Notice at the top of the Diagnostics Thermals tab for a thermal guard trip nobody has dismissed. An ended trip shows when it happened, the peak and the cause with a Dismiss button; a trip still in progress shows an Open Cooling link and no Dismiss; a failed dismissal shows an inline error. Gone once acknowledged.',
     Preview: PreviewGuardTripNotice,
   },
   {
@@ -3351,7 +3493,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'TimeSeriesChart', category: 'charts',
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
-    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
+    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. `activeSeriesId` highlights one line and `onSeriesSelect` turns the legend items into buttons that report their series. Used by the Diagnostics Thermals tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
     notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null. yAxisSide flips the tick-label lane to the right edge (the Monitoring history chart\'s convention). ribbons renders fixed-height, opacity-modulated bands (e.g. temperature) INSIDE the plot, stacked under the line and sharing its own x-domain/pixel mapping - each segment\'s opacity maps linearly from that ribbon\'s own window-observed min/max, and each ribbon carries its own points, fill, optional icon, and optional right-edge valueLabel.',
   },
   {
@@ -3805,7 +3947,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
     description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Undo / Redo icon buttons via showHistory, plus a Reset button when onReset is supplied. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
-    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckInstance and requires a running service.',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckInstance and requires a running service. presetsHeader puts a group header over the presets, inlineSave adds a Save button beside the select that opens the new-preset prompt, and reservedNames blocks names the caller lists itself (the G560 EQ uses all three with a built-in Manual entry).',
   },
   {
     name: 'CorsairDevicePage', category: 'panel-kit',

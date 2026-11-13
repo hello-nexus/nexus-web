@@ -14,7 +14,6 @@ import {
   fetchPreferences, savePreferences,
   type Preferences as ServerPreferences,
   type PreferencesPatch,
-  type DiagnosticsThresholds,
   type DiagnosticsNotificationPrefs,
   type DiagnosticsComponentPrefs,
   type FeaturesPrefs,
@@ -144,6 +143,8 @@ export interface UiSettingsValue {
   startupDelaySeconds: number;
   // Machine-level, server-mirrored under the preferences top-level readRamTemperatures field.
   readRamTemperatures: boolean;
+  // Machine-level, server-mirrored under the preferences top-level powerMonitorsEnabled field.
+  powerMonitorsEnabled: boolean;
   // Linux-only, server-mirrored under the preferences top-level amdGpuLighting field.
   amdGpuLighting: boolean;
   // Read-only: the service reports whether the switch applies on this host.
@@ -162,24 +163,13 @@ export interface UiSettingsValue {
   // Diagnostics Settings tab preferences (preferences.diagnostics), server-only
   // like the update block above. Flattened leaves of the wire contract -
   // see DIAGNOSTICS_SETTINGS_DEFAULTS below for the contract defaults.
-  diagnosticsCpuTempC: number;
-  diagnosticsGpuTempC: number;
-  diagnosticsStorageTempC: number;
-  diagnosticsRamTempC: number;
-  diagnosticsWarningLingerMinutes: number;
   diagnosticsNotificationsEnabled: boolean;
-  diagnosticsNotifyHighTemp: boolean;
   diagnosticsNotifyStorageHealth: boolean;
   diagnosticsNotifyCooling: boolean;
   diagnosticsNotifyMemoryTest: boolean;
   diagnosticsNotifySystemDevices: boolean;
   diagnosticsNotifyGpuThrottle: boolean;
   diagnosticsNotificationCooldownMinutes: number;
-  diagnosticsComponentCpu: boolean;
-  diagnosticsComponentGpu: boolean;
-  diagnosticsComponentStorage: boolean;
-  diagnosticsComponentRam: boolean;
-  diagnosticsComponentCooling: boolean;
   diagnosticsComponentSystem: boolean;
   diagnosticsIgnoredComponents: string[];
 }
@@ -188,27 +178,17 @@ export interface UiSettingsValue {
  *  DiagnosticsSettings defaults (TemperatureInsights.cs). Used for the
  *  pre-hydrate seed below and by the Settings tab's Reset action. */
 export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
-  cpuTempC: 90,
-  gpuTempC: 85,
-  storageTempC: 70,
-  ramTempC: 60,
-  warningLingerMinutes: 0,
-  // Master switch off by default; every category on, so turning notifications
-  // on alerts for all of them without extra setup. Mirrors the service
-  // DiagnosticsNotifications defaults.
-  notificationsEnabled: false,
-  notifyHighTemp: true,
+  // Master switch and every category on by default, so a new install alerts
+  // without extra setup. Mirrors the service DiagnosticsNotifications defaults.
+  notificationsEnabled: true,
   notifyStorageHealth: true,
   notifyCooling: true,
   notifyMemoryTest: true,
   notifySystemDevices: true,
   notifyGpuThrottle: true,
   notificationCooldownMinutes: 60,
-  componentCpu: true,
-  componentGpu: true,
-  componentStorage: true,
-  componentRam: true,
-  componentCooling: true,
+  sensorNotifications: true,
+  sensorCooldownMinutes: 60,
   componentSystem: true,
   ignoredComponents: [] as string[],
 } as const;
@@ -285,6 +265,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
     readRamTemperatures: src.general.readRamTemperatures,
+    powerMonitorsEnabled: src.general.powerMonitorsEnabled,
     amdGpuLighting: src.general.amdGpuLighting,
     amdGpuLightingApplicable: false,
     featureLightingEnabled: src.general.featureLightingEnabled,
@@ -294,24 +275,13 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
     lastDismissedUpdateVersion: '',
-    diagnosticsCpuTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.cpuTempC,
-    diagnosticsGpuTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.gpuTempC,
-    diagnosticsStorageTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.storageTempC,
-    diagnosticsRamTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.ramTempC,
-    diagnosticsWarningLingerMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes,
     diagnosticsNotificationsEnabled: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationsEnabled,
-    diagnosticsNotifyHighTemp: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyHighTemp,
     diagnosticsNotifyStorageHealth: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyStorageHealth,
     diagnosticsNotifyCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyCooling,
     diagnosticsNotifyMemoryTest: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyMemoryTest,
     diagnosticsNotifySystemDevices: DIAGNOSTICS_SETTINGS_DEFAULTS.notifySystemDevices,
     diagnosticsNotifyGpuThrottle: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyGpuThrottle,
     diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
-    diagnosticsComponentCpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCpu,
-    diagnosticsComponentGpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentGpu,
-    diagnosticsComponentStorage: DIAGNOSTICS_SETTINGS_DEFAULTS.componentStorage,
-    diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
-    diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
     diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
     diagnosticsIgnoredComponents: DIAGNOSTICS_SETTINGS_DEFAULTS.ignoredComponents,
   };
@@ -364,6 +334,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
       readRamTemperatures: src.readRamTemperatures,
+      powerMonitorsEnabled: src.powerMonitorsEnabled,
       amdGpuLighting: src.amdGpuLighting,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
@@ -443,6 +414,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
   if (patch.readRamTemperatures !== undefined) out.readRamTemperatures = patch.readRamTemperatures;
+  if (patch.powerMonitorsEnabled !== undefined) out.powerMonitorsEnabled = patch.powerMonitorsEnabled;
   if (patch.amdGpuLighting !== undefined) out.amdGpuLighting = patch.amdGpuLighting;
   // features block
   const features: FeaturesPrefs = {};
@@ -452,14 +424,8 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.featureDiagnosticsEnabled !== undefined) features.diagnostics = patch.featureDiagnosticsEnabled;
   if (Object.keys(features).length > 0) out.features = features;
   // diagnostics block
-  const thresholds: Partial<DiagnosticsThresholds> = {};
-  if (patch.diagnosticsCpuTempC !== undefined) thresholds.cpuC = patch.diagnosticsCpuTempC;
-  if (patch.diagnosticsGpuTempC !== undefined) thresholds.gpuC = patch.diagnosticsGpuTempC;
-  if (patch.diagnosticsStorageTempC !== undefined) thresholds.storageC = patch.diagnosticsStorageTempC;
-  if (patch.diagnosticsRamTempC !== undefined) thresholds.ramC = patch.diagnosticsRamTempC;
   const notifications: Partial<DiagnosticsNotificationPrefs> = {};
   if (patch.diagnosticsNotificationsEnabled !== undefined) notifications.enabled = patch.diagnosticsNotificationsEnabled;
-  if (patch.diagnosticsNotifyHighTemp !== undefined) notifications.highTemp = patch.diagnosticsNotifyHighTemp;
   if (patch.diagnosticsNotifyStorageHealth !== undefined) notifications.storageHealth = patch.diagnosticsNotifyStorageHealth;
   if (patch.diagnosticsNotifyCooling !== undefined) notifications.cooling = patch.diagnosticsNotifyCooling;
   if (patch.diagnosticsNotifyMemoryTest !== undefined) notifications.memoryTest = patch.diagnosticsNotifyMemoryTest;
@@ -467,15 +433,8 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.diagnosticsNotifyGpuThrottle !== undefined) notifications.gpuThrottle = patch.diagnosticsNotifyGpuThrottle;
   if (patch.diagnosticsNotificationCooldownMinutes !== undefined) notifications.cooldownMinutes = patch.diagnosticsNotificationCooldownMinutes;
   const components: Partial<DiagnosticsComponentPrefs> = {};
-  if (patch.diagnosticsComponentCpu !== undefined) components.cpu = patch.diagnosticsComponentCpu;
-  if (patch.diagnosticsComponentGpu !== undefined) components.gpu = patch.diagnosticsComponentGpu;
-  if (patch.diagnosticsComponentStorage !== undefined) components.storage = patch.diagnosticsComponentStorage;
-  if (patch.diagnosticsComponentRam !== undefined) components.ram = patch.diagnosticsComponentRam;
-  if (patch.diagnosticsComponentCooling !== undefined) components.cooling = patch.diagnosticsComponentCooling;
   if (patch.diagnosticsComponentSystem !== undefined) components.system = patch.diagnosticsComponentSystem;
   const diagnostics: PreferencesPatch['diagnostics'] = {};
-  if (Object.keys(thresholds).length > 0) diagnostics.thresholds = thresholds;
-  if (patch.diagnosticsWarningLingerMinutes !== undefined) diagnostics.warningLingerMinutes = patch.diagnosticsWarningLingerMinutes;
   if (Object.keys(notifications).length > 0) diagnostics.notifications = notifications;
   if (Object.keys(components).length > 0) diagnostics.components = components;
   if (patch.diagnosticsIgnoredComponents !== undefined) diagnostics.ignoredComponents = patch.diagnosticsIgnoredComponents;
@@ -580,30 +539,20 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
     readRamTemperatures: server.readRamTemperatures ?? base.readRamTemperatures,
+    powerMonitorsEnabled: server.powerMonitorsEnabled ?? base.powerMonitorsEnabled,
     amdGpuLighting: server.amdGpuLighting ?? base.amdGpuLighting,
     amdGpuLightingApplicable: server.amdGpuLightingApplicable === true,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
     featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
     featureMonitoringEnabled: server.features?.monitoring ?? base.featureMonitoringEnabled,
     featureDiagnosticsEnabled: server.features?.diagnostics ?? base.featureDiagnosticsEnabled,
-    diagnosticsCpuTempC: server.diagnostics?.thresholds?.cpuC ?? base.diagnosticsCpuTempC,
-    diagnosticsGpuTempC: server.diagnostics?.thresholds?.gpuC ?? base.diagnosticsGpuTempC,
-    diagnosticsStorageTempC: server.diagnostics?.thresholds?.storageC ?? base.diagnosticsStorageTempC,
-    diagnosticsRamTempC: server.diagnostics?.thresholds?.ramC ?? base.diagnosticsRamTempC,
-    diagnosticsWarningLingerMinutes: server.diagnostics?.warningLingerMinutes ?? base.diagnosticsWarningLingerMinutes,
     diagnosticsNotificationsEnabled: server.diagnostics?.notifications?.enabled ?? base.diagnosticsNotificationsEnabled,
-    diagnosticsNotifyHighTemp: server.diagnostics?.notifications?.highTemp ?? base.diagnosticsNotifyHighTemp,
     diagnosticsNotifyStorageHealth: server.diagnostics?.notifications?.storageHealth ?? base.diagnosticsNotifyStorageHealth,
     diagnosticsNotifyCooling: server.diagnostics?.notifications?.cooling ?? base.diagnosticsNotifyCooling,
     diagnosticsNotifyMemoryTest: server.diagnostics?.notifications?.memoryTest ?? base.diagnosticsNotifyMemoryTest,
     diagnosticsNotifySystemDevices: server.diagnostics?.notifications?.systemDevices ?? base.diagnosticsNotifySystemDevices,
     diagnosticsNotifyGpuThrottle: server.diagnostics?.notifications?.gpuThrottle ?? base.diagnosticsNotifyGpuThrottle,
     diagnosticsNotificationCooldownMinutes: server.diagnostics?.notifications?.cooldownMinutes ?? base.diagnosticsNotificationCooldownMinutes,
-    diagnosticsComponentCpu: server.diagnostics?.components?.cpu ?? base.diagnosticsComponentCpu,
-    diagnosticsComponentGpu: server.diagnostics?.components?.gpu ?? base.diagnosticsComponentGpu,
-    diagnosticsComponentStorage: server.diagnostics?.components?.storage ?? base.diagnosticsComponentStorage,
-    diagnosticsComponentRam: server.diagnostics?.components?.ram ?? base.diagnosticsComponentRam,
-    diagnosticsComponentCooling: server.diagnostics?.components?.cooling ?? base.diagnosticsComponentCooling,
     diagnosticsComponentSystem: server.diagnostics?.components?.system ?? base.diagnosticsComponentSystem,
     diagnosticsIgnoredComponents: server.diagnostics?.ignoredComponents ?? base.diagnosticsIgnoredComponents,
   };
@@ -680,6 +629,7 @@ export function UiSettingsProvider({
       || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined
       || serverPatch.readRamTemperatures !== undefined
+      || serverPatch.powerMonitorsEnabled !== undefined
       || serverPatch.amdGpuLighting !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -913,17 +863,6 @@ export function useUnitPrefs(): {
     monitoringWholeNumbers: ctx.settings.monitoringWholeNumbers,
     dateFormat: ctx.settings.dateFormat,
   };
-}
-
-/**
- * Read-only accessor for how long a temperature warning lingers after the
- * episode ends (minutes; 0 = clears immediately). Returns the contract default
- * outside a UiSettingsProvider (tests, harness) so callers degrade instead of
- * crashing - same pattern as {@link useUnitPrefs}.
- */
-export function useDiagnosticsWarningLingerMinutes(): number {
-  const ctx = useContext(UiSettingsContext);
-  return ctx ? ctx.settings.diagnosticsWarningLingerMinutes : DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes;
 }
 
 const NO_IGNORED_COMPONENTS: string[] = [];

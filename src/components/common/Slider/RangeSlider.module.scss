@@ -50,6 +50,9 @@
 
 .valueGroup {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
   align-items: baseline;
   gap: 0.25rem;
 }
@@ -63,7 +66,9 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 0 0.5rem;
 }
 
 /* Track container: a fixed-height row that hosts the painted underlay,
@@ -123,4 +128,43 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   margin-top: 0.15rem;
+}
+
+// Shading outside the band (outsideTone): same bar as the underlay, tinted
+// by tone. Solid color plus opacity, since color-mix is unavailable on Chromium 83.
+.outside {
+  position: absolute;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.warn { background: var(--warn); }
+.bad { background: var(--bad); }
+
+// A one-sided band is not draggable as a unit.
+.bandStatic {
+  cursor: default;
+  pointer-events: none;
+}
+
+// A disabled side keeps its input mounted (stable DOM) but shows and takes nothing.
+.knobOff {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.markedColumn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+// The track box is taller than its bar; pull the live marker up so it hangs close under the bar.
+.markWrap {
+  margin-top: -0.6rem;
 }

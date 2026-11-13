@@ -1,9 +1,14 @@
 // @vitest-environment node
+import { Gauge } from 'lucide-react';
+import { DOMAIN_ICON, domainTitleKey } from './diagnosticsHelpers';
 import { describe, expect, it } from 'vitest';
 import en from '../../../locales/en.json';
 import {
   aggregateDomainTiles,
+  coolingDetailKey,
   coolingStatusColor,
+  coolingStatusLabelKey,
+  driveStatusLabelKey,
   driveStatusColor,
   durationToken,
   formatBytes,
@@ -26,6 +31,21 @@ describe('statusColor', () => {
     expect(statusColor('watch')).toBe('var(--warn)');
     expect(statusColor('act')).toBe('var(--bad)');
     expect(statusColor('unknown')).toBe('var(--text-dim)');
+  });
+});
+
+describe('shared status ladder', () => {
+  it('maps drive and fan states onto the three levels', () => {
+    expect(driveStatusLabelKey('good')).toBe('diagnostics.status.ok');
+    expect(driveStatusLabelKey('caution')).toBe('diagnostics.status.watch');
+    expect(driveStatusLabelKey('warning')).toBe('diagnostics.status.watch');
+    expect(driveStatusLabelKey('bad')).toBe('diagnostics.status.act');
+    expect(driveStatusLabelKey('unknown')).toBe('diagnostics.status.unknown');
+    expect(coolingStatusLabelKey('ok')).toBe('diagnostics.status.ok');
+    expect(coolingStatusLabelKey('suspect')).toBe('diagnostics.status.watch');
+    expect(coolingStatusLabelKey('stalled')).toBe('diagnostics.status.act');
+    expect(coolingDetailKey('stalled')).toBe('diagnostics.cooling.status.stalled');
+    expect(coolingDetailKey('ok')).toBeNull();
   });
 });
 
@@ -171,8 +191,8 @@ describe('aggregateDomainTiles', () => {
   const comp = (kind: DiagnosticsComponent['kind'], status: DiagnosticsComponent['status'], reasons: DiagnosticsReason[] = []): DiagnosticsComponent =>
     ({ id: `${kind}:x`, kind, name: kind, status, reasons });
 
-  it('always returns the four domains in storage/memory/cooling/system order', () => {
-    expect(aggregateDomainTiles([]).map(t => t.domain)).toEqual(['storage', 'memory', 'cooling', 'system']);
+  it('always returns the four domains in cooling/storage/memory/system order', () => {
+    expect(aggregateDomainTiles([]).map(t => t.domain)).toEqual(['cooling', 'storage', 'memory', 'system']);
   });
 
   it('marks a domain with no component as unknown, an unflagged domain as ok', () => {
@@ -190,6 +210,20 @@ describe('aggregateDomainTiles', () => {
     const cooling = tiles.find(t => t.domain === 'cooling');
     expect(cooling?.status).toBe('watch');
     expect(cooling?.reasons).toContain(gpuReason);
+  });
+
+  it('grades the Cooling tile by active Watchlist alerts and carries their reasons', () => {
+    const alertReason: DiagnosticsReason = { code: 'alerts.sensorThreshold', severity: 'act', summary: 'CPU above 40', detail: 'd' };
+    const tiles = aggregateDomainTiles([
+      comp('cooling', 'ok'),
+      { id: 'alert:1', kind: 'alerts', name: 'CPU', status: 'act', reasons: [alertReason] },
+      { id: 'alert:2', kind: 'alerts', name: 'GPU', status: 'watch', reasons: [] },
+    ]);
+    const cooling = tiles.find(t => t.domain === 'cooling');
+    expect(cooling?.status).toBe('act');
+    expect(cooling?.reasons).toEqual([alertReason]);
+    expect(aggregateDomainTiles([comp('cooling', 'ok'), { id: 'alert:1', kind: 'alerts', name: 'CPU', status: 'act', reasons: [alertReason] }], { alertReasons: false }).find(t => t.domain === 'cooling')?.reasons).toEqual([]);
+    expect(aggregateDomainTiles([comp('cooling', 'ok'), comp('alerts', 'watch')]).find(t => t.domain === 'cooling')?.status).toBe('watch');
   });
 
   it('takes the worst status across multiple same-domain components', () => {
@@ -264,7 +298,7 @@ describe('incidentAppFaultLine', () => {
 });
 
 describe('visibleDiagnosticsTabs', () => {
-  const allTabs = ['summary', 'storage', 'memory', 'cooling', 'system', 'settings'];
+  const allTabs = ['summary', 'cooling', 'storage', 'memory', 'system'];
 
   it('shows every tab on windows', () => {
     expect(visibleDiagnosticsTabs('windows')).toEqual(allTabs);
@@ -275,10 +309,18 @@ describe('visibleDiagnosticsTabs', () => {
   });
 
   it('hides Memory on linux (no Linux equivalent of Windows Memory Diagnostic)', () => {
-    expect(visibleDiagnosticsTabs('linux')).toEqual(['summary', 'storage', 'cooling', 'system', 'settings']);
+    expect(visibleDiagnosticsTabs('linux')).toEqual(['summary', 'cooling', 'storage', 'system']);
   });
 
-  it('keeps only Summary/Cooling/Settings on macos (no SMART/PnP/event-log diagnostics)', () => {
-    expect(visibleDiagnosticsTabs('macos')).toEqual(['summary', 'cooling', 'settings']);
+  it('keeps only Summary/Sensors/Cooling on macos (no SMART/PnP/event-log diagnostics)', () => {
+    expect(visibleDiagnosticsTabs('macos')).toEqual(['summary', 'cooling']);
+  });
+});
+
+describe('cooling domain tile', () => {
+  it('is titled and iconed like the Sensors tab', () => {
+    expect(domainTitleKey('cooling')).toBe('diagnostics.tab.thermals');
+    expect(domainTitleKey('storage')).toBe('diagnostics.kind.storage');
+    expect(DOMAIN_ICON.cooling).toBe(Gauge);
   });
 });

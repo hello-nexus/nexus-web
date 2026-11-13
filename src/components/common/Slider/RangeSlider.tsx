@@ -1,6 +1,8 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
 import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
+import { NATIVE_KNOB_PX } from './Slider';
+import { SliderMarks } from './SliderMarks';
 import styles from './RangeSlider.module.scss';
 
 /*
@@ -30,6 +32,19 @@ import styles from './RangeSlider.module.scss';
  * Close thumbs overlap, and the later input wins the hit test. Past the
  * track midpoint the min knob is raised above the max knob, so the thumb on
  * top is always the one with room to move away.
+ *
+ * One-sided and live use (sensor alert bounds): `lowEnabled` / `highEnabled`
+ * false hide that side's knob and value, and the band runs to that edge. The
+ * hidden side's value is ignored by the gap clamp. `outsideTone` shades the
+ * track outside the band on the enabled sides, `marker` points a live reading
+ * under the track (stacked and bare layouts), and `softBounds` lets a typed
+ * value land beyond min/max so the caller can widen the track.
+ *
+ * Open-ended use (`openEnded`, sensor alert limits): both knobs always stay on
+ * screen. A side whose limit is off (`lowEnabled` / `highEnabled` false) parks
+ * its knob at the track end, drawn hollow, and reads its off label. Dragging a
+ * knob onto its end, typing a value at or past it, or clearing the field is
+ * reported as the end value, which the caller reads as "no limit".
  */
 export interface RangeSliderProps {
   label?: string;
@@ -50,7 +65,24 @@ export interface RangeSliderProps {
   ariaLabelMin?: string;
   ariaLabelMax?: string;
   className?: string;
+  /** False hides the low knob and value; the band then starts at the track's left edge. Default true. */
+  lowEnabled?: boolean;
+  /** False hides the high knob and value; the band then ends at the track's right edge. Default true. */
+  highEnabled?: boolean;
+  /** A live reading pointed at under the track; `label` is its caption. Stacked and bare layouts. */
+  marker?: { value: number; label: string };
+  /** Shades the track outside the band on each enabled side. */
+  outsideTone?: 'warn' | 'bad';
+  /** A typed value may go beyond min/max (the caller widens the track); dragging stays inside. */
+  softBounds?: boolean;
+  /** Keeps both knobs visible when a side is off: the off knob sits hollow at its track end. */
+  openEnded?: boolean;
+  /** Readout of an off low side (openEnded). */
+  lowOffLabel?: string;
+  /** Readout of an off high side (openEnded). */
+  highOffLabel?: string;
 }
+
 
 // Default knob separation as a share of the track span.
 const DEFAULT_GAP_FRACTION = 1 / 40;
@@ -68,6 +100,8 @@ export function RangeSlider({
   orientation = 'inline', editable = false, showRange = false,
   formatValue, minGap, onChange, onCommit, disabled,
   ariaLabelMin, ariaLabelMax, className,
+  lowEnabled = true, highEnabled = true, marker, outsideTone, softBounds = false,
+  openEnded = false, lowOffLabel, highOffLabel,
 }: RangeSliderProps) {
   const [valMin, valMax] = value;
   const span = max - min;
@@ -93,8 +127,9 @@ export function RangeSlider({
   }, []);
 
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  const minPct = clamp(((valMin - min) / span) * 100, 0, 100);
-  const maxPct = clamp(((valMax - min) / span) * 100, 0, 100);
+  const minPct = lowEnabled ? clamp(((valMin - min) / span) * 100, 0, 100) : 0;
+  const maxPct = highEnabled ? clamp(((valMax - min) / span) * 100, 0, 100) : 100;
+  const bothEnabled = lowEnabled && highEnabled;
 
   const commitValue = (next: [number, number], commit = false) => {
     latestRef.current = next;
@@ -102,13 +137,15 @@ export function RangeSlider({
   };
 
   const handleMinChange = (raw: number, commit = false) => {
-    const next = clamp(raw, min, valMax - gap);
+    const lo = softBounds && commit ? Number.NEGATIVE_INFINITY : min;
+    const next = clamp(raw, lo, highEnabled || openEnded ? valMax - gap : max);
     if (next === valMin && !commit) return;
     commitValue([next, valMax], commit);
   };
 
   const handleMaxChange = (raw: number, commit = false) => {
-    const next = clamp(raw, valMin + gap, max);
+    const hi = softBounds && commit ? Number.POSITIVE_INFINITY : max;
+    const next = clamp(raw, lowEnabled || openEnded ? valMin + gap : min, hi);
     if (next === valMax && !commit) return;
     commitValue([valMin, next], commit);
   };
@@ -126,7 +163,7 @@ export function RangeSlider({
   };
 
   const onBandDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (disabled) return;
+    if (disabled || !bothEnabled) return;
     const parent = e.currentTarget.parentElement;
     if (!parent) return;
     const rect = parent.getBoundingClientRect();
@@ -172,18 +209,32 @@ export function RangeSlider({
   // so pass the slider's true min/max here (not the gap-narrowed bounds) -
   // otherwise on non-integer steps the typed grid is offset from the slider's.
   // The gap clamp happens in handleMinChange / handleMaxChange.
+  const lowShown = lowEnabled || openEnded;
+  const highShown = highEnabled || openEnded;
+  const lowFormat = openEnded && !lowEnabled && lowOffLabel ? () => lowOffLabel : formatValue;
+  const highFormat = openEnded && !highEnabled && highOffLabel ? () => highOffLabel : formatValue;
+  const lowText = openEnded && !lowEnabled && lowOffLabel ? lowOffLabel : fmt(valMin);
+  const highText = openEnded && !highEnabled && highOffLabel ? highOffLabel : fmt(valMax);
   const valueNode = editable ? (
     <span className={styles.valueGroup}>
-      <EditableNumber value={valMin} min={min} max={max} step={step}
-        onCommit={v => handleMinChange(v, true)} format={formatValue}
-        className={styles.value} ariaLabel={ariaLabelMin} disabled={disabled} />
-      <span className={styles.valueSep} aria-hidden="true">-</span>
-      <EditableNumber value={valMax} min={min} max={max} step={step}
-        onCommit={v => handleMaxChange(v, true)} format={formatValue}
-        className={styles.value} ariaLabel={ariaLabelMax} disabled={disabled} />
+      {lowShown && (
+        <EditableNumber value={valMin} min={min} max={max} step={step}
+          onCommit={v => handleMinChange(v, true)} format={lowFormat} unbounded={softBounds || openEnded}
+          emptyValue={openEnded ? min : undefined}
+          className={styles.value} ariaLabel={ariaLabelMin} disabled={disabled} />
+      )}
+      {lowShown && highShown && <span className={styles.valueSep} aria-hidden="true">-</span>}
+      {highShown && (
+        <EditableNumber value={valMax} min={min} max={max} step={step}
+          onCommit={v => handleMaxChange(v, true)} format={highFormat} unbounded={softBounds || openEnded}
+          emptyValue={openEnded ? max : undefined}
+          className={styles.value} ariaLabel={ariaLabelMax} disabled={disabled} />
+      )}
     </span>
   ) : (
-    <span className={styles.value}>{fmt(valMin)} - {fmt(valMax)}</span>
+    <span className={styles.value}>
+      {lowShown && lowText}{lowShown && highShown && ' - '}{highShown && highText}
+    </span>
   );
 
   const bandStyle: CSSProperties = {
@@ -194,36 +245,61 @@ export function RangeSlider({
   const trackInner = (
     <>
       <div className={styles.trackBg} aria-hidden="true" />
-      <div className={styles.trackBand} aria-hidden="true"
+      {outsideTone && lowEnabled && (
+        <div className={`${styles.outside} ${styles[outsideTone]}`} aria-hidden="true"
+          data-outside="low" style={{ left: 0, width: `${minPct}%` }} />
+      )}
+      {outsideTone && highEnabled && (
+        <div className={`${styles.outside} ${styles[outsideTone]}`} aria-hidden="true"
+          data-outside="high" style={{ left: `${maxPct}%`, width: `${100 - maxPct}%` }} />
+      )}
+      <div className={`${styles.trackBand} ${bothEnabled ? '' : styles.bandStatic}`} aria-hidden="true"
         style={bandStyle}
         onPointerDown={onBandDown}
         onPointerMove={onBandMove}
         onPointerUp={onBandUp}
         onPointerCancel={onBandUp} />
-      <input type="range" min={min} max={max} step={step} value={valMin}
+      <input type="range" min={min} max={max} step={step} value={clamp(valMin, min, max)}
         disabled={disabled} aria-label={ariaLabelMin}
         data-range-knob="min"
+        aria-hidden={lowEnabled || openEnded ? undefined : true} tabIndex={lowEnabled || openEnded ? undefined : -1}
+        data-unset={openEnded && !lowEnabled ? 'true' : undefined}
         style={minPct > 50 ? { zIndex: 1 } : undefined}
         onChange={e => handleMinChange(Number(e.target.value), false)}
         onPointerUp={handleEnd}
         onPointerCancel={handleEnd}
         onKeyUp={handleEnd}
-        className={styles.range} />
-      <input type="range" min={min} max={max} step={step} value={valMax}
+        className={`${styles.range} ${lowEnabled || openEnded ? '' : styles.knobOff}`} />
+      <input type="range" min={min} max={max} step={step} value={clamp(valMax, min, max)}
         disabled={disabled} aria-label={ariaLabelMax}
         data-range-knob="max"
+        aria-hidden={highEnabled || openEnded ? undefined : true} tabIndex={highEnabled || openEnded ? undefined : -1}
+        data-unset={openEnded && !highEnabled ? 'true' : undefined}
         onChange={e => handleMaxChange(Number(e.target.value), false)}
         onPointerUp={handleEnd}
         onPointerCancel={handleEnd}
         onKeyUp={handleEnd}
-        className={styles.range} />
+        className={`${styles.range} ${highEnabled || openEnded ? '' : styles.knobOff}`} />
     </>
   );
+
+  const markNode = marker ? (
+    <div className={styles.markWrap}>
+      <SliderMarks marks={[{ value: marker.value, label: marker.label }]} min={min} max={max} knobPx={NATIVE_KNOB_PX} side="below" />
+    </div>
+  ) : null;
 
   if (orientation === 'bare') {
     return (
       <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
-        <div className={styles.track}>{trackInner}</div>
+        {markNode ? (
+          <div className={styles.markedColumn}>
+            <div className={styles.track}>{trackInner}</div>
+            {markNode}
+          </div>
+        ) : (
+          <div className={styles.track}>{trackInner}</div>
+        )}
       </div>
     );
   }
@@ -236,6 +312,7 @@ export function RangeSlider({
           {valueNode}
         </div>
         <div className={styles.track}>{trackInner}</div>
+        {markNode}
         {showRange && (
           <div className={styles.rangeLabels}>
             <span>{fmt(min)}</span>

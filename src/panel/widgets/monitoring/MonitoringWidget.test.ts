@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
 import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
-import { labelForDevice, percentForSensor, resolveSensor, staticMaxForDevice } from './MonitoringWidget';
+import { isSavedSensorMissing, labelForDevice, percentForSensor, resolveSensor, staticMaxForDevice } from './MonitoringWidget';
 
 function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; type: string }): HardwareSensor {
   return { value: 0, units: '', formatted: '', parent: { id: '', name: '' }, ...partial };
@@ -255,5 +255,54 @@ describe('resolveSensor + labelForDevice - gpu2', () => {
   it('captions a second-card slot "GPU 2 <sensor>"', () => {
     expect(labelForDevice('gpu2', 'GPU Core')).toBe('GPU 2 Core');
     expect(labelForDevice('gpu2', '')).toBe('GPU 2');
+  });
+});
+
+describe('resolveSensor - fan sensors', () => {
+  const port1 = sensor({ id: 'corsair:ch1:temp', name: 'QX fan (Port 1)', type: 'Temperature' });
+  const port3 = sensor({ id: 'corsair:ch3:temp', name: 'QX fan (Port 3)', type: 'Temperature' });
+  const extras: SensorExtras = {
+    ...EMPTY_SENSOR_EXTRAS,
+    fanSensors: [{ id: 'corsair', name: 'Corsair iCUE LINK', sensors: [port1, port3] }],
+  };
+
+  it('resolves a saved fan sensor by its stable id', () => {
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'fanSensors', 'corsair:ch3:temp', undefined, extras)?.name).toBe('QX fan (Port 3)');
+  });
+
+  it('keeps a saved sensor that is no longer listed unresolved instead of showing another one', () => {
+    const gone = resolveSensor(EMPTY_SENSORS, [], [], 'fanSensors', 'corsair:ch4:temp', undefined, extras);
+    expect(gone).toBeUndefined();
+    expect(isSavedSensorMissing('fanSensors', 'corsair:ch4:temp', gone, extras)).toBe(true);
+  });
+
+  it('comes back on its own when the sensor is listed again', () => {
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'fanSensors', 'corsair:ch1:temp', undefined, EMPTY_SENSOR_EXTRAS)).toBeUndefined();
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'fanSensors', 'corsair:ch1:temp', undefined, extras)?.id).toBe('corsair:ch1:temp');
+  });
+
+  it('is not a missing sensor when nothing is saved or the device is not extras-backed', () => {
+    expect(isSavedSensorMissing('fanSensors', '', undefined, extras)).toBe(false);
+    expect(isSavedSensorMissing('cpu', 'CPU Package', undefined, extras)).toBe(false);
+  });
+
+  it('is not missing before the first extras frame, so a cold load does not flash the label', () => {
+    expect(isSavedSensorMissing('fanSensors', 'corsair:ch1:temp', undefined, EMPTY_SENSOR_EXTRAS)).toBe(false);
+    expect(isSavedSensorMissing('fanSensors', 'corsair:ch1:temp', undefined, undefined)).toBe(false);
+  });
+
+  it('still resolves a QX probe saved under Cooler before the category existed, by id or old name', () => {
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'cooler', 'corsair:ch3:temp', undefined, extras)?.name).toBe('QX fan (Port 3)');
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'cooler', 'iCUE LINK QX RGB probe (Port 3)', undefined, extras)?.id).toBe('corsair:ch3:temp');
+    expect(isSavedSensorMissing('cooler', 'corsair:ch3:temp', resolveSensor(EMPTY_SENSORS, [], [], 'cooler', 'corsair:ch3:temp', undefined, extras), extras)).toBe(false);
+  });
+
+  it('leaves a Cooler key that is not a fan probe on the cooler list', () => {
+    const withCooler: SensorExtras = {
+      ...extras,
+      coolers: [{ id: '/cooler/0', name: 'AIO', sensors: [sensor({ id: 'cool/pump', name: 'Pump', type: 'Fan' })] }],
+    };
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'cooler', 'cool/pump', undefined, withCooler)?.id).toBe('cool/pump');
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'cooler', 'corsair:ch9:temp', undefined, withCooler)).toBeUndefined();
   });
 });

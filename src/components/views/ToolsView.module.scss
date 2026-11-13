@@ -187,23 +187,6 @@
   margin: -0.25rem 0 0;
   padding-top: 0.25rem;
 }
-.installDefaultsTab {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  font-weight: var(--weight-body);
-  cursor: pointer;
-  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease;
-  &:hover { color: var(--text); }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-}
-.installDefaultsTabActive {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
 .installDefaultsTopBar {
   display: flex;
   justify-content: flex-end;

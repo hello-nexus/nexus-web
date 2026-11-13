@@ -7,11 +7,11 @@ vi.mock('../../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: strin
 // The native <select> stands in for the themed one: these tests exercise the picker's wiring, not the menu.
 vi.mock('../../../../components/common/Select/Select', () => ({
   Select: ({ value, onChange, options, ariaLabel }: {
-    value: string; onChange: (v: string) => void; options?: { value: string; label: string }[]; ariaLabel?: string;
+    value: string; onChange: (v: string) => void; options?: { value: string; label: string; disabled?: boolean }[]; ariaLabel?: string;
   }) => (
     <select aria-label={ariaLabel} value={value} onChange={e => onChange(e.target.value)}>
       <option value="" />
-      {(options ?? []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {(options ?? []).map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
     </select>
   ),
 }));
@@ -34,7 +34,7 @@ vi.mock('../../../../hooks/useSensors', async importOriginal => {
   };
 });
 vi.mock('../../../../hooks/useSensorExtras', () => ({
-  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
+  useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], fanSensors: [], embeddedControllers: [], memoryModules: [] }),
 }));
 
 function Harness(props: Omit<React.ComponentProps<typeof SensorPicker>, 'lookup'>) {
@@ -91,5 +91,33 @@ describe('SensorPicker categories filter', () => {
     render(<Harness category="cpu" sensor="cpu/load/0" onChange={vi.fn()} categories={['motherboard']} />);
     const values = Array.from(categorySelect().options).map(o => o.value).filter(Boolean);
     expect(values.sort()).toEqual(['cpu', 'motherboard']);
+  });
+});
+
+describe('SensorPicker unavailable sensors', () => {
+  const tracked = (id: string) => (_c: string, o: { value: string }) => o.value === id;
+
+  it('lists an unavailable sensor disabled with the suffix, and keeps others enabled', () => {
+    render(<Harness category="motherboard" sensor="mb/temp/1" onChange={vi.fn()} isUnavailable={tracked('mb/fan/1')} unavailableSuffix="Already tracked" />);
+    const fan = Array.from(sensorSelect().options).find(o => o.value === 'mb/fan/1')!;
+    expect(fan.disabled).toBe(true);
+    expect(fan.textContent).toContain('(Already tracked)');
+    expect(Array.from(sensorSelect().options).find(o => o.value === 'mb/temp/1')!.disabled).toBe(false);
+  });
+
+  it('a category change picks the first sensor that is not unavailable', () => {
+    const onChange = vi.fn();
+    render(<Harness category="cpu" sensor="cpu/load/0" onChange={onChange} isUnavailable={tracked('mb/fan/1')} />);
+    fireEvent.change(categorySelect(), { target: { value: 'motherboard' } });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0][0]).toEqual({ category: 'motherboard', sensor: 'mb/temp/1' });
+  });
+
+  it('a category whose sensors are all unavailable is disabled and selects nothing', () => {
+    const onChange = vi.fn();
+    render(<Harness category="cpu" sensor="cpu/load/0" onChange={onChange} isUnavailable={(c, o) => c === 'motherboard' && o.value.startsWith('mb/')} />);
+    expect(Array.from(categorySelect().options).find(o => o.value === 'motherboard')!.disabled).toBe(true);
+    fireEvent.change(categorySelect(), { target: { value: 'motherboard' } });
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

@@ -10,7 +10,7 @@
   // thumb-inset treatment); zero keeps the fill flush.
   --effect-template-preview-inset: 0px;
   --effect-template-border: var(--panel-border, var(--border));
-  --effect-template-hover-border: var(--border-strong, var(--effect-template-border));
+  --effect-template-hover-border: var(--border-hover, var(--effect-template-border));
   --effect-template-bg: var(--panel-element-bg, var(--surface));
   --effect-template-text: var(--text-dim);
   --effect-template-active-border: var(--panel-accent, var(--accent));

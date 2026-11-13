@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import type { TimeSeriesSeries } from './timeSeriesChartUtils';
@@ -45,6 +45,15 @@ const baseProps = {
 };
 
 describe('TimeSeriesChart', () => {
+  it('draws a dashed line per threshold inside the value range and skips one outside it', () => {
+    const { container } = render(
+      <TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} thresholds={[{ value: 80, color: 'var(--bad)' }, { value: 500 }]} />,
+    );
+    const lines = [...container.querySelectorAll('line[stroke-dasharray]')];
+    expect(lines).toHaveLength(1);
+    expect(lines[0].getAttribute('stroke')).toBe('var(--bad)');
+  });
+
   it('renders one line path per series', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(1);
@@ -254,6 +263,14 @@ describe('TimeSeriesChart', () => {
     // makeSeries() sits at the epoch, so every hovered point is on a
     // different calendar day from Date.now(); the same-day case uses points
     // from the current hour instead.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2024, 5, 15, 12, 0, 0));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('stacks the calendar day under the time when the hovered point is not from today', () => {
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
       const svg = container.querySelector('svg')!;
@@ -319,6 +336,29 @@ describe('TimeSeriesChart', () => {
       fireEvent.wheel(svg, { deltaY: -100, deltaMode: 0, clientX: 220 });
 
       expect(onWheelZoom.mock.calls[0][1]).toBeLessThan(1);
+    });
+
+    it('with wheelZoomNeedsModifier, a plain wheel scrolls the page and Ctrl or Cmd plus wheel zooms', () => {
+      const onWheelZoom = vi.fn(() => true);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} wheelZoomNeedsModifier />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
+      expect(onWheelZoom).not.toHaveBeenCalled();
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, ctrlKey: true })).toBe(false);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, metaKey: true })).toBe(false);
+      expect(onWheelZoom).toHaveBeenCalledTimes(2);
+    });
+
+    it('with wheelZoomNeedsModifier, Ctrl+wheel never zooms the page even when the chart declines the zoom', () => {
+      const onWheelZoom = vi.fn(() => false);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} wheelZoomNeedsModifier />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220, ctrlKey: true })).toBe(false);
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
     });
 
     it('lets mostly horizontal wheel motion (a trackpad pan) through untouched', () => {
@@ -750,6 +790,14 @@ describe('TimeSeriesChart', () => {
       expect(screen.getByText('Avg 40C')).toBeInTheDocument();
       expect(screen.getByText('Max 45C')).toBeInTheDocument();
     });
+  });
+
+  it('keeps every y-tick label inside the plot, so the top one is not clipped', () => {
+    const series = [{ id: 'a', name: 'A', color: '#fff', points: [{ t: 0, avg: 41, max: 41 }, { t: HOUR, avg: 77, max: 78 }] }];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    const ys = [...container.querySelectorAll('text')].filter(n => /^\d+C$/.test(n.textContent ?? '')).map(n => Number(n.getAttribute('y')));
+    expect(ys.length).toBeGreaterThan(1);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(12);
   });
 
   describe('yAxisSide', () => {

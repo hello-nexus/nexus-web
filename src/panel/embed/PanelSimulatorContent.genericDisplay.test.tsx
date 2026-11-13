@@ -41,7 +41,6 @@ function mountWith(genericDisplay: boolean, deviceTouch = true) {
     theme: buildPanelTheme(null, null),
     themeMode: 'dark',
     selectedWidgetId: null,
-    brightness: 100,
     screenOn: true,
     showPanel: true,
   };

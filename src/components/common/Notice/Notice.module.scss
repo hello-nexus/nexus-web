@@ -78,3 +78,7 @@
 .secondary {
   color: var(--text-dim);
 }
+
+.headline {
+  @include text-button;
+}
