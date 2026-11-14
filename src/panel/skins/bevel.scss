@@ -12,7 +12,7 @@
   --bv-well-hi: #868b98;
   --bv-well-lo: #1a1b20;
   --skin-card-frame: inset 1px 1px 0 var(--bv-hi), inset -1px -1px 0 var(--bv-lo), inset 2px 2px 0 var(--bv-mid), inset -2px -2px 0 #33353c;
-  --skin-card-shadow: 0 0 0 1px #0d0e11;
+  --skin-card-shadow: 0 0 0 #{edge(1px)} #0d0e11;
   --skin-card-deco: linear-gradient(90deg, var(--skin-accent), rgba(var(--skin-accent-rgb), 0.25));
   --skin-card-deco-size: calc(100% - 6px) 5px;
   --skin-card-deco-pos: 3px 3px;
@@ -33,7 +33,7 @@
   --bv-well-hi: #ffffff;
   --bv-well-lo: #6b6d75;
   --skin-card-frame: inset 1px 1px 0 var(--bv-hi), inset -1px -1px 0 var(--bv-lo), inset 2px 2px 0 var(--bv-mid), inset -2px -2px 0 #a2a4ab;
-  --skin-card-shadow: 0 0 0 1px #2a2c31;
+  --skin-card-shadow: 0 0 0 #{edge(1px)} #2a2c31;
   --skin-card-deco: linear-gradient(90deg, var(--skin-accent-deep), rgba(var(--skin-accent-rgb), 0.3));
   --gauge-track: #b4b6bc;
 }

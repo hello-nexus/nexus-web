@@ -34,3 +34,8 @@
 @function tint($rgb, $alpha) {
   @return string.unquote("rgba(#{$rgb}, #{$alpha})");
 }
+
+// A card box-shadow length that follows the card pseudo layers' edge zoom; the card element itself cannot be zoomed, and its overflow clip rules out drawing the shadow on a pseudo layer.
+@function edge($len) {
+  @return string.unquote("calc(#{$len} * var(--panel-edge-zoom, 1))");
+}

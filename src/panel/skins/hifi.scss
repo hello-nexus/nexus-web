@@ -15,7 +15,7 @@
   @include kit-weights(500, 400, 600, 700, 400);
   --skin-card-image: linear-gradient(rgba(255, 244, 214, 0.1), transparent 45%);
   --skin-card-frame: inset 0 0 0 1px rgba(0, 0, 0, 0.7);
-  --skin-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+  --skin-card-shadow: 0 #{edge(1px)} 0 rgba(255, 255, 255, 0.18);
   --skin-card-deco-size: 100% 6px, 100% 6px, 6px 100%, 6px 100%;
   --skin-card-deco-pos: 0 0, 0 100%, 0 0, 100% 0;
   --skin-card-deco-repeat: no-repeat;
@@ -30,7 +30,7 @@
 @include skin-light('hifi') {
   @include kit(#b5b8bc, #efe6cc, #2a2318, #5d5238, #5d5238, var(--skin-accent-ink-light), var(--skin-accent-rgb), #fff6e0, #2d7a3e, #9a5f00, #a82a1f);
   --skin-card-image: linear-gradient(rgba(255, 255, 255, 0.35), transparent 45%);
-  --skin-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  --skin-card-shadow: 0 #{edge(1px)} 0 rgba(255, 255, 255, 0.5);
   --gauge-track: rgba(42, 35, 24, 0.16);
   @include hifi-ring(#e9eaec, #bfc2c7, #8c9097);
 }
