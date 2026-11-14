@@ -6,10 +6,12 @@ import {
   applyDockedOverlayLayout,
   clampUnit,
   dockedOverlayItemPosition,
+  formatTryxClockPreview,
   formatTryxStorageFreePercent,
   isTryxOverlayAlign,
   isTryxSensorGroup,
   scalePanelMetric,
+  tryxClockSensors,
   tryxFontCssStyle,
   tryxOverlayJustifyStyle,
   formatTryxSensorValue,
@@ -162,9 +164,9 @@ describe('applyDockedOverlayLayout', () => {
 });
 
 describe('isTryxSensorGroup', () => {
-  it('accepts exactly the 8 monitoring groups, matching SENSOR_CATEGORIES', () => {
-    expect(TRYX_SENSOR_GROUPS).toEqual(SENSOR_CATEGORIES);
-    expect(TRYX_SENSOR_GROUPS).toEqual(['quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps']);
+  it('accepts the 8 monitoring groups in SENSOR_CATEGORIES order, plus the clock pseudo-device', () => {
+    expect(TRYX_SENSOR_GROUPS.slice(0, SENSOR_CATEGORIES.length)).toEqual(SENSOR_CATEGORIES);
+    expect(TRYX_SENSOR_GROUPS).toEqual(['quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage', 'network', 'fps', 'clock']);
     for (const group of TRYX_SENSOR_GROUPS) expect(isTryxSensorGroup(group)).toBe(true);
   });
 
@@ -189,6 +191,7 @@ describe('tryxSensorOptionsForGroup', () => {
       storage: [],
       network: [],
       fps: [],
+      clock: [],
     };
     const options = tryxSensorOptionsForGroup('cpu', sensorsByGroup);
     expect(options).toEqual([
@@ -211,6 +214,7 @@ describe('tryxSensorOptionsForGroup', () => {
     const sensorsByGroup: TryxSensorsByGroup = {
       quick: [], cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [],
       fps: [sensor({ id: 'fps/current', name: 'FPS', type: 'Framerate' })],
+      clock: [],
     };
     const options = tryxSensorOptionsForGroup('fps', sensorsByGroup);
     expect(options).toEqual([
@@ -323,6 +327,7 @@ describe('tryxOverlayPreviewValue', () => {
     cpu: [sensor({ id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 52.4, formatted: '52.4 °C' })],
     gpu: [], memory: [], motherboard: [], storage: [], network: [],
     fps: [sensor({ id: 'fps/current', name: 'FPS', type: 'Framerate', value: 59.6, formatted: '60' })],
+    clock: [],
   };
 
   it('formats the live value with the panel firmware rounding, not the monitoring string', () => {
@@ -340,5 +345,35 @@ describe('tryxOverlayPreviewValue', () => {
 
   it('falls back to the fps placeholder when the sensor is not live', () => {
     expect(tryxOverlayPreviewValue('fps', 'missing-id', 'FrameTime', sensorsByGroup)).toBe('16.7ms');
+  });
+});
+
+describe('clock pseudo-device', () => {
+  const now = new Date(2026, 10, 14, 15, 5, 0);
+  const sensorsByGroup: TryxSensorsByGroup = {
+    quick: [], cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [], fps: [],
+    clock: tryxClockSensors(id => (id === 'time' ? 'Time' : 'Date')),
+  };
+
+  it('offers time then date, labeled with the bare translated name', () => {
+    expect(tryxSensorOptionsForGroup('clock', sensorsByGroup)).toEqual([
+      { value: 'time', optionLabel: 'Time', bareLabel: 'Time', prefixedLabel: 'Time', type: 'Text' },
+      { value: 'date', optionLabel: 'Date', bareLabel: 'Date', prefixedLabel: 'Date', type: 'Text' },
+    ]);
+  });
+
+  it('previews the time in 24h and 12h per the time format', () => {
+    expect(formatTryxClockPreview('time', { now, timeFormat: '24h', dateFormat: 'system', locale: 'en-US' })).toBe('15:05');
+    expect(formatTryxClockPreview('time', { now, timeFormat: '12h', dateFormat: 'system', locale: 'en-US' })).toMatch(/^3:05\s?PM$/);
+  });
+
+  it('previews the date following the date format', () => {
+    expect(formatTryxClockPreview('date', { now, timeFormat: '24h', dateFormat: 'system', locale: 'en-US' })).toBe('Sat, Nov 14');
+  });
+
+  it('routes the clock device through tryxOverlayPreviewValue', () => {
+    const ctx = { now, timeFormat: '24h' as const, dateFormat: 'system' as const, locale: 'en-US' };
+    expect(tryxOverlayPreviewValue('clock', 'time', 'Text', sensorsByGroup, false, ctx)).toBe('15:05');
+    expect(tryxOverlayPreviewValue('clock', 'time', 'Text', sensorsByGroup)).toBe('--');
   });
 });

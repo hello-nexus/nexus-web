@@ -58,6 +58,7 @@ import {
   scalePanelMetric,
   tryxFontCssStyle,
   tryxOverlayJustifyStyle,
+  tryxClockSensors,
   tryxOverlayPreviewValue,
   tryxSensorOptionsForGroup,
   tryxStorageFreePercent,
@@ -86,6 +87,7 @@ import { useReportDeviceWaiting } from './deviceDetecting';
 // docked/drag) to the service - long enough to coalesce a drag's pointermove
 // flood into one request, short enough to feel live.
 const OVERLAY_PUSH_DEBOUNCE_MS = 150;
+const CLOCK_PREVIEW_TICK_MS = 15000;
 const OVERLAY_KEYBOARD_STEP = 0.01;
 const OVERLAY_ITEM_SLOTS = [0, 1, 2, 3] as const;
 const DEFAULT_OVERLAY_ALIGN: TryxOverlayAlign = 'left';
@@ -149,7 +151,7 @@ type TryxTab = 'display' | 'media';
  */
 export function TryxDevicePage() {
   const { t, language } = useTranslation();
-  const { numberFormat, monitoringWholeNumbers } = useUnitPrefs();
+  const { numberFormat, monitoringWholeNumbers, timeFormat, dateFormat } = useUnitPrefs();
   const simulated = useTryxSimulated();
   const [status, setStatus] = useState<TryxStatus | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -191,6 +193,15 @@ export function TryxDevicePage() {
   const sensors = useSensors(true);
   const usesNetworkSensor = overlayItems.some(item => item.device === 'network');
   const usesFpsSensor = overlayItems.some(item => item.device === 'fps');
+  const usesClock = overlayItems.some(item => item.enabled && item.device === 'clock');
+  // Minute-resolution text, so a coarse tick keeps the preview current without per-second renders.
+  const [clockNow, setClockNow] = useState(() => new Date());
+  useEffect(() => {
+    if (!usesClock) return;
+    setClockNow(new Date());
+    const id = setInterval(() => setClockNow(new Date()), CLOCK_PREVIEW_TICK_MS);
+    return () => clearInterval(id);
+  }, [usesClock]);
   // The device reads the NIC aggregate service-side, so the preview sums the same extras topic.
   const extras = useSensorExtras(usesNetworkSensor);
   const networkSensors = useMemo(() => buildNicNetworkSensors(extras.nics), [extras.nics]);
@@ -204,6 +215,7 @@ export function TryxDevicePage() {
     storage: sensorsForCategory('storage', sensors, networkSensors, fpsSensors),
     network: sensorsForCategory('network', sensors, networkSensors, fpsSensors),
     fps: sensorsForCategory('fps', sensors, networkSensors, fpsSensors),
+    clock: tryxClockSensors(id => t(id === 'time' ? 'devices.tryx.clockTime' : 'devices.tryx.clockDate')),
   };
 
   const aliveRef = useRef(true);
@@ -707,9 +719,10 @@ export function TryxDevicePage() {
   ];
 
   const fontOptions = TRYX_FONTS.map(font => ({ value: font, label: t(TRYX_FONT_LABEL_KEYS[font]) }));
+  // Date & Time leads the list; it is a small always-available group, not a hardware one.
   // A group with no sensors currently reporting (no GPU, storage/network not
   // wired yet, ...) is disabled rather than selectable-but-empty.
-  const deviceGroupOptions = TRYX_SENSOR_GROUPS.map(group => ({
+  const deviceGroupOptions = (['clock', ...TRYX_SENSOR_GROUPS.filter(g => g !== 'clock')] as TryxSensorGroup[]).map(group => ({
     value: group,
     label: t(TRYX_SENSOR_GROUP_LABEL_KEYS[group]),
     disabled: tryxSensorOptionsForGroup(group, sensorsByGroup).length === 0,
@@ -1073,7 +1086,7 @@ export function TryxDevicePage() {
             )}
             {overlayItems.map((item, i) => {
               if (!item.enabled) return null;
-              const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup, monitoringWholeNumbers);
+              const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup, monitoringWholeNumbers, { now: clockNow, timeFormat, dateFormat, locale: language });
               const fontStyle = tryxFontCssStyle(overlayFont);
               const justify = tryxOverlayJustifyStyle(overlayAlign);
               const valueFontPx = scalePanelMetric(TRYX_VALUE_FONT_PANEL_PX, overlaySize, previewHeightPx);

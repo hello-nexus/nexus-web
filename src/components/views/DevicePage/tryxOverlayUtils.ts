@@ -8,7 +8,7 @@ import type { HardwareSensor } from '../../../hooks/useSensors';
 import { bareSensorLabel, prefixedSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 import { decimalsForType, toFixedAway } from '../../../panel/widgets/monitoring/sensorValueFormat';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
-import { localizeNumbers, type NumberFormat } from '../../../lib/units';
+import { formatDate, hour12OptionFor, localizeNumbers, type DateFormat, type NumberFormat, type TimeFormat } from '../../../lib/units';
 
 // Only the panel canvas's height matters here - every scaled metric below is
 // a fraction of it (width plays no part in the font/offset math).
@@ -155,10 +155,10 @@ export function applyDockedOverlayLayout<T extends TryxOverlayLayoutItem>(
 
 // ── Sensor picker (monitoring library) ──────────────────────────────────────
 
-// Kept identical to SENSOR_CATEGORIES (same values, same order) so the Tryx
-// overlay picker and the monitoring widget picker can never list different
-// device groups.
-export const TRYX_SENSOR_GROUPS = SENSOR_CATEGORIES;
+// The shared SENSOR_CATEGORIES (same values, same order) so the Tryx overlay
+// picker and the monitoring widget picker can never list different hardware
+// groups, plus the overlay-only clock pseudo-device the service renders itself.
+export const TRYX_SENSOR_GROUPS = [...SENSOR_CATEGORIES, 'clock'] as const;
 export type TryxSensorGroup = (typeof TRYX_SENSOR_GROUPS)[number];
 
 export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
@@ -170,6 +170,7 @@ export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
   storage: 'devices.tryx.deviceStorage',
   network: 'devices.tryx.deviceNetwork',
   fps: 'devices.tryx.deviceFps',
+  clock: 'devices.tryx.deviceClock',
 };
 
 export function isTryxSensorGroup(value: unknown): value is TryxSensorGroup {
@@ -191,17 +192,17 @@ export interface TryxSensorOption {
 }
 
 // bareSensorLabel/prefixedSensorLabel only prefix cpu/gpu/memory/network (their
-// DEVICE_PREFIXES map); motherboard and fps aren't valid DeviceKey lookups
+// DEVICE_PREFIXES map); motherboard, fps and clock aren't valid DeviceKey lookups
 // there, so they're special-cased here rather than passed through as a type
 // error. quick/storage fall through to the generic call below, which already
 // returns the name unchanged since neither is in DEVICE_PREFIXES.
 function bareLabelForGroup(group: TryxSensorGroup, name: string): string {
-  if (group === 'motherboard' || group === 'fps') return name;
+  if (group === 'motherboard' || group === 'fps' || group === 'clock') return name;
   return bareSensorLabel(group, name) || name;
 }
 
 function prefixedLabelForGroup(group: TryxSensorGroup, name: string): string {
-  if (group === 'motherboard' || group === 'fps') return name;
+  if (group === 'motherboard' || group === 'fps' || group === 'clock') return name;
   return prefixedSensorLabel(group, name);
 }
 
@@ -220,7 +221,7 @@ export function tryxSensorOptionsForGroup(
     seen.add(s.id);
     const bareLabel = bareLabelForGroup(group, s.name);
     const prefixedLabel = prefixedLabelForGroup(group, s.name);
-    const optionLabel = group === 'quick' ? bareLabel : `${bareLabel} (${s.type})`;
+    const optionLabel = group === 'quick' || group === 'clock' ? bareLabel : `${bareLabel} (${s.type})`;
     options.push({ value: s.id, bareLabel, prefixedLabel, type: s.type, optionLabel });
   }
   return options;
@@ -290,6 +291,39 @@ function formatTryxThroughput(bytesPerSec: number): string {
   return `${Math.round(bytesPerSec)}B/s`;
 }
 
+export const TRYX_CLOCK_SENSOR_IDS = ['time', 'date'] as const;
+export type TryxClockSensorId = (typeof TRYX_CLOCK_SENSOR_IDS)[number];
+
+/**
+ * Synthetic picker entries for the clock pseudo-device. The service renders the
+ * text itself, so these only feed the dropdown; `nameFor` supplies the
+ * translated label.
+ */
+export function tryxClockSensors(nameFor: (id: TryxClockSensorId) => string): HardwareSensor[] {
+  return TRYX_CLOCK_SENSOR_IDS.map(id => ({
+    id,
+    name: nameFor(id),
+    type: 'Text',
+    value: 0,
+    units: '',
+    formatted: '',
+    parent: { id: 'clock', name: 'Clock' },
+  }));
+}
+
+export interface TryxClockPreviewContext {
+  now: Date;
+  timeFormat: TimeFormat;
+  dateFormat: DateFormat;
+  locale?: string;
+}
+
+/** Local time or date text for the WYSIWYG preview, following the app's format prefs. */
+export function formatTryxClockPreview(sensorId: string, ctx: TryxClockPreviewContext): string {
+  if (sensorId === 'date') return formatDate(ctx.now, ctx.dateFormat, { locale: ctx.locale });
+  return ctx.now.toLocaleTimeString(ctx.locale, { hour: 'numeric', minute: '2-digit', hour12: hour12OptionFor(ctx.timeFormat) });
+}
+
 /**
  * Live sensor value formatted exactly as the panel firmware renders it (see
  * {@link formatTryxSensorValue}) if the page currently has the reading, else a
@@ -301,7 +335,9 @@ export function tryxOverlayPreviewValue(
   fallbackType: string,
   sensorsByGroup: TryxSensorsByGroup,
   wholeNumbers = false,
+  clock?: TryxClockPreviewContext,
 ): string {
+  if (device === 'clock') return clock ? formatTryxClockPreview(sensorId, clock) : tryxSensorPlaceholder('');
   const live = (sensorsByGroup[device] ?? []).find(s => s.id === sensorId);
   return live ? formatTryxSensorValue(live.type, live.value, wholeNumbers) : tryxSensorPlaceholder(fallbackType);
 }

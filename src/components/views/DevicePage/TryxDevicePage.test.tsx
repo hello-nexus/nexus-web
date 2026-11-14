@@ -353,6 +353,19 @@ describe('TryxDevicePage - overlay editor', () => {
     expect(call.items[0]).toEqual({ sensorId: 'fps/current', device: 'fps', label: 'FPS', x: 0.04, y: 0.38 });
   });
 
+  it('picking the Date & Time group seeds the time item, and the date sensor can be chosen', async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.tryx.overlayDeviceAria:{"n":1}' }));
+    fireEvent.click(screen.getByRole('option', { name: 'devices.tryx.deviceClock' }));
+    await act(async () => { vi.advanceTimersByTime(150); });
+    expect(mockSetTryxOverlay.mock.calls[0][0].items[0]).toEqual({ sensorId: 'time', device: 'clock', label: 'devices.tryx.clockTime', x: 0.04, y: 0.38 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.tryx.overlaySensorAria:{"n":1}' }));
+    fireEvent.click(screen.getByRole('option', { name: 'devices.tryx.clockDate' }));
+    await act(async () => { vi.advanceTimersByTime(150); });
+    expect(mockSetTryxOverlay.mock.calls[1][0].items[0]).toEqual({ sensorId: 'date', device: 'clock', label: 'devices.tryx.clockDate', x: 0.04, y: 0.38 });
+  });
+
   it('enabling a never-configured slot auto-picks its default device\'s first sensor', async () => {
     await renderPage();
     const secondToggle = screen.getByRole('switch', { name: 'devices.tryx.overlayLineAria:{"n":2}' });

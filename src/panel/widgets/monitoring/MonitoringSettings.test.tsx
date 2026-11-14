@@ -276,7 +276,7 @@ describe('MonitoringSettings', () => {
     // the two pickers must never disagree on this subset.
     const sharedOnly = values.filter(v => (TRYX_SENSOR_GROUPS as readonly string[]).includes(v));
     expect(sharedOnly).toEqual([...SENSOR_CATEGORIES]);
-    expect(sharedOnly).toEqual([...TRYX_SENSOR_GROUPS]);
+    expect(sharedOnly).toEqual(TRYX_SENSOR_GROUPS.filter(g => g !== 'clock'));
 
     // SSD SMART and the extras-topic device groups are widget-only: the
     // Tryx overlay picker never resolves them (see useSensors.storageSensors
