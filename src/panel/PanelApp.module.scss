@@ -809,19 +809,29 @@
   box-shadow: 0 0 0 1px var(--panel-accent);
 }
 
-// A skin zeroes the card border and layers its own shadow over the ring above, so a skinned
-// catalog draws the affordance as a tile overlay instead; the border-less skin card cannot hide it.
+// A skin zeroes the card border and layers its own shadow, so a skinned catalog draws the
+// affordance as one overlay on the card area (the label strip is left out, like the unskinned
+// ring) and the card-level rings above are restored to the skin's own border and shadow.
 .catalogCellScoped::after,
 :global(.panel-root[data-panel-skin]) .catalogCell::after {
   content: '';
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 0;
+  bottom: calc(var(--panel-widget-label-strip, 0px) + var(--panel-widget-card-bottom-gap, 0px));
   left: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
   pointer-events: none;
+}
+.catalogCell.catalogCellScoped:not(.catalogCellDisabled):hover .cell,
+.catalogCell.catalogCellScoped:not(.catalogCellDisabled):focus-visible .cell,
+.catalogCell.catalogCellScoped.catalogCellSelected .cell,
+:global(.panel-root[data-panel-skin]) .catalogCell:not(.catalogCellDisabled):hover .cell,
+:global(.panel-root[data-panel-skin]) .catalogCell:not(.catalogCellDisabled):focus-visible .cell,
+:global(.panel-root[data-panel-skin]) .catalogCell.catalogCellSelected .cell {
+  border: var(--skin-card-border, 0 solid transparent);
+  box-shadow: var(--skin-card-shadow, none);
 }
 .catalogCellScoped:not(.catalogCellDisabled):hover::after,
 .catalogCellScoped:not(.catalogCellDisabled):focus-visible::after,
