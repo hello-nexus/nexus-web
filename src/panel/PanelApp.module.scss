@@ -833,6 +833,26 @@
   border: var(--skin-card-border, 0 solid transparent);
   box-shadow: var(--skin-card-shadow, none);
 }
+// Faded and frameless skin cards (skinBase.scss) stay bare under that restore; the
+// skin root sits inside a scoped cell, and around the cell on the panel.
+.catalogCell.catalogCellScoped:not(.catalogCellDisabled):hover :global(.panel-root[data-panel-skin][data-skin-card-faded]) .cell,
+.catalogCell.catalogCellScoped:not(.catalogCellDisabled):focus-visible :global(.panel-root[data-panel-skin][data-skin-card-faded]) .cell,
+.catalogCell.catalogCellScoped.catalogCellSelected :global(.panel-root[data-panel-skin][data-skin-card-faded]) .cell,
+:global(.panel-root[data-panel-skin][data-skin-card-faded]) .catalogCell:not(.catalogCellDisabled):hover .cell,
+:global(.panel-root[data-panel-skin][data-skin-card-faded]) .catalogCell:not(.catalogCellDisabled):focus-visible .cell,
+:global(.panel-root[data-panel-skin][data-skin-card-faded]) .catalogCell.catalogCellSelected .cell {
+  border-color: transparent;
+  box-shadow: none;
+}
+.catalogCell.catalogCellScoped:not(.catalogCellDisabled):hover :global(.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none']) .cell,
+.catalogCell.catalogCellScoped:not(.catalogCellDisabled):focus-visible :global(.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none']) .cell,
+.catalogCell.catalogCellScoped.catalogCellSelected :global(.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none']) .cell,
+:global(.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none']) .catalogCell:not(.catalogCellDisabled):hover .cell,
+:global(.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none']) .catalogCell:not(.catalogCellDisabled):focus-visible .cell,
+:global(.panel-root[data-panel-skin][data-skin-frameless][data-widget-padding='none']) .catalogCell.catalogCellSelected .cell {
+  border-width: 0;
+  box-shadow: none;
+}
 .catalogCellScoped:not(.catalogCellDisabled):hover::after,
 .catalogCellScoped:not(.catalogCellDisabled):focus-visible::after,
 .catalogCellScoped.catalogCellSelected::after,
