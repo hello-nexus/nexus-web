@@ -385,8 +385,8 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
       patternIndex += 1;
     } else {
       body.push(`  {\n${indent(code)}\n  }`);
-      // Color blocks scale by mix(1.0, v, shade) and a fill's v stays within its coverage, so a shade-weighted
-      // background keeps the sum in range; at full shade it is mix(background, fill, coverage).
+      // In range because only the baked premades set `background` (starters strip it) and their fills keep v <= coverage;
+      // any other recipe has no control and its background uniforms stay black. At full shade: mix(bg, col / coverage, coverage).
       if (def.stage === 'color' && background) {
         body.push(`  col += fieldBg * ((1.0 - fieldCover) * (${exprs.shade ?? '1.0'}));`);
       }
