@@ -41,8 +41,8 @@ export function sensorsForCategory(
 
 // ── Widget-only categories ──────────────────────────────────────────────────
 // Not part of SENSOR_CATEGORIES/SensorCategory above: the Tryx overlay picker
-// (TRYX_SENSOR_GROUPS in tryxOverlayUtils.ts) mirrors that exact set, and
-// must never offer the iGPU, SSD SMART or the extras-topic device groups (see
+// (TRYX_SENSOR_GROUPS in tryxOverlayUtils.ts) is that set plus its own clock
+// pseudo-device, and must never offer the iGPU, SSD SMART or the extras-topic device groups (see
 // useSensors.storageSensors and useSensorExtras for why).
 
 /**

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import type { DateFormat } from '../../../lib/units';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
 import {
@@ -25,6 +26,7 @@ import {
   TRYX_LABEL_OFFSET_PANEL_PX,
   TRYX_OVERLAY_ALIGNS,
   TRYX_SENSOR_GROUPS,
+  TRYX_SENSOR_GROUP_DISPLAY_ORDER,
   TRYX_STORAGE_CAPACITY_BYTES,
   TRYX_VALUE_FONT_PANEL_PX,
   type TryxSensorsByGroup,
@@ -349,31 +351,46 @@ describe('tryxOverlayPreviewValue', () => {
 });
 
 describe('clock pseudo-device', () => {
-  const now = new Date(2026, 10, 14, 15, 5, 0);
+  const at = (h: number, m: number) => new Date(2026, 10, 14, h, m, 0);
   const sensorsByGroup: TryxSensorsByGroup = {
     quick: [], cpu: [], gpu: [], memory: [], motherboard: [], storage: [], network: [], fps: [],
     clock: tryxClockSensors(id => (id === 'time' ? 'Time' : 'Date')),
   };
+  const ctx = (now: Date, timeFormat: 'system' | '12h' | '24h' = 'system', dateFormat: DateFormat = 'system') => ({ now, timeFormat, dateFormat });
 
-  it('offers time then date, labeled with the bare translated name', () => {
+  it('offers time then date by translated name but sends an empty label', () => {
     expect(tryxSensorOptionsForGroup('clock', sensorsByGroup)).toEqual([
-      { value: 'time', optionLabel: 'Time', bareLabel: 'Time', prefixedLabel: 'Time', type: 'Text' },
-      { value: 'date', optionLabel: 'Date', bareLabel: 'Date', prefixedLabel: 'Date', type: 'Text' },
+      { value: 'time', optionLabel: 'Time', bareLabel: 'Time', prefixedLabel: '', type: 'Text' },
+      { value: 'date', optionLabel: 'Date', bareLabel: 'Date', prefixedLabel: '', type: 'Text' },
     ]);
   });
 
-  it('previews the time in 24h and 12h per the time format', () => {
-    expect(formatTryxClockPreview('time', { now, timeFormat: '24h', dateFormat: 'system', locale: 'en-US' })).toBe('15:05');
-    expect(formatTryxClockPreview('time', { now, timeFormat: '12h', dateFormat: 'system', locale: 'en-US' })).toMatch(/^3:05\s?PM$/);
+  it('lists the clock group first in the display order, then the shared categories', () => {
+    expect(TRYX_SENSOR_GROUP_DISPLAY_ORDER).toEqual(['clock', ...SENSOR_CATEGORIES]);
   });
 
-  it('previews the date following the date format', () => {
-    expect(formatTryxClockPreview('date', { now, timeFormat: '24h', dateFormat: 'system', locale: 'en-US' })).toBe('Sat, Nov 14');
+  it('renders time as invariant HH:mm for system and 24h, zero-padding a single-digit hour', () => {
+    expect(formatTryxClockPreview('time', ctx(at(9, 5)))).toBe('09:05');
+    expect(formatTryxClockPreview('time', ctx(at(9, 5), '24h'))).toBe('09:05');
+    expect(formatTryxClockPreview('time', ctx(at(15, 7), 'system'))).toBe('15:07');
+  });
+
+  it('renders 12h as h:mm with English AM/PM, including midnight and noon', () => {
+    expect(formatTryxClockPreview('time', ctx(at(9, 5), '12h'))).toBe('9:05 AM');
+    expect(formatTryxClockPreview('time', ctx(at(15, 5), '12h'))).toBe('3:05 PM');
+    expect(formatTryxClockPreview('time', ctx(at(0, 30), '12h'))).toBe('12:30 AM');
+    expect(formatTryxClockPreview('time', ctx(at(12, 0), '12h'))).toBe('12:00 PM');
+  });
+
+  it('maps a system date to "ddd, mmm d" and keeps English names whatever the app language', () => {
+    expect(formatTryxClockPreview('date', ctx(at(9, 5)))).toBe('Sat, Nov 14');
+    // The preview takes no locale, so a non-English app language cannot leak in.
+    expect(formatTryxClockPreview('date', ctx(at(9, 5), '24h', 'dd.mm.yyyy'))).toBe('14.11.2026');
+    expect(formatTryxClockPreview('date', ctx(at(9, 5), '24h', 'ddd d mmm'))).toBe('Sat 14 Nov');
   });
 
   it('routes the clock device through tryxOverlayPreviewValue', () => {
-    const ctx = { now, timeFormat: '24h' as const, dateFormat: 'system' as const, locale: 'en-US' };
-    expect(tryxOverlayPreviewValue('clock', 'time', 'Text', sensorsByGroup, false, ctx)).toBe('15:05');
+    expect(tryxOverlayPreviewValue('clock', 'time', 'Text', sensorsByGroup, false, ctx(at(9, 5)))).toBe('09:05');
     expect(tryxOverlayPreviewValue('clock', 'time', 'Text', sensorsByGroup)).toBe('--');
   });
 });

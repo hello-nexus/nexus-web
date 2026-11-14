@@ -8,7 +8,7 @@ import type { HardwareSensor } from '../../../hooks/useSensors';
 import { bareSensorLabel, prefixedSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 import { decimalsForType, toFixedAway } from '../../../panel/widgets/monitoring/sensorValueFormat';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
-import { formatDate, hour12OptionFor, localizeNumbers, type DateFormat, type NumberFormat, type TimeFormat } from '../../../lib/units';
+import { DATE_FORMATS, formatDate, localizeNumbers, type DateFormat, type NumberFormat, type TimeFormat } from '../../../lib/units';
 
 // Only the panel canvas's height matters here - every scaled metric below is
 // a fraction of it (width plays no part in the font/offset math).
@@ -173,6 +173,9 @@ export const TRYX_SENSOR_GROUP_LABEL_KEYS: Record<TryxSensorGroup, string> = {
   clock: 'devices.tryx.deviceClock',
 };
 
+// Picker order: the small Date & Time group leads, then the hardware groups.
+export const TRYX_SENSOR_GROUP_DISPLAY_ORDER: readonly TryxSensorGroup[] = ['clock', ...SENSOR_CATEGORIES];
+
 export function isTryxSensorGroup(value: unknown): value is TryxSensorGroup {
   return typeof value === 'string' && (TRYX_SENSOR_GROUPS as readonly string[]).includes(value);
 }
@@ -202,7 +205,10 @@ function bareLabelForGroup(group: TryxSensorGroup, name: string): string {
 }
 
 function prefixedLabelForGroup(group: TryxSensorGroup, name: string): string {
-  if (group === 'motherboard' || group === 'fps' || group === 'clock') return name;
+  // The time/date text speaks for itself, and a translated label would hit the
+  // panel font and go stale on a language switch, so clock items send none.
+  if (group === 'clock') return '';
+  if (group === 'motherboard' || group === 'fps') return name;
   return prefixedSensorLabel(group, name);
 }
 
@@ -315,13 +321,23 @@ export interface TryxClockPreviewContext {
   now: Date;
   timeFormat: TimeFormat;
   dateFormat: DateFormat;
-  locale?: string;
 }
 
-/** Local time or date text for the WYSIWYG preview, following the app's format prefs. */
+// Mirrors TryxPanoramaHub.FormatClockValue: the service runs with invariant
+// globalization, so the panel text is English and locale-independent. 'system'
+// time is 24h and 'system' (or an unknown) date is 'ddd, mmm d'.
+const CLOCK_DEFAULT_DATE_FORMAT: DateFormat = 'ddd, mmm d';
+
+/** Local time or date text for the WYSIWYG preview, byte-identical to what the panel renders. */
 export function formatTryxClockPreview(sensorId: string, ctx: TryxClockPreviewContext): string {
-  if (sensorId === 'date') return formatDate(ctx.now, ctx.dateFormat, { locale: ctx.locale });
-  return ctx.now.toLocaleTimeString(ctx.locale, { hour: 'numeric', minute: '2-digit', hour12: hour12OptionFor(ctx.timeFormat) });
+  const { now, timeFormat, dateFormat } = ctx;
+  if (sensorId === 'date') {
+    const pattern = dateFormat !== 'system' && DATE_FORMATS.includes(dateFormat) ? dateFormat : CLOCK_DEFAULT_DATE_FORMAT;
+    return formatDate(now, pattern, { locale: 'en-US' });
+  }
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  if (timeFormat === '12h') return `${now.getHours() % 12 || 12}:${minutes} ${now.getHours() < 12 ? 'AM' : 'PM'}`;
+  return `${String(now.getHours()).padStart(2, '0')}:${minutes}`;
 }
 
 /**
