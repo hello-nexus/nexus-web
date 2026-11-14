@@ -140,8 +140,12 @@ describe('AsusRyujinExtremeDevicePage', () => {
     await mount();
     expect(screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ })).toHaveLength(3);
     expect(screen.getByRole('radio', { name: '3' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows two pickers at a count of 2', async () => {
     await mount({ ...base, sensorCount: 2 });
-    expect(screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ })).toHaveLength(5);
+    expect(screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ })).toHaveLength(2);
+    expect(screen.getByRole('radio', { name: '2' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('a readings chip sends only the sensor count', async () => {
@@ -156,7 +160,7 @@ describe('AsusRyujinExtremeDevicePage', () => {
     const pickers = screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ });
     await act(async () => { fireEvent.click(pickers[1]); });
     await act(async () => {
-      fireEvent.click(screen.getByRole('option', { name: 'devices.nzxt-kraken.screenModeLiquid' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.asus-ryujin-extreme.sensor.liquidTemp' }));
     });
     expect(mockSet).toHaveBeenCalledWith({ slots: ['cpu-temp', 'liquid-temp', 'pump-rpm'] });
   });

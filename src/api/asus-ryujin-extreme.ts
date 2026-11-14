@@ -8,9 +8,8 @@ export interface RyujinDisplayState {
   /** 10-100. */
   brightness: number;
   rotation: number;
-  /** Readings the screen shows: 2 or 3. */
-  sensorCount: number;
-  /** Sensor ids per reading position; always 3 long, the third unused at a count of 2. */
+  sensorCount: RyujinSensorCount;
+  /** Sensor ids per reading position; the unused third slot is still sent. */
   slots: string[];
   availableSensors: string[];
 }

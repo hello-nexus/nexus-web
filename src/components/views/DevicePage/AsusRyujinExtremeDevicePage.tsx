@@ -26,11 +26,11 @@ const STACKED = 'stacked' as const;
 const ROTATIONS: readonly RyujinRotation[] = [0, 90];
 const SENSOR_COUNTS: readonly RyujinSensorCount[] = [2, 3];
 const SENSOR_LABEL_KEYS: Record<string, string> = {
-  'cpu-temp': 'devices.lianli-wireless.aioScreen.cpuTemp',
-  'gpu-temp': 'devices.lianli-wireless.aioScreen.gpuTemp',
-  'liquid-temp': 'devices.nzxt-kraken.screenModeLiquid',
-  'pump-rpm': 'devices.deepcool-mystique.readoutPump',
-  'fan-rpm': 'devices.lianli-wireless.aioScreen.fanSpeed',
+  'cpu-temp': 'devices.asus-ryujin-extreme.sensor.cpuTemp',
+  'gpu-temp': 'devices.asus-ryujin-extreme.sensor.gpuTemp',
+  'liquid-temp': 'devices.asus-ryujin-extreme.sensor.liquidTemp',
+  'pump-rpm': 'devices.asus-ryujin-extreme.sensor.pumpRpm',
+  'fan-rpm': 'devices.asus-ryujin-extreme.sensor.fanRpm',
 };
 
 /** The ROG Ryujin III Extreme page: the display settings its screen stores. Pump and fans live on the Cooling page. */
@@ -83,10 +83,9 @@ export function AsusRyujinExtremeDevicePage() {
 
   const ready = state !== null && state.isConnected;
   const sensorCount = state?.sensorCount === 2 ? 2 : 3;
-  const sensorOptions = (state?.availableSensors ?? []).map(id => ({
-    value: id,
-    label: SENSOR_LABEL_KEYS[id] ? t(SENSOR_LABEL_KEYS[id]) : id,
-  }));
+  const sensorOptions = (state?.availableSensors ?? [])
+    .filter(id => id in SENSOR_LABEL_KEYS)
+    .map(id => ({ value: id, label: t(SENSOR_LABEL_KEYS[id]) }));
 
   return (
     <div className={styles.page}>
@@ -133,7 +132,7 @@ export function AsusRyujinExtremeDevicePage() {
           <SettingRow label={t('devices.asus-ryujin-extreme.readings')}>
             <ChipGroup
               ariaLabel={t('devices.asus-ryujin-extreme.readings')}
-              activeKey={String(state?.sensorCount ?? '')}
+              activeKey={state ? String(sensorCount) : ''}
               options={SENSOR_COUNTS.map(n => ({
                 key: String(n),
                 label: localizeNumbers(String(n), numberFormat),
