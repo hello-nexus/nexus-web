@@ -195,7 +195,7 @@ const SIMPLE_WHITE_PARAMS: EffectParamDef[] = [
 
 const SENSOR_LEVEL_SENSORS: EffectSensorDef[] = [{ name: 'u_fill_level_s', label: 'Fill level', labelKey: 'lighting.sensor.level' }];
 // The fill blocks' Studio uid is `fill`, so this reads u_fill_bgHue / u_fill_bgSat / u_fill_bgVal.
-const SENSOR_FILL_BACKGROUND: EffectColorSlot = { id: 'fill_bg', labelKey: 'lighting.controls.bb.bgLevel' };
+const SENSOR_FILL_BACKGROUND: EffectColorSlot = { id: 'fill_bg', labelKey: 'lighting.controls.fillBackground' };
 const SENSOR_SHIFT_SENSORS: EffectSensorDef[] = [{ name: 'u_hot_level_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
 const SENSOR_HEAT_SENSORS: EffectSensorDef[] = [{ name: 'u_col_low_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
 

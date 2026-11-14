@@ -121,7 +121,7 @@ describe('sensor premades', () => {
       for (const ch of ['Hue', 'Sat', 'Val']) expect(specs[`u_fill_bg${ch}`]?.defaultValue, `${p.key} ${ch}`).toBe(0);
       expect(frag, p.key).toContain('fieldCover = ');
       // After the color stage, so the fill keeps its wheel colors.
-      expect(frag.indexOf('col += fieldBg * (1.0 - fieldCover);'), p.key).toBeGreaterThan(frag.indexOf('col = hsv2rgb('));
+      expect(frag.indexOf('col += fieldBg * ((1.0 - fieldCover) * (u_col_shade));'), p.key).toBeGreaterThan(frag.indexOf('col = hsv2rgb('));
     }
   });
 

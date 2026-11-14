@@ -3025,6 +3025,7 @@
   "lighting.controls.dotmatrix": "Punktmatrix",
   "lighting.controls.dots": "Punkte",
   "lighting.controls.ferrofluid": "Ferrofluid",
+  "lighting.controls.fillBackground": "Hintergrund",
   "lighting.controls.fire": "Feuer",
   "lighting.controls.flowfield": "Strömungsfeld",
   "lighting.controls.galaxy": "Galaxie",

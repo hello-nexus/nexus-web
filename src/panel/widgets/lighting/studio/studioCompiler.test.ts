@@ -144,7 +144,7 @@ describe('compileStudio', () => {
     };
     const on = withBg('fillbar', 'wheelcolor');
     expect(on).toContain('  vec3 fieldBg = vec3(0.0);');
-    expect(on).toContain('  col += fieldBg * (1.0 - fieldCover);');
+    expect(on).toMatch(/\n {2}col \+= fieldBg \* \(\(1\.0 - fieldCover\) \* \(u_\w+_shade\)\);/);
     expect(compileStudio(recipeOf('fillbar', 'wheelcolor')).frag).not.toContain('fieldBg');
     expect(withBg('fillbar', 'rings', 'wheelcolor')).not.toContain('fieldBg');
     expect(withBg('rings', 'palette')).not.toContain('fieldBg');

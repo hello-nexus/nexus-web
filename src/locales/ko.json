@@ -3025,6 +3025,7 @@
   "lighting.controls.dotmatrix": "도트 매트릭스",
   "lighting.controls.dots": "도트",
   "lighting.controls.ferrofluid": "페로 플루이드",
+  "lighting.controls.fillBackground": "배경",
   "lighting.controls.fire": "파이어",
   "lighting.controls.flowfield": "플로우 필드",
   "lighting.controls.galaxy": "은하",

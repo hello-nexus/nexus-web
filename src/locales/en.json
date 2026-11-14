@@ -3025,6 +3025,7 @@
   "lighting.controls.dotmatrix": "Dot Matrix",
   "lighting.controls.dots": "Dots",
   "lighting.controls.ferrofluid": "Ferrofluid",
+  "lighting.controls.fillBackground": "Background",
   "lighting.controls.fire": "Fire",
   "lighting.controls.flowfield": "Flow Field",
   "lighting.controls.galaxy": "Galaxy",

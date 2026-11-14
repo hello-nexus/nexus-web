@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
 import { hsvToHex } from '../../../../lib/settings';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
@@ -56,6 +56,7 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit, chil
 }) {
   const { t } = useTranslation();
   const [activeId, setActiveId] = useState(slots[0]?.id);
+  const titleId = useId();
   const active = slots.find(s => s.id === activeId) ?? slots[0];
   if (!active) return null;
 
@@ -73,8 +74,8 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit, chil
   };
 
   return (
-    <div className={styles.staticColorSlots}>
-      {title && <span className={styles.staticSwatchTitle}>{title}</span>}
+    <div className={styles.staticColorSlots} role={title ? 'group' : undefined} aria-labelledby={title ? titleId : undefined}>
+      {title && <span id={titleId} className={styles.staticSwatchTitle}>{title}</span>}
       {slots.length > 1 && (
         <>
           <span className={styles.staticSwatchTitle}>{t('lighting.controls.colors')}</span>

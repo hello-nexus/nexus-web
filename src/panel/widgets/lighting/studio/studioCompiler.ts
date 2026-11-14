@@ -385,8 +385,11 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
       patternIndex += 1;
     } else {
       body.push(`  {\n${indent(code)}\n  }`);
-      // The color stage scales the fill by its coverage, so adding the background over the rest mixes the two by coverage.
-      if (def.stage === 'color' && background) body.push('  col += fieldBg * (1.0 - fieldCover);');
+      // Color blocks scale by mix(1.0, v, shade) and a fill's v stays within its coverage, so a shade-weighted
+      // background keeps the sum in range; at full shade it is mix(background, fill, coverage).
+      if (def.stage === 'color' && background) {
+        body.push(`  col += fieldBg * ((1.0 - fieldCover) * (${exprs.shade ?? '1.0'}));`);
+      }
     }
   });
 

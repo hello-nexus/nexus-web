@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BASE_DEFAULTS, type EffectState } from '../../../../types/lighting';
 import type { SensorBinding } from '../../../../lib/sensorBinding';
@@ -180,9 +180,10 @@ describe('EffectControls background color', () => {
         canReset={false} onChange={onChange} onCommit={() => {}} onReset={() => {}} noPresets
       />,
     );
-    expect(screen.getByText('lighting.controls.bb.bgLevel')).toBeInTheDocument();
+    const picker = screen.getByRole('group', { name: 'lighting.controls.fillBackground' });
     expect(screen.getAllByRole('group', { name: 'Palette' })).toHaveLength(2);
-    const brightness = screen.getByLabelText('lighting.controls.param.brightness', { selector: 'input[type="range"]' }) as HTMLInputElement;
+    expect(within(picker).getAllByRole('group', { name: 'Palette' })).toHaveLength(1);
+    const brightness = within(picker).getByLabelText('lighting.controls.param.brightness', { selector: 'input[type="range"]' }) as HTMLInputElement;
     expect(brightness.value).toBe('0');
     fireEvent.change(brightness, { target: { value: '40' } });
     expect(onChange).toHaveBeenLastCalledWith({ params: { u_fill_bgHue: 0, u_fill_bgSat: 0, u_fill_bgVal: 0.4 } }, expect.anything());

@@ -199,7 +199,7 @@ export const EffectControls = memo(function EffectControls({
               onCommit={onCommit} />
           );
         })}
-        {loaded && def.background && (
+        {loaded && def.background && specs[`u_${def.background.id}Hue`] && (
           <StaticColorSlots slots={[def.background]} title={t(def.background.labelKey)} state={state} specs={specs} onChange={onChange} onCommit={onCommit} />
         )}
         {loaded && sensors.map(su => {

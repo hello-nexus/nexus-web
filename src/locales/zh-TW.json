@@ -3025,6 +3025,7 @@
   "lighting.controls.dotmatrix": "點陣",
   "lighting.controls.dots": "圓點",
   "lighting.controls.ferrofluid": "磁流體",
+  "lighting.controls.fillBackground": "背景",
   "lighting.controls.fire": "火焰",
   "lighting.controls.flowfield": "流場",
   "lighting.controls.galaxy": "星系",
