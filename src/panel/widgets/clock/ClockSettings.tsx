@@ -87,8 +87,8 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
                 key={key}
                 active={key === currentDesign}
                 icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                title={CLOCK_DESIGNS[key].label}
-                ariaLabel={CLOCK_DESIGNS[key].label}
+                title={t(CLOCK_DESIGNS[key].labelKey)}
+                ariaLabel={t(CLOCK_DESIGNS[key].labelKey)}
                 onPress={() => setDesign(key)}
               />
             );

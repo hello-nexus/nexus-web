@@ -1,6 +1,4 @@
-// One tiny SVG per clock design, drawn on the same 24px grid and 2px round
-// stroke as the monitoring design icons (monitoring/gauges/DesignIcons.tsx),
-// so each picker tile depicts what its design renders.
+// One SVG per clock design, on the same grid and stroke as monitoring/gauges/DesignIcons.tsx.
 
 import type { SVGProps } from 'react';
 
@@ -65,7 +63,7 @@ export function SplitFlapDesignIcon(p: P) {
   );
 }
 
-// A digit window with the neighbouring digits sliding past.
+// A digit window with the neighboring digits sliding past.
 export function RollingDesignIcon(p: P) {
   return (
     <svg {...base} {...p}>
