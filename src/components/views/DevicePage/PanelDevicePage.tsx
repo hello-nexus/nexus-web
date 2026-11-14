@@ -136,7 +136,8 @@ import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
 import { syncedAppThemeMode } from '../../../lib/settings';
-import { applyPanelSkin } from '../../../panel/theme/panelSkin';
+import { useSkinStyles } from '../../../panel/skins/skinLoader';
+import { applyPanelSkin, panelSkinScopeAttrs } from '../../../panel/theme/panelSkin';
 import { buildPanelThemeVars, panelAccentColor, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { resolveGaugeGradient } from '../../../panel/theme/gaugeGradient';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
@@ -696,6 +697,13 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const panelPreviewThemeStyle = useMemo(
     () => buildPanelThemeVars(skinnedTheme, desktopResolvedThemeMode),
     [skinnedTheme, desktopResolvedThemeMode],
+  );
+
+  // The previews sit outside a panel skin scope, so they take the skin's attributes (segment numerals, per-font rules) directly.
+  const skinStylesReady = useSkinStyles(skinnedTheme.skin);
+  const panelPreviewSkinAttrs = useMemo(
+    () => (skinStylesReady ? panelSkinScopeAttrs(skinnedTheme) ?? undefined : undefined),
+    [skinStylesReady, skinnedTheme],
   );
 
   // The dashboard's own menus take the panel's accent but keep the app font.
@@ -1659,6 +1667,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                 transposedTile={transposedTile}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
+                skinAttrs={panelPreviewSkinAttrs}
                 docked={dockPreview}
                 onBack={() => setConfiguringWidgetId(null)}
                 onUpdate={handleUpdateWidgetConfig}
@@ -1722,6 +1731,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                           } : undefined}
                           themeMode={desktopResolvedThemeMode}
                           themeStyle={panelPreviewThemeStyle}
+                          skinAttrs={panelPreviewSkinAttrs}
                         />
                       </div>
                     </>
@@ -2489,6 +2499,7 @@ interface InlineWidgetSettingsProps {
   // Panel accent vars injected onto the preview root so the widget preview
   // highlights in the panel's accent, not the desktop chrome's.
   themeStyle?: CSSProperties;
+  skinAttrs?: Readonly<Record<string, string>>;
   // Set when the canvas is docked below (landscape strips), which gives this
   // block the full page width.
   docked?: boolean;
@@ -2505,7 +2516,7 @@ interface InlineWidgetSettingsProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, transposedTile = false, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, initialDeckKey, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, transposedTile = false, themeMode = 'dark', themeStyle, skinAttrs, docked, onBack, onUpdate, onResize, onRemove, initialDeckKey, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -2601,6 +2612,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, forcedGrid, transp
             const root = (
               <div
                 className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
+                {...skinAttrs}
                 data-theme={themeMode}
                 style={{ ...themeStyle, width: previewW, height: previewH, ...(fit.scale < 1 ? { transform: `scale(${fit.scale})`, transformOrigin: 'top left' } : {}) }}
               >

@@ -26,7 +26,7 @@ import { playlistDisplayOrder } from '../engine/widgetPlaylist';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import panelStyles from '../PanelApp.module.scss';
 import styles from './PanelWidgetCatalog.module.scss';
-import { usePanelSkinAttrs } from '../../components/common/ThemeScope/PanelSkinScope';
+import { usePanelSkinAttrs, type PanelSkinAttributes } from '../../components/common/ThemeScope/PanelSkinScope';
 
 // The catalog IS a panel grid. The column count is a multiple of 4 sized so
 // each cell lands near this target, then widgets pack row-major via the panel's
@@ -117,6 +117,8 @@ export interface PanelWidgetCatalogProps {
   // modal) the surrounding stylesheet sets --accent to the desktop's accent;
   // without this prop the search input + previews highlight in the wrong hue.
   themeStyle?: CSSProperties;
+  // Skin attributes for a catalog outside a panel skin scope (the desktop device page).
+  skinAttrs?: PanelSkinAttributes;
   className?: string;
   // Highlight the card matching this widget type. Used by single-widget
   // surfaces (q-series) to mark the device's active widget.
@@ -154,6 +156,7 @@ export function PanelWidgetCatalog({
   remote = false,
   themeMode,
   themeStyle,
+  skinAttrs: skinAttrsProp,
   className,
   selectedWidgetType,
   playlist,
@@ -164,7 +167,8 @@ export function PanelWidgetCatalog({
   transposedTile = false,
   glassAspect,
 }: PanelWidgetCatalogProps) {
-  const skinAttrs = usePanelSkinAttrs();
+  const scopeSkinAttrs = usePanelSkinAttrs();
+  const skinAttrs = skinAttrsProp ?? scopeSkinAttrs;
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   // Post-add confirmation on the card that was just clicked (desktop catalog

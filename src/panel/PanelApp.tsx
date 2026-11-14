@@ -83,7 +83,7 @@ import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckInstance';
 import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelSkinScope, type PanelSkinScopeValue } from '../components/common/ThemeScope/PanelSkinScope';
-import { panelFontAttrs, panelSkinAttrs } from './theme/panelSkin';
+import { panelFontAttrs, panelSkinScopeAttrs } from './theme/panelSkin';
 import { useSkinStyles } from './skins/skinLoader';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { PanelDeviceIdProvider } from './widgets/common/PanelDeviceIdContext';
@@ -806,9 +806,9 @@ export function PanelContent({
   // The embedded desktop deck stays unskinned.
   const skinScope = useMemo<PanelSkinScopeValue | null>(() => {
     if (embedded) return null;
-    const skinAttrs = panelSkinAttrs(effectiveTheme);
-    if (!skinAttrs['data-panel-skin']) return null;
-    return { attrs: { ...skinAttrs, ...panelFontAttrs(effectiveTheme), 'data-theme': resolvedThemeMode, 'data-surface': surface }, style: panelThemeVars };
+    const skinAttrs = panelSkinScopeAttrs(effectiveTheme);
+    if (!skinAttrs) return null;
+    return { attrs: { ...skinAttrs, 'data-theme': resolvedThemeMode, 'data-surface': surface }, style: panelThemeVars };
   }, [embedded, effectiveTheme, resolvedThemeMode, surface, panelThemeVars]);
   // The panel backdrop is always the theme's dark/light background; the chosen
   // solid colour, shader, or media sits over it as an opacity-controlled

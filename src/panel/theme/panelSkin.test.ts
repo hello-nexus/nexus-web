@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyPanelSkin, normalizeStoredSkin, panelFontAttrs, panelSkinAttrs, panelSkinVars, resolveSkin } from './panelSkin';
+import { applyPanelSkin, normalizeStoredSkin, panelFontAttrs, panelSkinAttrs, panelSkinScopeAttrs, panelSkinVars, resolveSkin } from './panelSkin';
 import { buildPanelTheme, buildPanelThemeVars, resolveEffectivePanelTheme } from './panelTheme';
 import type { PanelDeviceRecord } from '../../api/panel';
 
@@ -120,5 +120,24 @@ describe('panel font attribute', () => {
   it('is absent for the app font and for a system font', () => {
     expect(panelFontAttrs(buildPanelTheme(null, record()))).toEqual({});
     expect(panelFontAttrs(buildPanelTheme(null, record({ font: 'system:Arial' })))).toEqual({});
+  });
+});
+
+describe('panel skin scope attributes for a preview outside the panel', () => {
+  it('carries the skin and its own font while the skin keeps its font', () => {
+    const theme = buildPanelTheme(null, record({ skin: 'lcd', font: 'oswald' }));
+    expect(panelSkinScopeAttrs(theme)).toMatchObject({ 'data-panel-skin': 'lcd', 'data-panel-font': 'jura' });
+    expect(panelSkinScopeAttrs(theme)).not.toHaveProperty('data-skin-font-custom');
+  });
+
+  it('follows the per-skin font pick and marks it custom', () => {
+    const theme = buildPanelTheme(null, record({ skin: 'lcd', skinOverrides: { lcd: { font: 'oswald' } } }));
+    expect(panelSkinScopeAttrs(theme)).toMatchObject({ 'data-panel-skin': 'lcd', 'data-panel-font': 'oswald', 'data-skin-font-custom': '' });
+  });
+
+  it('is null with no skin, leaving the selected font to the theme vars', () => {
+    const theme = buildPanelTheme(null, record({ font: 'oswald' }));
+    expect(panelSkinScopeAttrs(theme)).toBeNull();
+    expect(buildPanelThemeVars(theme, 'dark')['--panel-font' as keyof ReturnType<typeof buildPanelThemeVars>]).toContain('Oswald');
   });
 });

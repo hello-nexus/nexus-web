@@ -92,3 +92,10 @@ export function panelFontAttrs(theme: SkinThemeFields): { 'data-panel-font'?: st
   const id = PANEL_FONTS.find(f => f.id === font)?.id;
   return id ? { 'data-panel-font': id } : {};
 }
+
+// Every skin and font attribute a panel-root mount carries; null with no skin.
+export function panelSkinScopeAttrs(theme: SkinThemeFields): Record<string, string> | null {
+  const skinAttrs = panelSkinAttrs(theme);
+  if (!skinAttrs['data-panel-skin']) return null;
+  return { ...skinAttrs, ...panelFontAttrs(theme) };
+}

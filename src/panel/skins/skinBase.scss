@@ -206,6 +206,11 @@ $accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, n
 .panel-root[data-panel-skin] [data-skin-part='value'] {
   font-family: var(--skin-numeral-font, var(--panel-font));
 }
+// A custom font resolves --panel-font at the numeral itself: a surface that sets the font below its panel-root (the desktop catalog previews) leaves the root's copy of the variable stale.
+.panel-root[data-panel-skin][data-skin-font-custom] [data-skin-part='digit'],
+.panel-root[data-panel-skin][data-skin-font-custom] [data-skin-part='value'] {
+  font-family: var(--panel-font);
+}
 
 // Secondary text on every skin. Widgets dim it with an opacity step,
 // which on a pale card lands under the text contrast target whatever the ink is. A skin
