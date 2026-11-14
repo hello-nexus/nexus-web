@@ -246,11 +246,15 @@ export function skinBackgroundHeld(value: string | null | undefined): SkinBackgr
   return held;
 }
 
+// Stands in for the held values of a record that stored only its pre-skin mode, so a non-skin live mode still carries that mode.
+const NEUTRAL_SKIN_HELD: SkinBackgroundHeld = { backdrop: 'theme', frost: DEFAULT_PANEL_BACKGROUND_FROST, opacity: DEFAULT_OVERLAY_BACKGROUND_OPACITY };
+
 // `<live>:<before>:<backdrop>:<frost>:<opacity>[:<effect>]` while a skin is active, so the pre-skin background survives any mode the skin shows.
 export function encodeSkinBackgroundMode(live: PanelBackgroundMode, before: PanelBackgroundBase, held?: SkinBackgroundHeld | null): string {
-  if (!held) return live === 'skin' ? `skin:${before}` : live;
-  const parts = [live, before, held.backdrop, held.frost, held.opacity];
-  return (held.effect ? [...parts, held.effect] : parts).join(':');
+  const kept = held ?? (live === 'skin' ? null : NEUTRAL_SKIN_HELD);
+  if (!kept) return `skin:${before}`;
+  const parts = [live, before, kept.backdrop, kept.frost, kept.opacity];
+  return (kept.effect ? [...parts, kept.effect] : parts).join(':');
 }
 
 export function normalizePanelBackgroundEffect(value: string | null | undefined): string {

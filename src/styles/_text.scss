@@ -30,7 +30,7 @@
 // Adding a 9th style is allowed but should be a deliberate decision, not a
 // silent one-off. Bring the proposal up before adding.
 
-// A weight lowered by the panel's --weight-shift (zero unless a font sets it), never under 400.
+// A weight lowered by the panel's --weight-shift, floored at the regular weight.
 @function lighter-weight($w) {
   @return string.unquote('max(400, calc(#{$w} - var(--weight-shift, 0)))');
 }

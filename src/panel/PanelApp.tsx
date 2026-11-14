@@ -138,7 +138,7 @@ import { tileTransposed } from './engine/tileOrientation';
 import { resolveRecordRotation } from '../components/views/DevicePage/panelRotation';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { isLocalPanelClient } from './background/panelAudio';
-import { panelSystemFontsAvailable } from './theme/panelFont';
+import { panelSystemFontsAvailable, splitPanelFontStyle } from './theme/panelFont';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundSolid } from './background/PanelBackgroundSolid';
@@ -848,6 +848,13 @@ export function PanelContent({
   // Skin background mode replaces the theme layers with the skin backdrop; any other mode draws the skin tiles over the user's background.
   const fontAttrs = useMemo(() => (embedded ? {} : panelFontAttrs(effectiveTheme)), [embedded, effectiveTheme]);
   const skinned = skinScope !== null;
+  // A non-default font alone still needs the portal host, so sheets opened outside the panel root draw in it.
+  const portalScope = useMemo<PanelSkinScopeValue | null>(() => {
+    if (skinScope) return skinScope;
+    const { font } = splitPanelFontStyle(panelThemeVars);
+    if (embedded || !font || !fontAttrs['data-panel-font']) return null;
+    return { attrs: { ...fontAttrs, 'data-theme': resolvedThemeMode, 'data-surface': surface }, style: font };
+  }, [skinScope, embedded, panelThemeVars, fontAttrs, resolvedThemeMode, surface]);
   // A wallpaper or desktop Rendering choice shows instead of the skin's backdrop, like any other source.
   const skinOwnsBackdrop = skinned && effectiveTheme.backgroundMode === 'skin' && effectiveTheme.backdrop === 'theme';
   const backdrop = wallpaperBackgroundAvailable && showPanelBackground && !skinOwnsBackdrop
@@ -2300,7 +2307,7 @@ export function PanelContent({
   }, [paginatedLayout, touch, widgetById, embedded, surface, singlePage, setDraggingPinnableType, pinnedTail]);
 
   return (
-    <PanelSkinScope scope={skinScope}>
+    <PanelSkinScope scope={portalScope}>
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
     <PanelRestrictedProvider value={restricted}>
     <PanelGenericDisplayProvider value={genericDisplay}>

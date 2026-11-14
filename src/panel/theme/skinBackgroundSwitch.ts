@@ -3,6 +3,7 @@ import {
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
   encodeSkinBackgroundMode,
   normalizePanelBackgroundTemplate,
+  skinBackgroundHeld,
   type PanelBackdrop,
   type PanelBackgroundBase,
   type PanelBackgroundMode,
@@ -80,8 +81,9 @@ function underSkin(cur: SkinBackgroundFields, mode: PanelBackgroundMode, effect:
   const hold = holdFor(cur);
   const live = showMode(cur, mode, hold);
   const picked = effect && effect !== cur.backgroundEffect ? selectBackgroundEffect(cur.backgroundTemplates, effect) : {};
-  const theme = { ...live, ...picked, backgroundModeBefore: hold.before, backgroundHeld: hold.held };
-  return { theme, patch: { ...toPatch(theme), backgroundMode: encodeSkinBackgroundMode(live.backgroundMode ?? cur.backgroundMode, hold.before, hold.held) } };
+  const stored = encodeSkinBackgroundMode(live.backgroundMode ?? cur.backgroundMode, hold.before, hold.held);
+  const theme = { ...live, ...picked, backgroundModeBefore: hold.before, backgroundHeld: skinBackgroundHeld(stored) };
+  return { theme, patch: { ...toPatch(theme), backgroundMode: stored } };
 }
 
 // Gives back exactly the background held when the first skin went on.

@@ -14,4 +14,4 @@
 // token but trails a raw declaration stays flagged.
 // The font-set tracking and weight-shift tokens count as sanctioned too: they are the tokens a font retunes.
 export const TOKENED_TYPE_LINE =
-  /^\s*(font-size:\s*var\(--type-[\w-]+\)|font-weight:\s*var\(--weight-[\w-]+\)|line-height:\s*var\(--leading-[\w-]+\)|letter-spacing:\s*var\(--small-tracking,\s*(?:inherit|0em)\)|font-weight:\s*max\(400,\s*calc\(\d+\s*-\s*var\(--weight-shift,\s*0\)\)\))\s*(!important)?\s*;?\s*(\/\/.*)?$/;
+  /^\s*(font-size:\s*var\(--type-[\w-]+\)|font-weight:\s*var\(--weight-[\w-]+\)|line-height:\s*var\(--leading-[\w-]+\)|letter-spacing:\s*var\(--small-tracking,\s*0em\)|letter-spacing:\s*calc\(var\(--skin-letter-spacing,\s*0em\)\s*\+\s*var\(--small-tracking,\s*0em\)\)|font-weight:\s*max\(400,\s*calc\(\d+\s*-\s*var\(--weight-shift,\s*0\)\)\))\s*(!important)?\s*;?\s*(\/\/.*)?$/;

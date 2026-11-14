@@ -48,10 +48,21 @@
 @function sk-hatch-b($c) {
   @return repeating-linear-gradient(-62deg, $c 0, $c var(--sk-hatch-w-b), transparent var(--sk-hatch-w-b), transparent var(--sk-hatch-p-b));
 }
+// The grain is an overlay on each fill, so the widget's own color or gradient shows through; contain makes the fill its containing block.
 @include in-skin('sketch', '[data-skin-part="fill"], [data-skin-part="bar-fill"]') {
+  contain: layout;
+}
+@include in-skin('sketch', '[data-skin-part="fill"]::after, [data-skin-part="bar-fill"]::after') {
   @include sk-hatch-vars;
   --sk-hatch-stroke: rgba(0, 0, 0, var(--sk-hatch-ink));
-  background-color: var(--skin-fill, var(--accent));
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  pointer-events: none;
   background-image: sk-hatch-a(var(--sk-hatch-stroke)), sk-hatch-b(var(--sk-hatch-stroke));
 }
 

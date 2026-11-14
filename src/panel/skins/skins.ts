@@ -191,7 +191,7 @@ export function skinAccentVars(id: PanelSkinId, accent: string): Record<string, 
   };
 }
 
-// Synthwave palette: grid rows take the accent, columns and sun wash rotate away from it, and the night tint follows the accent half-way to violet. Lightness is fixed per mode, so every accent keeps the same legibility; the default cyan reproduces the original colors.
+// Synthwave palette: grid rows take the accent, columns and sun wash rotate away from it, and the night tint follows the accent half-way to violet. Lightness is fixed per mode, so every accent keeps the same legibility.
 const SYNTH_BASE_HUE = 187;
 const SYNTH_NIGHT_HUE = 255;
 

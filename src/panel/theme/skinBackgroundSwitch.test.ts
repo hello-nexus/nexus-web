@@ -128,4 +128,23 @@ describe('per-skin background mode', () => {
     const orphan: SkinBackgroundFields = { ...aurora, skin: 'lcd', backgroundMode: 'skin', backdrop: 'theme', backgroundFrost: 0, backgroundOpacity: 1 };
     expect(pickSkin(orphan, null).patch).toEqual({ skin: '', backgroundMode: 'shader' });
   });
+
+  it('a skin:shader record that shows Solid still restores Animations when the skin is removed', () => {
+    const legacy: SkinBackgroundFields = {
+      ...aurora,
+      skin: 'neon',
+      backgroundMode: normalizePanelBackgroundMode('skin:shader'),
+      backgroundModeBefore: backgroundModeBeforeSkin('skin:shader'),
+      backgroundHeld: skinBackgroundHeld('skin:shader'),
+      backdrop: 'theme',
+      backgroundFrost: 0,
+      backgroundOpacity: 1,
+    };
+    const solid = chooseBackgroundMode(legacy, 'solid');
+    expect(normalizePanelBackgroundMode(solid.patch.backgroundMode)).toBe('solid');
+    expect(backgroundModeBeforeSkin(solid.patch.backgroundMode)).toBe('shader');
+    const cur = step(legacy, solid);
+    expect(cur).toMatchObject({ backgroundMode: 'solid', backgroundModeBefore: 'shader' });
+    expect(step(cur, pickSkin(cur, null))).toMatchObject({ skin: null, backgroundMode: 'shader', backgroundHeld: null });
+  });
 });

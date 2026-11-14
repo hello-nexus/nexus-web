@@ -13,9 +13,9 @@
 .panel-root,
 .panel-root[data-theme] { --font-mono: var(--panel-font); }
 
-// Type weights step down by --weight-shift (never under 400) and small text tracks out by
-// --small-tracking. Both are zero unless the resolved font sets them. The weights are restated
-// here because a light panel root inherits :root's resolved values, which carry no shift.
+// Type weights step down by --weight-shift and small text tracks out by --small-tracking, both set
+// by the resolved font. The weights are restated here because a light panel root inherits :root's
+// resolved values, which carry no shift.
 .panel-root[data-theme] {
   --weight-shift: 0;
   --weight-display-min: 0;
@@ -88,8 +88,8 @@
   --panel-card-radius: var(--radius);
   // Cell-scaled card radius. Surfaces opt in by assigning it to
   // --panel-card-radius (PanelApp.module.scss); it lives here so the grid and
-  // the drag clone portaled out of the panel root share one formula. Keys off
-  // the smaller cell axis so a wide cell reads as rounded as a small one.
+  // the drag clone portaled out of the panel root share one formula. Scales
+  // with --panel-scale, so the radius follows the cell size.
   --panel-card-radius-auto: clamp(var(--radius-lg), calc(var(--panel-scale, 1) * 12.6px), 40px);
   // The .panel-card fill. Defaults to translucent --surface so embedded hosts
   // (desktop dashboard, floating overlay - both buildEmbeddedPanelThemeVars)

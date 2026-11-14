@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelDevicePatch, PanelDeviceRecord } from '../../api/panel';
 
 // A stateful stand-in for the service: PATCH merges into the stored record (an empty string clears a field), every write publishes the panel/device frame, GET returns the stored record.
-const store = vi.hoisted(() => ({ record: {} as Record<string, unknown>, patches: [] as Record<string, unknown>[], topics: new Set<(raw: unknown) => void>(), latency: [5, 25] as number[], n: 0 }));
+const store = vi.hoisted(() => ({ record: {} as Record<string, unknown>, patches: [] as Record<string, unknown>[], topics: new Set<(raw: unknown) => void>(), latency: [5, 25] as number[], n: 0, inflight: 0 }));
 const publish = () => store.topics.forEach(cb => cb({ deviceId: 'dev1' }));
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -12,14 +12,18 @@ vi.mock('../../api/panel', async importOriginal => {
   return {
     ...actual,
     fetchPanelDeviceWithStatus: vi.fn(async () => {
+      store.inflight++;
       await wait(5);
+      store.inflight--;
       return { found: true, record: actual.canonicalPanelRecord({ ...store.record } as PanelDeviceRecord) };
     }),
     patchPanelDevice: vi.fn(async (_id: string, patch: PanelDevicePatch) => {
       store.patches.push({ ...patch });
+      store.inflight++;
       await wait(store.latency[store.n++ % store.latency.length]);
       for (const [key, value] of Object.entries(patch)) store.record[key] = value === '' ? null : value;
       publish();
+      store.inflight--;
       return { ...store.record } as PanelDeviceRecord;
     }),
   };
@@ -45,6 +49,7 @@ beforeEach(() => {
   store.topics.clear();
   store.latency = [5];
   store.n = 0;
+  store.inflight = 0;
 });
 
 function mount() {
@@ -56,8 +61,12 @@ function mount() {
 
 type Hook = ReturnType<typeof mount>['result'];
 async function run(result: Hook, fn: (t: Hook['current']['panelTheme']) => void) {
+  const sent = store.patches.length;
   act(() => fn(result.current.panelTheme));
-  await act(async () => { await wait(60); });
+  await waitFor(() => {
+    expect(store.patches.length).toBeGreaterThan(sent);
+    expect(store.inflight).toBe(0);
+  });
 }
 
 describe('per-skin background through usePanelTheme and the record', () => {
