@@ -27,15 +27,12 @@
   flex-direction: column;
 }
 
+// Icon-only cards at the default button size, the same tile as the editor's
+// size slots, wrapping left-aligned instead of stretching full-width.
 .designRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-}
-
-.designBtn {
-  width: 100%;
-  min-width: 0;
 }
 
 .tzTrigger {

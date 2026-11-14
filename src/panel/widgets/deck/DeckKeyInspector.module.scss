@@ -112,18 +112,16 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   &:hover { --select-bg: var(--deck-settings-bg-hover); }
 }
 
-// Monitoring action editor's Design icon-button grid.
+// Monitoring action editor's Design icon-button grid: default button size, the
+// same tile as the editor's size slots, wrapping left-aligned.
 .designRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .designBtn {
-  width: 100%;
-  min-width: 0;
   --icon-label-icon-size: 24px;
-  --icon-label-button-height: 46px;
 }
 
 // Monitoring action editor's Adaptive/Fixed Range chips + min/max fields.
