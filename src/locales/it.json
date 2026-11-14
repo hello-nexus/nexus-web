@@ -2828,7 +2828,7 @@
   "keeb.keyboard.rightWheel": "Rotella destra",
   "keeb.layer": "Livello",
   "keeb.layerN": "Livello {n}",
-  "keeb.lightingOff": "Illuminazione è disattivata, quindi queste impostazioni vengono salvate ma non inviate alla tastiera.",
+  "keeb.lightingOff": "L'illuminazione è disattivata, quindi queste impostazioni vengono salvate ma non inviate alla tastiera.",
   "keeb.lightingOffEnable": "Attiva Illuminazione",
   "keeb.loading": "Caricamento...",
   "keeb.macro.budget": "{used} / {max} byte",

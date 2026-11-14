@@ -3,10 +3,12 @@ import { Notice } from '../../common/Notice/Notice';
 import { useFeatureFlags, useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 
-/// Page-top notice for the Keeb page while the master Lighting switch is off.
-/// The service drops the keyboard's device-setting writes (wheel assignment,
-/// firmware lighting, Game Mode) in that state, so the page says so and offers
-/// the switch. Renders nothing while Lighting is on.
+/**
+ * Page-top notice for the Keeb page while the master Lighting switch is off.
+ * The service drops the keyboard's device-setting writes (wheel assignment,
+ * firmware lighting, Game Mode) in that state, so the page says so and offers
+ * the switch. Renders nothing while Lighting is on.
+ */
 export function KeebLightingOffNotice() {
   const { t } = useTranslation();
   const lightingOn = useFeatureFlags().lighting;
