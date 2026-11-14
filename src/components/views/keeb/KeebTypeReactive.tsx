@@ -6,6 +6,7 @@ import {
 } from '../../common/TypeReactiveEditor/TypeReactiveEditor';
 import { fetchKeyReactive, type KeyReactiveDevice, type KeyReactiveState } from '../../../api/keyReactive';
 import { isTunnelActive } from '../../../api/service';
+import { useFeatureFlags } from '../../../hooks/useUiSettings';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebSettingsView.module.scss';
@@ -15,6 +16,7 @@ import styles from './KeebSettingsView.module.scss';
  *  a keeb). The same config backs the editor on the lighting page. */
 export function KeebTypeReactive() {
   const { t } = useTranslation();
+  const lightingOff = !useFeatureFlags().lighting;
   // undefined while the first fetch is in flight, null when it failed.
   const [state, setState] = useState<KeyReactiveState | null | undefined>(undefined);
   useEffect(() => {
@@ -31,6 +33,9 @@ export function KeebTypeReactive() {
   const stream = useLightingFrames(!!device && !isTunnelActive());
 
   if (state === undefined) return null;
+  // With Lighting off the engine lists no keyboard, so the missing-card text
+  // would mislead; the page-top Lighting notice explains instead.
+  if (!device && lightingOff) return null;
   if (!device) {
     return (
       <SettingsSection title={t('keeb.settings.passive.title')} description={t('keeb.settings.passive.subtitle')}>

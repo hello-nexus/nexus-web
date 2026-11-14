@@ -8,6 +8,7 @@ import { useKeeb } from '../../../hooks/useKeeb';
 import { type KeebLayer, KEEB_LAYERS } from '../../../api/keeb';
 import { KEEB_RENDER_WIDTH, KeebKeyboard, type KeebSelection } from '../keeb/KeebKeyboard';
 import { useFitZoom } from '../keeb/useFitZoom';
+import { KeebLightingOffNotice } from '../keeb/KeebLightingOffNotice';
 import { KeebSettingsView } from '../keeb/KeebSettingsView';
 import { KeebKeyAssignmentView } from '../keeb/KeebKeyAssignmentView';
 import { KeebRotaryView } from '../keeb/KeebRotaryView';
@@ -114,6 +115,7 @@ export function KeebDevicePage() {
         ) : undefined}
       />
       <div className={`${pageStyles.pageBody} pageBody`}>
+        {(tab === 'settings' || (tab === 'key-assignment' && selected?.kind === 'wheel')) && <KeebLightingOffNotice />}
         {showKeyboard && (
           <div ref={stage.ref} className={pageStyles.keyboardStageWrap}>
             <div className={pageStyles.keyboardStage} style={{ zoom: stage.zoom }}>

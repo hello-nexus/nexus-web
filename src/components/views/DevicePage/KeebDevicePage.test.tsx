@@ -6,6 +6,7 @@ import type { KeyboardState } from '../../../api/keeb';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const h = vi.hoisted(() => ({
+  lighting: true,
   push: vi.fn(),
   setLayer: vi.fn(),
   setKey: vi.fn(),
@@ -25,6 +26,11 @@ const h = vi.hoisted(() => ({
     settings: [] as any[],
     macro: [] as any[],
   },
+}));
+
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useFeatureFlags: () => ({ lighting: h.lighting, cooling: true, monitoring: true, diagnostics: true }),
+  useUiSettingsUpdateSafe: () => () => {},
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -151,6 +157,7 @@ beforeEach(() => {
   h.state = connectedState();
   h.settings = null;
   h.layer = 0;
+  h.lighting = true;
 });
 
 describe('KeebDevicePage', () => {
@@ -349,5 +356,43 @@ describe('KeebDevicePage', () => {
       expect(lastRotary().right).toBe('B');
     });
 
+  });
+
+  describe('Lighting-off notice', () => {
+    const NOTICE = 'keeb.lightingOff';
+
+    it('shows on the Settings tab when Lighting is off', () => {
+      h.lighting = false;
+      render(<KeebDevicePage />);
+      clickTab('keeb.tab.settings');
+      expect(screen.getByText(NOTICE)).toBeInTheDocument();
+    });
+
+    it('shows on Key Assignment only once a wheel is selected', () => {
+      h.lighting = false;
+      render(<KeebDevicePage />);
+      expect(screen.queryByText(NOTICE)).toBeNull();
+      selectKey();
+      expect(screen.queryByText(NOTICE)).toBeNull();
+      selectWheel();
+      expect(screen.getByText(NOTICE)).toBeInTheDocument();
+    });
+
+    it('never shows on the Macros or Tester tabs', () => {
+      h.lighting = false;
+      render(<KeebDevicePage />);
+      clickTab('keeb.tab.macros');
+      expect(screen.queryByText(NOTICE)).toBeNull();
+      clickTab('keeb.tab.tester');
+      expect(screen.queryByText(NOTICE)).toBeNull();
+    });
+
+    it('never shows when Lighting is on', () => {
+      render(<KeebDevicePage />);
+      selectWheel();
+      expect(screen.queryByText(NOTICE)).toBeNull();
+      clickTab('keeb.tab.settings');
+      expect(screen.queryByText(NOTICE)).toBeNull();
+    });
   });
 });
