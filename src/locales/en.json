@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Right rotary wheel",
   "keeb.layer": "Layer",
   "keeb.layerN": "Layer {n}",
+  "keeb.lightingOff": "Lighting is off, so these settings are saved but not sent to the keyboard.",
+  "keeb.lightingOffEnable": "Turn on Lighting",
   "keeb.loading": "Loading...",
   "keeb.macro.budget": "{used} / {max} bytes",
   "keeb.macro.clear": "Clear",

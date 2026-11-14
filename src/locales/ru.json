@@ -2835,6 +2835,8 @@
   "keeb.keyboard.rightWheel": "Правое поворотное колесо",
   "keeb.layer": "Слой",
   "keeb.layerN": "Слой {n}",
+  "keeb.lightingOff": "Подсветка выключена, поэтому эти настройки сохраняются, но не отправляются на клавиатуру.",
+  "keeb.lightingOffEnable": "Включить «Подсветку»",
   "keeb.loading": "Загрузка...",
   "keeb.macro.budget": "{used} / {max} байт",
   "keeb.macro.clear": "Очистить",

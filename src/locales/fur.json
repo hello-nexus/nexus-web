@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Ruele rotative di drete",
   "keeb.layer": "Strât",
   "keeb.layerN": "Strât {n}",
+  "keeb.lightingOff": "Iluminazion e je distudade, par chel chestis impostazions a vegnin salvadis ma no mandadis ae tastiere.",
+  "keeb.lightingOffEnable": "Ative Iluminazion",
   "keeb.loading": "Daûr a cjariâ...",
   "keeb.macro.budget": "{used} / {max} byte",
   "keeb.macro.clear": "Nete",

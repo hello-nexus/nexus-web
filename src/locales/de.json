@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Rechtes Drehrad",
   "keeb.layer": "Ebene",
   "keeb.layerN": "Ebene {n}",
+  "keeb.lightingOff": "Beleuchtung ist aus, daher werden diese Einstellungen gespeichert, aber nicht an die Tastatur gesendet.",
+  "keeb.lightingOffEnable": "Beleuchtung aktivieren",
   "keeb.loading": "Wird geladen...",
   "keeb.macro.budget": "{used} / {max} Bytes",
   "keeb.macro.clear": "Leeren",

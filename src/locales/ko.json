@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "오른쪽 로터리 휠",
   "keeb.layer": "레이어",
   "keeb.layerN": "레이어 {n}",
+  "keeb.lightingOff": "라이팅이 꺼져 있어 이 설정은 저장되지만 키보드로 전송되지 않습니다.",
+  "keeb.lightingOffEnable": "라이팅 켜기",
   "keeb.loading": "불러오는 중...",
   "keeb.macro.budget": "{used} / {max} 바이트",
   "keeb.macro.clear": "지우기",

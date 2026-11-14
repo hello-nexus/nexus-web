@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Molette droite",
   "keeb.layer": "Couche",
   "keeb.layerN": "Couche {n}",
+  "keeb.lightingOff": "Éclairage est désactivé : ces réglages sont enregistrés, mais pas envoyés au clavier.",
+  "keeb.lightingOffEnable": "Activer Éclairage",
   "keeb.loading": "Chargement...",
   "keeb.macro.budget": "{used} / {max} octets",
   "keeb.macro.clear": "Effacer",

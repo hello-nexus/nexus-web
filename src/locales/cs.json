@@ -2835,6 +2835,8 @@
   "keeb.keyboard.rightWheel": "Pravé otočné kolečko",
   "keeb.layer": "Vrstva",
   "keeb.layerN": "Vrstva {n}",
+  "keeb.lightingOff": "Osvětlení je vypnuté, proto se tato nastavení uloží, ale do klávesnice se neodešlou.",
+  "keeb.lightingOffEnable": "Zapnout Osvětlení",
   "keeb.loading": "Načítání...",
   "keeb.macro.budget": "{used} / {max} bajtů",
   "keeb.macro.clear": "Vymazat",

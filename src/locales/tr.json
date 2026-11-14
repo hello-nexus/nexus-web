@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Sağ döner tekerlek",
   "keeb.layer": "Katman",
   "keeb.layerN": "Katman {n}",
+  "keeb.lightingOff": "Aydınlatma kapalı, bu yüzden bu ayarlar kaydedilir ama klavyeye gönderilmez.",
+  "keeb.lightingOffEnable": "Aydınlatma'yı aç",
   "keeb.loading": "Yükleniyor...",
   "keeb.macro.budget": "{used} / {max} bayt",
   "keeb.macro.clear": "Temizle",

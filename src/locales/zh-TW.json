@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "右旋鈕",
   "keeb.layer": "層",
   "keeb.layerN": "層 {n}",
+  "keeb.lightingOff": "燈光效果已關閉，因此這些設定會被儲存，但不會傳送到鍵盤。",
+  "keeb.lightingOffEnable": "開啟燈光效果",
   "keeb.loading": "載入中...",
   "keeb.macro.budget": "{used} / {max} 位元組",
   "keeb.macro.clear": "清除",

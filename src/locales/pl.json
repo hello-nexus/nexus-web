@@ -2835,6 +2835,8 @@
   "keeb.keyboard.rightWheel": "Prawe pokrętło",
   "keeb.layer": "Warstwa",
   "keeb.layerN": "Warstwa {n}",
+  "keeb.lightingOff": "Podświetlenie jest wyłączone, więc te ustawienia są zapisywane, ale nie są wysyłane do klawiatury.",
+  "keeb.lightingOffEnable": "Włącz Podświetlenie",
   "keeb.loading": "Ładowanie...",
   "keeb.macro.budget": "{used} / {max} bajtów",
   "keeb.macro.clear": "Wyczyść",

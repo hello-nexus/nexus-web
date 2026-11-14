@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Rueda giratoria derecha",
   "keeb.layer": "Capa",
   "keeb.layerN": "Capa {n}",
+  "keeb.lightingOff": "Iluminación está desactivada, así que estos ajustes se guardan pero no se envían al teclado.",
+  "keeb.lightingOffEnable": "Activar Iluminación",
   "keeb.loading": "Cargando...",
   "keeb.macro.budget": "{used} / {max} bytes",
   "keeb.macro.clear": "Limpiar",

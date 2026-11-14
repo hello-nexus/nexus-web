@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "右旋钮",
   "keeb.layer": "层",
   "keeb.layerN": "层 {n}",
+  "keeb.lightingOff": "灯光效果已关闭，因此这些设置会被保存，但不会发送到键盘。",
+  "keeb.lightingOffEnable": "开启灯光效果",
   "keeb.loading": "加载中...",
   "keeb.macro.budget": "{used} / {max} 字节",
   "keeb.macro.clear": "清除",

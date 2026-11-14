@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Roda giratória direita",
   "keeb.layer": "Camada",
   "keeb.layerN": "Camada {n}",
+  "keeb.lightingOff": "Iluminação está desativada, por isso estas definições são guardadas, mas não enviadas ao teclado.",
+  "keeb.lightingOffEnable": "Ativar Iluminação",
   "keeb.loading": "Carregando...",
   "keeb.macro.budget": "{used} / {max} bytes",
   "keeb.macro.clear": "Limpar",

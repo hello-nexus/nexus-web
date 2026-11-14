@@ -2814,6 +2814,8 @@
   "keeb.keyboard.rightWheel": "Rechter draaiwiel",
   "keeb.layer": "Laag",
   "keeb.layerN": "Laag {n}",
+  "keeb.lightingOff": "Verlichting staat uit, dus deze instellingen worden opgeslagen maar niet naar het toetsenbord gestuurd.",
+  "keeb.lightingOffEnable": "Verlichting inschakelen",
   "keeb.loading": "Laden...",
   "keeb.macro.budget": "{used} / {max} bytes",
   "keeb.macro.clear": "Wissen",
