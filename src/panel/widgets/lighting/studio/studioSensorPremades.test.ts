@@ -92,7 +92,8 @@ describe('sensor premades', () => {
       expect(p.wheel.colorize).toBeGreaterThanOrEqual(0);
       expect(p.wheel.colorize).toBeLessThan(1);
       // The wheel state is the effect's own: the saved shader is the same whatever the starter's range.
-      expect(compileStudio(starter, { bake: true }).frag).toBe(bake(p.key).frag);
+      expect(compileStudio(starter, { bake: true }).frag).toBe(compileStudio({ ...p.build(), blocks: starter.blocks }, { bake: true }).frag);
+      expect(starter.blocks.some(b => b.background), p.key).toBe(false);
     }
   });
 
@@ -103,6 +104,25 @@ describe('sensor premades', () => {
     }
     expect(EFFECTS.filter(e => categoryOf(e.key) === 'sensor').map(e => e.key).sort())
       .toEqual(SENSOR_PREMADES.map(p => p.key).sort());
+  });
+
+  it('gives each fill premade a black-by-default background mixed in by coverage, and the others none', () => {
+    const fills = ['sensorbar', 'sensorclock', 'sensorsegments', 'sensorliquid', 'sensorcenter'];
+    for (const p of SENSOR_PREMADES) {
+      const { frag } = bake(p.key);
+      const def = EFFECTS.find(e => e.key === p.key)!;
+      if (!fills.includes(p.key)) {
+        expect(def.background, p.key).toBeUndefined();
+        expect(frag, p.key).not.toContain('fieldBg');
+        continue;
+      }
+      expect(def.background?.id, p.key).toBe('fill_bg');
+      const specs = Object.fromEntries(parseShaderParams(frag).map(q => [q.name, q]));
+      for (const ch of ['Hue', 'Sat', 'Val']) expect(specs[`u_fill_bg${ch}`]?.defaultValue, `${p.key} ${ch}`).toBe(0);
+      expect(frag, p.key).toContain('fieldCover = ');
+      // After the color stage, so the fill keeps its wheel colors.
+      expect(frag.indexOf('col += fieldBg * (1.0 - fieldCover);'), p.key).toBeGreaterThan(frag.indexOf('col = hsv2rgb('));
+    }
   });
 
   it('gives every geometric premade a rotation and flip control', () => {

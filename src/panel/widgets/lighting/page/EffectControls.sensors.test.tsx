@@ -22,6 +22,7 @@ vi.mock('../../../../hooks/useShaderParams', () => ({
     specs: Object.fromEntries([
       spec('u_fill_angle', 0, 360), spec('u_fill_flip', 0, 1), spec('u_col_reverse', 0, 1),
       spec('u_speed', -2, 2, 0.02), spec('u_saturation', 0, 4, 0.01), spec('u_contrast', 0, 4, 0.01),
+      spec('u_fill_bgHue', 0, 1, 0.01), spec('u_fill_bgSat', 0, 1, 0.01), spec('u_fill_bgVal', 0, 1, 0.01),
     ].map(s => [s.name, s])),
     sensors: [{ name: 'u_fill_level_s', binding: shaderDefault }],
   }),
@@ -166,5 +167,24 @@ describe('EffectControls on/off params', () => {
     expect(onChange).toHaveBeenLastCalledWith({ params: { u_col_reverse: 1 } }, true);
     fireEvent.click(switches[1]);
     expect(onChange).toHaveBeenLastCalledWith({ params: { u_fill_flip: 1 } }, true);
+  });
+});
+
+describe('EffectControls background color', () => {
+  it('keeps the wheel, adds a Background picker that starts black and writes the fill background params', () => {
+    const onChange = vi.fn();
+    const state = baseState();
+    render(
+      <EffectControls
+        effect="sensorbar" state={state} bundle={{ selected: 0, slots: [state] }} onTemplateSelect={() => {}}
+        canReset={false} onChange={onChange} onCommit={() => {}} onReset={() => {}} noPresets
+      />,
+    );
+    expect(screen.getByText('lighting.controls.bb.bgLevel')).toBeInTheDocument();
+    expect(screen.getAllByRole('group', { name: 'Palette' })).toHaveLength(2);
+    const brightness = screen.getByLabelText('lighting.controls.param.brightness', { selector: 'input[type="range"]' }) as HTMLInputElement;
+    expect(brightness.value).toBe('0');
+    fireEvent.change(brightness, { target: { value: '40' } });
+    expect(onChange).toHaveBeenLastCalledWith({ params: { u_fill_bgHue: 0, u_fill_bgSat: 0, u_fill_bgVal: 0.4 } }, expect.anything());
   });
 });

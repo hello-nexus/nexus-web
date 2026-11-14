@@ -62,6 +62,7 @@ function wheel(low: number, params: Record<string, number> = {}): StudioBlock {
 /** A fill meter: `type` filling to a sensor-driven level. The wheel's `low` is the start of a non-fill field, so a fill ignores it. */
 function fill(type: string, low: number, binding: SensorBinding, params: Record<string, number>, knobs: string[]): StudioRecipe {
   const pattern = sensorLevel(block('fill', type, { level: 0, ...params }), 'level', binding);
+  pattern.background = true;
   return {
     v: 1, blocks: [pattern, wheel(low)], speed: 50, hue: 0, saturation: 1, contrast: 1,
     knobs: knobs.map(key => ({ uid: 'fill', key })),
@@ -128,5 +129,12 @@ export const SENSOR_PREMADES: readonly SensorPremade[] = [
 
 /** The Studio starter: the same blocks, opening on the premade's own wheel instead of a neutral one. */
 export function starterRecipe(p: SensorPremade): StudioRecipe {
-  return { ...p.build(), hue: p.wheel.hue, colorize: p.wheel.colorize };
+  const r = p.build();
+  // The background is the built-in effect's control; Studio has none, so a starter leaves it off.
+  const blocks = r.blocks.map(b => {
+    const rest = { ...b };
+    delete rest.background;
+    return rest;
+  });
+  return { ...r, blocks, hue: p.wheel.hue, colorize: p.wheel.colorize };
 }

@@ -43,7 +43,7 @@ function slotRangeImage(slot: EffectColorSlot, params: Record<string, number>, s
  * swatch row selects which the wheel edits, so a four-colour effect still fits
  * the pane. A range slot's wheel also sets the width of the hue range.
  */
-export function StaticColorSlots({ slots, state, specs, onChange, onCommit, children }: {
+export function StaticColorSlots({ slots, state, specs, onChange, onCommit, children, title }: {
   slots: EffectColorSlot[];
   state: EffectState;
   specs: Record<string, ShaderParamSpec>;
@@ -51,6 +51,8 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit, chil
   onCommit: () => void;
   /** Rendered between the wheel and the colour sliders (the effect's Speed). */
   children?: ReactNode;
+  /** Heads a single-slot picker, which has no swatch row to name it. */
+  title?: string;
 }) {
   const { t } = useTranslation();
   const [activeId, setActiveId] = useState(slots[0]?.id);
@@ -72,6 +74,7 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit, chil
 
   return (
     <div className={styles.staticColorSlots}>
+      {title && <span className={styles.staticSwatchTitle}>{title}</span>}
       {slots.length > 1 && (
         <>
           <span className={styles.staticSwatchTitle}>{t('lighting.controls.colors')}</span>

@@ -77,7 +77,7 @@ export const SIMPLE_EFFECT_KEYS = [
  * default HSV comes from those uniforms' hint_range annotations.
  */
 export interface EffectColorSlot {
-  id: 'a' | 'b' | 'c' | 'd';
+  id: 'a' | 'b' | 'c' | 'd' | 'fill_bg';
   labelKey: string;
   /** The wheel picks a hue range (u_<id>Span, share of the wheel) the effect
    *  steps through instead of a single hue. */
@@ -96,6 +96,8 @@ export interface EffectDef {
   labelKey: string;
   /** The effect owns these colours instead of using the global tint. */
   colors?: EffectColorSlot[];
+  /** The colour of the unlit area, picked alongside the global wheel rather than replacing it. */
+  background?: EffectColorSlot;
   /** Computed via {@link categoryOf} - the EFFECT_CATEGORY map below is the source of truth. */
   category?: EffectCategory;
   params: EffectParamDef[];
@@ -192,6 +194,8 @@ const SIMPLE_WHITE_PARAMS: EffectParamDef[] = [
 ];
 
 const SENSOR_LEVEL_SENSORS: EffectSensorDef[] = [{ name: 'u_fill_level_s', label: 'Fill level', labelKey: 'lighting.sensor.level' }];
+// The fill blocks' Studio uid is `fill`, so this reads u_fill_bgHue / u_fill_bgSat / u_fill_bgVal.
+const SENSOR_FILL_BACKGROUND: EffectColorSlot = { id: 'fill_bg', labelKey: 'lighting.controls.bb.bgLevel' };
 const SENSOR_SHIFT_SENSORS: EffectSensorDef[] = [{ name: 'u_hot_level_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
 const SENSOR_HEAT_SENSORS: EffectSensorDef[] = [{ name: 'u_col_low_s', label: 'Color', labelKey: 'lighting.sensor.color' }];
 
@@ -785,29 +789,29 @@ export const EFFECTS: EffectDef[] = [
 // Baked Shader Studio recipes (studioSensorPremades.ts): block uids are fixed, so the
 // uniform names below are stable. The sensor uniform (`_s`) comes from the shader's own
 // annotation; `sensors` only names it. Angle and flip turn and reverse the fill.
-  { key: 'sensorbar', labelKey: 'lighting.controls.sensorbar', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+  { key: 'sensorbar', labelKey: 'lighting.controls.sensorbar', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, background: SENSOR_FILL_BACKGROUND, params: [
     { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
     { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
   ]},
-  { key: 'sensorclock', labelKey: 'lighting.controls.sensorclock', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+  { key: 'sensorclock', labelKey: 'lighting.controls.sensorclock', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, background: SENSOR_FILL_BACKGROUND, params: [
     { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
     { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
   ]},
-  { key: 'sensorsegments', labelKey: 'lighting.controls.sensorsegments', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+  { key: 'sensorsegments', labelKey: 'lighting.controls.sensorsegments', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, background: SENSOR_FILL_BACKGROUND, params: [
     { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
     { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
     { name: 'u_fill_count', label: 'Count', labelKey: 'lighting.controls.param.count' },
   ]},
-  { key: 'sensorliquid', labelKey: 'lighting.controls.sensorliquid', sensors: SENSOR_LEVEL_SENSORS, params: [
+  { key: 'sensorliquid', labelKey: 'lighting.controls.sensorliquid', sensors: SENSOR_LEVEL_SENSORS, background: SENSOR_FILL_BACKGROUND, params: [
     { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
     { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },
     { name: 'u_fill_wave', label: 'Waves', labelKey: 'lighting.controls.param.waves' },
   ]},
-  { key: 'sensorcenter', labelKey: 'lighting.controls.sensorcenter', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, params: [
+  { key: 'sensorcenter', labelKey: 'lighting.controls.sensorcenter', hideSpeed: true, sensors: SENSOR_LEVEL_SENSORS, background: SENSOR_FILL_BACKGROUND, params: [
     { name: 'u_col_reverse', label: 'Reverse colors', labelKey: 'lighting.controls.param.reverseColors', toggle: true, underWheel: true },
     { name: 'u_fill_angle', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
     { name: 'u_fill_flip', label: 'Flip', labelKey: 'lighting.controls.param.flip', toggle: true },

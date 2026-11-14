@@ -45,6 +45,8 @@ export interface StudioBlockDef {
    * Only the last pattern block's position counts, so a fill followed by another pattern colors from the field.
    */
   fieldPos?: 'writes' | 'reads';
+  /** A fill's coverage (0 to 1) as GLSL in the block's scope; an instance with `background` set shows `$bg` where it is not covered. */
+  cover?: string;
   /**
    * GLSL statements. `$key` reads a param (or a color as vec3). Space blocks
    * rewrite `vec2 p`, pattern blocks assign `float f`, tone blocks rewrite
@@ -473,7 +475,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   // ---- fill meters: each lights up to `level` (0 to 1), so a sensor mod on level makes a gauge of the hardware ----
   {
     // A bar filling bottom to top at angle 0; the angle turns it and flip reverses the direction.
-    type: 'fillbar', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    type: 'fillbar', stage: 'pattern', cost: 1, fieldPos: 'writes', cover: 'lit',
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
@@ -492,7 +494,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   },
   {
     // A sweep filling clockwise from 12 o'clock at angle 0, for fans and rings.
-    type: 'fillclock', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    type: 'fillclock', stage: 'pattern', cost: 1, fieldPos: 'writes', cover: 'lit',
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
@@ -510,7 +512,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   },
   {
     // Evenly spaced segments lighting up one by one; the last one fades in as the level crosses it.
-    type: 'fillsegments', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    type: 'fillsegments', stage: 'pattern', cost: 1, fieldPos: 'writes', cover: 'lit * (1.0 - smoothstep($size * 0.5 - 0.04, $size * 0.5, abs(cell - 0.5)))',
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
@@ -530,7 +532,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   },
   {
     // A tank with a wavy surface; waves die out at empty and full so the ends stay clean.
-    type: 'fillliquid', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    type: 'fillliquid', stage: 'pattern', cost: 1, fieldPos: 'writes', cover: 'smoothstep(0.0, $softness, d)',
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },
@@ -554,7 +556,7 @@ export const STUDIO_BLOCKS: readonly StudioBlockDef[] = [
   },
   {
     // Fills outward from the middle along the axis; flip fills inward from both ends.
-    type: 'fillcenter', stage: 'pattern', cost: 1, fieldPos: 'writes',
+    type: 'fillcenter', stage: 'pattern', cost: 1, fieldPos: 'writes', cover: 'lit',
     params: [
       { key: 'level', min: 0, max: 1, step: 0.01, def: 0.6 },
       { key: 'angle', min: 0, max: 360, step: 1, def: 0 },

@@ -136,6 +136,20 @@ describe('compileStudio', () => {
     expect(frag).not.toContain(studioUniform(first.uid, 0, 'blend'));
   });
 
+  it('mixes a fill\'s background in only when the block opts in and is the last pattern', () => {
+    const withBg = (...types: string[]) => {
+      const r = recipeOf(...types);
+      r.blocks[0].background = true;
+      return compileStudio(r).frag;
+    };
+    const on = withBg('fillbar', 'wheelcolor');
+    expect(on).toContain('  vec3 fieldBg = vec3(0.0);');
+    expect(on).toContain('  col += fieldBg * (1.0 - fieldCover);');
+    expect(compileStudio(recipeOf('fillbar', 'wheelcolor')).frag).not.toContain('fieldBg');
+    expect(withBg('fillbar', 'rings', 'wheelcolor')).not.toContain('fieldBg');
+    expect(withBg('rings', 'palette')).not.toContain('fieldBg');
+  });
+
   it('keeps a param\'s uniform name when its block moves', () => {
     const r = recipeOf('spin', 'zoom', 'plasma', 'palette');
     const zoom = r.blocks[1];

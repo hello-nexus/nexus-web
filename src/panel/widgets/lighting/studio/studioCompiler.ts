@@ -52,6 +52,8 @@ export interface StudioBlock {
   /** Normalized RGB, keyed by StudioColor.key. */
   colors?: Record<string, [number, number, number]>;
   mods?: Record<string, StudioMod>;
+  /** A fill block (one with a `cover`) shows a background color where unlit; off, the shader is unchanged. */
+  background?: boolean;
 }
 
 /** A block param surfaced as a slider in the Lighting page's effect controls. */
@@ -298,6 +300,8 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
   const body: string[] = [];
   let patternIndex = 0;
   const lastPattern = defs.reduce((last, d, i) => (d.stage === 'pattern' ? i : last), -1);
+  // Only the last pattern's coverage is the field's, as with fieldPos.
+  const background = lastPattern >= 0 && !!defs[lastPattern].cover && !!blocks[lastPattern].background;
 
   blocks.forEach((block, i) => {
     const def = defs[i];
@@ -363,8 +367,14 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
       });
       exprs[c.key] = `vec3(${names.join(', ')})`;
     }
+    const withBg = background && i === lastPattern;
+    if (withBg) {
+      const names = ['bgHue', 'bgSat', 'bgVal'].map(k => studioUniform(block.uid, i, k));
+      for (const n of names) uniforms.push(`uniform float ${n}; // hint_range(0.0, 1.0, 0.01) = 0.0`);
+      exprs.bg = `hsv2rgb(vec3(${names.join(', ')}))`;
+    }
     const keys = Object.keys(exprs).sort((a, b) => b.length - a.length);
-    let code = def.code;
+    let code = withBg ? `${def.code}\nfieldBg = $bg; fieldCover = ${def.cover};` : def.code;
     // Only the last pattern block's position colors the field: an earlier fill keeps its own, out of reach.
     if (def.fieldPos === 'writes' && i !== lastPattern) code = `float localPos = -1.0; ${code.replace(/\bfieldPos\b/g, 'localPos')}`;
     for (const k of keys) code = code.split(`$${k}`).join(`(${exprs[k]})`);
@@ -375,6 +385,8 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
       patternIndex += 1;
     } else {
       body.push(`  {\n${indent(code)}\n  }`);
+      // The color stage scales the fill by its coverage, so adding the background over the rest mixes the two by coverage.
+      if (def.stage === 'color' && background) body.push('  col += fieldBg * (1.0 - fieldCover);');
     }
   });
 
@@ -402,6 +414,7 @@ export function compileStudio(recipe: StudioRecipe, { bake = false }: { bake?: b
     '  float hue = u_hue + S_HUE;',
     '  float v = 0.0;',
     ...(defs.some(d => d.fieldPos) ? ['  float fieldPos = -1.0;'] : []),
+    ...(background ? ['  vec3 fieldBg = vec3(0.0);', '  float fieldCover = 1.0;'] : []),
     '  vec3 col = vec3(0.0);',
     ...insertColorDefault(body, defs, hasColor),
     '  fragColor = vec4(finalize(col, hue), 1.0);',
