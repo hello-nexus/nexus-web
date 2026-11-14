@@ -622,10 +622,13 @@ export function PanelCatalogCell({
   onPointerLeave,
   drag,
   previewStyle,
+  previewScope,
 }: {
   widget: PanelWidget;
   /** Applied to the preview alone, for a host whose chrome is not drawn in the panel's font. */
   previewStyle?: CSSProperties;
+  /** Skin attributes and theme vars for the card alone, for a host outside a panel skin scope whose name strip keeps the app look. */
+  previewScope?: { attrs: Readonly<Record<string, string>>; style: CSSProperties };
   surface?: PanelSurface;
   deviceTouch?: boolean;
   label: string;
@@ -712,6 +715,12 @@ export function PanelCatalogCell({
       onPointerLeave={onPointerLeave}
       onBlur={onPointerLeave}
     >
+      <div
+        className={previewScope ? 'panel-root' : undefined}
+        {...previewScope?.attrs}
+        data-preview-skin={previewScope ? '' : undefined}
+        style={previewScope ? { ...previewScope.style, display: 'contents' } : undefined}
+      >
       <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
         <div className={styles.cellScaler} style={{ ...previewStyle, pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
@@ -737,6 +746,7 @@ export function PanelCatalogCell({
             </div>
           </div>
         )}
+      </div>
       </div>
       {showLabel && (
         <div className={styles.cellLabelStrip}>

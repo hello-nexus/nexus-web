@@ -90,8 +90,10 @@ vi.mock('../dnd/PanelDragCells', () => ({
     addedStage,
     onEditAdded,
     onPointerLeave,
+    previewScope,
   }: {
     widget: { size: string };
+    previewScope?: { attrs: Record<string, string> };
     label: string;
     disabled?: boolean;
     disabledHint?: string;
@@ -104,6 +106,7 @@ vi.mock('../dnd/PanelDragCells', () => ({
       type="button"
       data-size={widget.size}
       data-hint={disabledHint}
+      data-scope-skin={previewScope?.attrs['data-panel-skin']}
       disabled={disabled}
       // Mirrors the real cell: while the overlay is up the card edits (or does
       // nothing) instead of adding again, and leaving it clears the overlay.
@@ -134,6 +137,20 @@ describe('PanelWidgetCatalog', () => {
 
     expect(search).toBeInTheDocument();
     expect(search).not.toHaveFocus();
+  });
+
+  describe('skin attributes outside a panel skin scope', () => {
+    it('hand the skin to each preview and keep the catalog chrome unskinned', () => {
+      const { container } = render(
+        <PanelWidgetCatalog surface="desktop" themeMode="dark" skinAttrs={{ 'data-panel-skin': 'lcd' }} onAdd={vi.fn()} />,
+      );
+
+      const root = container.firstElementChild as HTMLElement;
+      expect(root).not.toHaveAttribute('data-panel-skin');
+      const cards = screen.getAllByRole('button').filter(b => b.hasAttribute('data-scope-skin'));
+      expect(cards.length).toBeGreaterThan(0);
+      for (const card of cards) expect(card).toHaveAttribute('data-scope-skin', 'lcd');
+    });
   });
 
   describe('keyboard input on a hosted display', () => {
