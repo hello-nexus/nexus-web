@@ -1,5 +1,6 @@
 @use 'sass:color';
 @use 'mixins' as *;
+@use '../../styles/text' as *;
 
 // Palette to panel tokens for the style skins added after the first set. One
 // call sets every color token a widget reads from a handful of values, so a
@@ -69,10 +70,10 @@
 }
 
 @mixin kit-weights($heading: 600, $body: 400, $strong: 600, $display: 700, $small: 400) {
-  --weight-heading: #{$heading};
-  --weight-body: #{$body};
-  --weight-strong: #{$strong};
-  --weight-display: #{$display};
+  --weight-heading: #{lighter-weight($heading)};
+  --weight-body: #{lighter-weight($body)};
+  --weight-strong: #{lighter-weight($strong)};
+  --weight-display: max(#{$display}, var(--weight-display-min, 0));
   --weight-small: #{$small};
 }
 

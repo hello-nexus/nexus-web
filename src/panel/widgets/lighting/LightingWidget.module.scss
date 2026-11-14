@@ -243,7 +243,7 @@
   bottom: 12%;
   text-align: center;
   font: 700 16px/1.1 var(--panel-font);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
   text-transform: uppercase;
   color: #fff;
   pointer-events: none;
@@ -299,7 +299,7 @@
   // box clips its own descenders (see styles/_text.scss).
   font: 700 16px/1.25 var(--panel-font);
   color: var(--text);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
   text-transform: uppercase;
 }
 

@@ -622,10 +622,13 @@ export function PanelCatalogCell({
   onPointerLeave,
   drag,
   previewStyle,
+  previewScope,
 }: {
   widget: PanelWidget;
   /** Applied to the preview alone, for a host whose chrome is not drawn in the panel's font. */
   previewStyle?: CSSProperties;
+  /** Skin attributes and theme vars for the card alone, for a host outside a panel skin scope whose name strip keeps the app look. */
+  previewScope?: { attrs: Readonly<Record<string, string>>; style: CSSProperties };
   surface?: PanelSurface;
   deviceTouch?: boolean;
   label: string;
@@ -674,6 +677,34 @@ export function PanelCatalogCell({
       activate();
     }
   };
+  const cardEl = (
+    <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
+      <div className={styles.cellScaler} style={{ ...previewStyle, pointerEvents: 'none' }}>
+        <ErrorBoundary label={widget.type}>
+          <PanelPreviewProvider value={true}>
+            <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
+          </PanelPreviewProvider>
+        </ErrorBoundary>
+      </div>
+      {addedStage && (
+        <div className={styles.cellAdded} data-stage={addedStage} aria-hidden="true">
+          <div className={styles.cellAddedContent}>
+            {addedStage === 'added' ? (
+              <>
+                <Check className={styles.cellAddedIcon} />
+                <span className={styles.cellAddedLabel}>{t('panel.add.added')}</span>
+              </>
+            ) : (
+              <>
+                <Pencil className={styles.cellAddedIcon} />
+                <span className={styles.cellAddedLabel}>{t('panel.widget.editWidget')}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
   const card = (
     <div
       ref={drag?.ref}
@@ -683,6 +714,7 @@ export function PanelCatalogCell({
       className={[
         styles.cellWrap,
         styles.catalogCell,
+        previewScope ? styles.catalogCellScoped : '',
         selected ? styles.catalogCellSelected : '',
         disabled ? styles.catalogCellDisabled : '',
         drag?.dragging ? styles.catalogCellDragging : '',
@@ -712,32 +744,16 @@ export function PanelCatalogCell({
       onPointerLeave={onPointerLeave}
       onBlur={onPointerLeave}
     >
-      <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
-        <div className={styles.cellScaler} style={{ ...previewStyle, pointerEvents: 'none' }}>
-          <ErrorBoundary label={widget.type}>
-            <PanelPreviewProvider value={true}>
-              <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
-            </PanelPreviewProvider>
-          </ErrorBoundary>
+      {previewScope ? (
+        <div
+          className="panel-root"
+          {...previewScope.attrs}
+          data-preview-skin=""
+          style={{ ...previewScope.style, display: 'contents' }}
+        >
+          {cardEl}
         </div>
-        {addedStage && (
-          <div className={styles.cellAdded} data-stage={addedStage} aria-hidden="true">
-            <div className={styles.cellAddedContent}>
-              {addedStage === 'added' ? (
-                <>
-                  <Check className={styles.cellAddedIcon} />
-                  <span className={styles.cellAddedLabel}>{t('panel.add.added')}</span>
-                </>
-              ) : (
-                <>
-                  <Pencil className={styles.cellAddedIcon} />
-                  <span className={styles.cellAddedLabel}>{t('panel.widget.editWidget')}</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      ) : cardEl}
       {showLabel && (
         <div className={styles.cellLabelStrip}>
           <WidgetCellLabel label={label} />

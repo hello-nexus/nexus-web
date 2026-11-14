@@ -12,7 +12,6 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   hud: () => import('./hud.scss'),
   neon: () => import('./neon.scss'),
   blueprint: () => import('./blueprint.scss'),
-  eink: () => import('./eink.scss'),
   bevel: () => import('./bevel.scss'),
   hifi: () => import('./hifi.scss'),
   cockpit: () => import('./cockpit.scss'),
@@ -27,7 +26,7 @@ const LOADERS: Record<PanelSkinId, () => Promise<unknown>> = {
   sketch: () => import('./sketch.scss'),
   bubblegum: () => import('./bubblegum.scss'),
   sakura: () => import('./sakura.scss'),
-  ripple: () => import('./ripple.scss'),
+  synthwave: () => import('./synthwave.scss'),
 };
 
 // One in-flight or settled load per key. A failed load leaves the cache, so the next call retries it.

@@ -30,6 +30,13 @@
   // The knob over an accent track takes the ink drawn on the accent, so a pale accent keeps a visible knob.
   --toggle-knob-on: var(--accent-text);
 }
+// The panel scale of the 2.5K Y70 panel, where the skin edge sizes are authored.
+$edge-ref-scale: 1.13608;
+// Card edges (frame rings, rivets, strips, radius) sit outside the zoom that scales widget content, so the card pseudo layers take the panel scale as a CSS zoom, relative to the 2.5K Y70 scale where the authored sizes are exact. Never below 1, so hairlines stay at least one pixel.
+.panel-root[data-panel-skin],
+.panel-root[data-panel-skin] .panel-card {
+  --panel-edge-zoom: max(1, calc(var(--panel-scale, 1) / #{$edge-ref-scale}));
+}
 // Widget tiles draw their own flat frames; sheets, menus and overlays keep the stock shadows and blur.
 .panel-root[data-panel-skin] .panel-card {
   --shadow-sm: none;
@@ -115,6 +122,7 @@
   left: 0;
   pointer-events: none;
   border-radius: inherit;
+  zoom: var(--panel-edge-zoom, 1);
   opacity: var(--panel-card-bg-alpha, 1);
 }
 .panel-root[data-panel-skin] .panel-card::before {
@@ -142,7 +150,7 @@
   --panel-widget-card-inner-pad: var(--skin-card-inset, 0px);
 }
 $skin-insets: (
-  arcade: 6px, clay: 2px, cockpit: 4px, bevel: 3px, blueprint: 2px, eink: 2px, crt: 4px,
+  arcade: 6px, clay: 2px, cockpit: 4px, bevel: 3px, blueprint: 2px, crt: 4px,
   glass: 2px, hud: 3px, deco: 4px, hifi: 3px, nixie: 2px, lcd: 2px, mecha: 4px,
   steampunk: 4px, sketch: 2px, pixel: 3px, neon: 3px, vfd: 1px, swiss: 4px,
 );
@@ -179,7 +187,7 @@ $skin-insets: (
   border-radius: var(--skin-bar-radius, var(--radius-pill));
   box-shadow: none;
 }
-$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, ripple, sakura, steampunk, swiss;
+$accent-fill: arcade, bevel, bubblegum, clay, cockpit, deco, hifi, hud, mecha, neon, nixie, pixel, sakura, sketch, steampunk, swiss, synthwave;
 @each $id in $accent-fill {
   .panel-root[data-panel-skin='#{$id}'] [data-skin-part='fill'] { background: var(--skin-fill, var(--accent)); }
 }

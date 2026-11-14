@@ -6,7 +6,7 @@
 @mixin pixel-common {
   --skin-card-radius: 0;
   // NES-style border: four offset rules give the stepped corners.
-  --skin-card-shadow: 0 -2px 0 0 var(--px-line), 0 2px 0 0 var(--px-line), -2px 0 0 0 var(--px-line), 2px 0 0 0 var(--px-line);
+  --skin-card-shadow: 0 #{edge(-2px)} 0 0 var(--px-line), 0 #{edge(2px)} 0 0 var(--px-line), #{edge(-2px)} 0 0 0 var(--px-line), #{edge(2px)} 0 0 0 var(--px-line);
   --skin-card-frame: inset 0 -6px 0 0 rgba(0, 0, 0, 0.2);
   --skin-text-rendering: optimizeSpeed;
   --skin-bar-height: 10px;

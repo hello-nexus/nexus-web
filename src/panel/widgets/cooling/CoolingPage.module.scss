@@ -28,7 +28,7 @@
   font-weight: var(--weight-body);
   cursor: default;
 }
-.offStatusLabel { letter-spacing: 0.02em; }
+.offStatusLabel { letter-spacing: calc(0.02em + var(--small-tracking, 0em)); }
 // The desktop page's placement: right end of the Curves header, capped at the
 // same control height as the fan header's buttons so the two headers keep one
 // row height whether or not the notice is showing.
@@ -247,7 +247,7 @@
   border-radius: var(--radius-sm);
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em + var(--small-tracking, 0em));
   color: var(--text-dim);
 }
 .deviceGroupName {
@@ -402,7 +402,7 @@
 .calRange { color: var(--text-dim); font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--type-mini); }
 .calBadge, .calBadgeSmall {
   padding: 0.1rem 0.45rem; border-radius: var(--radius-sm); font-size: 0.65rem;
-  font-weight: var(--weight-strong); text-transform: uppercase; letter-spacing: 0.04em;
+  font-weight: var(--weight-strong); text-transform: uppercase; letter-spacing: calc(0.04em + var(--small-tracking, 0em));
   white-space: nowrap;
 }
 .calBadge { font-size: 0.7rem; }
@@ -701,7 +701,7 @@
   font: inherit;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em + var(--small-tracking, 0em));
   font-weight: var(--weight-strong);
   cursor: pointer;
   text-align: left;
@@ -819,7 +819,7 @@
   align-items: center;
   gap: 0.35rem;
   font-size: 0.7rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   padding: 0.2rem 0.45rem;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -971,7 +971,7 @@
 .mixSectionLabel {
   font-size: var(--type-small);
   color: var(--text-dim);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
   font-weight: var(--weight-body);
   text-transform: none;
   white-space: nowrap;
@@ -1176,7 +1176,7 @@
   font-variant-numeric: tabular-nums;
   font-size: 9px;
   font-weight: var(--weight-strong);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
 }
 // Dot where the temperature line meets the curve.
 .tempDot {

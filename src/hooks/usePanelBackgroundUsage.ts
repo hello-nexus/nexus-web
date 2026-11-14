@@ -20,7 +20,8 @@ const EMPTY: PanelBackgroundUsage = { effects: new Set(), slotsByEffect: new Map
 
 // A Skin background with no live skin shows the mode held before it (same rule as applyPanelSkin).
 function effectiveBackgroundMode(d: PanelDeviceRecord): string {
-  if (normalizePanelBackgroundMode(d.backgroundMode) !== 'skin') return d.backgroundMode ?? '';
+  const mode = normalizePanelBackgroundMode(d.backgroundMode);
+  if (mode !== 'skin') return mode;
   return normalizeStoredSkin(d.skin) ? 'skin' : backgroundModeBeforeSkin(d.backgroundMode);
 }
 

@@ -30,6 +30,7 @@ export function RangeBar({ lo, hi, min = 0, max = 1, gradient = 'temp', glow = f
     >
       <div
         className={styles.fill}
+        data-skin-part="bar-fill"
         style={{
           left: `${left * 100}%`,
           width: `${width * 100}%`,

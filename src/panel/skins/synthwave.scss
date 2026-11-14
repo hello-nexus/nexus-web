@@ -1,0 +1,31 @@
+@use 'mixins' as *;
+@use 'kit' as *;
+@use 'derived' as *;
+
+// Synthwave: calm night-tinted tiles with a perspective grid painted on each card face, a floor at the bottom edge fading out toward the card middle and absent at the sides. The grid is one SVG layer (skinAccentVars) at a fixed height pinned to the bottom edge, so every card size shows the same floor and it follows the card radius and widget opacity.
+@mixin synthwave-common {
+  @include kit-radius(10px, 6px, 999px);
+  @include kit-weights(600, 400, 600, 700, 400);
+  --skin-card-inset: 2px;
+  --skin-bar-height: 6px;
+  --skin-card-shadow: none;
+  --skin-card-image-size: auto 70px;
+  --skin-card-image-pos: 50% 100%;
+}
+@include skin('synthwave') {
+  @include kit(var(--sw-back-dark), var(--sw-card-dark), #fbeaff, #c4b3e3, #5a3f9a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #120a2e, #5ef2c0, #ffc266, #ff5d8f);
+  @include synthwave-common;
+  --border-strong: var(--sw-line-dark);
+  --panel-border-strong: var(--sw-line-dark);
+  --skin-card-image: var(--sw-floor-dark);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--sw-frame-dark), 0.55);
+  --skin-backdrop-image: linear-gradient(0deg, rgba(var(--sw-sun-dark), 0.16) 0, rgba(var(--sw-mid-dark), 0.08) 25%, transparent 55%);
+}
+@include skin-light('synthwave') {
+  @include kit(var(--sw-back-light), var(--sw-card-light), #2a1850, #594a82, #b9a5e6, var(--skin-accent-ink-light), var(--skin-accent-rgb), #ffffff, #14804f, #8a5a00, #b3261e);
+  --border-strong: var(--sw-line-light);
+  --panel-border-strong: var(--sw-line-light);
+  --skin-card-image: var(--sw-floor-light);
+  --skin-card-frame: inset 0 0 0 1px rgba(var(--sw-frame-light), 0.45);
+  --skin-backdrop-image: linear-gradient(0deg, rgba(var(--sw-sun-light), 0.35) 0, rgba(var(--sw-mid-light), 0.18) 25%, transparent 55%);
+}

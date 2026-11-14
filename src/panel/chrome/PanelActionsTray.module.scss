@@ -130,7 +130,7 @@
 .connectedLabel {
   font-size: var(--type-tiny);
   font-weight: var(--weight-strong);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
   text-transform: uppercase;
   color: var(--text-dim);
   flex: 0 0 auto;

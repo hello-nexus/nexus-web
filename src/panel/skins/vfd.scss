@@ -52,7 +52,8 @@
   opacity: 0.1;
   text-shadow: none;
 }
-.panel-root[data-panel-skin='vfd'][data-skin-font-custom][data-theme] {
+.panel-root[data-panel-skin='vfd'][data-skin-font-custom][data-theme],
+.panel-root[data-panel-skin='vfd'][data-skin-font-custom] [data-ink] {
   --skin-numeral-font: var(--panel-font);
   --skin-seg-scale: 1;
 }

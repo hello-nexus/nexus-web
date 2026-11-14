@@ -152,7 +152,7 @@
 .outputKind {
   font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em + var(--small-tracking, 0em));
   line-height: 1.1;
   text-transform: uppercase;
   color: var(--text-dim);

@@ -211,43 +211,50 @@ export function resolvePanelBackdrop(
   return normalizePanelBackdrop(stored) ?? 'wallpaper';
 }
 
+// A stored mode may carry the pre-skin hold after a colon (see encodeSkinBackgroundMode); the first part is the live mode.
 export function normalizePanelBackgroundMode(value: string | null | undefined): PanelBackgroundMode {
-  if (value != null && (value === 'skin' || value.startsWith('skin:'))) return 'skin';
-  if (value === 'shader') return 'shader';
-  if (value === 'media') return 'media';
+  const live = value?.split(':')[0];
+  if (live === 'skin' || live === 'shader' || live === 'media') return live;
   return 'solid';
 }
 
-// What a Skin background replaced: its mode, and the backdrop, frost and opacity the user had set.
+// What the background was before any skin: the backdrop, frost and opacity the user had set, and the effect.
 export interface SkinBackgroundHeld {
   backdrop: PanelBackdrop;
   frost: number;
   opacity: number;
+  effect?: string;
 }
 
-function skinParts(value: string | null | undefined): string[] {
-  return value != null && value.startsWith('skin:') ? value.slice(5).split(':') : [value ?? ''];
-}
-
-// The mode a Skin background falls back to once the skin is gone.
+// The mode a skin falls back to once it is removed.
 export function backgroundModeBeforeSkin(value: string | null | undefined): PanelBackgroundBase {
-  const mode = normalizePanelBackgroundMode(skinParts(value)[0]);
+  const parts = (value ?? '').split(':');
+  const mode = normalizePanelBackgroundMode(parts.length > 1 ? parts[1] : parts[0]);
   return mode === 'skin' ? 'solid' : mode;
 }
 
-// The backdrop, frost and opacity held before the Skin background; null when none were stored.
+// The pre-skin backdrop, frost, opacity and effect; null when none were stored.
 export function skinBackgroundHeld(value: string | null | undefined): SkinBackgroundHeld | null {
-  const [, backdrop, frost, opacity] = skinParts(value);
+  const [, , backdrop, frost, opacity, effect] = (value ?? '').split(':');
   const parsedBackdrop = normalizePanelBackdrop(backdrop);
   if (!parsedBackdrop || frost === undefined || opacity === undefined) return null;
   const f = Number(frost);
   const o = Number(opacity);
   if (!Number.isFinite(f) || !Number.isFinite(o)) return null;
-  return { backdrop: parsedBackdrop, frost: normalizePanelBackgroundFrost(f), opacity: normalizePanelBackgroundOpacity(o) };
+  const held: SkinBackgroundHeld = { backdrop: parsedBackdrop, frost: normalizePanelBackgroundFrost(f), opacity: normalizePanelBackgroundOpacity(o) };
+  if (effect && PANEL_BACKGROUND_RENDERABLE.has(effect)) held.effect = effect;
+  return held;
 }
 
-export function encodeSkinBackgroundMode(before: PanelBackgroundBase, held?: SkinBackgroundHeld | null): string {
-  return held ? `skin:${before}:${held.backdrop}:${held.frost}:${held.opacity}` : `skin:${before}`;
+// Stands in for the held values of a record that stored only its pre-skin mode, so a non-skin live mode still carries that mode.
+const NEUTRAL_SKIN_HELD: SkinBackgroundHeld = { backdrop: 'theme', frost: DEFAULT_PANEL_BACKGROUND_FROST, opacity: DEFAULT_OVERLAY_BACKGROUND_OPACITY };
+
+// `<live>:<before>:<backdrop>:<frost>:<opacity>[:<effect>]` while a skin is active, so the pre-skin background survives any mode the skin shows.
+export function encodeSkinBackgroundMode(live: PanelBackgroundMode, before: PanelBackgroundBase, held?: SkinBackgroundHeld | null): string {
+  const kept = held ?? (live === 'skin' ? null : NEUTRAL_SKIN_HELD);
+  if (!kept) return `skin:${before}`;
+  const parts = [live, before, kept.backdrop, kept.frost, kept.opacity];
+  return (kept.effect ? [...parts, kept.effect] : parts).join(':');
 }
 
 export function normalizePanelBackgroundEffect(value: string | null | undefined): string {

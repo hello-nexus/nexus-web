@@ -118,6 +118,7 @@
 .ampm {
   font-size: calc(10px * var(--seg-scale, 0.85));
   font-weight: var(--weight-heading);
+  letter-spacing: calc(var(--skin-letter-spacing, 0em) + var(--small-tracking, 0em));
   color: var(--text-dim);
   margin-left: calc(4px * var(--seg-scale, 0.85));
   align-self: flex-end;

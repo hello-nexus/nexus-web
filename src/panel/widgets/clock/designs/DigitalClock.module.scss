@@ -63,7 +63,7 @@
 .ampm {
   font-size: 0.2em;
   font-weight: var(--weight-heading);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--small-tracking, 0em));
   color: var(--text-dim);
   margin-left: 0.25em;
   vertical-align: baseline;

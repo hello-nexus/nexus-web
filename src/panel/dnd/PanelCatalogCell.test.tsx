@@ -52,4 +52,28 @@ describe('PanelCatalogCell', () => {
 
     expect(screen.queryByRole('button')).toBeNull();
   });
+
+  it('scopes the skin to the card and leaves the name strip outside it', () => {
+    const { container } = render(
+      <PanelCatalogCell
+        widget={widget}
+        label="Clock"
+        previewScope={{ attrs: { 'data-panel-skin': 'lcd', 'data-theme': 'dark' }, style: { '--panel-font': 'Seg7' } as React.CSSProperties }}
+      />,
+    );
+
+    const scope = container.querySelector('[data-preview-skin]') as HTMLElement;
+    expect(scope).toHaveAttribute('data-panel-skin', 'lcd');
+    expect(scope).toHaveClass('panel-root');
+    expect(scope.style.getPropertyValue('--panel-font')).toBe('Seg7');
+    expect(scope.querySelector('[data-widget-type="clock"]')).not.toBeNull();
+    expect(scope.contains(screen.getByText('Clock'))).toBe(false);
+  });
+
+  it('adds no scope without one', () => {
+    const { container } = render(<PanelCatalogCell widget={widget} label="Clock" />);
+    expect(container.querySelector('[data-preview-skin]')).toBeNull();
+    const card = container.querySelector('.panel-card') as HTMLElement;
+    expect(card.parentElement).toHaveAttribute('data-panel-catalog');
+  });
 });

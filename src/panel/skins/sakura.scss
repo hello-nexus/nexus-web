@@ -18,8 +18,8 @@
   --sk-h: calc(var(--panel-rows, 4) * var(--sk-row) + (var(--panel-rows, 4) - 1) * var(--sk-gap));
   --sk-ox: calc(var(--panel-cell-col, 0) * (var(--panel-cell-size) + var(--sk-gap)));
   --sk-oy: calc(var(--panel-cell-row, 0) * (var(--sk-row) + var(--sk-gap)));
-  --skin-card-image-size: var(--sk-w) var(--sk-h);
-  --skin-card-image-pos: calc(0px - var(--sk-ox)) calc(0px - var(--sk-oy));
+  --skin-card-image-size: calc(var(--sk-w) / var(--panel-edge-zoom, 1)) calc(var(--sk-h) / var(--panel-edge-zoom, 1));
+  --skin-card-image-pos: calc((0px - var(--sk-ox)) / var(--panel-edge-zoom, 1)) calc((0px - var(--sk-oy)) / var(--panel-edge-zoom, 1));
 }
 @include skin('sakura') {
   @include kit(#0c1330, #151d3f, #fdeff3, #c9bbd0, #59608a, var(--skin-accent-ink-dark), var(--skin-accent-rgb), #1a1030, #8fe8c4, #ffd9a0, #ff9db5);
@@ -40,5 +40,5 @@
     radial-gradient(ellipse at 18% 22%, rgba(255, 255, 255, 0.75) 0, transparent 40%),
     radial-gradient(ellipse at 85% 78%, rgba(var(--skin-accent-rgb), 0.18) 0, transparent 45%);
   --skin-card-frame: inset 0 0 0 1px rgba(var(--skin-accent-rgb), 0.5);
-  --skin-card-shadow: 0 2px 0 rgba(var(--skin-accent-rgb), 0.2);
+  --skin-card-shadow: 0 #{edge(2px)} 0 rgba(var(--skin-accent-rgb), 0.2);
 }

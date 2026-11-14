@@ -13,7 +13,7 @@ export function BatteryGauge({ value, formatted, label, gradient }: GaugeProps) 
     <div className={styles.battery}>
       <div className={styles.shellWrap}>
         <div className={styles.shell}>
-          <div className={styles.fill} style={fillStyle} />
+          <div className={styles.fill} style={fillStyle} data-skin-part="bar-fill" />
         </div>
         <div className={styles.cap} />
       </div>

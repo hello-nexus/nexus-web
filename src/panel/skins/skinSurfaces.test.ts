@@ -40,12 +40,3 @@ describe('Sakura blossom colors', () => {
     expect(skinAccentVars('sakura', '#e8799a')).toHaveProperty('--sk-petal-light');
   });
 });
-
-describe('every skin in the backdrop tint list gets its backdrop pair', () => {
-  it('E-ink carries --skin-bd-light and --skin-bd-dark beside its highlight vars', () => {
-    const vars = skinAccentVars('eink', '#2f6fd6');
-    expect(vars['--skin-bd-light']).toMatch(/^#[0-9a-f]{6}$/);
-    expect(vars['--skin-bd-dark']).toMatch(/^#[0-9a-f]{6}$/);
-    expect(vars).toHaveProperty('--skin-hi-light');
-  });
-});

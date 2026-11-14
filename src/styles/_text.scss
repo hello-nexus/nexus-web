@@ -1,3 +1,5 @@
+@use 'sass:string';
+
 // Canonical text styles. Bundles font-size + weight + line-height + tracking
 // into 8 named mixins. Type in component SCSS is tiered:
 //   1. @include text-* mixin - the preferred form; use one whenever the whole
@@ -28,6 +30,11 @@
 // Adding a 9th style is allowed but should be a deliberate decision, not a
 // silent one-off. Bring the proposal up before adding.
 
+// A weight lowered by the panel's --weight-shift, floored at the regular weight.
+@function lighter-weight($w) {
+  @return string.unquote('max(400, calc(#{$w} - var(--weight-shift, 0)))');
+}
+
 @mixin text-display {
   font-family: var(--font-sans);
   font-size: var(--type-display);
@@ -51,23 +58,23 @@
   // prose; the app default is unchanged.
   font-weight: var(--weight-body, 500);
   line-height: 1.5;
-  letter-spacing: 0;
+  letter-spacing: var(--small-tracking, 0em);
 }
 
 @mixin text-button {
   font-family: var(--font-sans);
   font-size: var(--type-small);
-  font-weight: 600;
+  font-weight: lighter-weight(600);
   line-height: 1.25;
-  letter-spacing: 0;
+  letter-spacing: var(--small-tracking, 0em);
 }
 
 @mixin text-label {
   font-family: var(--font-sans);
   font-size: var(--type-mini);
-  font-weight: 700;
+  font-weight: lighter-weight(700);
   line-height: 1.25;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--small-tracking, 0em));
   text-transform: uppercase;
 }
 
@@ -77,9 +84,9 @@ $caption-line-height: 1.3;
 @mixin text-caption {
   font-family: var(--font-sans);
   font-size: var(--type-tiny);
-  font-weight: var(--weight-caption, 600);
+  font-weight: var(--weight-caption, #{lighter-weight(600)});
   line-height: $caption-line-height;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em + var(--small-tracking, 0em));
 }
 
 @mixin text-numeric {

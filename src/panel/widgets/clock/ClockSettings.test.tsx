@@ -1,7 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
+import { I18nProvider } from '../../../lib/i18n';
+import en from '../../../locales/en.json';
 import { ClockSettings } from './ClockSettings';
+
+function renderSettings(widget: PanelWidget, onUpdate = vi.fn()) {
+  return render(
+    <I18nProvider initialLanguage="en" initialTranslations={en}>
+      <ClockSettings widget={widget} onUpdate={onUpdate} onResize={vi.fn()} />
+    </I18nProvider>,
+  );
+}
 
 // Drive the dropdown as a native <select> so it stays a combobox, not a
 // button: this suite asserts the design picker's button count.
@@ -32,7 +42,7 @@ function clockWidget(design = 'analog', size = '4x2'): PanelWidget {
 
 describe('ClockSettings', () => {
   it('renders clock designs as icon label buttons', () => {
-    render(<ClockSettings widget={clockWidget()} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    renderSettings(clockWidget());
 
     const labels = ['Digital', 'Analog', 'Split Flap', 'Rolling', 'LED', 'Dots', 'Matrix', 'Abstract'];
     // Design buttons carry aria-pressed; the timezone trigger (aria-expanded) does not.
@@ -48,7 +58,7 @@ describe('ClockSettings', () => {
 
   it('updates the selected clock design', () => {
     const onUpdate = vi.fn();
-    render(<ClockSettings widget={clockWidget()} onUpdate={onUpdate} onResize={vi.fn()} />);
+    renderSettings(clockWidget(), onUpdate);
 
     fireEvent.click(screen.getByRole('button', { name: 'Split Flap' }));
 

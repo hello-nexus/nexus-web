@@ -30,7 +30,7 @@
   line-height: var(--leading-tight);
   font-weight: var(--weight-body);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
   color: var(--panel-ink-accent, var(--panel-accent));
 }
 
