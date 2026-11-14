@@ -906,6 +906,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Displej",
   "devices.asus-ryujin-extreme.failedBody": "Změnu displeje se nepodařilo použít.",
   "devices.asus-ryujin-extreme.failedTitle": "Změna se nezdařila",
+  "devices.asus-ryujin-extreme.reading": "Hodnota {n}",
+  "devices.asus-ryujin-extreme.readings": "Hodnoty",
   "devices.asus-ryujin-extreme.rotation": "Otočení",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Pokud zde vaše zařízení není uvedeno, nejprve se ujistěte, že je správně připojené, a poté aktualizujte jeho firmware pomocí oficiálního softwaru výrobce.",

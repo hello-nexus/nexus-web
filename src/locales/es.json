@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Pantalla",
   "devices.asus-ryujin-extreme.failedBody": "No se pudo aplicar el cambio de la pantalla.",
   "devices.asus-ryujin-extreme.failedTitle": "Error al aplicar el cambio",
+  "devices.asus-ryujin-extreme.reading": "Lectura {n}",
+  "devices.asus-ryujin-extreme.readings": "Lecturas",
   "devices.asus-ryujin-extreme.rotation": "Rotación",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Si tu dispositivo no aparece aquí, primero asegúrate de que esté bien conectado y luego actualiza su firmware con el software oficial del fabricante.",

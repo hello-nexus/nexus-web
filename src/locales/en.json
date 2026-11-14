@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Display",
   "devices.asus-ryujin-extreme.failedBody": "The display change could not be applied.",
   "devices.asus-ryujin-extreme.failedTitle": "Change failed",
+  "devices.asus-ryujin-extreme.reading": "Reading {n}",
+  "devices.asus-ryujin-extreme.readings": "Readings",
   "devices.asus-ryujin-extreme.rotation": "Rotation",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "If your device isn't listed here, first make sure it's plugged in correctly, then update its firmware using the manufacturer's official software.",

@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Display",
   "devices.asus-ryujin-extreme.failedBody": "De displaywijziging kon niet worden toegepast.",
   "devices.asus-ryujin-extreme.failedTitle": "Wijziging mislukt",
+  "devices.asus-ryujin-extreme.reading": "Meting {n}",
+  "devices.asus-ryujin-extreme.readings": "Metingen",
   "devices.asus-ryujin-extreme.rotation": "Rotatie",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Staat je apparaat hier niet? Controleer eerst of het goed is aangesloten en werk daarna de firmware bij met de officiële software van de fabrikant.",

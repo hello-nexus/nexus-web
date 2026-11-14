@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Ekran",
   "devices.asus-ryujin-extreme.failedBody": "Ekran değişikliği uygulanamadı.",
   "devices.asus-ryujin-extreme.failedTitle": "Değişiklik başarısız",
+  "devices.asus-ryujin-extreme.reading": "Okuma {n}",
+  "devices.asus-ryujin-extreme.readings": "Okumalar",
   "devices.asus-ryujin-extreme.rotation": "Döndürme",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Cihazınız burada listelenmiyorsa önce doğru şekilde takılı olduğundan emin olun, ardından üreticinin resmi yazılımıyla ürün yazılımını güncelleyin.",

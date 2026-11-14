@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Visôr",
   "devices.asus-ryujin-extreme.failedBody": "Il cambiament dal visôr nol è stât aplicât.",
   "devices.asus-ryujin-extreme.failedTitle": "Cambiament falît",
+  "devices.asus-ryujin-extreme.reading": "Letura {n}",
+  "devices.asus-ryujin-extreme.readings": "Letures",
   "devices.asus-ryujin-extreme.rotation": "Rotazion",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Se il to dispositîf nol è listât chi, prime controle che al sedi tacât ben, po inzorne il so firmware cul software uficiâl dal produtôr.",

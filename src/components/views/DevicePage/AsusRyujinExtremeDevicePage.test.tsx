@@ -23,7 +23,14 @@ vi.mock('../../../api/asus-ryujin-extreme', () => ({
   RYUJIN_MAX_BRIGHTNESS: 100,
 }));
 
-const base = { isConnected: true, brightness: 60, rotation: 0 };
+const base = {
+  isConnected: true,
+  brightness: 60,
+  rotation: 0,
+  sensorCount: 3,
+  slots: ['cpu-temp', 'gpu-temp', 'pump-rpm'],
+  availableSensors: ['cpu-temp', 'gpu-temp', 'liquid-temp', 'pump-rpm', 'fan-rpm'],
+};
 
 async function mount(state = base) {
   mockGet.mockResolvedValue(state);
@@ -127,5 +134,41 @@ describe('AsusRyujinExtremeDevicePage', () => {
     });
     await waitFor(() => expect(mockPush).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByRole('slider', { name: /brightnessAria/ })).toHaveValue('60'));
+  });
+
+  it('shows one picker per visible reading', async () => {
+    await mount();
+    expect(screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ })).toHaveLength(3);
+    expect(screen.getByRole('radio', { name: '3' })).toHaveAttribute('aria-checked', 'true');
+    await mount({ ...base, sensorCount: 2 });
+    expect(screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ })).toHaveLength(5);
+  });
+
+  it('a readings chip sends only the sensor count', async () => {
+    await mount();
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: '2' })); });
+    expect(mockSet).toHaveBeenCalledWith({ sensorCount: 2 });
+    expect(mockSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('picking a sensor sends all three slots with only that position changed', async () => {
+    await mount();
+    const pickers = screen.getAllByRole('button', { name: /devices\.asus-ryujin-extreme\.reading:/ });
+    await act(async () => { fireEvent.click(pickers[1]); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'devices.nzxt-kraken.screenModeLiquid' }));
+    });
+    expect(mockSet).toHaveBeenCalledWith({ slots: ['cpu-temp', 'liquid-temp', 'pump-rpm'] });
+  });
+
+  it('skips a poll while a sensor write is in flight', async () => {
+    await mount();
+    let release: (v: boolean) => void = () => {};
+    mockSet.mockReturnValue(new Promise<boolean>(r => { release = r; }));
+    await act(async () => { fireEvent.click(screen.getByRole('radio', { name: '2' })); });
+    mockGet.mockClear();
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(mockGet).not.toHaveBeenCalled();
+    await act(async () => { release(true); });
   });
 });

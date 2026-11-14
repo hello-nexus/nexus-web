@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Display",
   "devices.asus-ryujin-extreme.failedBody": "Die Display-Änderung konnte nicht angewendet werden.",
   "devices.asus-ryujin-extreme.failedTitle": "Änderung fehlgeschlagen",
+  "devices.asus-ryujin-extreme.reading": "Anzeigewert {n}",
+  "devices.asus-ryujin-extreme.readings": "Anzeigewerte",
   "devices.asus-ryujin-extreme.rotation": "Drehung",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Wird Ihr Gerät hier nicht aufgeführt, stellen Sie zuerst sicher, dass es richtig angeschlossen ist, und aktualisieren Sie dann seine Firmware mit der offiziellen Software des Herstellers.",

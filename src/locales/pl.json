@@ -906,6 +906,8 @@
   "devices.asus-ryujin-extreme.displaySection": "Wyświetlacz",
   "devices.asus-ryujin-extreme.failedBody": "Nie udało się zastosować zmiany wyświetlacza.",
   "devices.asus-ryujin-extreme.failedTitle": "Zmiana nie powiodła się",
+  "devices.asus-ryujin-extreme.reading": "Odczyt {n}",
+  "devices.asus-ryujin-extreme.readings": "Odczyty",
   "devices.asus-ryujin-extreme.rotation": "Obrót",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "Jeśli Twoje urządzenie nie jest tu wymienione, najpierw upewnij się, że jest poprawnie podłączone, a następnie zaktualizuj jego firmware za pomocą oficjalnego oprogramowania producenta.",

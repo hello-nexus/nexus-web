@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "ディスプレイ",
   "devices.asus-ryujin-extreme.failedBody": "ディスプレイの変更を適用できませんでした。",
   "devices.asus-ryujin-extreme.failedTitle": "変更に失敗しました",
+  "devices.asus-ryujin-extreme.reading": "項目 {n}",
+  "devices.asus-ryujin-extreme.readings": "表示項目数",
   "devices.asus-ryujin-extreme.rotation": "回転",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "お使いのデバイスがここに表示されない場合は、まず正しく接続されていることを確認し、次にメーカーの公式ソフトウェアでファームウェアを更新してください。",

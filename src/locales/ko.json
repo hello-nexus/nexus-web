@@ -897,6 +897,8 @@
   "devices.asus-ryujin-extreme.displaySection": "디스플레이",
   "devices.asus-ryujin-extreme.failedBody": "디스플레이 변경 사항을 적용하지 못했습니다.",
   "devices.asus-ryujin-extreme.failedTitle": "변경 실패",
+  "devices.asus-ryujin-extreme.reading": "항목 {n}",
+  "devices.asus-ryujin-extreme.readings": "표시 항목 수",
   "devices.asus-ryujin-extreme.rotation": "회전",
   "devices.asus-ryujin-extreme.rotationDegrees": "{n}°",
   "devices.available.missingNotice": "장치가 여기에 표시되지 않으면 먼저 올바르게 연결되어 있는지 확인한 다음 제조사의 공식 소프트웨어로 펌웨어를 업데이트하세요.",

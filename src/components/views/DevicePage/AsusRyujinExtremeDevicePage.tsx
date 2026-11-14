@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { SettingRow } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { Slider } from '../../common/Slider/Slider';
@@ -13,6 +13,7 @@ import {
   type RyujinDisplayPatch,
   type RyujinDisplayState,
   type RyujinRotation,
+  type RyujinSensorCount,
 } from '../../../api/asus-ryujin-extreme';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -23,6 +24,14 @@ import styles from './LianLiDevicePage.module.scss';
 const POLL_MS = 3000;
 const STACKED = 'stacked' as const;
 const ROTATIONS: readonly RyujinRotation[] = [0, 90];
+const SENSOR_COUNTS: readonly RyujinSensorCount[] = [2, 3];
+const SENSOR_LABEL_KEYS: Record<string, string> = {
+  'cpu-temp': 'devices.lianli-wireless.aioScreen.cpuTemp',
+  'gpu-temp': 'devices.lianli-wireless.aioScreen.gpuTemp',
+  'liquid-temp': 'devices.nzxt-kraken.screenModeLiquid',
+  'pump-rpm': 'devices.deepcool-mystique.readoutPump',
+  'fan-rpm': 'devices.lianli-wireless.aioScreen.fanSpeed',
+};
 
 /** The ROG Ryujin III Extreme page: the display settings its screen stores. Pump and fans live on the Cooling page. */
 export function AsusRyujinExtremeDevicePage() {
@@ -73,6 +82,11 @@ export function AsusRyujinExtremeDevicePage() {
   }, [push, t]);
 
   const ready = state !== null && state.isConnected;
+  const sensorCount = state?.sensorCount === 2 ? 2 : 3;
+  const sensorOptions = (state?.availableSensors ?? []).map(id => ({
+    value: id,
+    label: SENSOR_LABEL_KEYS[id] ? t(SENSOR_LABEL_KEYS[id]) : id,
+  }));
 
   return (
     <div className={styles.page}>
@@ -116,6 +130,38 @@ export function AsusRyujinExtremeDevicePage() {
               }}
             />
           </SettingRow>
+          <SettingRow label={t('devices.asus-ryujin-extreme.readings')}>
+            <ChipGroup
+              ariaLabel={t('devices.asus-ryujin-extreme.readings')}
+              activeKey={String(state?.sensorCount ?? '')}
+              options={SENSOR_COUNTS.map(n => ({
+                key: String(n),
+                label: localizeNumbers(String(n), numberFormat),
+                disabled: !ready,
+              }))}
+              onChange={key => {
+                const next = Number(key) as RyujinSensorCount;
+                setState(prev => prev && { ...prev, sensorCount: next });
+                void commit({ sensorCount: next });
+              }}
+            />
+          </SettingRow>
+          {Array.from({ length: sensorCount }, (_, i) => (
+            <SettingSelect
+              key={i}
+              label={t('devices.asus-ryujin-extreme.reading', { n: localizeNumbers(String(i + 1), numberFormat) })}
+              value={state?.slots[i] ?? ''}
+              options={sensorOptions}
+              disabled={!ready}
+              onChange={id => {
+                if (!state) return;
+                const slots = state.slots.slice(0, 3);
+                slots[i] = id;
+                setState(prev => prev && { ...prev, slots });
+                void commit({ slots });
+              }}
+            />
+          ))}
         </SettingsSection>
       </div>
     </div>
