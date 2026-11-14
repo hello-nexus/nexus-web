@@ -73,5 +73,7 @@ describe('PanelCatalogCell', () => {
   it('adds no scope without one', () => {
     const { container } = render(<PanelCatalogCell widget={widget} label="Clock" />);
     expect(container.querySelector('[data-preview-skin]')).toBeNull();
+    const card = container.querySelector('.panel-card') as HTMLElement;
+    expect(card.parentElement).toHaveAttribute('data-panel-catalog');
   });
 });

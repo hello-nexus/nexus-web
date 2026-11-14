@@ -83,8 +83,11 @@
 // Even cells take the derived second color; the accent is re-pointed per
 // cell, so gauges, links and icons inside pick it up too.
 // The ink hosts of an even cell re-declare the skin block, so they are listed too.
+// A catalog preview scope sits one level below the cell that carries the widget id.
 .panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even),
-.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink] {
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink],
+[data-panel-widget-id]:nth-child(even) > .panel-root[data-panel-skin='neon'][data-preview-skin],
+[data-panel-widget-id]:nth-child(even) > .panel-root[data-panel-skin='neon'][data-preview-skin] [data-ink] {
   --neon: var(--skin-accent2);
   --neon-rgb: var(--skin-accent2-rgb);
   --accent: var(--skin-accent2-ink-dark);
@@ -105,7 +108,9 @@
 }
 // Pastel text stays on the deep accent; the second color only draws the outline.
 .panel-root[data-panel-skin='neon'][data-theme='light'] [data-panel-widget-id]:nth-child(even),
-.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink='dark'] {
+.panel-root[data-panel-skin='neon'] [data-panel-widget-id]:nth-child(even) [data-ink='dark'],
+[data-panel-widget-id]:nth-child(even) > .panel-root[data-panel-skin='neon'][data-theme='light'][data-preview-skin],
+[data-panel-widget-id]:nth-child(even) > .panel-root[data-panel-skin='neon'][data-preview-skin] [data-ink='dark'] {
   --accent: var(--skin-accent-ink-light);
   --accent-deep: var(--skin-accent-ink-light);
   --panel-accent: var(--skin-accent-ink-light);

@@ -8,7 +8,7 @@ describe.each(['lcd', 'vfd'])('%s custom font reset', skin => {
   const src = readFileSync(join(__dirname, `${skin}.scss`), 'utf8');
 
   it('covers adaptive-ink hosts as well as the panel root', () => {
-    const block = src.match(new RegExp(`(\\.panel-root\\[data-panel-skin='${skin}'\\]\\[data-skin-font-custom\\][^{]*)\\{[^}]*--skin-seg-scale: 1`));
+    const block = src.match(new RegExp(`(\\.panel-root\\[data-panel-skin='${skin}'\\]\\[data-skin-font-custom\\][^{]*?)\\s*\\{[^}]*--skin-seg-scale:\\s*1\\b`));
     expect(block?.[1]).toContain('[data-theme]');
     expect(block?.[1]).toContain('[data-ink]');
   });

@@ -10,7 +10,7 @@ const dir = dirname(fileURLToPath(import.meta.url));
 const sheets = readdirSync(dir).filter(f => f.endsWith('.scss') && !f.startsWith('_'));
 
 // Skin CSS is never unloaded, so a selector outside the skin scope would keep applying after the skin is turned off.
-const SCOPED = /^(\.panel-root\[data-(panel-skin|skin-root)|\[data-skin-part=['"]?surface['"]?\]\.panel-root\[data-panel-skin\])/;
+const SCOPED = /^(\[data-panel-widget-id\]:nth-child\(even\) > )?(\.panel-root\[data-(panel-skin|skin-root)|\[data-skin-part=['"]?surface['"]?\]\.panel-root\[data-panel-skin\])/;
 
 function selectors(file: string): string[] {
   const css = sass.compile(join(dir, file), { loadPaths: [dir] }).css;
