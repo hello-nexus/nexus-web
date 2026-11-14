@@ -48,7 +48,7 @@
 @function sk-hatch-b($c) {
   @return repeating-linear-gradient(-62deg, $c 0, $c var(--sk-hatch-w-b), transparent var(--sk-hatch-w-b), transparent var(--sk-hatch-p-b));
 }
-// The grain is an in-flow overlay sized to the fill: any positioning, contain or z-index here would make the fill a stacking context and bury the mixer's on-fill icon copy.
+// The grain stays in flow: an absolute overlay needs the fill as its containing block, but position would override fills that place themselves absolutely, and contain or z-index would make the fill a stacking context that buries the mixer's on-fill icon copy.
 @include in-skin('sketch', '[data-skin-part="fill"]::after, [data-skin-part="bar-fill"]::after') {
   @include sk-hatch-vars;
   --sk-hatch-stroke: rgba(0, 0, 0, var(--sk-hatch-ink));
