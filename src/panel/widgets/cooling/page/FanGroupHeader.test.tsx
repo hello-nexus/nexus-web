@@ -100,6 +100,14 @@ describe('FanGroupHeader identify', () => {
     expect(onIdentify).toHaveBeenCalledTimes(1);
   });
 
+  it('reads Identifying and ignores a second press while the call runs', () => {
+    const onIdentify = vi.fn();
+    renderHeader({ onIdentify, identifying: true });
+    openMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.identifying' }));
+    expect(onIdentify).not.toHaveBeenCalled();
+  });
+
   it('offers no Identify on a group that cannot', () => {
     renderHeader();
     openMenu();

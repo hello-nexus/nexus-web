@@ -101,6 +101,8 @@ describe('CoolingPage wireless chain block', () => {
     fireEvent.click(menus[2]);
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' }));
     expect(identifyLianLiWirelessFan).toHaveBeenCalledWith('998D1DE566E1');
+    // Busy window, same label as the controller page's button.
+    await waitFor(() => expect(screen.queryByText('devices.lianli-flex.identifying')).toBeNull());
   });
 });
 

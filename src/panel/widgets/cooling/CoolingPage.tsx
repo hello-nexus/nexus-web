@@ -36,7 +36,7 @@ import {
   saveFanGroups,
 } from '../../../api/cooling';
 import { identifyLianLiWirelessFan } from '../../../api/lianli-wireless';
-import { wirelessMacOf } from '../../../lib/lianliWirelessDeviceId';
+import { WIRELESS_DEVICE_PREFIX } from '../lighting/page/firmwareChains';
 import { useCoolingRealtime } from '../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../hooks/useCoolingCurves';
 import { useThermalGuard } from '../../../hooks/useThermalGuard';
@@ -747,6 +747,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       }
       return ch;
     }));
+  }, []);
+
+  // Same call and same busy window as the wireless controller page's Identify.
+  const [identifyingChains, setIdentifyingChains] = useState<Record<string, boolean>>({});
+  const handleIdentifyChain = useCallback((mac: string) => {
+    setIdentifyingChains(prev => (prev[mac] ? prev : { ...prev, [mac]: true }));
+    void identifyLianLiWirelessFan(mac).catch(() => false).finally(() => {
+      setIdentifyingChains(prev => {
+        const next = { ...prev };
+        delete next[mac];
+        return next;
+      });
+    });
   }, []);
 
   const handleTogglePin = useCallback(async (id: string, pinned: boolean) => {
@@ -1995,6 +2008,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 // else, so an un-renamed one has no name to reset to.
                 const custom = list[0]?.deviceName;
                 const isBoard = blockId === MOTHERBOARD_BLOCK_ID;
+                const wirelessMac = blockId.startsWith(WIRELESS_DEVICE_PREFIX) ? blockId.slice(WIRELESS_DEVICE_PREFIX.length) : null;
                 const inner = innerArrangements.get(blockId) ?? { rowIds: expand(blockId), groupMembers: {} };
                 // A drop inside this block rewrites its groups and the flat fan
                 // order: this block's fans in their new order, the rest as they were.
@@ -2032,9 +2046,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       for (const c of list) handleTogglePin(c.id, target);
                     }}
                     onRename={name => handleRename(blockId, name)}
-                    onIdentify={wirelessMacOf(blockId) != null
-                      ? () => { void identifyLianLiWirelessFan(wirelessMacOf(blockId) ?? ''); }
-                      : undefined}
+                    onIdentify={wirelessMac != null ? () => handleIdentifyChain(wirelessMac) : undefined}
+                    identifying={wirelessMac != null && !!identifyingChains[wirelessMac]}
                     onResetName={(isBoard ? custom != null : list[0]?.originalDeviceName != null)
                       ? () => handleRename(blockId, '')
                       : undefined}

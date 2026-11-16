@@ -90,30 +90,56 @@ async function renderTab(state: LianLiWirelessState | null = wirelessState) {
 }
 
 describe('LianLiWirelessFansTab rename', () => {
-  it('writes the name under the chain device id the cooling page renames', async () => {
+  const openMenu = () => fireEvent.click(screen.getByRole('button', { name: /cooling\.fan\.groupActions/ }));
+
+  it('renames inline from the overflow menu, under the chain device id the cooling page uses', async () => {
     await renderTab();
+    openMenu();
     fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.rename' }));
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  Top rad  ' } });
-    await act(async () => {
-      fireEvent.click(screen.getAllByRole('button', { name: 'confirm.ok' }).pop()!);
-    });
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '  Top rad  ' } });
+    await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
     expect(mockRenameFan).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1', 'Top rad');
-    expect(screen.getByText('Top rad')).toBeInTheDocument();
   });
 
-  it('shows the name already set on the cooling page', async () => {
+  it('shows the name already set on the cooling page and offers Reset name', async () => {
     mockFetchFanChannels.mockResolvedValue({
       channels: channelsFixture.map(c => ({ ...c, deviceName: 'Rear stack', originalDeviceName: 'Lian Li Wireless Fan' })),
     });
     await renderTab();
     expect(screen.getByText('Rear stack')).toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli-wireless.fanTypeSlv3Lcd')).not.toBeInTheDocument();
+    openMenu();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.resetName' })); });
+    expect(mockRenameFan).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1', '');
+  });
+
+  it('offers no Reset name on an unnamed chain', async () => {
+    await renderTab();
+    openMenu();
+    expect(screen.queryByRole('button', { name: 'cooling.fan.resetName' })).not.toBeInTheDocument();
+  });
+
+  it('says so when the service refuses the rename', async () => {
+    mockRenameFan.mockResolvedValue({ error: true, msg: 'no' });
+    await renderTab();
+    openMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.rename' }));
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'X' } });
+    await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+    expect(screen.getByText('devices.astral.failed')).toBeInTheDocument();
   });
 
   it('offers no rename for a chain the cooling page does not list', async () => {
     mockFetchFanChannels.mockResolvedValue({ channels: [] });
     await renderTab();
-    expect(screen.queryByRole('button', { name: 'cooling.fan.rename' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cooling\.fan\.groupActions/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps the shown names when the read fails', async () => {
+    mockFetchFanChannels.mockResolvedValue(null);
+    await renderTab();
+    expect(screen.queryByRole('button', { name: /cooling\.fan\.groupActions/ })).not.toBeInTheDocument();
   });
 });
 

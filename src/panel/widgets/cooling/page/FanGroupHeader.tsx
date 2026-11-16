@@ -22,7 +22,7 @@ export function FanGroupHeader({
   name, count, collapsed, onToggleCollapsed,
   groupControlled, onToggleControlled,
   groupPinned, onTogglePin,
-  onRename, onDelete, onResetName, onIdentify, drag, dropTarget, children,
+  onRename, onDelete, onResetName, onIdentify, identifying = false, drag, dropTarget, children,
   hasUncontrolled = false,
   icon,
   onSelectAll,
@@ -50,6 +50,8 @@ export function FanGroupHeader({
   onResetName?: () => void;
   /** Present only on a Lian Li wireless chain; flashes its LEDs so the group can be found on the desk. */
   onIdentify?: () => void;
+  /** The identify call is in flight; the row reads as busy, like the controller page's button. */
+  identifying?: boolean;
   drag?: SortableRowArgs;
   /** True while a dragged card would land in this group; washes the section so
    *  the destination is unambiguous before the drop. */
@@ -92,7 +94,7 @@ export function FanGroupHeader({
       items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('cooling.fan.rename'), onSelect: () => nameRef.current?.startEditing() });
     }
     if (onIdentify) {
-      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('devices.lianli-wireless.identify'), onSelect: onIdentify });
+      items.push({ key: 'identify', icon: <Eye size={14} />, label: identifying ? t('devices.lianli-flex.identifying') : t('devices.lianli-wireless.identify'), onSelect: identifying ? () => undefined : onIdentify });
     }
     if (onResetName) {
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('cooling.fan.resetName'), onSelect: onResetName });
