@@ -232,8 +232,14 @@ describe('ZoneChainList on a chainable port', () => {
     expect(onRemove).toHaveBeenCalledWith(2);
   });
 
-  it('keeps the last chip: a port always has a zone', () => {
-    setup([port[1]], true);
+  it('lets the last mapped chip go, so the port can return to unmapped', () => {
+    const { onRemove } = setup([port[1]], true);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.ledMap.chainRemove' }));
+    expect(onRemove).toHaveBeenCalledWith(0);
+  });
+
+  it('offers no remove on the unmapped single zone', () => {
+    setup([{ zoneId: 'p:z0', rowKey: 'p:z0', name: 'Port', ledCount: 30, enabledCount: 30, editableCount: false }], true);
     expect(screen.queryByRole('button', { name: 'lighting.ledMap.chainRemove' })).toBeNull();
   });
 

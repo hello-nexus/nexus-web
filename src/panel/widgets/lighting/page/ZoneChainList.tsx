@@ -155,7 +155,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
             {formatZoneChipCount(row.enabledCount, row.ledCount)}
           </span>
         )}
-        {chainable && rows.length > 1 && (
+        {chainable && (rows.length > 1 || row.key !== undefined) && (
           <HoverTooltip body={t('lighting.ledMap.chainRemove')} side="top">
             <button
               type="button"
