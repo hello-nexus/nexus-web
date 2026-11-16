@@ -127,7 +127,7 @@ describe('LianLiWirelessFansTab rename', () => {
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'X' } });
     await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
-    expect(screen.getByText('devices.astral.failed')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.renameFailed')).toBeInTheDocument();
   });
 
   it('offers no rename for a chain the cooling page does not list', async () => {
@@ -136,10 +136,22 @@ describe('LianLiWirelessFansTab rename', () => {
     expect(screen.queryByRole('button', { name: /cooling\.fan\.groupActions/ })).not.toBeInTheDocument();
   });
 
-  it('keeps the shown names when the read fails', async () => {
+  it('keeps the shown names when a later read fails', async () => {
+    mockFetchFanChannels.mockResolvedValue({
+      channels: channelsFixture.map(c => ({ ...c, deviceName: 'Rear stack', originalDeviceName: 'Lian Li Wireless Fan' })),
+    });
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    let view!: ReturnType<typeof render>;
+    await act(async () => { view = render(<LianLiWirelessFansTab state={wirelessState} refresh={refresh} />); });
+    expect(screen.getByText('Rear stack')).toBeInTheDocument();
+
+    // A new chain changes the set the tab reads names for; that read fails.
     mockFetchFanChannels.mockResolvedValue(null);
-    await renderTab();
-    expect(screen.queryByRole('button', { name: /cooling\.fan\.groupActions/ })).not.toBeInTheDocument();
+    const next = { ...wirelessState, fans: [boundFan, { ...boundFan, mac: '112233445566', boundToUs: false }] };
+    await act(async () => { view.rerender(<LianLiWirelessFansTab state={next} refresh={refresh} />); });
+    expect(mockFetchFanChannels).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Rear stack')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cooling\.fan\.groupActions/ })).toBeInTheDocument();
   });
 });
 

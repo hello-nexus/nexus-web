@@ -115,7 +115,8 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   // The cooling page's rename store, keyed by the chain's device id. A chain
   // with no cooling channel has no entry, so it offers no rename.
   const [coolingNames, setCoolingNames] = useState<Record<string, string | null>>({});
-  const [renameFailed, setRenameFailed] = useState(false);
+  // MAC of the chain whose last rename the service refused.
+  const [renameFailedMac, setRenameFailedMac] = useState<string | null>(null);
   const aliveRef = useRef(true);
   const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
 
@@ -255,7 +256,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   const handleRename = useCallback(async (mac: string, name: string) => {
     const res = await renameFan(`${WIRELESS_DEVICE_PREFIX}${mac}`, name.trim()).catch(() => null) as { error?: boolean } | null;
     if (!aliveRef.current) return;
-    setRenameFailed(!res || res.error === true);
+    setRenameFailedMac(!res || res.error === true ? mac : null);
     await loadCoolingNames();
   }, [loadCoolingNames]);
 
@@ -361,15 +362,12 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
               onIdentify={handleIdentify}
               customName={coolingNames[`${WIRELESS_DEVICE_PREFIX}${fan.mac}`] ?? undefined}
               onRename={!wired && !fan.wiredOwned && `${WIRELESS_DEVICE_PREFIX}${fan.mac}` in coolingNames ? handleRename : undefined}
+              renameFailed={renameFailedMac === fan.mac}
               onOpenPanel={panelOpener?.(fan.mac)}
             />
           ))
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>)}
       </SettingsSection>
-
-      {renameFailed && (
-        <SettingsBlock><Notice tone="warning" role="status">{t('devices.astral.failed')}</Notice></SettingsBlock>
-      )}
 
       <ConfirmModal
         open={unbindTarget != null}
@@ -398,6 +396,7 @@ function DeviceRow({
   onIdentify,
   customName,
   onRename,
+  renameFailed,
   onOpenPanel,
 }: {
   fan: LianLiWirelessFan;
@@ -417,13 +416,19 @@ function DeviceRow({
   customName?: string;
   /** Present when the chain has a cooling channel to carry the name. */
   onRename?: (mac: string, name: string) => void;
+  /** The service refused the last rename of this chain. */
+  renameFailed?: boolean;
   onOpenPanel?: () => void;
 }) {
   const { t } = useTranslation();
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
   const busy = pending !== undefined || identifying || fan.identifying === true;
   const nameRef = useRef<EditableTextHandle>(null);
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  // seq remounts the menu on every open (it latches its own closing state); the
+  // press guard keeps the click that closes it from reopening it.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
+  const menuSeq = useRef(0);
+  const openAtPressRef = useRef(false);
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [
       { key: 'rename', icon: <Pencil size={14} />, label: t('cooling.fan.rename'), onSelect: () => nameRef.current?.startEditing() },
@@ -464,6 +469,7 @@ function DeviceRow({
     fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
     wired && fan.lcdFirmware ? t('devices.lianli-flex.lcdFirmware', { v: fan.lcdFirmware }) : null,
     fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
+    renameFailed ? t('devices.lianli-wireless.renameFailed') : null,
   ].filter((line): line is string => !!line);
   // One fact per line, so a long screen firmware name does not run on from the receiver's.
   const details = lines.length === 0 ? undefined : (
@@ -473,20 +479,23 @@ function DeviceRow({
   return (
     <SettingRow
       anchorId={lianLiWirelessDeviceAnchor(fan.mac)}
-      label={typeLabel}
+      label={onRename ? (
+        // Rename lives on the overflow menu; a click on the name stays inert.
+        <EditableText
+          ref={nameRef}
+          value={customName || typeLabel}
+          onCommit={name => { if (name !== (customName || typeLabel)) onRename(fan.mac, name); }}
+          clickToEdit={false}
+          maxLength={DEVICE_NAME_MAX_LENGTH}
+          ariaLabel={t('cooling.fan.rename')}
+        />
+      ) : typeLabel}
       description={details}
       state={bindState}
-      labelSuffix={(onRename || onOpenPanel) && (
-        <>
-          {onRename && (
-            <EditableText ref={nameRef} value={customName ?? ''} onCommit={name => onRename(fan.mac, name)} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} ariaLabel={t('cooling.fan.rename')} />
-          )}
-          {onOpenPanel && (
-            <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
-              {t('devices.lianli-wireless.managePanel')}
-            </Button>
-          )}
-        </>
+      labelSuffix={onOpenPanel && (
+        <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
+          {t('devices.lianli-wireless.managePanel')}
+        </Button>
       )}
     >
       {wired ? (fan.radioBound && onOpenRadioPage ? (
@@ -518,21 +527,24 @@ function DeviceRow({
         </Button>
       )}
       {onRename && (
-        <Button
-          size="sm"
-          tone="neutral"
-          icon={<Ellipsis size={14} />}
-          aria-label={menuLabel}
-          title={menuLabel}
-          aria-expanded={menuAt != null}
-          onClick={e => {
-            const r = e.currentTarget.getBoundingClientRect();
-            setMenuAt({ x: r.left, y: r.bottom });
-          }}
-        />
+        <HoverTooltip body={menuLabel} side="top">
+          <Button
+            size="sm"
+            tone="neutral"
+            icon={<Ellipsis size={14} />}
+            aria-label={menuLabel}
+            aria-expanded={menuAt != null}
+            onPointerDown={() => { openAtPressRef.current = menuAt != null; }}
+            onClick={e => {
+              if (openAtPressRef.current) { setMenuAt(null); return; }
+              const r = e.currentTarget.getBoundingClientRect();
+              setMenuAt({ x: r.left, y: r.bottom, seq: ++menuSeq.current });
+            }}
+          />
+        </HoverTooltip>
       )}
       {menuAt && (
-        <DeviceContextMenu x={menuAt.x} y={menuAt.y} items={menuItems()} onClose={() => setMenuAt(null)} />
+        <DeviceContextMenu key={menuAt.seq} x={menuAt.x} y={menuAt.y} items={menuItems()} onClose={() => setMenuAt(null)} />
       )}
     </SettingRow>
   );

@@ -1277,6 +1277,7 @@
   "devices.lianli-wireless.orderMoveRight": "Mover para a direita",
   "devices.lianli-wireless.pairingLockedNote": "Desative Bloquear dispositivos emparelhados para emparelhar ou desemparelhar.",
   "devices.lianli-wireless.panelPending": "A configurar o painel. Pode demorar alguns segundos.",
+  "devices.lianli-wireless.renameFailed": "Não foi possível mudar o nome deste dispositivo. Tente novamente.",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "Rotação",
   "devices.lianli-wireless.screenGroupAll": "Todos",

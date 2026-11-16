@@ -1286,6 +1286,7 @@
   "devices.lianli-wireless.orderMoveRight": "Сдвинуть вправо",
   "devices.lianli-wireless.pairingLockedNote": "Отключите Блокировать сопряжённые устройства, чтобы выполнить сопряжение или разорвать его.",
   "devices.lianli-wireless.panelPending": "Панель настраивается. Это может занять несколько секунд.",
+  "devices.lianli-wireless.renameFailed": "Не удалось переименовать это устройство. Повторите попытку.",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "Поворот",
   "devices.lianli-wireless.screenGroupAll": "Все",

@@ -61,7 +61,7 @@ export function SettingRow({
   selected,
   nested,
 }: {
-  label?: string;
+  label?: ReactNode;
   // Inline content after the label text, e.g. a chip naming what the row belongs to.
   labelSuffix?: ReactNode;
   description?: ReactNode;

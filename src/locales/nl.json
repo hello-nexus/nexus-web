@@ -1277,6 +1277,7 @@
   "devices.lianli-wireless.orderMoveRight": "Naar rechts",
   "devices.lianli-wireless.pairingLockedNote": "Schakel Gekoppelde apparaten vergrendelen uit om te koppelen of los te koppelen.",
   "devices.lianli-wireless.panelPending": "Paneel wordt ingesteld. Dit kan enkele seconden duren.",
+  "devices.lianli-wireless.renameFailed": "Dit apparaat kon niet worden hernoemd. Probeer het opnieuw.",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "Rotatie",
   "devices.lianli-wireless.screenGroupAll": "Alle",

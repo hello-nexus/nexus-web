@@ -1277,6 +1277,7 @@
   "devices.lianli-wireless.orderMoveRight": "Déplacer à droite",
   "devices.lianli-wireless.pairingLockedNote": "Désactivez Verrouiller les appareils jumelés pour jumeler ou dissocier.",
   "devices.lianli-wireless.panelPending": "Configuration du panneau. Cela peut prendre quelques secondes.",
+  "devices.lianli-wireless.renameFailed": "Impossible de renommer cet appareil. Réessayez.",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "Rotation",
   "devices.lianli-wireless.screenGroupAll": "Tous",
