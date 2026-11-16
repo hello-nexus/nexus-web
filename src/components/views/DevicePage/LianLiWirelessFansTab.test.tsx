@@ -28,11 +28,13 @@ vi.mock('../../../api/lianli-wireless', () => ({
 const mockFetchFanChannels = vi.fn();
 const mockSetFanSpeed = vi.fn();
 const mockReleaseFanAuto = vi.fn();
+const mockRenameFan = vi.fn();
 
 vi.mock('../../../api/cooling', () => ({
   fetchFanChannels: (...args: any[]) => mockFetchFanChannels(...args),
   setFanSpeed: (...args: any[]) => mockSetFanSpeed(...args),
   releaseFanAuto: (...args: any[]) => mockReleaseFanAuto(...args),
+  renameFan: (...args: any[]) => mockRenameFan(...args),
 }));
 
 const boundFan = {
@@ -58,14 +60,15 @@ const wirelessState: LianLiWirelessState = {
 };
 
 const channelsFixture = [
-  { id: 'lianli-wireless:998D1DE566E1:port0', name: 'Wireless Fan 1', dutyPercent: 45, rpm: 1918, mode: 'Manual' },
-  { id: 'lianli-wireless:998D1DE566E1:port1', name: 'Wireless Fan 2', dutyPercent: 6, rpm: 1905, mode: 'Auto' },
+  { id: 'lianli-wireless:998D1DE566E1:port0', name: 'Wireless Fan 1', dutyPercent: 45, rpm: 1918, mode: 'Manual', deviceId: 'lianli-wireless:998D1DE566E1', deviceName: 'Lian Li Wireless Fan' },
+  { id: 'lianli-wireless:998D1DE566E1:port1', name: 'Wireless Fan 2', dutyPercent: 6, rpm: 1905, mode: 'Auto', deviceId: 'lianli-wireless:998D1DE566E1', deviceName: 'Lian Li Wireless Fan' },
 ];
 
 beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   mockFetchFanChannels.mockResolvedValue({ channels: channelsFixture });
+  mockRenameFan.mockResolvedValue({ error: false });
   mockSetFanSpeed.mockResolvedValue({ error: false });
   mockReleaseFanAuto.mockResolvedValue({ error: false });
   mockBindLianLiWirelessFan.mockResolvedValue(true);
@@ -85,6 +88,34 @@ async function renderTab(state: LianLiWirelessState | null = wirelessState) {
   });
   return refresh;
 }
+
+describe('LianLiWirelessFansTab rename', () => {
+  it('writes the name under the chain device id the cooling page renames', async () => {
+    await renderTab();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.rename' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  Top rad  ' } });
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'confirm.ok' }).pop()!);
+    });
+    expect(mockRenameFan).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1', 'Top rad');
+    expect(screen.getByText('Top rad')).toBeInTheDocument();
+  });
+
+  it('shows the name already set on the cooling page', async () => {
+    mockFetchFanChannels.mockResolvedValue({
+      channels: channelsFixture.map(c => ({ ...c, deviceName: 'Rear stack', originalDeviceName: 'Lian Li Wireless Fan' })),
+    });
+    await renderTab();
+    expect(screen.getByText('Rear stack')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.fanTypeSlv3Lcd')).not.toBeInTheDocument();
+  });
+
+  it('offers no rename for a chain the cooling page does not list', async () => {
+    mockFetchFanChannels.mockResolvedValue({ channels: [] });
+    await renderTab();
+    expect(screen.queryByRole('button', { name: 'cooling.fan.rename' })).not.toBeInTheDocument();
+  });
+});
 
 describe('LianLiWirelessFansTab', () => {
   it('renders bind/unbind/identify actions for a bound chain, with no speed controls', async () => {

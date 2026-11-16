@@ -91,6 +91,22 @@ describe('FanGroupHeader title', () => {
   });
 });
 
+describe('FanGroupHeader identify', () => {
+  it('lists Identify with the wireless controller label and runs it', () => {
+    const onIdentify = vi.fn();
+    renderHeader({ onIdentify });
+    openMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' }));
+    expect(onIdentify).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no Identify on a group that cannot', () => {
+    renderHeader();
+    openMenu();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeNull();
+  });
+});
+
 describe('FanGroupHeader deep-link anchor', () => {
   it('tags its section so a device page jump can scroll to and shine it', () => {
     renderHeader({ searchAnchor: 'cooling-group:lianli' });

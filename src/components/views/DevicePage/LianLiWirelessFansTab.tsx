@@ -4,6 +4,7 @@ import { SettingsSection, SettingsBlock } from '../../common/SettingsSection/Set
 import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { PromptModal } from '../../common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { Notice } from '../../common/Notice/Notice';
 import {
@@ -14,7 +15,9 @@ import {
   type LianLiWirelessFan,
   type LianLiFansState,
 } from '../../../api/lianli-wireless';
+import { fetchFanChannels, renameFan } from '../../../api/cooling';
 import { useTranslation } from '../../../lib/i18n';
+import { WIRELESS_DEVICE_PREFIX, wirelessDeviceId } from '../../../lib/lianliWirelessDeviceId';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Bind/unbind converge on the service in ~2-6s; give up waiting for the
@@ -107,6 +110,10 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
   const [unbindTarget, setUnbindTarget] = useState<string | null>(null);
+  // The cooling page's rename store, keyed by the chain's device id. A chain
+  // with no cooling channel has no entry, so it offers no rename.
+  const [coolingNames, setCoolingNames] = useState<Record<string, string | null>>({});
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const aliveRef = useRef(true);
   const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
 
@@ -224,6 +231,27 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
     runBindAction(mac, 'unbind');
   }, [unbindTarget, pairingBlocked, runBindAction]);
 
+  useEffect(() => {
+    let alive = true;
+    void fetchFanChannels().then(res => {
+      if (!alive || !res?.channels) return;
+      const next: Record<string, string | null> = {};
+      for (const ch of res.channels) {
+        if (ch.deviceId?.startsWith(WIRELESS_DEVICE_PREFIX)) next[ch.deviceId] = ch.originalDeviceName != null ? (ch.deviceName ?? null) : null;
+      }
+      setCoolingNames(next);
+    }).catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
+
+  const handleRenameConfirmed = useCallback(async (name: string) => {
+    if (renameTarget == null) return;
+    const deviceId = wirelessDeviceId(renameTarget);
+    await renameFan(deviceId, name.trim());
+    setCoolingNames(prev => ({ ...prev, [deviceId]: name.trim() }));
+    setRenameTarget(null);
+  }, [renameTarget]);
+
   const handleIdentify = useCallback((mac: string) => {
     setIdentifying(prev => ({ ...prev, [mac]: true }));
     // A wired unit reports `identifying` on its own row, so the local flag only bridges to that state read.
@@ -324,11 +352,21 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
+              customName={coolingNames[wirelessDeviceId(fan.mac)] ?? undefined}
+              onRename={!wired && !fan.wiredOwned && wirelessDeviceId(fan.mac) in coolingNames ? setRenameTarget : undefined}
               onOpenPanel={panelOpener?.(fan.mac)}
             />
           ))
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>)}
       </SettingsSection>
+
+      <PromptModal
+        open={renameTarget != null}
+        title={t('cooling.fan.rename')}
+        initialValue={renameTarget != null ? (coolingNames[wirelessDeviceId(renameTarget)] ?? '') : ''}
+        onCancel={() => setRenameTarget(null)}
+        onConfirm={handleRenameConfirmed}
+      />
 
       <ConfirmModal
         open={unbindTarget != null}
@@ -355,6 +393,8 @@ function DeviceRow({
   onBind,
   onUnbindRequest,
   onIdentify,
+  customName,
+  onRename,
   onOpenPanel,
 }: {
   fan: LianLiWirelessFan;
@@ -370,6 +410,10 @@ function DeviceRow({
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
+  /** The name set on the cooling page, shown in place of the product label. */
+  customName?: string;
+  /** Present when the chain has a cooling channel to carry the name. */
+  onRename?: (mac: string) => void;
   onOpenPanel?: () => void;
 }) {
   const { t } = useTranslation();
@@ -413,7 +457,7 @@ function DeviceRow({
   return (
     <SettingRow
       anchorId={lianLiWirelessDeviceAnchor(fan.mac)}
-      label={typeLabel}
+      label={customName || typeLabel}
       description={details}
       state={bindState}
       labelSuffix={onOpenPanel && (
@@ -444,6 +488,11 @@ function DeviceRow({
         lockGuard(<Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onBind(fan.mac)}>
           {bindLabel}
         </Button>)
+      )}
+      {onRename && (
+        <Button size="sm" tone="neutral" onClick={() => onRename(fan.mac)}>
+          {t('cooling.fan.rename')}
+        </Button>
       )}
       {!wiredOwned && (
         <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>

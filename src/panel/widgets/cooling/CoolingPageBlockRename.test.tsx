@@ -4,6 +4,7 @@ import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import type { ServiceState } from '../../../types/service';
 import { CoolingPage } from './CoolingPage';
 import { renameFan } from '../../../api/cooling';
+import { identifyLianLiWirelessFan } from '../../../api/lianli-wireless';
 import { allowSlowAsyncUtils } from '../../../__tests__/slowAsyncUtils';
 
 allowSlowAsyncUtils();
@@ -17,6 +18,11 @@ vi.mock('../../../hooks/useSystemSpecs', () => ({
 // The service answers a rename as deviceName on every fan in that block.
 const blockNames: Record<string, string> = {};
 
+vi.mock('../../../api/lianli-wireless', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../api/lianli-wireless')>()),
+  identifyLianLiWirelessFan: vi.fn(async () => true),
+}));
+
 vi.mock('../../../api/cooling', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../api/cooling')>();
   const fan = (id: string, name: string, device?: [string, string]) => ({
@@ -28,6 +34,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     originalDeviceName: device && blockNames[device[0]] ? device[1] : null,
   });
   const CARD: [string, string] = ['/gpu-nvidia/0', 'NVIDIA GeForce RTX 3070'];
+  const CHAIN: [string, string] = ['lianli-wireless:998D1DE566E1', 'Lian Li Wireless Fan'];
   return {
     ...original,
     fetchFanChannels: vi.fn(async () => ({
@@ -36,6 +43,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
         fan('fan-chassis', 'Chassis Fan'),
         fan('fan-gpu-1', 'GPU Fan 1', CARD),
         fan('fan-gpu-2', 'GPU Fan 2', CARD),
+        { ...fan('lianli-wireless:998D1DE566E1:port0', 'Wireless Fan 1', CHAIN), isGpu: false },
       ],
     })),
     fetchTemperatureSources: vi.fn(async () => ({
@@ -78,6 +86,23 @@ const startRename = (blockIndex: number) => {
   toggleMenu(blockIndex);
   fireEvent.click(screen.getByText(/fan\.rename$/));
 };
+
+describe('CoolingPage wireless chain block', () => {
+  it('identifies by the chain MAC and only on the wireless block', async () => {
+    renderAdvanced();
+    await waitFor(() => expect(screen.getByText('Lian Li Wireless Fan')).toBeInTheDocument());
+    const menus = screen.getAllByRole('button', { name: /groupActions/ });
+    expect(menus).toHaveLength(3);
+
+    fireEvent.click(menus[0]);
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeNull();
+    fireEvent.click(menus[0]);
+
+    fireEvent.click(menus[2]);
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' }));
+    expect(identifyLianLiWirelessFan).toHaveBeenCalledWith('998D1DE566E1');
+  });
+});
 
 describe('CoolingPage rail block renames', () => {
   beforeEach(() => {

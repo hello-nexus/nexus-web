@@ -35,6 +35,8 @@ import {
   type FanCalibration,
   saveFanGroups,
 } from '../../../api/cooling';
+import { identifyLianLiWirelessFan } from '../../../api/lianli-wireless';
+import { wirelessMacOf } from '../../../lib/lianliWirelessDeviceId';
 import { useCoolingRealtime } from '../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../hooks/useCoolingCurves';
 import { useThermalGuard } from '../../../hooks/useThermalGuard';
@@ -2030,6 +2032,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       for (const c of list) handleTogglePin(c.id, target);
                     }}
                     onRename={name => handleRename(blockId, name)}
+                    onIdentify={wirelessMacOf(blockId) != null
+                      ? () => { void identifyLianLiWirelessFan(wirelessMacOf(blockId) ?? ''); }
+                      : undefined}
                     onResetName={(isBoard ? custom != null : list[0]?.originalDeviceName != null)
                       ? () => handleRename(blockId, '')
                       : undefined}

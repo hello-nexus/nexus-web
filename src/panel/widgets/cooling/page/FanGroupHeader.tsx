@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link2, Link2Off, MousePointerClick, Pencil, Pin, PinOff, RotateCcw, Trash2 } from 'lucide-react';
+import { Link2, Link2Off, MousePointerClick, Pencil, Pin, PinOff, Eye, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -22,7 +22,7 @@ export function FanGroupHeader({
   name, count, collapsed, onToggleCollapsed,
   groupControlled, onToggleControlled,
   groupPinned, onTogglePin,
-  onRename, onDelete, onResetName, drag, dropTarget, children,
+  onRename, onDelete, onResetName, onIdentify, drag, dropTarget, children,
   hasUncontrolled = false,
   icon,
   onSelectAll,
@@ -48,6 +48,8 @@ export function FanGroupHeader({
    *  the name the device reports, or the board model system specs give. A user
    *  group's name has nothing to fall back to. */
   onResetName?: () => void;
+  /** Present only on a Lian Li wireless chain; flashes its LEDs so the group can be found on the desk. */
+  onIdentify?: () => void;
   drag?: SortableRowArgs;
   /** True while a dragged card would land in this group; washes the section so
    *  the destination is unambiguous before the drop. */
@@ -88,6 +90,9 @@ export function FanGroupHeader({
     }
     if (onRename) {
       items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('cooling.fan.rename'), onSelect: () => nameRef.current?.startEditing() });
+    }
+    if (onIdentify) {
+      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('devices.lianli-wireless.identify'), onSelect: onIdentify });
     }
     if (onResetName) {
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('cooling.fan.resetName'), onSelect: onResetName });
