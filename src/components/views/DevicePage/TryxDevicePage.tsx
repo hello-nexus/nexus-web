@@ -417,8 +417,8 @@ export function TryxDevicePage() {
     // Guard the 0 a pre-layout measurement can report; the canvas mounts only
     // after the loading skeleton clears, so re-run on initialLoading too or the
     // observer is set up while the ref is still null and height stays 0.
-    // Overlay metrics are panel-space against the panel's 1080px short axis, which
-    // is the canvas height when landscape and its width when the canvas is portrait.
+    // Panel-space metrics scale by the panel's short axis: the canvas height when
+    // landscape, its width when the canvas is portrait.
     const update = () => {
       const rect = el.getBoundingClientRect();
       const shortAxis = rotated ? rect.width : rect.height;
