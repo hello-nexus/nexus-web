@@ -23,6 +23,8 @@ export interface TryxState {
   productId: string;
   screenEnabled: boolean;
   brightness: number;
+  /** Clockwise degrees the overlay and new uploads are turned for a rotated mount. Absent from an older service. */
+  rotation?: number;
   currentMedia: string;
   currentMediaIsCustom: boolean;
   lastConnectedMs: number;
@@ -155,6 +157,19 @@ export async function setTryxEnabled(enable: boolean): Promise<boolean> {
 export async function setTryxBrightness(value: number): Promise<boolean> {
   if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/brightness', { value }));
+}
+
+/** Quarter-turn screen rotations the service accepts. */
+export const TRYX_ROTATIONS = [0, 90, 180, 270] as const;
+export type TryxRotation = (typeof TRYX_ROTATIONS)[number];
+
+export function normalizeTryxRotation(value: number | undefined): TryxRotation {
+  return TRYX_ROTATIONS.includes(value as TryxRotation) ? (value as TryxRotation) : 0;
+}
+
+export async function setTryxRotation(degrees: TryxRotation): Promise<boolean> {
+  if (isTryxSimulated()) return true;
+  return isOk(await postService<OkResponse>('/tryx/rotation', { degrees }));
 }
 
 export async function setTryxSleepWhenLocked(enable: boolean): Promise<boolean> {
