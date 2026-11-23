@@ -18,6 +18,7 @@ export interface AiCapabilities {
   telemetry: boolean;
   cooling: boolean;
   lighting: boolean;
+  panels: boolean;
   profiles: boolean;
   history: boolean;
 }

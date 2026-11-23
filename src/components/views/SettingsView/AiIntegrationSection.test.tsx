@@ -51,7 +51,7 @@ function makeStatus(overrides: Partial<AiStatusResponse> = {}): AiStatusResponse
     endpoint: 'http://127.0.0.1:9420/mcp',
     token: '',
     lastError: null,
-    capabilities: { telemetry: true, cooling: true, lighting: true, profiles: true, history: true },
+    capabilities: { telemetry: true, cooling: true, lighting: true, panels: true, profiles: true, history: true },
     allowRemote: false,
     ...overrides,
   };
@@ -225,6 +225,23 @@ describe('AiIntegrationSection', () => {
 
     expect(postAiConfig).toHaveBeenCalledWith({ capabilities: { cooling: false } });
     await waitFor(() => expect(coolingToggle).toHaveAttribute('aria-checked', 'false'));
+  });
+
+  it('shows the panel editing switch and posts only panels when it is turned off', async () => {
+    const initial = makeStatus({ enabled: true });
+    vi.mocked(fetchAiStatus).mockResolvedValue(initial);
+    vi.mocked(postAiConfig).mockResolvedValue({
+      ...initial,
+      capabilities: { ...initial.capabilities, panels: false },
+    });
+    render(<AiIntegrationSection serviceOnline />);
+
+    const panelsToggle = await screen.findByRole('switch', { name: 'settings.ai.capability.panels.label' });
+    expect(panelsToggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(panelsToggle);
+
+    expect(postAiConfig).toHaveBeenCalledWith({ capabilities: { panels: false } });
+    await waitFor(() => expect(panelsToggle).toHaveAttribute('aria-checked', 'false'));
   });
 
   it('shows no remote warning by default and posts allowRemote when toggled on', async () => {
