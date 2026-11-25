@@ -401,7 +401,7 @@ describe('LianLiWirelessFansTab wired', () => {
 describe('LianLiWirelessFansTab units owned by the wired page', () => {
   const flexFan = { ...boundFan, boundToUs: false, masterMac: '', slot: 254, fanType: 51, fanCount: 1 };
 
-  it('says Connected by USB with a link to the LCD Flex page and offers no Bind or Identify', async () => {
+  it('says Connected by USB with a link to the LCD Flex page and offers Bind but no Identify', async () => {
     const open = vi.fn();
     await act(async () => {
       render(<LianLiWirelessFansTab
@@ -411,10 +411,42 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
       />);
     });
     expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.identify' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.openWiredPage' }));
     expect(open).toHaveBeenCalled();
+  });
+
+  it('binds an unbound USB-connected unit to this radio from its row', async () => {
+    mockBindLianLiWirelessFan.mockResolvedValue(true);
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...flexFan, wiredOwned: true }] }} refresh={vi.fn()} onOpenWiredPage={vi.fn()} />);
+    });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })); });
+    expect(mockBindLianLiWirelessFan).toHaveBeenCalledWith(flexFan.mac);
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.binding' })).toBeDisabled();
+  });
+
+  it('keeps showing a service-reported unbind as pending, on the still-bound record, after the click', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...boundFan, pending: 'unbinding' }] }} refresh={vi.fn()} />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbinding' })).toBeDisabled();
+  });
+
+  it('shows a service-reported bind as pending on an unbound row', async () => {
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...flexFan, pending: 'binding' }] }} refresh={vi.fn()} />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.binding' })).toBeDisabled();
+  });
+
+  it('counts the fans across units, not the units, on the Flex page', async () => {
+    const threeFans = { ...flexFan, fanCount: 3 };
+    await act(async () => {
+      render(<LianLiWirelessFansTab wired state={{ ...wirelessState, fans: [threeFans, { ...threeFans, mac: 'AABBCCDDEEFF', fanCount: 2 }] }} refresh={vi.fn()} />);
+    });
+    expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   it('treats a USB-connected unit bound to this radio as an ordinary bound row with the hint, Identify and Unbind', async () => {

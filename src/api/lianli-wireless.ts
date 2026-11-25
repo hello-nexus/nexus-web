@@ -50,6 +50,8 @@ export interface LianLiWirelessFan {
   identifying?: boolean;
   /** A Flex unit that the wired LCD Flex page owns, so it is not offered for RF binding here. */
   wiredOwned?: boolean;
+  /** The user's bind or unbind the service has sent and the chain's record has not echoed yet; absent or empty otherwise. */
+  pending?: 'binding' | 'unbinding' | '';
   /** A Flex unit plugged in over USB and bound to this PC's radio, which drives its lighting and fan speed. */
   radioDrivesUsb?: boolean;
   /** Wired LCD Flex units only: bound to this PC's radio. */

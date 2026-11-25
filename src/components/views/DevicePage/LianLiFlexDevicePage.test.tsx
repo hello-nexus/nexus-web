@@ -332,7 +332,7 @@ describe('polling', () => {
 });
 
 describe('the wireless page with wired LCD Flex units', () => {
-  it('lists a unit the wired page owns as Connected by USB with a link, and no Bind', async () => {
+  it('lists a unit the wired page owns as Connected by USB with a link and a Bind', async () => {
     mockWirelessState.mockResolvedValue({
       isConnected: true, masterMac: 'M', channel: 8, txFirmwareVersion: 1, lockBoundDevices: false,
       fans: [{ mac: 'AA11', masterMac: '', boundToUs: false, channel: 0, slot: 254, devType: 0, fanType: 51, fanCount: 1, rpm: [0, 0, 0, 0], pwm: [0, 0, 0, 0], wiredOwned: true }],
@@ -340,7 +340,7 @@ describe('the wireless page with wired LCD Flex units', () => {
     const nav = vi.fn();
     await act(async () => { render(<LianLiWirelessDevicePage onSectionNavigate={nav} />); });
     expect(screen.getByText('devices.lianli-flex.connectedByUsb')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.bind' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-flex.openWiredPage' }));
     expect(nav).toHaveBeenCalledWith('device', { deviceKey: 'curated-lianli-flex' });
   });

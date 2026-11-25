@@ -70,6 +70,11 @@ function followsMotherboard(fan: LianLiWirelessFan): boolean {
   return fan.pwm.slice(0, Math.max(fan.fanCount, 1)).some(v => v === PWM_FOLLOW_MOTHERBOARD);
 }
 
+/** Fans across all listed units: a Flex receiver is one unit with several fans, so the unit count undercounts. */
+export function totalFanCount(fans: readonly Pick<LianLiWirelessFan, 'fanCount'>[]): number {
+  return fans.reduce((sum, fan) => sum + Math.max(1, fan.fanCount), 0);
+}
+
 /** Deep-link anchor of a device's row on the Devices tab. */
 export const lianLiWirelessDeviceAnchor = (mac: string) => `lianli-wireless-device-${mac}`;
 
@@ -299,7 +304,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
             <span className={styles.rowValueMono}>{t(`devices.lianli-flex.link_${state?.linkStatus === 'busy' ? 'busy' : state?.linkStatus === 'none' ? 'none' : 'ok'}` as Parameters<typeof t>[0])}</span>
           </SettingRow>
           <SettingRow label={t('devices.lianli-flex.fansDetected')}>
-            <span className={styles.rowValueMono}>{loaded ? state.fans.length : '-'}</span>
+            <span className={styles.rowValueMono}>{loaded ? totalFanCount(state.fans) : '-'}</span>
           </SettingRow>
         </SettingsSection>
       )}
@@ -374,12 +379,15 @@ function DeviceRow({
 }) {
   const { t } = useTranslation();
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
-  const busy = pending !== undefined || identifying || fan.identifying === true;
+  // The service keeps a bind or unbind pending until the chain echoes it, which outlasts the local timeout during an RX outage.
+  const servicePending: BindAction | undefined = fan.pending === 'binding' ? 'bind' : fan.pending === 'unbinding' ? 'unbind' : undefined;
+  const activePending = pending ?? servicePending;
+  const busy = activePending !== undefined || identifying || fan.identifying === true;
 
-  const bindLabel = pending === 'bind'
+  const bindLabel = activePending === 'bind'
     ? t('devices.lianli-wireless.binding')
     : t('devices.lianli-wireless.bind');
-  const unbindLabel = pending === 'unbind'
+  const unbindLabel = activePending === 'unbind'
     ? t('devices.lianli-wireless.unbinding')
     : t('devices.lianli-wireless.unbind');
   // A disabled button swallows pointer events, so the tooltip rides a wrapper.
@@ -431,7 +439,10 @@ function DeviceRow({
           <Button size="sm" tone="neutral" onClick={onOpenWiredPage}>
             {t('devices.lianli-flex.openWiredPage')}
           </Button>
-          {/* The service allows only a release here: Unbind hands the fan to USB. */}
+          {/* An unbound USB unit can be taken onto this PC's radio, the way L-Connect binds it. */}
+          {!fan.boundToUs && lockGuard(<Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onBind(fan.mac)}>
+            {bindLabel}
+          </Button>)}
           {fan.boundToUs && lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
             {unbindLabel}
           </Button>)}
