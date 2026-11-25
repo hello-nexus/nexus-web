@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Entkoppeln",
   "devices.lianli-wireless.unbindConfirmMessage": "Dies hebt die drahtlose Kopplung des Geräts mit diesem PC auf. Koppeln Sie es erneut, um es zu steuern.",
   "devices.lianli-wireless.unbindConfirmTitle": "Dieses Gerät entkoppeln?",
+  "devices.lianli-wireless.unbindFailed": "Die Kopplung dieses Geräts konnte nicht aufgehoben werden.",
   "devices.lianli-wireless.unbinding": "Wird entkoppelt…",
   "devices.lianli-wireless.unbound": "Nicht gekoppelt",
   "devices.lianli-wireless.uploadMedia": "Medien hochladen",

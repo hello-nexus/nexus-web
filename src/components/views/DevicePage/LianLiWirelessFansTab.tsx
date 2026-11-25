@@ -115,7 +115,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
   const [unbindTarget, setUnbindTarget] = useState<string | null>(null);
-  const [bindError, setBindError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<{ action: BindAction; reason: string } | null>(null);
   const aliveRef = useRef(true);
   const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
 
@@ -214,12 +214,12 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
 
   const runBindAction = useCallback((mac: string, action: BindAction) => {
     startPending(mac, action);
-    setBindError(null);
+    setActionError(null);
     const call: (m: string) => Promise<boolean | string> = action === 'bind' ? bindLianLiWirelessFan : unbindLianLiWirelessFan;
     void call(mac).catch(() => false).then(result => {
       if (result !== true) {
         failPending(mac);
-        if (aliveRef.current) setBindError(typeof result === 'string' ? result : '');
+        if (aliveRef.current) setActionError({ action, reason: typeof result === 'string' ? result : '' });
       }
       void refresh();
     });
@@ -280,10 +280,10 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
       {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
         <SettingsBlock><Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice></SettingsBlock>
       )}
-      {bindError !== null && (
+      {actionError !== null && (
         <SettingsBlock>
-          <Notice tone="warning" role="alert" onDismiss={() => setBindError(null)} dismissLabel={t('dashboard.banner.dismiss')}>
-            {t(bindError === HELD_BY_MASTER_REASON ? 'devices.lianli-wireless.bindHeldByMaster' : 'devices.lianli-wireless.bindFailed')}
+          <Notice tone="warning" role="alert" onDismiss={() => setActionError(null)} dismissLabel={t('dashboard.banner.dismiss')}>
+            {t(actionError.action === 'unbind' ? 'devices.lianli-wireless.unbindFailed' : actionError.reason === HELD_BY_MASTER_REASON ? 'devices.lianli-wireless.bindHeldByMaster' : 'devices.lianli-wireless.bindFailed')}
           </Notice>
         </SettingsBlock>
       )}

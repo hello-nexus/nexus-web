@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Dissocia",
   "devices.lianli-wireless.unbindConfirmMessage": "Questo annulla l'associazione wireless del dispositivo con questo PC. Associalo di nuovo per controllarlo.",
   "devices.lianli-wireless.unbindConfirmTitle": "Dissociare questo dispositivo?",
+  "devices.lianli-wireless.unbindFailed": "Impossibile dissociare questo dispositivo.",
   "devices.lianli-wireless.unbinding": "Dissociazione in corso…",
   "devices.lianli-wireless.unbound": "Non associato",
   "devices.lianli-wireless.uploadMedia": "Carica file multimediale",

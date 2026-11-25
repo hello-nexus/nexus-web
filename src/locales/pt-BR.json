@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Desparear",
   "devices.lianli-wireless.unbindConfirmMessage": "Isso remove o pareamento sem fio do dispositivo com este PC. Pareie-o novamente para controlá-lo.",
   "devices.lianli-wireless.unbindConfirmTitle": "Desparear este dispositivo?",
+  "devices.lianli-wireless.unbindFailed": "Não foi possível desparear este dispositivo.",
   "devices.lianli-wireless.unbinding": "Despareando…",
   "devices.lianli-wireless.unbound": "Não pareado",
   "devices.lianli-wireless.uploadMedia": "Enviar mídia",

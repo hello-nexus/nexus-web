@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Ontkoppelen",
   "devices.lianli-wireless.unbindConfirmMessage": "Hiermee wordt de draadloze koppeling van het apparaat met deze pc verbroken. Koppel het opnieuw om het te bedienen.",
   "devices.lianli-wireless.unbindConfirmTitle": "Dit apparaat ontkoppelen?",
+  "devices.lianli-wireless.unbindFailed": "Dit apparaat kon niet worden losgekoppeld.",
   "devices.lianli-wireless.unbinding": "Ontkoppelen…",
   "devices.lianli-wireless.unbound": "Ontkoppeld",
   "devices.lianli-wireless.uploadMedia": "Media uploaden",

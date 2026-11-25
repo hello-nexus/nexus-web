@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "ペアリング解除",
   "devices.lianli-wireless.unbindConfirmMessage": "このPCとのデバイスのワイヤレスペアリングを解除します。制御するには再度ペアリングしてください。",
   "devices.lianli-wireless.unbindConfirmTitle": "このデバイスのペアリングを解除しますか？",
+  "devices.lianli-wireless.unbindFailed": "このデバイスのペアリングを解除できませんでした。",
   "devices.lianli-wireless.unbinding": "ペアリング解除中…",
   "devices.lianli-wireless.unbound": "未ペアリング",
   "devices.lianli-wireless.uploadMedia": "メディアをアップロード",

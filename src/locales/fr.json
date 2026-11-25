@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Dissocier",
   "devices.lianli-wireless.unbindConfirmMessage": "Ceci annule le jumelage sans fil de l'appareil avec ce PC. Jumelez-le à nouveau pour le contrôler.",
   "devices.lianli-wireless.unbindConfirmTitle": "Dissocier cet appareil ?",
+  "devices.lianli-wireless.unbindFailed": "Impossible de dissocier cet appareil.",
   "devices.lianli-wireless.unbinding": "Dissociation…",
   "devices.lianli-wireless.unbound": "Non jumelé",
   "devices.lianli-wireless.uploadMedia": "Importer un média",

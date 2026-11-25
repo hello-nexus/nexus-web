@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Disassocie",
   "devices.lianli-wireless.unbindConfirmMessage": "Chest al gjave la associazion cence fîl dal dispositîf di chest PC. Associilu di gnûf par comandâlu.",
   "devices.lianli-wireless.unbindConfirmTitle": "Disassociâ chest dispositîf?",
+  "devices.lianli-wireless.unbindFailed": "Impussibil gjavâ l'associazion di chest dispositîf.",
   "devices.lianli-wireless.unbinding": "Daûr a disassociâ…",
   "devices.lianli-wireless.unbound": "No associât",
   "devices.lianli-wireless.uploadMedia": "Cjame sù un file multimediâl",

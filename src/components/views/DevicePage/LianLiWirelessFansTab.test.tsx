@@ -437,6 +437,16 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeEnabled();
   });
 
+  it('says unbind, not bind, when an Unbind fails', async () => {
+    mockUnbindLianLiWirelessFan.mockResolvedValue(false);
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [boundFan] }} refresh={vi.fn()} />);
+    });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.unbindConfirmLabel' })); });
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.lianli-wireless.unbindFailed');
+  });
+
   it('shows a generic message for a refusal without a known reason', async () => {
     mockBindLianLiWirelessFan.mockResolvedValue(false);
     await act(async () => {

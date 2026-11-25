@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Desemparelhar",
   "devices.lianli-wireless.unbindConfirmMessage": "Isto anula o emparelhamento sem fios do dispositivo com este PC. Emparelhe-o novamente para o controlar.",
   "devices.lianli-wireless.unbindConfirmTitle": "Desemparelhar este dispositivo?",
+  "devices.lianli-wireless.unbindFailed": "Não foi possível desemparelhar este dispositivo.",
   "devices.lianli-wireless.unbinding": "A desemparelhar…",
   "devices.lianli-wireless.unbound": "Não emparelhado",
   "devices.lianli-wireless.uploadMedia": "Carregar multimédia",

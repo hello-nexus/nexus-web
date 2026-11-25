@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "取消配对",
   "devices.lianli-wireless.unbindConfirmMessage": "这将取消该设备与此电脑的无线配对。要控制它需要重新配对。",
   "devices.lianli-wireless.unbindConfirmTitle": "取消配对此设备？",
+  "devices.lianli-wireless.unbindFailed": "无法取消配对此设备。",
   "devices.lianli-wireless.unbinding": "取消配对中…",
   "devices.lianli-wireless.unbound": "未配对",
   "devices.lianli-wireless.uploadMedia": "上传媒体",

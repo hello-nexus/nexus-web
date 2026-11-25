@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Eşleşmeyi kaldır",
   "devices.lianli-wireless.unbindConfirmMessage": "Bu, cihazın bu bilgisayarla olan kablosuz eşleşmesini kaldırır. Kontrol etmek için tekrar eşleştirin.",
   "devices.lianli-wireless.unbindConfirmTitle": "Bu cihazın eşleşmesi kaldırılsın mı?",
+  "devices.lianli-wireless.unbindFailed": "Bu cihazın eşleştirmesi kaldırılamadı.",
   "devices.lianli-wireless.unbinding": "Eşleşme kaldırılıyor…",
   "devices.lianli-wireless.unbound": "Eşleştirilmedi",
   "devices.lianli-wireless.uploadMedia": "Medya yükle",

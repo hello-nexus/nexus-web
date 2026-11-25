@@ -1361,6 +1361,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Отменить сопряжение",
   "devices.lianli-wireless.unbindConfirmMessage": "Это отменит беспроводное сопряжение устройства с этим ПК. Чтобы управлять им, сопрягите его снова.",
   "devices.lianli-wireless.unbindConfirmTitle": "Отменить сопряжение этого устройства?",
+  "devices.lianli-wireless.unbindFailed": "Не удалось разорвать сопряжение этого устройства.",
   "devices.lianli-wireless.unbinding": "Отмена сопряжения…",
   "devices.lianli-wireless.unbound": "Не сопряжено",
   "devices.lianli-wireless.uploadMedia": "Загрузить медиафайл",

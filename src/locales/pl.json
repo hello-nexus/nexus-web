@@ -1361,6 +1361,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Rozparuj",
   "devices.lianli-wireless.unbindConfirmMessage": "To usunie bezprzewodowe parowanie urządzenia z tym komputerem. Sparuj je ponownie, aby nim sterować.",
   "devices.lianli-wireless.unbindConfirmTitle": "Rozparować to urządzenie?",
+  "devices.lianli-wireless.unbindFailed": "Nie udało się rozparować tego urządzenia.",
   "devices.lianli-wireless.unbinding": "Rozparowywanie…",
   "devices.lianli-wireless.unbound": "Niesparowany",
   "devices.lianli-wireless.uploadMedia": "Prześlij multimedia",

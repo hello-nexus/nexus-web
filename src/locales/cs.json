@@ -1361,6 +1361,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Zrušit spárování",
   "devices.lianli-wireless.unbindConfirmMessage": "Tímto se zruší bezdrátové spárování zařízení s tímto PC. Chcete-li ho ovládat, znovu ho spárujte.",
   "devices.lianli-wireless.unbindConfirmTitle": "Zrušit spárování tohoto zařízení?",
+  "devices.lianli-wireless.unbindFailed": "Toto zařízení se nepodařilo odpárovat.",
   "devices.lianli-wireless.unbinding": "Rušení spárování…",
   "devices.lianli-wireless.unbound": "Nespárováno",
   "devices.lianli-wireless.uploadMedia": "Nahrát média",

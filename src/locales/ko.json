@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "페어링 해제",
   "devices.lianli-wireless.unbindConfirmMessage": "이 PC와 장치의 무선 페어링이 해제됩니다. 제어하려면 다시 페어링하세요.",
   "devices.lianli-wireless.unbindConfirmTitle": "이 장치의 페어링을 해제할까요?",
+  "devices.lianli-wireless.unbindFailed": "이 장치의 페어링을 해제하지 못했습니다.",
   "devices.lianli-wireless.unbinding": "페어링 해제 중…",
   "devices.lianli-wireless.unbound": "페어링되지 않음",
   "devices.lianli-wireless.uploadMedia": "미디어 업로드",

@@ -1352,6 +1352,7 @@
   "devices.lianli-wireless.unbindConfirmLabel": "Unbind",
   "devices.lianli-wireless.unbindConfirmMessage": "This releases the device's wireless pairing with this PC. Bind it again to control it.",
   "devices.lianli-wireless.unbindConfirmTitle": "Unbind this device?",
+  "devices.lianli-wireless.unbindFailed": "Could not unbind this device.",
   "devices.lianli-wireless.unbinding": "Unbinding…",
   "devices.lianli-wireless.unbound": "Unbound",
   "devices.lianli-wireless.uploadMedia": "Upload media",
