@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiWirelessFansTab, lianLiWirelessDeviceAnchor } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, lianLiWirelessDeviceAnchor, totalFanCount } from './LianLiWirelessFansTab';
 import { requestSearchScroll, useSearchAnchorScroller } from '../../../search/scroll';
 import type { LianLiWirelessState } from '../../../api/lianli-wireless';
 
@@ -183,8 +183,8 @@ describe('LianLiWirelessFansTab', () => {
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
 
-    it('disables Unbind of a wired-owned unit still bound to this radio while locked, like any other bound fan', async () => {
-      const wiredBound = { ...boundFan, wiredOwned: true };
+    it('disables Unbind of a USB-connected unit bound to this radio while locked, like any other bound fan', async () => {
+      const wiredBound = { ...boundFan, wiredOwned: false, radioDrivesUsb: true };
       await renderTab({ ...on, fans: [wiredBound] });
       const hint = document.querySelector('span[hidden]') as HTMLElement;
       const btn = screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' });
@@ -427,6 +427,25 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.binding' })).toBeDisabled();
   });
 
+  it('tells the user why a refused Bind did not take, and clears the pending state', async () => {
+    mockBindLianLiWirelessFan.mockResolvedValue('held by a live master');
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} />);
+    });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })); });
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.lianli-wireless.bindHeldByMaster');
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeEnabled();
+  });
+
+  it('shows a generic message for a refusal without a known reason', async () => {
+    mockBindLianLiWirelessFan.mockResolvedValue(false);
+    await act(async () => {
+      render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [flexFan] }} refresh={vi.fn()} />);
+    });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })); });
+    expect(screen.getByRole('alert')).toHaveTextContent('devices.lianli-wireless.bindFailed');
+  });
+
   it('keeps showing a service-reported unbind as pending, on the still-bound record, after the click', async () => {
     await act(async () => {
       render(<LianLiWirelessFansTab state={{ ...wirelessState, fans: [{ ...boundFan, pending: 'unbinding' }] }} refresh={vi.fn()} />);
@@ -446,6 +465,7 @@ describe('LianLiWirelessFansTab units owned by the wired page', () => {
     await act(async () => {
       render(<LianLiWirelessFansTab wired state={{ ...wirelessState, fans: [threeFans, { ...threeFans, mac: 'AABBCCDDEEFF', fanCount: 2 }] }} refresh={vi.fn()} />);
     });
+    expect(totalFanCount([threeFans, { fanCount: 2 }])).toBe(5);
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 

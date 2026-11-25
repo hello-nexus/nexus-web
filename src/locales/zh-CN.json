@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "频谱",
   "devices.lianli-wireless.animationSpin": "自旋",
   "devices.lianli-wireless.bind": "配对",
+  "devices.lianli-wireless.bindFailed": "无法配对此设备。",
+  "devices.lianli-wireless.bindHeldByMaster": "此设备仍被另一个无线控制器占用。请先在那里释放它。",
   "devices.lianli-wireless.binding": "配对中…",
   "devices.lianli-wireless.bound": "已配对",
   "devices.lianli-wireless.brightness": "亮度",

@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spectrum",
   "devices.lianli-wireless.animationSpin": "Spin",
   "devices.lianli-wireless.bind": "Bind",
+  "devices.lianli-wireless.bindFailed": "Could not bind this device.",
+  "devices.lianli-wireless.bindHeldByMaster": "Another wireless controller still holds this device. Release it there first.",
   "devices.lianli-wireless.binding": "Binding…",
   "devices.lianli-wireless.bound": "Bound",
   "devices.lianli-wireless.brightness": "Brightness",

@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spectre",
   "devices.lianli-wireless.animationSpin": "Rotation",
   "devices.lianli-wireless.bind": "Jumeler",
+  "devices.lianli-wireless.bindFailed": "Impossible de jumeler cet appareil.",
+  "devices.lianli-wireless.bindHeldByMaster": "Un autre contrôleur sans fil détient encore cet appareil. Libérez-le d'abord là-bas.",
   "devices.lianli-wireless.binding": "Jumelage…",
   "devices.lianli-wireless.bound": "Jumelé",
   "devices.lianli-wireless.brightness": "Luminosité",

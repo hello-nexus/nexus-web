@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spectrum",
   "devices.lianli-wireless.animationSpin": "Draaien",
   "devices.lianli-wireless.bind": "Koppelen",
+  "devices.lianli-wireless.bindFailed": "Dit apparaat kon niet worden gekoppeld.",
+  "devices.lianli-wireless.bindHeldByMaster": "Een andere draadloze controller houdt dit apparaat nog vast. Maak het daar eerst los.",
   "devices.lianli-wireless.binding": "Koppelen…",
   "devices.lianli-wireless.bound": "Gekoppeld",
   "devices.lianli-wireless.brightness": "Helderheid",

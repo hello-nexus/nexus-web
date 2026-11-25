@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spetri",
   "devices.lianli-wireless.animationSpin": "Zire",
   "devices.lianli-wireless.bind": "Associe",
+  "devices.lianli-wireless.bindFailed": "Impussibil associâ chest dispositîf.",
+  "devices.lianli-wireless.bindHeldByMaster": "Un altri controlôr cence fîl al ten ancjemò chest dispositîf. Liberilu prime là.",
   "devices.lianli-wireless.binding": "Daûr a associâ…",
   "devices.lianli-wireless.bound": "Associât",
   "devices.lianli-wireless.brightness": "Luminositât",

@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spettro",
   "devices.lianli-wireless.animationSpin": "Rotazione",
   "devices.lianli-wireless.bind": "Associa",
+  "devices.lianli-wireless.bindFailed": "Impossibile associare questo dispositivo.",
+  "devices.lianli-wireless.bindHeldByMaster": "Un altro controller wireless trattiene ancora questo dispositivo. Rilascialo prima lì.",
   "devices.lianli-wireless.binding": "Associazione in corso…",
   "devices.lianli-wireless.bound": "Associato",
   "devices.lianli-wireless.brightness": "Luminosità",

@@ -96,8 +96,11 @@ function isOk(r: OkResponse | null): boolean {
   return !!r && r.error !== true;
 }
 
-export async function bindLianLiWirelessFan(mac: string): Promise<boolean> {
-  return isOk(await postService<OkResponse>('/devices/lianli-wireless/bind', { mac }));
+/** True when the service accepted the bind, the service's refusal reason when it gave one, false when the call failed without a reason. */
+export async function bindLianLiWirelessFan(mac: string): Promise<boolean | string> {
+  const reply = await postService<OkResponse>('/devices/lianli-wireless/bind', { mac });
+  if (isOk(reply)) return true;
+  return typeof reply?.msg === 'string' && reply.msg !== '' ? reply.msg : false;
 }
 
 export async function unbindLianLiWirelessFan(mac: string): Promise<boolean> {

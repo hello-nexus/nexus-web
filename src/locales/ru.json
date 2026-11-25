@@ -1244,6 +1244,8 @@
   "devices.lianli-wireless.animationSpectrum": "Спектр",
   "devices.lianli-wireless.animationSpin": "Вращение",
   "devices.lianli-wireless.bind": "Сопрячь",
+  "devices.lianli-wireless.bindFailed": "Не удалось выполнить сопряжение этого устройства.",
+  "devices.lianli-wireless.bindHeldByMaster": "Это устройство всё ещё удерживает другой беспроводной контроллер. Сначала освободите его там.",
   "devices.lianli-wireless.binding": "Сопряжение…",
   "devices.lianli-wireless.bound": "Сопряжено",
   "devices.lianli-wireless.brightness": "Яркость",

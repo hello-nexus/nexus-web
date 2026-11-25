@@ -27,6 +27,9 @@ const LOCK_PENDING_TIMEOUT_MS = 6000;
 
 type BindAction = 'bind' | 'unbind';
 
+/** The service's refusal text for a unit another live controller holds; any other reason shows the generic message. */
+const HELD_BY_MASTER_REASON = 'held by a live master';
+
 /** Fan subtype (fans_type[0]) -> i18n key suffix naming the product line; same ranges as the service's fan families. */
 export function fanTypeKey(fanType: number):
   | 'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeTlv2' | 'fanTypeTlLcd' | 'fanTypeSlInfinity' | 'fanTypeCl'
@@ -112,6 +115,7 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
   const [unbindTarget, setUnbindTarget] = useState<string | null>(null);
+  const [bindError, setBindError] = useState<string | null>(null);
   const aliveRef = useRef(true);
   const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
 
@@ -210,9 +214,13 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
 
   const runBindAction = useCallback((mac: string, action: BindAction) => {
     startPending(mac, action);
-    const call = action === 'bind' ? bindLianLiWirelessFan : unbindLianLiWirelessFan;
-    void call(mac).catch(() => false).then(ok => {
-      if (!ok) failPending(mac);
+    setBindError(null);
+    const call: (m: string) => Promise<boolean | string> = action === 'bind' ? bindLianLiWirelessFan : unbindLianLiWirelessFan;
+    void call(mac).catch(() => false).then(result => {
+      if (result !== true) {
+        failPending(mac);
+        if (aliveRef.current) setBindError(typeof result === 'string' ? result : '');
+      }
       void refresh();
     });
   }, [startPending, failPending, refresh]);
@@ -271,6 +279,13 @@ export function LianLiWirelessFansTab({ state, refresh, panelOpener, wired = fal
       {lockSupported && pairingBlocked && <span id={lockedNoteId} hidden>{t('devices.lianli-wireless.pairingLockedNote')}</span>}
       {lockSupported && pairingBlocked && state?.fans.some(f => !f.boundToUs && !f.wiredOwned) && (
         <SettingsBlock><Notice tone="info" role="status">{t('devices.lianli-wireless.pairingLockedNote')}</Notice></SettingsBlock>
+      )}
+      {bindError !== null && (
+        <SettingsBlock>
+          <Notice tone="warning" role="alert" onDismiss={() => setBindError(null)} dismissLabel={t('dashboard.banner.dismiss')}>
+            {t(bindError === HELD_BY_MASTER_REASON ? 'devices.lianli-wireless.bindHeldByMaster' : 'devices.lianli-wireless.bindFailed')}
+          </Notice>
+        </SettingsBlock>
       )}
       {!wired && <SettingsSection
         title={t('devices.lianli-wireless.connectionSection')}
@@ -442,9 +457,6 @@ function DeviceRow({
           {/* An unbound USB unit can be taken onto this PC's radio, the way L-Connect binds it. */}
           {!fan.boundToUs && lockGuard(<Button size="sm" tone="accent" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onBind(fan.mac)}>
             {bindLabel}
-          </Button>)}
-          {fan.boundToUs && lockGuard(<Button size="sm" tone="danger" disabled={busy || pairingLocked} aria-describedby={pairingLocked ? lockedNoteId : undefined} onClick={() => onUnbindRequest(fan.mac)}>
-            {unbindLabel}
           </Button>)}
         </>
       ) : fan.boundToUs ? (

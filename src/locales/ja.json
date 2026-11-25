@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "スペクトラム",
   "devices.lianli-wireless.animationSpin": "スピン",
   "devices.lianli-wireless.bind": "ペアリング",
+  "devices.lianli-wireless.bindFailed": "このデバイスをペアリングできませんでした。",
+  "devices.lianli-wireless.bindHeldByMaster": "このデバイスは別のワイヤレスコントローラーが保持しています。先にそちらで解除してください。",
   "devices.lianli-wireless.binding": "ペアリング中…",
   "devices.lianli-wireless.bound": "ペアリング済み",
   "devices.lianli-wireless.brightness": "明るさ",

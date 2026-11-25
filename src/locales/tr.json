@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spektrum",
   "devices.lianli-wireless.animationSpin": "Dönüş",
   "devices.lianli-wireless.bind": "Eşleştir",
+  "devices.lianli-wireless.bindFailed": "Bu cihaz eşleştirilemedi.",
+  "devices.lianli-wireless.bindHeldByMaster": "Bu cihazı hâlâ başka bir kablosuz denetleyici tutuyor. Önce orada serbest bırakın.",
   "devices.lianli-wireless.binding": "Eşleştiriliyor…",
   "devices.lianli-wireless.bound": "Eşleştirildi",
   "devices.lianli-wireless.brightness": "Parlaklık",

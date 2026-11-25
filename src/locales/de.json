@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spektrum",
   "devices.lianli-wireless.animationSpin": "Drehung",
   "devices.lianli-wireless.bind": "Koppeln",
+  "devices.lianli-wireless.bindFailed": "Dieses Gerät konnte nicht gekoppelt werden.",
+  "devices.lianli-wireless.bindHeldByMaster": "Ein anderer Funk-Controller hält dieses Gerät noch. Geben Sie es dort zuerst frei.",
   "devices.lianli-wireless.binding": "Wird gekoppelt…",
   "devices.lianli-wireless.bound": "Gekoppelt",
   "devices.lianli-wireless.brightness": "Helligkeit",

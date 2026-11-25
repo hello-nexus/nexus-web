@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Espectro",
   "devices.lianli-wireless.animationSpin": "Giro",
   "devices.lianli-wireless.bind": "Parear",
+  "devices.lianli-wireless.bindFailed": "Não foi possível parear este dispositivo.",
+  "devices.lianli-wireless.bindHeldByMaster": "Outro controlador sem fio ainda mantém este dispositivo. Libere-o lá primeiro.",
   "devices.lianli-wireless.binding": "Pareando…",
   "devices.lianli-wireless.bound": "Pareado",
   "devices.lianli-wireless.brightness": "Brilho",

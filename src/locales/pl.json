@@ -1244,6 +1244,8 @@
   "devices.lianli-wireless.animationSpectrum": "Widmo",
   "devices.lianli-wireless.animationSpin": "Wirowanie",
   "devices.lianli-wireless.bind": "Sparuj",
+  "devices.lianli-wireless.bindFailed": "Nie udało się sparować tego urządzenia.",
+  "devices.lianli-wireless.bindHeldByMaster": "Inny kontroler bezprzewodowy nadal przechowuje to urządzenie. Najpierw zwolnij je tam.",
   "devices.lianli-wireless.binding": "Parowanie…",
   "devices.lianli-wireless.bound": "Sparowany",
   "devices.lianli-wireless.brightness": "Jasność",

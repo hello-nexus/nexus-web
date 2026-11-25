@@ -1235,6 +1235,8 @@
   "devices.lianli-wireless.animationSpectrum": "Espetro",
   "devices.lianli-wireless.animationSpin": "Giro",
   "devices.lianli-wireless.bind": "Emparelhar",
+  "devices.lianli-wireless.bindFailed": "Não foi possível emparelhar este dispositivo.",
+  "devices.lianli-wireless.bindHeldByMaster": "Outro controlador sem fios ainda mantém este dispositivo. Liberte-o lá primeiro.",
   "devices.lianli-wireless.binding": "A emparelhar…",
   "devices.lianli-wireless.bound": "Emparelhado",
   "devices.lianli-wireless.brightness": "Brilho",

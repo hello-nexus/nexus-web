@@ -1244,6 +1244,8 @@
   "devices.lianli-wireless.animationSpectrum": "Spektrum",
   "devices.lianli-wireless.animationSpin": "Rotace",
   "devices.lianli-wireless.bind": "Spárovat",
+  "devices.lianli-wireless.bindFailed": "Toto zařízení se nepodařilo spárovat.",
+  "devices.lianli-wireless.bindHeldByMaster": "Toto zařízení stále drží jiný bezdrátový ovladač. Nejprve ho tam uvolněte.",
   "devices.lianli-wireless.binding": "Párování…",
   "devices.lianli-wireless.bound": "Spárováno",
   "devices.lianli-wireless.brightness": "Jas",
