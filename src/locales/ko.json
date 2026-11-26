@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "캘린더 추가",
   "panel.widget.calendar.add.color": "색상",
   "panel.widget.calendar.add.confirm": "캘린더 추가",
+  "panel.widget.calendar.add.error.duplicate": "이 캘린더는 이미 추가되어 있습니다.",
   "panel.widget.calendar.add.error.generic": "캘린더를 추가할 수 없습니다. 주소를 확인하고 다시 시도하세요.",
   "panel.widget.calendar.add.error.googlePublic": "Google의 공개 주소입니다. Google 캘린더에서 설정 > 캘린더 통합을 열고 'iCal 형식의 비공개 주소'를 복사하세요.",
   "panel.widget.calendar.add.error.invalidUrl": "이 주소는 사용할 수 없습니다. 로컬 네트워크가 아닌 공개 https:// 또는 webcal:// 링크를 사용하세요.",

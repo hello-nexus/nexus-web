@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "カレンダーを追加",
   "panel.widget.calendar.add.color": "カラー",
   "panel.widget.calendar.add.confirm": "カレンダーを追加",
+  "panel.widget.calendar.add.error.duplicate": "このカレンダーはすでに追加されています。",
   "panel.widget.calendar.add.error.generic": "カレンダーを追加できませんでした。アドレスを確認して、もう一度お試しください。",
   "panel.widget.calendar.add.error.googlePublic": "これは Google の公開アドレスです。Google カレンダーで [設定] > [カレンダーの統合] を開き、「iCal 形式の非公開 URL」をコピーしてください。",
   "panel.widget.calendar.add.error.invalidUrl": "このアドレスは使用できません。ローカルネットワーク上ではなく、公開された https:// または webcal:// のリンクを使用してください。",

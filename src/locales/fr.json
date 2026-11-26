@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "Ajouter un calendrier",
   "panel.widget.calendar.add.color": "Couleur",
   "panel.widget.calendar.add.confirm": "Ajouter un calendrier",
+  "panel.widget.calendar.add.error.duplicate": "Ce calendrier est déjà ajouté.",
   "panel.widget.calendar.add.error.generic": "Impossible d'ajouter le calendrier. Vérifiez l'adresse et réessayez.",
   "panel.widget.calendar.add.error.googlePublic": "Il s'agit de l'adresse publique de Google. Dans Google Agenda, ouvrez Paramètres > Intégrer l'agenda et copiez l'« Adresse secrète au format iCal ».",
   "panel.widget.calendar.add.error.invalidUrl": "Cette adresse n'est pas autorisée. Utilisez un lien public https:// ou webcal://, pas un lien de votre réseau local.",

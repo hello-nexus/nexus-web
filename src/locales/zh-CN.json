@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "添加日历",
   "panel.widget.calendar.add.color": "颜色",
   "panel.widget.calendar.add.confirm": "添加日历",
+  "panel.widget.calendar.add.error.duplicate": "此日历已添加。",
   "panel.widget.calendar.add.error.generic": "无法添加日历。请检查地址后重试。",
   "panel.widget.calendar.add.error.googlePublic": "这是 Google 的公开地址。请在 Google 日历中打开“设置”>“集成日历”，复制“iCal 格式的私密地址”。",
   "panel.widget.calendar.add.error.invalidUrl": "不允许使用该地址。请使用公开的 https:// 或 webcal:// 链接，而不是本地网络中的链接。",

@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "新增日曆",
   "panel.widget.calendar.add.color": "顏色",
   "panel.widget.calendar.add.confirm": "新增日曆",
+  "panel.widget.calendar.add.error.duplicate": "此日曆已新增。",
   "panel.widget.calendar.add.error.generic": "無法新增日曆。請檢查網址後再試一次。",
   "panel.widget.calendar.add.error.googlePublic": "這是 Google 的公開網址。請在 Google 日曆開啟「設定」>「整合日曆」，複製「iCal 格式的私密網址」。",
   "panel.widget.calendar.add.error.invalidUrl": "不允許使用該網址。請使用公開的 https:// 或 webcal:// 連結，而不是區域網路中的連結。",

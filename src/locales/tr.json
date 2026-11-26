@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "Takvim ekle",
   "panel.widget.calendar.add.color": "Renk",
   "panel.widget.calendar.add.confirm": "Takvim ekle",
+  "panel.widget.calendar.add.error.duplicate": "Bu takvim zaten eklenmiş.",
   "panel.widget.calendar.add.error.generic": "Takvim eklenemedi. Adresi kontrol edip yeniden deneyin.",
   "panel.widget.calendar.add.error.googlePublic": "Bu, Google'ın herkese açık adresidir. Google Takvim'de Ayarlar > Takvimi entegre et bölümünü açıp \"iCal biçiminde gizli adres\" değerini kopyalayın.",
   "panel.widget.calendar.add.error.invalidUrl": "Bu adrese izin verilmiyor. Yerel ağınızdaki bir bağlantı yerine herkese açık bir https:// veya webcal:// bağlantısı kullanın.",

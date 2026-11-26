@@ -28,6 +28,7 @@ const ERROR_KEYS: Record<CalendarAddError, string> = {
   tooLarge: 'panel.widget.calendar.add.error.tooLarge',
   invalidUrl: 'panel.widget.calendar.add.error.invalidUrl',
   limitReached: 'panel.widget.calendar.add.error.limitReached',
+  duplicate: 'panel.widget.calendar.add.error.duplicate',
 };
 
 /** The first palette colour no existing calendar uses, else the first. */

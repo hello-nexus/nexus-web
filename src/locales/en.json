@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "Add calendar",
   "panel.widget.calendar.add.color": "Color",
   "panel.widget.calendar.add.confirm": "Add calendar",
+  "panel.widget.calendar.add.error.duplicate": "This calendar is already added.",
   "panel.widget.calendar.add.error.generic": "Could not add the calendar. Check the address and try again.",
   "panel.widget.calendar.add.error.googlePublic": "That is Google's public address. In Google Calendar, open Settings > Integrate calendar and copy the \"Secret address in iCal format\".",
   "panel.widget.calendar.add.error.invalidUrl": "That address is not allowed. Use a public https:// or webcal:// link, not one on your local network.",

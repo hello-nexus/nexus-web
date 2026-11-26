@@ -5102,6 +5102,7 @@
   "panel.widget.calendar.add.button": "Přidat kalendář",
   "panel.widget.calendar.add.color": "Barva",
   "panel.widget.calendar.add.confirm": "Přidat kalendář",
+  "panel.widget.calendar.add.error.duplicate": "Tento kalendář je již přidán.",
   "panel.widget.calendar.add.error.generic": "Kalendář se nepodařilo přidat. Zkontrolujte adresu a zkuste to znovu.",
   "panel.widget.calendar.add.error.googlePublic": "To je veřejná adresa Googlu. V Kalendáři Google otevřete Nastavení > Integrovat kalendář a zkopírujte „Tajná adresa ve formátu iCal“.",
   "panel.widget.calendar.add.error.invalidUrl": "Tato adresa není povolena. Použijte veřejný odkaz https:// nebo webcal://, ne odkaz z místní sítě.",

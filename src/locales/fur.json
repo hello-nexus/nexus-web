@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "Zonte calendari",
   "panel.widget.calendar.add.color": "Colôr",
   "panel.widget.calendar.add.confirm": "Zonte calendari",
+  "panel.widget.calendar.add.error.duplicate": "Chest calendari al è za zontât.",
   "panel.widget.calendar.add.error.generic": "Impussibil zontâ il calendari. Controle la direzion e torne prove.",
   "panel.widget.calendar.add.error.googlePublic": "Cheste e je la direzion publiche di Google. In Google Calendar, vierç Impostazions > Integre calendari e copie la \"Direzion segrete in formât iCal\".",
   "panel.widget.calendar.add.error.invalidUrl": "Cheste direzion no je permetude. Dopre un leam public https:// o webcal://, no un de tô rêt locâl.",

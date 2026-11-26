@@ -5102,6 +5102,7 @@
   "panel.widget.calendar.add.button": "Dodaj kalendarz",
   "panel.widget.calendar.add.color": "Kolor",
   "panel.widget.calendar.add.confirm": "Dodaj kalendarz",
+  "panel.widget.calendar.add.error.duplicate": "Ten kalendarz został już dodany.",
   "panel.widget.calendar.add.error.generic": "Nie udało się dodać kalendarza. Sprawdź adres i spróbuj ponownie.",
   "panel.widget.calendar.add.error.googlePublic": "To publiczny adres Google. W Kalendarzu Google otwórz Ustawienia > Zintegruj kalendarz i skopiuj „Tajny adres w formacie iCal”.",
   "panel.widget.calendar.add.error.invalidUrl": "Ten adres jest niedozwolony. Użyj publicznego linku https:// lub webcal://, a nie linku z sieci lokalnej.",

@@ -50,14 +50,26 @@ export function mockRefresh(): void {
   changed();
 }
 
+// The dev mock keeps the feed address per added source, as the service does, to refuse a repeat.
+const addedFeeds = new Map<string, string>();
+
+function feedIdentity(url: URL): string {
+  // WHATWG host is lowercased and empty-ported only for the scheme's own default port.
+  return `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}${url.search}`;
+}
+
 export function mockAddSource(input: AddCalendarInput): { source: CalendarSourceDto } | { error: CalendarAddError } {
   if (!/^(https?|webcal):\/\//i.test(input.url.trim())) return { error: 'invalidUrl' };
   let host: string | null = null;
   try { host = new URL(input.url.trim().replace(/^webcal:/i, 'https:')).hostname; } catch { return { error: 'notIcs' }; }
+  const key = feedIdentity(new URL(input.url.trim().replace(/^webcal:/i, 'https:')));
+  const existing = addedFeeds.get(key);
+  if (existing && sources.some(s => s.id === existing)) return { error: 'duplicate' };
   const source: CalendarSourceDto = {
     id: `mock-added-${nextId++}`, kind: 'ics', name: input.name.trim() || host, color: input.color, host,
     lastSyncedAt: Date.now(), status: 'ok', error: null,
   };
+  addedFeeds.set(key, source.id);
   sources = [...sources, source];
   changed();
   return { source };

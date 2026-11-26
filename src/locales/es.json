@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "Añadir calendario",
   "panel.widget.calendar.add.color": "Color",
   "panel.widget.calendar.add.confirm": "Añadir calendario",
+  "panel.widget.calendar.add.error.duplicate": "Este calendario ya está añadido.",
   "panel.widget.calendar.add.error.generic": "No se pudo añadir el calendario. Comprueba la dirección e inténtalo de nuevo.",
   "panel.widget.calendar.add.error.googlePublic": "Esa es la dirección pública de Google. En Google Calendar, abre Configuración > Integrar calendario y copia la «Dirección secreta en formato iCal».",
   "panel.widget.calendar.add.error.invalidUrl": "Esa dirección no está permitida. Usa un enlace público https:// o webcal://, no uno de tu red local.",

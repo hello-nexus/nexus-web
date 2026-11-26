@@ -442,6 +442,15 @@ describe('Add calendar dialog', () => {
     expect(screen.getByRole('alertdialog')).toBeTruthy();
   });
 
+  it('warns inline that the calendar is already added and does not close', async () => {
+    store.add.mockRejectedValue(new CalendarRequestError('bad', 'duplicate'));
+    const dialog = open();
+    fireEvent.input(within(dialog).getByLabelText('panel.widget.calendar.add.address'), { target: { value: 'https://x.test/a.ics' } });
+    fireEvent.click(within(dialog).getByText('panel.widget.calendar.add.confirm'));
+    expect((await screen.findByRole('alert')).textContent).toBe('panel.widget.calendar.add.error.duplicate');
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+  });
+
   it.each(['notFound', 'unauthorized'] as const)('points a refused Google public address to the secret iCal address (%s)', async code => {
     store.add.mockRejectedValue(new CalendarRequestError('bad', code));
     const dialog = open();

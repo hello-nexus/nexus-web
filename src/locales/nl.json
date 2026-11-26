@@ -5052,6 +5052,7 @@
   "panel.widget.calendar.add.button": "Kalender toevoegen",
   "panel.widget.calendar.add.color": "Kleur",
   "panel.widget.calendar.add.confirm": "Kalender toevoegen",
+  "panel.widget.calendar.add.error.duplicate": "Deze agenda is al toegevoegd.",
   "panel.widget.calendar.add.error.generic": "De kalender kon niet worden toegevoegd. Controleer het adres en probeer het opnieuw.",
   "panel.widget.calendar.add.error.googlePublic": "Dit is het openbare adres van Google. Open in Google Agenda Instellingen > Agenda integreren en kopieer het 'Geheim adres in iCal-indeling'.",
   "panel.widget.calendar.add.error.invalidUrl": "Dit adres is niet toegestaan. Gebruik een openbare https://- of webcal://-link, geen link van je lokale netwerk.",

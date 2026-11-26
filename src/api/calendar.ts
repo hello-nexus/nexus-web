@@ -9,8 +9,8 @@ import { classifyFetchOutcome } from './fetchOutcome';
 export type CalendarKind = 'ics' | 'google' | 'microsoft';
 export type CalendarSyncStatus = 'ok' | 'syncing' | 'error';
 export type CalendarSyncError = 'unreachable' | 'unauthorized' | 'notFound' | 'notIcs' | 'tooLarge';
-/** Codes a failed add can carry: the sync errors plus a refused address (bad scheme, malformed, private host, source cap). */
-export type CalendarAddError = CalendarSyncError | 'invalidUrl' | 'limitReached';
+/** Codes a failed add can carry: the sync errors plus a refused address (bad scheme, malformed, private host, source cap) or a feed that is already added. */
+export type CalendarAddError = CalendarSyncError | 'invalidUrl' | 'limitReached' | 'duplicate';
 export type CalendarRefreshMinutes = 5 | 15 | 30 | 60;
 
 export const CALENDAR_REFRESH_OPTIONS: readonly CalendarRefreshMinutes[] = [5, 15, 30, 60];
@@ -75,7 +75,7 @@ export class CalendarRequestError extends Error {
   }
 }
 
-const ADD_ERRORS: readonly string[] = ['unreachable', 'unauthorized', 'notFound', 'notIcs', 'tooLarge', 'invalidUrl', 'limitReached'];
+const ADD_ERRORS: readonly string[] = ['unreachable', 'unauthorized', 'notFound', 'notIcs', 'tooLarge', 'invalidUrl', 'limitReached', 'duplicate'];
 
 type CalendarMockModule = typeof import('./calendarMock');
 

@@ -66,6 +66,27 @@ describe('calendar api client', () => {
     expect(failure.code).toBe('invalidUrl');
   });
 
+  it('reads the duplicate refusal', async () => {
+    service.authFetchWithStatus.mockResolvedValueOnce(json({ error: 'duplicate', msg: 'duplicate' }, 400));
+    const failure = await addCalendarSource({ url: 'https://x.test/a.ics', name: 'N', color: '#fff' }).catch(e => e);
+    expect(failure).toBeInstanceOf(CalendarRequestError);
+    expect(failure.code).toBe('duplicate');
+  });
+
+  it('refuses a repeat address in the dev mock, however it is spelled', async () => {
+    service.authFetchWithStatus.mockResolvedValue(noRoute());
+    const first = await addCalendarSource({ url: 'https://dup.test/a.ics', name: 'A', color: '#fff' });
+    expect(first.host).toBe('dup.test');
+    for (const again of ['webcal://dup.test/a.ics', 'HTTPS://DUP.test:443/a.ics/']) {
+      const failure = await addCalendarSource({ url: again, name: 'B', color: '#fff' }).catch(e => e);
+      expect(failure.code).toBe('duplicate');
+    }
+    const wrongPort = await addCalendarSource({ url: 'https://dup.test:80/a.ics', name: 'D', color: '#fff' });
+    expect(wrongPort.host).toBe('dup.test');
+    const other = await addCalendarSource({ url: 'https://dup.test/a.ics?x=1', name: 'C', color: '#fff' });
+    expect(other.host).toBe('dup.test');
+  });
+
   it('keeps an unrecognized refusal as a generic failure', async () => {
     service.authFetchWithStatus.mockResolvedValueOnce(json({ error: true, msg: 'nope' }, 400));
     const failure = await addCalendarSource({ url: 'x', name: 'N', color: '#fff' }).catch(e => e);

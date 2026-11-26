@@ -5102,6 +5102,7 @@
   "panel.widget.calendar.add.button": "Добавить календарь",
   "panel.widget.calendar.add.color": "Цвет",
   "panel.widget.calendar.add.confirm": "Добавить календарь",
+  "panel.widget.calendar.add.error.duplicate": "Этот календарь уже добавлен.",
   "panel.widget.calendar.add.error.generic": "Не удалось добавить календарь. Проверьте адрес и повторите попытку.",
   "panel.widget.calendar.add.error.googlePublic": "Это публичный адрес Google. В Google Календаре откройте Настройки > Интеграция календаря и скопируйте «Закрытый адрес в формате iCal».",
   "panel.widget.calendar.add.error.invalidUrl": "Этот адрес не разрешён. Используйте общедоступную ссылку https:// или webcal://, а не ссылку из локальной сети.",
