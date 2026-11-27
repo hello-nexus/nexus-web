@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "Keine Sensoren erfasst",
   "diagnostics.sensors.emptyHintAdd": "Fügen Sie einen Sensor hinzu, um seine Werte aufzuzeichnen und hier darzustellen.",
   "diagnostics.sensors.fan.controlled": "Von Nexus gesteuert",
-  "diagnostics.sensors.fan.notControlled": "Keine Nexus-Steuerung",
-  "diagnostics.sensors.fan.notResponding": "Reagiert nicht",
   "diagnostics.sensors.inWatchlist": "Bereits überwacht",
   "diagnostics.sensors.noHistory": "Keine aufgezeichneten Werte in diesem Zeitraum.",
   "diagnostics.sensors.noMatches": "Keine Sensoren entsprechen Ihrer Suche",

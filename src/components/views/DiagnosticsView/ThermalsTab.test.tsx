@@ -19,6 +19,7 @@ const h = vi.hoisted(() => ({
   push: vi.fn(),
   setControlled: vi.fn(),
   refresh: vi.fn(),
+  coolingOn: true,
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
@@ -40,6 +41,7 @@ vi.mock('./SensorAlertRuleSettings', () => ({
 }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
+  useFeatureFlags: () => ({ lighting: true, cooling: h.coolingOn, monitoring: true, diagnostics: true }),
   useUnitPrefs: () => ({ monitoringTempUnit: h.tempUnit, numberFormat: 'dot', timeFormat: '24h', monitoringWholeNumbers: false, dateFormat: 'system' }),
 }));
 vi.mock('../../../lib/i18n', () => ({
@@ -87,6 +89,7 @@ const props = (over = {}) => ({ history: history(), onAlertDismissed: vi.fn(), .
 
 beforeEach(() => {
   vi.clearAllMocks();
+  h.coolingOn = true;
   h.tempUnit = 'c';
   h.rules = [];
   h.states = [];
@@ -271,7 +274,7 @@ describe('ThermalsTab', () => {
       source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Board', controlChannel },
     });
 
-    it('writes Nexus Control through the Cooling route and refetches, never saving the rule', async () => {
+    it('writes Nexus Control through the Cooling route, leaving the refetch to the cooling topic, never saving the rule', async () => {
       h.setControlled.mockResolvedValue({ ok: true, status: 200 });
       h.rules = [fanRule('f1')];
       render(<SensorsTab {...props()} />);
@@ -279,10 +282,20 @@ describe('ThermalsTab', () => {
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
       expect(h.setControlled).toHaveBeenCalledWith('f1', false, false);
       expect(h.save).not.toHaveBeenCalled();
-      expect(h.refresh).toHaveBeenCalled();
+      expect(h.refresh).not.toHaveBeenCalled();
     });
 
-    it('falls back to the mute save only when the Cooling feature is off (409)', async () => {
+    it('saves the plain mute without calling the Cooling route while the Cooling feature is off', async () => {
+      h.coolingOn = false;
+      h.rules = [fanRule('f1')];
+      render(<SensorsTab {...props()} />);
+      selectFirstRow();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
+      expect(h.setControlled).not.toHaveBeenCalled();
+      expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'fan1', enabled: false }), expect.any(Function));
+    });
+
+    it('falls back to the mute save when the service answers 409', async () => {
       h.setControlled.mockResolvedValue({ ok: false, status: 409 });
       h.rules = [fanRule('f1')];
       render(<SensorsTab {...props()} />);

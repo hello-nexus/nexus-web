@@ -38,7 +38,7 @@ const builtInRule: SensorAlertRule = {
 };
 const lookup = { resolve: () => undefined } as unknown as Parameters<typeof SensorAlertRuleSettings>[0]['lookup'];
 
-function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState; onOpenCooling?: () => void; coolingFan?: { status: 'notControlled' | 'notResponding' | null; onManage: () => void } } = {}) {
+function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState; onOpenCooling?: () => void; fanControlsNexus?: boolean; coolingFan?: { status: 'notControlled' | 'notResponding' | null; onManage: () => void } } = {}) {
   const onSave = vi.fn();
   const onToggleEnabled = vi.fn();
   const view = render(
@@ -60,18 +60,18 @@ describe('SensorAlertRuleSettings', () => {
     expect(document.querySelector('[role="switch"]')).toBe(sw);
   });
 
-  it('tells a linked fan entry that its switch also turns off Nexus Control, and no pump or other rule', () => {
+  it('tells a fan entry whose switch writes Nexus Control so, and no other rule', () => {
     const fanRule: SensorAlertRule = {
       ...builtInRule, id: 'builtin-fan', builtIn: 'fanSpeed',
       sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' },
       source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Board', controlChannel: 'f1' },
     };
-    const { unmount } = renderEditor(fanRule);
+    const { unmount } = renderEditor(fanRule, { fanControlsNexus: true });
     expect(screen.getByText('diagnostics.alerts.fanControlNote')).toBeInTheDocument();
     unmount();
-    const pump = renderEditor({ ...fanRule, source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Loop', controlChannel: null } });
+    const off = renderEditor(fanRule, { fanControlsNexus: false });
     expect(screen.queryByText('diagnostics.alerts.fanControlNote')).toBeNull();
-    pump.unmount();
+    off.unmount();
     renderEditor(builtInRule);
     expect(screen.queryByText('diagnostics.alerts.fanControlNote')).toBeNull();
   });
@@ -315,7 +315,7 @@ describe('SensorAlertRuleSettings', () => {
     const { onToggleEnabled } = renderEditor(fan, { coolingFan: { status: 'notControlled', onManage } });
     fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.alerts.enabledFor(name=Rear)' }));
     expect(onToggleEnabled).toHaveBeenCalledWith(false);
-    expect(screen.getByText('diagnostics.sensors.fan.notControlled')).toBeInTheDocument();
+    expect(screen.getByText('cooling.fan.notControlled')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.fanPaused')).toBeInTheDocument();
     const button = screen.getByTestId('sensor-open-cooling');
     expect(button.compareDocumentPosition(screen.getByTestId('sensor-restore')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -327,7 +327,7 @@ describe('SensorAlertRuleSettings', () => {
   it('words each Cooling state, and pauses alerts only for an excluded fan', () => {
     const fan = { ...builtInRule, id: 'builtin:fan:a', builtIn: 'fanSpeed' as const, sensor: { ...builtInRule.sensor, type: 'Fan', name: 'Rear' } };
     const { unmount } = renderEditor(fan, { coolingFan: { status: 'notResponding', onManage: vi.fn() } });
-    expect(screen.getByText('diagnostics.sensors.fan.notResponding')).toBeInTheDocument();
+    expect(screen.getByText('cooling.fan.unresponsive')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.fanPaused')).toBeInTheDocument();
     unmount();
     renderEditor(fan, { coolingFan: { status: null, onManage: vi.fn() } });
@@ -335,8 +335,9 @@ describe('SensorAlertRuleSettings', () => {
     expect(screen.queryByText('diagnostics.alerts.fanPaused')).toBeNull();
   });
 
-  it('shows no Cooling row without a Cooling link', () => {
+  it('shows no status row and no Open Cooling button on a fan without a Cooling link', () => {
     renderEditor({ ...builtInRule, id: 'builtin:fan:a', builtIn: 'fanSpeed' as const });
     expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
+    for (const key of ['diagnostics.sensors.fan.controlled', 'cooling.fan.notControlled', 'cooling.fan.unresponsive']) expect(screen.queryByText(key)).toBeNull();
   });
 });

@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "没有跟踪的传感器",
   "diagnostics.sensors.emptyHintAdd": "添加传感器，即可记录其数值并在此以图表显示。",
   "diagnostics.sensors.fan.controlled": "由 Nexus 控制",
-  "diagnostics.sensors.fan.notControlled": "无 Nexus Control",
-  "diagnostics.sensors.fan.notResponding": "无响应",
   "diagnostics.sensors.inWatchlist": "已在跟踪",
   "diagnostics.sensors.noHistory": "此范围内没有记录的数值。",
   "diagnostics.sensors.noMatches": "没有与搜索匹配的传感器",

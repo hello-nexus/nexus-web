@@ -225,9 +225,9 @@ export function ThermalsTab({
   const rangeBands = useMemo(() => ruleOutOfRangeBands(selectedRule ? [selectedRule] : [], chartLines), [selectedRule, chartLines]);
   // The average fan speed strip leaves out the fans Cooling keeps out, like the fan lines.
   const trackedCoolingHistory = useMemo(() => {
-    const out = excludedFanSeriesIds(coolingChannels);
+    const out = excludedFanSeriesIds(rules, coolingFans);
     return !coolingOn || out.size === 0 ? coolingHistory : { ...coolingHistory, series: coolingHistory.series.filter(s => !out.has(s.id)) };
-  }, [coolingOn, coolingChannels, coolingHistory]);
+  }, [coolingOn, rules, coolingFans, coolingHistory]);
   const chartHistory = useMemo(
     () => (thermalsGroup && customTemps.length > 0 ? linkHistories(trackedCoolingHistory, sensorHistory) : thermalsGroup ? trackedCoolingHistory : sensorHistory),
     [thermalsGroup, customTemps.length, trackedCoolingHistory, sensorHistory],
@@ -278,12 +278,13 @@ export function ThermalsTab({
   // A fan entry's switch is the fan's Nexus Control, written through the Cooling route (it owns the gate, the unknown-channel
   // guard and the refresh). Only a refused gate (409) falls back to the plain mute; a pump has no control channel and saves as before.
   const toggleRuleEnabled = (rule: SensorAlertRule, enabled: boolean) => {
-    const channel = rule.builtIn === 'fanSpeed' ? rule.source?.controlChannel : null;
+    const channel = rule.builtIn === 'fanSpeed' && coolingOn ? rule.source?.controlChannel : null;
     const fail = () => push({ title: t('diagnostics.alerts.saveFailed') });
     if (!channel) { alerts.save({ ...rule, enabled }, fail); return; }
     alerts.preview({ ...rule, enabled });
+    // On success the cooling topic refetches the rules and the channel list; no refresh here.
     void setFanControlledWithStatus(channel, enabled, enabled).then(({ ok, status }) => {
-      if (ok) { alerts.refresh(); return; }
+      if (ok) return;
       if (status === 409) { alerts.save({ ...rule, enabled }, fail); return; }
       fail();
       alerts.refresh();
@@ -388,6 +389,7 @@ export function ThermalsTab({
                     state={stateOf(detailRule.id)}
                     onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
                     onOpenCooling={onOpenCooling}
+                    fanControlsNexus={coolingOn && !!detailRule.source?.controlChannel}
                     coolingFan={coolingFanDetail}
                   />
                 </SettingsSection>

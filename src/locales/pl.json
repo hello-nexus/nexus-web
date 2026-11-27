@@ -2195,8 +2195,6 @@
   "diagnostics.sensors.empty": "Brak śledzonych czujników",
   "diagnostics.sensors.emptyHintAdd": "Dodaj czujnik, aby zapisywać jego wartości i oglądać je tutaj na wykresie.",
   "diagnostics.sensors.fan.controlled": "Sterowany przez Nexus",
-  "diagnostics.sensors.fan.notControlled": "Brak Nexus Control",
-  "diagnostics.sensors.fan.notResponding": "Brak odpowiedzi",
   "diagnostics.sensors.inWatchlist": "Już śledzony",
   "diagnostics.sensors.noHistory": "Brak zapisanych wartości w tym zakresie.",
   "diagnostics.sensors.noMatches": "Żaden czujnik nie pasuje do wyszukiwania",

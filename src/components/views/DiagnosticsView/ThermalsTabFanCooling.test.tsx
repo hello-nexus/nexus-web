@@ -4,17 +4,23 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { ThermalsTab } from './ThermalsTab';
 
-const h = vi.hoisted(() => ({ rules: [] as unknown[], channels: [] as unknown[], coolingOn: true, update: vi.fn() }));
+const h = vi.hoisted(() => ({
+  rules: [] as unknown[], channels: [] as unknown[], coolingOn: true, update: vi.fn(), topic: null as null | (() => void),
+  setControlled: vi.fn(), preview: vi.fn(),
+}));
+
+vi.mock('../../../hooks/useMultiplexSocket', () => ({ useMultiplex: () => ({ connected: true }), useTopicCallback: (_t: string, _e: boolean, cb: () => void) => { h.topic = cb; } }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
     rules: h.rules, states: [], loaded: true, error: false, loading: false, refresh: vi.fn(), atLimit: false,
-    add: vi.fn(), save: vi.fn(), remove: vi.fn(), acknowledge: vi.fn(), resetBuiltIns: vi.fn(), preview: vi.fn(),
+    add: vi.fn(), save: vi.fn(), remove: vi.fn(), acknowledge: vi.fn(), resetBuiltIns: vi.fn(), preview: h.preview,
   }),
 }));
 vi.mock('../../../api/cooling', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/cooling')>()),
   fetchFanChannels: () => Promise.resolve({ channels: h.channels }),
+  setFanControlledWithStatus: (id: string, controlled: boolean) => h.setControlled(id, controlled),
 }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
@@ -47,8 +53,10 @@ const history = (ids: string[]): UseMetricHistoryResult => ({
   setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), onChartWheelZoom: vi.fn(() => true), detach: vi.fn(), backToLive: vi.fn(), retry: vi.fn(),
 } as unknown as UseMetricHistoryResult);
 
-const fanRule = (seriesId: string): SensorAlertRule => ({
-  id: `builtin:fan:${seriesId}`, enabled: true, builtIn: 'fanSpeed',
+/** A fan entry as the service sends it: with a control channel, `enabled` is that channel's Nexus Control. */
+const fanRule = (seriesId: string, controlChannel: string | null = null, enabled = true): SensorAlertRule => ({
+  id: `builtin:fan:${seriesId}`, enabled, builtIn: 'fanSpeed',
+  source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Board', controlChannel },
   sensor: { category: 'builtin', id: `fan:${seriesId}`, name: seriesId, type: 'Fan', parentName: '' },
   low: null, high: null, raiseAfterSeconds: 5, clearAfterSeconds: 5, severity: 'watch',
   notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0,
@@ -69,7 +77,9 @@ function renderTab(onOpenCoolingFan = vi.fn(), group: 'fans' | 'thermals' = 'fan
 beforeEach(() => {
   h.coolingOn = true;
   h.update.mockClear();
-  h.rules = [fanRule('s_off'), fanRule('s_on')];
+  h.preview.mockClear();
+  h.setControlled.mockReset();
+  h.rules = [fanRule('s_off', 'hw/off', false), fanRule('s_on', 'hw/on')];
   h.channels = [
     { id: 'hw/off', seriesId: 's_off', name: 'Off', controlled: false, rpm: 0, dutyPercent: 0, mode: 'Auto' },
     { id: 'hw/on', seriesId: 's_on', name: 'On', rpm: 900, dutyPercent: 40, mode: 'Auto' },
@@ -108,7 +118,7 @@ describe('ThermalsTab fans follow Cooling', () => {
   });
 
   it('shows no Cooling row for a fan that is not a Cooling channel', async () => {
-    h.rules = [fanRule('s_off'), fanRule('s_on'), fanRule('s_other')];
+    h.rules = [fanRule('s_off', 'hw/off', false), fanRule('s_on', 'hw/on'), fanRule('s_other')];
     renderTab(vi.fn(), 'fans', 'builtin:fan:s_other');
     await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
@@ -119,5 +129,30 @@ describe('ThermalsTab fans follow Cooling', () => {
     renderTab(vi.fn(), 'thermals');
     await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
     expect(screen.getByTestId('chart')).toHaveAttribute('data-ribbon', '900 RPM');
+  });
+
+  it('agrees across switch, status row, list chip and chart right after a toggle, without waiting for a poll', async () => {
+    h.setControlled.mockImplementation((id: string, controlled: boolean) => {
+      h.channels = h.channels.map(c => ((c as { id: string }).id === id ? { ...(c as object), controlled } : c));
+      h.rules = h.rules.map(r => ((r as SensorAlertRule).source?.controlChannel === id ? { ...(r as SensorAlertRule), enabled: controlled } : r));
+      h.topic?.();
+      return Promise.resolve({ ok: true, status: 200 });
+    });
+    renderTab(vi.fn(), 'fans', 'builtin:fan:s_on');
+    await waitFor(() => expect(screen.getByText('diagnostics.sensors.fan.controlled')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('switch', { name: /enabledFor/ }));
+    expect(h.setControlled).toHaveBeenCalledWith('hw/on', false);
+    await waitFor(() => expect(screen.getByRole('switch', { name: /enabledFor/ })).not.toBeChecked());
+    await waitFor(() => expect(screen.getAllByTestId('sensor-row')[1]).toHaveAttribute('data-state', 'notControlled'));
+    expect(screen.getAllByText('cooling.fan.notControlled').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryAllByTestId('legend')).toHaveLength(0);
+  });
+
+  it('keeps a pump out of the exclusion even with control off', async () => {
+    h.channels = [{ id: 'hw/off', seriesId: 's_off', name: 'Pump', kind: 'Pump', controlled: false, rpm: 0, dutyPercent: 0, mode: 'Auto' }, h.channels[1]];
+    h.rules = [fanRule('s_off'), fanRule('s_on', 'hw/on')];
+    renderTab();
+    await waitFor(() => expect(screen.getByText('diagnostics.sensors.fan.controlled')).toBeInTheDocument());
+    expect(screen.getAllByTestId('sensor-row')[0]).not.toHaveAttribute('data-state', 'notControlled');
   });
 });

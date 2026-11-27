@@ -144,7 +144,7 @@ describe('SensorList', () => {
     );
     const rows = screen.getAllByTestId('sensor-row');
     expect(rows[0]).toHaveAttribute('data-state', 'notControlled');
-    expect(rows[0]).toHaveTextContent('diagnostics.sensors.fan.notControlled');
+    expect(rows[0]).toHaveTextContent('cooling.fan.notControlled');
     expect(rows[0]).not.toHaveTextContent('diagnostics.status.ok');
     expect(rows[1]).toHaveTextContent('diagnostics.status.ok');
   });

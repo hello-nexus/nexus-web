@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "İzlenen sensör yok",
   "diagnostics.sensors.emptyHintAdd": "Değerlerini kaydetmek ve burada grafik olarak görmek için bir sensör ekleyin.",
   "diagnostics.sensors.fan.controlled": "Nexus tarafından kontrol ediliyor",
-  "diagnostics.sensors.fan.notControlled": "Nexus Control yok",
-  "diagnostics.sensors.fan.notResponding": "Yanıt vermiyor",
   "diagnostics.sensors.inWatchlist": "Zaten izleniyor",
   "diagnostics.sensors.noHistory": "Bu aralıkta kayıtlı değer yok.",
   "diagnostics.sensors.noMatches": "Aramanızla eşleşen sensör yok",

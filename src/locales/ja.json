@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "追跡中のセンサーはありません",
   "diagnostics.sensors.emptyHintAdd": "センサーを追加すると、値が記録され、ここにグラフで表示されます。",
   "diagnostics.sensors.fan.controlled": "Nexus が制御中",
-  "diagnostics.sensors.fan.notControlled": "Nexus Control なし",
-  "diagnostics.sensors.fan.notResponding": "応答なし",
   "diagnostics.sensors.inWatchlist": "追跡済み",
   "diagnostics.sensors.noHistory": "この範囲に記録された値はありません。",
   "diagnostics.sensors.noMatches": "検索に一致するセンサーはありません",

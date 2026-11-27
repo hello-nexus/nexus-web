@@ -61,12 +61,14 @@ interface SensorAlertRuleSettingsProps {
   onTracked?: (existing: SensorAlertRule) => void;
   /** Opens the Cooling page; a fan built-in then offers a way there. */
   onOpenCooling?: () => void;
+  /** The switch also writes this fan's Nexus Control (it has a control channel and Cooling is on), so the note under it shows. */
+  fanControlsNexus?: boolean;
   /** Set for a fan entry that is a Cooling channel while Cooling is on: its Cooling status (null while controlled and responding) and a way to that fan in Cooling, which the single Open Cooling button prefers over `onOpenCooling`. */
   coolingFan?: { status: CoolingFanStatus | null; onManage: () => void };
 }
 
 /** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Rendered as direct rows of a SettingsSection box, which supplies the hairlines. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling, coolingFan }: SensorAlertRuleSettingsProps) {
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling, fanControlsNexus, coolingFan }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -110,7 +112,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
     <>
       <SettingToggle
         label={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })}
-        description={rule.builtIn === 'fanSpeed' && rule.source?.controlChannel ? t('diagnostics.alerts.fanControlNote') : undefined}
+        description={rule.builtIn === 'fanSpeed' && fanControlsNexus ? t('diagnostics.alerts.fanControlNote') : undefined}
         checked={rule.enabled}
         onChange={onToggleEnabled}
       />

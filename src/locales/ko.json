@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "추적 중인 센서 없음",
   "diagnostics.sensors.emptyHintAdd": "센서를 추가하면 값이 기록되어 여기에 그래프로 표시됩니다.",
   "diagnostics.sensors.fan.controlled": "Nexus가 제어 중",
-  "diagnostics.sensors.fan.notControlled": "Nexus Control 없음",
-  "diagnostics.sensors.fan.notResponding": "응답 없음",
   "diagnostics.sensors.inWatchlist": "이미 추적 중",
   "diagnostics.sensors.noHistory": "이 범위에 기록된 값이 없습니다.",
   "diagnostics.sensors.noMatches": "검색과 일치하는 센서가 없습니다",

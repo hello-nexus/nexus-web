@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "Ningún sensor en seguimiento",
   "diagnostics.sensors.emptyHintAdd": "Añade un sensor para registrar sus valores y verlos aquí en una gráfica.",
   "diagnostics.sensors.fan.controlled": "Controlado por Nexus",
-  "diagnostics.sensors.fan.notControlled": "Sin Nexus Control",
-  "diagnostics.sensors.fan.notResponding": "Sin respuesta",
   "diagnostics.sensors.inWatchlist": "Ya en seguimiento",
   "diagnostics.sensors.noHistory": "No hay valores registrados en este rango.",
   "diagnostics.sensors.noMatches": "Ningún sensor coincide con tu búsqueda",

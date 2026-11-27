@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "Nenhum sensor monitorado",
   "diagnostics.sensors.emptyHintAdd": "Adicione um sensor para registrar seus valores e vê-los em um gráfico aqui.",
   "diagnostics.sensors.fan.controlled": "Controlado pelo Nexus",
-  "diagnostics.sensors.fan.notControlled": "Sem Nexus Control",
-  "diagnostics.sensors.fan.notResponding": "Sem resposta",
   "diagnostics.sensors.inWatchlist": "Já monitorado",
   "diagnostics.sensors.noHistory": "Nenhum valor registrado neste intervalo.",
   "diagnostics.sensors.noMatches": "Nenhum sensor corresponde à pesquisa",

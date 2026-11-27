@@ -2195,8 +2195,6 @@
   "diagnostics.sensors.empty": "Нет отслеживаемых датчиков",
   "diagnostics.sensors.emptyHintAdd": "Добавьте датчик, чтобы записывать его значения и видеть их здесь на графике.",
   "diagnostics.sensors.fan.controlled": "Управляется Nexus",
-  "diagnostics.sensors.fan.notControlled": "Без Nexus Control",
-  "diagnostics.sensors.fan.notResponding": "Не отвечает",
   "diagnostics.sensors.inWatchlist": "Уже отслеживается",
   "diagnostics.sensors.noHistory": "В этом диапазоне нет записанных значений.",
   "diagnostics.sensors.noMatches": "Нет датчиков, соответствующих поиску",

@@ -2185,8 +2185,6 @@
   "diagnostics.sensors.empty": "Geen sensoren gevolgd",
   "diagnostics.sensors.emptyHintAdd": "Voeg een sensor toe om de waarden vast te leggen en hier in een grafiek te zien.",
   "diagnostics.sensors.fan.controlled": "Beheerd door Nexus",
-  "diagnostics.sensors.fan.notControlled": "Geen Nexus Control",
-  "diagnostics.sensors.fan.notResponding": "Reageert niet",
   "diagnostics.sensors.inWatchlist": "Al gevolgd",
   "diagnostics.sensors.noHistory": "Geen opgeslagen waarden in dit bereik.",
   "diagnostics.sensors.noMatches": "Geen sensoren komen overeen met je zoekopdracht",
