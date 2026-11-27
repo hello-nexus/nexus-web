@@ -335,8 +335,11 @@ export function ThermalsTab({
           </div>
           {detailRule ? (
             <div className={styles.detail} data-testid="sensor-detail" data-rule-id={detailRule.id}>
+              <div className={styles.groupHeader}>
+                <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
+              </div>
               <div data-testid="sensor-settings">
-                <SettingsSection title={t('diagnostics.sensors.settings.title')} flush>
+                <SettingsSection flush>
                   <SensorAlertRuleSettings
                     key={detailRule.id}
                     rule={detailRule}
@@ -362,9 +365,12 @@ export function ThermalsTab({
             </div>
           ) : (
             <div className={styles.detail} data-testid="sensor-detail-empty">
-              <SettingsSection title={t('diagnostics.sensors.settings.title')} flush>
+              <div className={styles.groupHeader}>
+                <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
+              </div>
+              <div className={styles.messageBox}>
                 <EmptyState compact icon={<MousePointerClick size={22} />} title={t('diagnostics.thermals.selectHint')} />
-              </SettingsSection>
+              </div>
             </div>
           )}
         </div>

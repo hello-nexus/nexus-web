@@ -114,7 +114,7 @@ describe('SensorAlertRuleSettings', () => {
     expect(screen.getByTestId('sensor-restore')).toBeInTheDocument();
   });
 
-  it('puts Manage in Cooling after the notify rows and before Restore default, for a fan built-in with an opener only', () => {
+  it('puts Open Cooling after the notify rows and before Restore default, for a fan built-in with an opener only', () => {
     const fanRule: SensorAlertRule = { ...builtInRule, id: 'builtin-fan', builtIn: 'fanSpeed', sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' } };
     const onOpenCooling = vi.fn();
     const { unmount } = renderEditor(fanRule, { onOpenCooling });

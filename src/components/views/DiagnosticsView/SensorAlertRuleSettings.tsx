@@ -62,7 +62,7 @@ interface SensorAlertRuleSettingsProps {
   onOpenCooling?: () => void;
 }
 
-/** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Shown inside the sensor's card. */
+/** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Rendered as direct rows of a SettingsSection box, which supplies the hairlines. */
 export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
