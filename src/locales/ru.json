@@ -2013,6 +2013,7 @@
   "diagnostics.alerts.deleteConfirm": "Удалить оповещение для {name}?",
   "diagnostics.alerts.deleteFailed": "Не удалось удалить оповещение.",
   "diagnostics.alerts.enabledFor": "Включить оповещение для {name}",
+  "diagnostics.alerts.fanControlNote": "Выключение также возвращает этот вентилятор материнской плате.",
   "diagnostics.alerts.highKnob": "Верхняя граница",
   "diagnostics.alerts.limitReached": "Достигнут предел списка наблюдения ({max}).",
   "diagnostics.alerts.lowKnob": "Нижняя граница",

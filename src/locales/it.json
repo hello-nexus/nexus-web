@@ -2004,6 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "Eliminare l'avviso per {name}?",
   "diagnostics.alerts.deleteFailed": "Impossibile eliminare l'avviso.",
   "diagnostics.alerts.enabledFor": "Attiva l'avviso per {name}",
+  "diagnostics.alerts.fanControlNote": "Disattivando, questa ventola torna anche alla scheda madre.",
   "diagnostics.alerts.highKnob": "Limite superiore",
   "diagnostics.alerts.limitReached": "Limite dell'elenco di controllo raggiunto ({max}).",
   "diagnostics.alerts.lowKnob": "Limite inferiore",

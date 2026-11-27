@@ -118,6 +118,14 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
     if (frame.states.some(s => !rulesRef.current.some(r => r.id === s.ruleId))) load();
   });
 
+  // A fan entry's on/off is the Cooling page's Nexus Control flag, so a cooling change refetches the rules. Debounced: a duty drag pushes this topic often.
+  const coolingTimerRef = useRef<number | undefined>(undefined);
+  useTopicCallback('cooling', enabled, () => {
+    window.clearTimeout(coolingTimerRef.current);
+    coolingTimerRef.current = window.setTimeout(load, 400);
+  });
+  useEffect(() => () => window.clearTimeout(coolingTimerRef.current), []);
+
   // A frame sent while the socket was down never arrives, so resync after a reconnect.
   const connected = useMultiplex()?.connected ?? false;
   const wasConnectedRef = useRef(connected);

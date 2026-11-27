@@ -105,6 +105,7 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
     <>
       <SettingToggle
         label={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })}
+        description={rule.builtIn === 'fanSpeed' ? t('diagnostics.alerts.fanControlNote') : undefined}
         checked={rule.enabled}
         onChange={onToggleEnabled}
       />

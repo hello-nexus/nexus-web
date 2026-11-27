@@ -2004,6 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "{name} için uyarı silinsin mi?",
   "diagnostics.alerts.deleteFailed": "Uyarı silinemedi.",
   "diagnostics.alerts.enabledFor": "{name} için uyarıyı etkinleştir",
+  "diagnostics.alerts.fanControlNote": "Kapatmak bu fanı da anakarta geri verir.",
   "diagnostics.alerts.highKnob": "Üst sınır",
   "diagnostics.alerts.limitReached": "İzleme listesi sınırına ulaşıldı ({max}).",
   "diagnostics.alerts.lowKnob": "Alt sınır",

@@ -60,6 +60,18 @@ describe('SensorAlertRuleSettings', () => {
     expect(document.querySelector('[role="switch"]')).toBe(sw);
   });
 
+  it('tells a fan entry that its switch also hands the fan back to the motherboard, and no other rule', () => {
+    const fanRule: SensorAlertRule = {
+      ...builtInRule, id: 'builtin-fan', builtIn: 'fanSpeed',
+      sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' },
+    };
+    const { unmount } = renderEditor(fanRule);
+    expect(screen.getByText('diagnostics.alerts.fanControlNote')).toBeInTheDocument();
+    unmount();
+    renderEditor(builtInRule);
+    expect(screen.queryByText('diagnostics.alerts.fanControlNote')).toBeNull();
+  });
+
   it('keeps every setting visible and editable with alerts off, and explains Raise after', () => {
     const { onSave } = renderEditor({ ...userRule, enabled: false });
     expect(screen.getByText('diagnostics.alerts.raiseAfterDescription')).toBeInTheDocument();

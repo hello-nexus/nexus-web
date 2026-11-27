@@ -2004,6 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "{name} 알림을 삭제할까요?",
   "diagnostics.alerts.deleteFailed": "알림을 삭제하지 못했습니다.",
   "diagnostics.alerts.enabledFor": "{name} 알림 사용",
+  "diagnostics.alerts.fanControlNote": "끄면 이 팬도 메인보드로 돌아갑니다.",
   "diagnostics.alerts.highKnob": "상한",
   "diagnostics.alerts.limitReached": "관심 목록 한도에 도달했습니다 ({max}).",
   "diagnostics.alerts.lowKnob": "하한",

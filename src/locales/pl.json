@@ -2013,6 +2013,7 @@
   "diagnostics.alerts.deleteConfirm": "Usunąć alert dla {name}?",
   "diagnostics.alerts.deleteFailed": "Nie udało się usunąć alertu.",
   "diagnostics.alerts.enabledFor": "Włącz alert dla {name}",
+  "diagnostics.alerts.fanControlNote": "Wyłączenie oddaje też ten wentylator płycie głównej.",
   "diagnostics.alerts.highKnob": "Górny limit",
   "diagnostics.alerts.limitReached": "Osiągnięto limit listy obserwowanych ({max}).",
   "diagnostics.alerts.lowKnob": "Dolny limit",

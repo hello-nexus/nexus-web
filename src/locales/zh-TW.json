@@ -2004,6 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "刪除 {name} 的提醒?",
   "diagnostics.alerts.deleteFailed": "無法刪除提醒。",
   "diagnostics.alerts.enabledFor": "啟用 {name} 的提醒",
+  "diagnostics.alerts.fanControlNote": "關閉後，該風扇也會交還給主機板。",
   "diagnostics.alerts.highKnob": "上限",
   "diagnostics.alerts.limitReached": "已達到監視清單上限 ({max})。",
   "diagnostics.alerts.lowKnob": "下限",

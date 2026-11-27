@@ -2004,6 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "Eliminar o alerta de {name}?",
   "diagnostics.alerts.deleteFailed": "Não foi possível eliminar o alerta.",
   "diagnostics.alerts.enabledFor": "Ativar o alerta de {name}",
+  "diagnostics.alerts.fanControlNote": "Desativar também devolve esta ventoinha à placa-mãe.",
   "diagnostics.alerts.highKnob": "Limite superior",
   "diagnostics.alerts.limitReached": "Limite da lista de monitorização atingido ({max}).",
   "diagnostics.alerts.lowKnob": "Limite inferior",
