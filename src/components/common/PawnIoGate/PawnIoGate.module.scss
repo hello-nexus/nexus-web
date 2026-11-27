@@ -58,7 +58,7 @@
 }
 
 .accent { background: var(--accent-soft); color: var(--accent-glow); }
-.good { background: rgba(16, 185, 129, 0.15); color: var(--good); }
+.good { border: 2px solid var(--good); color: var(--good); }
 .warn { background: var(--warn-soft); color: var(--warn); }
 
 .title {

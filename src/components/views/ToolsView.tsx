@@ -26,7 +26,7 @@ import { SpeakerSimCard } from './SpeakerSimCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { DEV_TOOLS } from '../../lib/devTools';
-import { PAWNIO_PREVIEW_IDS, previewHref } from '../common/PawnIoGate/pawnioGate';
+import { PAWNIO_PREVIEW_IDS, previewHref } from '../common/PawnIoGate/gateLogic';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {

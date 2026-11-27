@@ -85,7 +85,7 @@ import { SidebarCollapsedSync } from './SidebarCollapsedSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { ServiceGatePage } from './ServiceGatePage';
 import { PawnIoGate } from '../components/common/PawnIoGate/PawnIoGate';
-import { PAWNIO_PREVIEW_PARAM, previewFor } from '../components/common/PawnIoGate/pawnioGate';
+import { PAWNIO_PREVIEW_PARAM, previewFor } from '../components/common/PawnIoGate/gateLogic';
 import { usePawnIoGate } from './usePawnIoGate';
 import { heroForView } from '../components/common/PageHero/PageHero';
 import { getSidebarAppMeta } from './sidebarApps';

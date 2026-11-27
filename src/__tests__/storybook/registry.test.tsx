@@ -21,6 +21,7 @@ const COMMON_EXCLUSIONS: Record<string, string> = {
   ContextMenu: 'side-effect contextmenu suppressor, renders null; has its own unit test',
   ErrorBoundary: 'render-time error catcher, nothing to preview',
   ThemeScope: 'theme-pinning wrapper and portal-root context, nothing to preview',
+  PawnIoGate: 'full-screen gate whose buttons install the driver and restart the PC; previewable from the Tools page instead',
   PairRemote: 'live-state pairing orchestration (QR mint, sessions poll, socket); not stub-renderable',
 };
 

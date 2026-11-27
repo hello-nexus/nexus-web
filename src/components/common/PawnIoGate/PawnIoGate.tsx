@@ -11,7 +11,7 @@ import { useWindowDragRegion } from '../../../app/useWindowDragRegion';
 import { isWindowsAppShell } from '../../../app/windowActions';
 import { downloadSupportBundle } from '../../../api/diagnostics';
 import { fetchPawnIoStatus, fixPawnIo, restartPcForPawnIo, type PawnIoStatus } from '../../../api/pawnio';
-import { fixOutcome, screenFor, type PawnIoPhase } from './pawnioGate';
+import { fixOutcome, screenFor, type PawnIoPhase } from './gateLogic';
 import styles from './PawnIoGate.module.scss';
 
 const HERO_ICON_SIZE = 30;

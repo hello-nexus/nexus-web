@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchPawnIoStatus, type PawnIoStatus } from '../api/pawnio';
-import { gateShows } from '../components/common/PawnIoGate/pawnioGate';
+import { gateShows } from '../components/common/PawnIoGate/gateLogic';
 
 const POLL_MS = 5_000;
 
