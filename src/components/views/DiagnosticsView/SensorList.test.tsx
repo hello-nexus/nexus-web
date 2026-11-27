@@ -130,4 +130,22 @@ describe('SensorList', () => {
     expect(row.querySelector('[role="switch"]')).toBeNull();
     expect(row).not.toHaveTextContent('diagnostics.sensors.notReported');
   });
+
+  it('shows the Cooling status chip in place of the alert state for an excluded fan', () => {
+    render(
+      <SensorList
+        rules={[rule('builtin:fan:a', { builtIn: 'fanSpeed' }), rule('builtin:fan:b', { builtIn: 'fanSpeed' })]}
+        states={[state('builtin:fan:a'), state('builtin:fan:b')]}
+        selectedId={null}
+        liveOf={() => 0}
+        onSelect={vi.fn()}
+        coolingFans={new Map([['builtin:fan:a', { status: 'notControlled', channelId: 'a' }]])}
+      />,
+    );
+    const rows = screen.getAllByTestId('sensor-row');
+    expect(rows[0]).toHaveAttribute('data-state', 'notControlled');
+    expect(rows[0]).toHaveTextContent('diagnostics.sensors.fan.notControlled');
+    expect(rows[0]).not.toHaveTextContent('diagnostics.status.ok');
+    expect(rows[1]).toHaveTextContent('diagnostics.status.ok');
+  });
 });

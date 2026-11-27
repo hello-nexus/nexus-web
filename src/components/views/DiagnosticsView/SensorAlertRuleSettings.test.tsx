@@ -273,4 +273,15 @@ describe('SensorAlertRuleSettings', () => {
       });
     });
   });
+
+  it('swaps the enabled switch for a Manage in Cooling action on a fan entry', () => {
+    const onManage = vi.fn();
+    const fan = { ...builtInRule, id: 'builtin:fan:a', builtIn: 'fanSpeed' as const, sensor: { ...builtInRule.sensor, type: 'Fan', name: 'Rear' } };
+    const { onToggleEnabled } = renderEditor(fan, { coolingFan: { status: 'notControlled', onManage } } as never);
+    expect(screen.queryByRole('switch', { name: /enabledFor/ })).toBeNull();
+    expect(screen.getByText('diagnostics.sensors.fan.notControlledDescription')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('fan-manage-cooling'));
+    expect(onManage).toHaveBeenCalledTimes(1);
+    expect(onToggleEnabled).not.toHaveBeenCalled();
+  });
 });
