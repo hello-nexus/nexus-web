@@ -35,6 +35,7 @@ import {
   widenBounds,
   type Bounds,
 } from './sensorAlertHelpers';
+import { coolingFanStatusLabelKey, type CoolingFanStatus } from './coolingFanState';
 import styles from './SensorAlertRuleSettings.module.scss';
 
 const STACKED = 'stacked' as const;
@@ -60,10 +61,12 @@ interface SensorAlertRuleSettingsProps {
   onTracked?: (existing: SensorAlertRule) => void;
   /** Opens the Cooling page; a fan built-in then offers a way there. */
   onOpenCooling?: () => void;
+  /** Set for a fan entry that is a Cooling channel while Cooling is on: its Cooling status (null while controlled and responding) and a way to that fan in Cooling, which the single Open Cooling button prefers over `onOpenCooling`. */
+  coolingFan?: { status: CoolingFanStatus | null; onManage: () => void };
 }
 
 /** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Rendered as direct rows of a SettingsSection box, which supplies the hairlines. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling }: SensorAlertRuleSettingsProps) {
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling, coolingFan }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -111,6 +114,12 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         checked={rule.enabled}
         onChange={onToggleEnabled}
       />
+      {rule.builtIn === 'fanSpeed' && coolingFan && (
+        <SettingRow
+          label={t(coolingFan.status ? coolingFanStatusLabelKey(coolingFan.status) : 'diagnostics.sensors.fan.controlled')}
+          description={coolingFan.status ? t('diagnostics.alerts.fanPaused') : undefined}
+        />
+      )}
       {!builtIn && (
         <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
           <SensorPicker
@@ -195,9 +204,9 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         checked={rule.notifyMobile}
         onChange={notifyMobile => edit({ notifyMobile }, true)}
       />
-      {rule.builtIn === 'fanSpeed' && onOpenCooling && (
+      {rule.builtIn === 'fanSpeed' && (coolingFan?.onManage ?? onOpenCooling) && (
         <SettingRow>
-          <Button type="button" tone="neutral" size="sm" data-testid="sensor-open-cooling" onClick={onOpenCooling}>
+          <Button type="button" tone="neutral" size="sm" data-testid="sensor-open-cooling" onClick={coolingFan?.onManage ?? onOpenCooling}>
             {t('diagnostics.cooling.guardTrip.openCooling')}
           </Button>
         </SettingRow>
