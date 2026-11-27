@@ -60,14 +60,18 @@ describe('SensorAlertRuleSettings', () => {
     expect(document.querySelector('[role="switch"]')).toBe(sw);
   });
 
-  it('tells a fan entry that its switch also hands the fan back to the motherboard, and no other rule', () => {
+  it('tells a linked fan entry that its switch also turns off Nexus Control, and no pump or other rule', () => {
     const fanRule: SensorAlertRule = {
       ...builtInRule, id: 'builtin-fan', builtIn: 'fanSpeed',
       sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' },
+      source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Board', controlChannel: 'f1' },
     };
     const { unmount } = renderEditor(fanRule);
     expect(screen.getByText('diagnostics.alerts.fanControlNote')).toBeInTheDocument();
     unmount();
+    const pump = renderEditor({ ...fanRule, source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Loop', controlChannel: null } });
+    expect(screen.queryByText('diagnostics.alerts.fanControlNote')).toBeNull();
+    pump.unmount();
     renderEditor(builtInRule);
     expect(screen.queryByText('diagnostics.alerts.fanControlNote')).toBeNull();
   });

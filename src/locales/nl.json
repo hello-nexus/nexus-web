@@ -2004,7 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "De waarschuwing voor {name} verwijderen?",
   "diagnostics.alerts.deleteFailed": "De waarschuwing kon niet worden verwijderd.",
   "diagnostics.alerts.enabledFor": "Waarschuwing voor {name} inschakelen",
-  "diagnostics.alerts.fanControlNote": "Uitzetten geeft deze ventilator ook terug aan het moederbord.",
+  "diagnostics.alerts.fanControlNote": "Uitzetten schakelt ook de Nexus-aansturing van deze ventilator uit.",
   "diagnostics.alerts.highKnob": "Bovengrens",
   "diagnostics.alerts.limitReached": "Limiet van de volglijst bereikt ({max}).",
   "diagnostics.alerts.lowKnob": "Ondergrens",

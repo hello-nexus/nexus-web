@@ -2013,7 +2013,7 @@
   "diagnostics.alerts.deleteConfirm": "Smazat upozornění pro {name}?",
   "diagnostics.alerts.deleteFailed": "Upozornění se nepodařilo smazat.",
   "diagnostics.alerts.enabledFor": "Zapnout upozornění pro {name}",
-  "diagnostics.alerts.fanControlNote": "Vypnutí také předá tento ventilátor zpět základní desce.",
+  "diagnostics.alerts.fanControlNote": "Vypnutím se pro tento ventilátor vypne také Nexus Control.",
   "diagnostics.alerts.highKnob": "Horní mez",
   "diagnostics.alerts.limitReached": "Dosažen limit seznamu sledování ({max}).",
   "diagnostics.alerts.lowKnob": "Dolní mez",

@@ -2004,7 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "Warnung für {name} löschen?",
   "diagnostics.alerts.deleteFailed": "Die Warnung konnte nicht gelöscht werden.",
   "diagnostics.alerts.enabledFor": "Warnung für {name} aktivieren",
-  "diagnostics.alerts.fanControlNote": "Ausschalten gibt diesen Lüfter auch an das Mainboard zurück.",
+  "diagnostics.alerts.fanControlNote": "Beim Ausschalten wird auch die Nexus-Steuerung für diesen Lüfter deaktiviert.",
   "diagnostics.alerts.highKnob": "Obergrenze",
   "diagnostics.alerts.limitReached": "Limit der Überwachungsliste erreicht ({max}).",
   "diagnostics.alerts.lowKnob": "Untergrenze",

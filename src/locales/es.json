@@ -2004,7 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "¿Eliminar la alerta de {name}?",
   "diagnostics.alerts.deleteFailed": "No se pudo eliminar la alerta.",
   "diagnostics.alerts.enabledFor": "Activar la alerta de {name}",
-  "diagnostics.alerts.fanControlNote": "Al desactivarlo, este ventilador también vuelve a la placa base.",
+  "diagnostics.alerts.fanControlNote": "Al desactivarlo, también se desactiva el control de Nexus para este ventilador.",
   "diagnostics.alerts.highKnob": "Límite superior",
   "diagnostics.alerts.limitReached": "Límite de la lista de seguimiento alcanzado ({max}).",
   "diagnostics.alerts.lowKnob": "Límite inferior",

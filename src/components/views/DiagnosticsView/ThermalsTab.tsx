@@ -8,6 +8,7 @@ import {
 } from '../../../api/diagnosticsAlerts';
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
+import { setFanControlledWithStatus } from '../../../api/cooling';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -245,6 +246,20 @@ export function ThermalsTab({
     onSelect: (id: string) => { const rule = rules.find(r => r.id === id); if (rule) toggleSelect(rule); },
   };
   const restoreBuiltIn = (id: string) => { void alerts.resetBuiltIns(id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); }); };
+  // A fan entry's switch is the fan's Nexus Control, written through the Cooling route (it owns the gate, the unknown-channel
+  // guard and the refresh). Only a refused gate (409) falls back to the plain mute; a pump has no control channel and saves as before.
+  const toggleRuleEnabled = (rule: SensorAlertRule, enabled: boolean) => {
+    const channel = rule.builtIn === 'fanSpeed' ? rule.source?.controlChannel : null;
+    const fail = () => push({ title: t('diagnostics.alerts.saveFailed') });
+    if (!channel) { alerts.save({ ...rule, enabled }, fail); return; }
+    alerts.preview({ ...rule, enabled });
+    void setFanControlledWithStatus(channel, enabled).then(({ ok, status }) => {
+      if (ok) { alerts.refresh(); return; }
+      if (status === 409) { alerts.save({ ...rule, enabled }, fail); return; }
+      fail();
+      alerts.refresh();
+    });
+  };
   const note = alerts.atLimit
     ? t('diagnostics.alerts.limitReached', { max: MAX_SENSOR_ALERT_RULES })
     : loaded && !firstSensor && rules.length === 0 ? t('diagnostics.alerts.noSensors') : null;
@@ -340,7 +355,7 @@ export function ThermalsTab({
                     findTracked={sensor => findTracked(sensor, detailRule.id)}
                     onTracked={setTrackedBy}
                     onDelete={() => { void alerts.remove(detailRule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
-                    onToggleEnabled={enabled => alerts.save({ ...detailRule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
+                    onToggleEnabled={enabled => toggleRuleEnabled(detailRule, enabled)}
                     state={stateOf(detailRule.id)}
                     onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
                   />

@@ -2004,7 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "Eliminâ l'avîs di {name}?",
   "diagnostics.alerts.deleteFailed": "Impussibil eliminâ l'avîs.",
   "diagnostics.alerts.enabledFor": "Ative l'avîs di {name}",
-  "diagnostics.alerts.fanControlNote": "Se le distachis, chest ventiladôr al torne ancje a la schede madri.",
+  "diagnostics.alerts.fanControlNote": "Se le disativis, si disative ancje il control Nexus par chest ventiladôr.",
   "diagnostics.alerts.highKnob": "Limit superiôr",
   "diagnostics.alerts.limitReached": "Limit de liste di control rivât ({max}).",
   "diagnostics.alerts.lowKnob": "Limit inferiôr",

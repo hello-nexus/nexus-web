@@ -2004,7 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "{name} のアラートを削除しますか?",
   "diagnostics.alerts.deleteFailed": "アラートを削除できませんでした。",
   "diagnostics.alerts.enabledFor": "{name} のアラートを有効にする",
-  "diagnostics.alerts.fanControlNote": "オフにすると、このファンもマザーボードに戻ります。",
+  "diagnostics.alerts.fanControlNote": "オフにすると、このファンの Nexus 制御もオフになります。",
   "diagnostics.alerts.highKnob": "上限",
   "diagnostics.alerts.limitReached": "ウォッチリストの上限に達しました ({max})。",
   "diagnostics.alerts.lowKnob": "下限",

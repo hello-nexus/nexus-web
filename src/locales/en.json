@@ -2004,7 +2004,7 @@
   "diagnostics.alerts.deleteConfirm": "Delete the alert for {name}?",
   "diagnostics.alerts.deleteFailed": "Could not delete the alert.",
   "diagnostics.alerts.enabledFor": "Enable alert for {name}",
-  "diagnostics.alerts.fanControlNote": "Off also hands this fan back to the motherboard.",
+  "diagnostics.alerts.fanControlNote": "Off also turns off Nexus Control for this fan.",
   "diagnostics.alerts.highKnob": "Upper limit",
   "diagnostics.alerts.limitReached": "Watchlist limit reached ({max}).",
   "diagnostics.alerts.lowKnob": "Lower limit",
