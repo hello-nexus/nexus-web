@@ -4,7 +4,7 @@
 import type {
   NewReminderInput, NewReminderListInput, ReminderDto, ReminderListDto, ReminderListPatch, ReminderPatch, RemindersSnapshot,
 } from './reminders';
-import { ReminderRequestError } from './reminders';
+import { REMINDER_LIMITS, ReminderRequestError } from './reminders';
 import { buildPreviewReminders, PREVIEW_LISTS } from '../panel/widgets/reminders/reminderPreviewData';
 
 const seed = buildPreviewReminders(Date.now());
@@ -13,13 +13,6 @@ let items: ReminderDto[] = seed.map(i => ({ ...i }));
 let nextId = 1;
 const listeners = new Set<() => void>();
 
-const MAX_LISTS = 100;
-const MAX_ITEMS = 5000;
-const MAX_TITLE = 500;
-const MAX_NOTES = 10000;
-const MAX_LIST_NAME = 100;
-const MAX_URL = 2048;
-const MAX_ORDER = 1_000_000;
 const COLOR = /^#[0-9a-fA-F]{6}$/;
 const ICON = /^[A-Za-z0-9_-]{1,64}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -41,7 +34,7 @@ const invalid = () => new ReminderRequestError('invalid', 'invalid');
 const notFound = () => new ReminderRequestError('notFound', 'notFound');
 
 function validUrl(url: string): boolean {
-  if (url.length > MAX_URL) return false;
+  if (url.length > REMINDER_LIMITS.url) return false;
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
@@ -52,18 +45,18 @@ function validUrl(url: string): boolean {
 
 /** Mirrors the service's field rules; a null clears where the service allows it. */
 function checkItemFields(f: Partial<ReminderPatch> & { title?: string }): void {
-  if (f.title !== undefined && (f.title.trim() === '' || f.title.trim().length > MAX_TITLE)) throw invalid();
-  if (f.notes != null && f.notes.length > MAX_NOTES) throw invalid();
+  if (f.title !== undefined && (f.title.trim() === '' || f.title.trim().length > REMINDER_LIMITS.title)) throw invalid();
+  if (f.notes != null && f.notes.length > REMINDER_LIMITS.notes) throw invalid();
   if (f.dueDate != null && !DATE.test(f.dueDate)) throw invalid();
   if (f.dueTime != null && !TIME.test(f.dueTime)) throw invalid();
   if (f.url != null && !validUrl(f.url)) throw invalid();
   if (f.priority !== undefined && ![0, 1, 2, 3].includes(f.priority)) throw invalid();
-  if (f.order !== undefined && !(Number.isInteger(f.order) && f.order >= 0 && f.order <= MAX_ORDER)) throw invalid();
+  if (f.order !== undefined && !(Number.isInteger(f.order) && f.order >= 0 && f.order <= REMINDER_LIMITS.maxOrder)) throw invalid();
 }
 
 function checkListFields(f: ReminderListPatch): void {
-  if (f.order !== undefined && !(Number.isInteger(f.order) && f.order >= 0 && f.order <= MAX_ORDER)) throw invalid();
-  if (f.name !== undefined && (f.name.trim() === '' || f.name.trim().length > MAX_LIST_NAME)) throw invalid();
+  if (f.order !== undefined && !(Number.isInteger(f.order) && f.order >= 0 && f.order <= REMINDER_LIMITS.maxOrder)) throw invalid();
+  if (f.name !== undefined && (f.name.trim() === '' || f.name.trim().length > REMINDER_LIMITS.listName)) throw invalid();
   if (f.color !== undefined && !COLOR.test(f.color)) throw invalid();
   if (f.icon !== undefined && !ICON.test(f.icon)) throw invalid();
 }
@@ -83,7 +76,7 @@ export function mockSnapshot(): RemindersSnapshot {
 export function mockCreateList(input: NewReminderListInput): ReminderListDto {
   ensureAvailable();
   checkListFields(input);
-  if (lists.length >= MAX_LISTS) throw new ReminderRequestError('limitReached', 'limitReached');
+  if (lists.length >= REMINDER_LIMITS.lists) throw new ReminderRequestError('limitReached', 'limitReached');
   const name = input.name.trim();
   const list: ReminderListDto = {
     id: `mock-list-${nextId++}`, name, color: input.color, icon: input.icon,
@@ -120,7 +113,7 @@ export function mockCreateItem(input: NewReminderInput): ReminderDto {
   checkItemFields(input);
   if (input.dueTime != null && input.dueDate == null) throw invalid();
   if (!lists.some(l => l.id === input.listId)) throw notFound();
-  if (items.length >= MAX_ITEMS) throw new ReminderRequestError('limitReached', 'limitReached');
+  if (items.length >= REMINDER_LIMITS.items) throw new ReminderRequestError('limitReached', 'limitReached');
   const title = input.title.trim();
   const now = Date.now();
   const item: ReminderDto = {

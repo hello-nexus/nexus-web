@@ -58,6 +58,17 @@ export interface NewReminderInput {
 /** A partial update: null clears a nullable field, `completed` toggles. */
 export type ReminderPatch = Partial<Omit<NewReminderInput, 'listId'>> & { listId?: string; completed?: boolean; order?: number };
 
+/** The service's field limits, mirrored for input maxLength and the dev mock. */
+export const REMINDER_LIMITS = {
+  lists: 100,
+  items: 5000,
+  title: 500,
+  notes: 10000,
+  listName: 100,
+  url: 2048,
+  maxOrder: 1_000_000,
+} as const;
+
 /** The service refused a request; `code` is its machine code when it sent one. */
 export class ReminderRequestError extends Error {
   readonly code: ReminderErrorCode | null;

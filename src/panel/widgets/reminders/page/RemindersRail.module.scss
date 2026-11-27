@@ -3,7 +3,7 @@
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
-  font-size: 0.95rem;
+  font-size: var(--type-body);
 }
 
 .grid { margin-bottom: var(--space-xl); }

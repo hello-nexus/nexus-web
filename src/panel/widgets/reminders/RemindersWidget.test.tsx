@@ -124,6 +124,29 @@ describe('RemindersWidget', () => {
     expect(check.getAttribute('aria-checked')).toBe('false');
   });
 
+  it('still completes a checked item when the tile unmounts before the delay ends', () => {
+    const { unmount } = render(<RemindersWidget widget={widget('2x4')} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Water plants' }));
+    unmount();
+    expect(store.setCompleted).toHaveBeenCalledWith(store.items[0].id, true);
+    act(() => { vi.advanceTimersByTime(COMPLETE_DELAY_MS * 2); });
+    expect(store.setCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves rows that have no service id yet inert', () => {
+    store.items = [item('l1', 'Just added', { id: 'pending-item-1', dueDate: '2026-11-17' })];
+    render(<RemindersWidget widget={widget('2x4')} />);
+    expect((screen.getByRole('checkbox', { name: 'Just added' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('shows a loading state, not an empty one, until the first fetch settles', () => {
+    store.loaded = false;
+    store.items = [];
+    render(<RemindersWidget widget={widget('2x4')} />);
+    expect(screen.getByRole('img', { name: 'common.loading' })).toBeTruthy();
+    expect(screen.queryByText('reminders.widget.allDone')).toBeNull();
+  });
+
   it('does not let a check tap reach the tile', () => {
     const onTile = vi.fn();
     render(<div onClick={onTile}><RemindersWidget widget={widget('2x4')} /></div>);

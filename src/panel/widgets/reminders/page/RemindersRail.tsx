@@ -3,7 +3,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import type { ReminderDto, ReminderListDto } from '../../../../api/reminders';
 import { Button } from '../../../../components/common/Button/Button';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
-import { openCountOf, selectionKey, type ReminderCounts, type ReminderSelection } from '../reminderLogic';
+import { isPendingId, openCountOf, selectionKey, type ReminderCounts, type ReminderSelection } from '../reminderLogic';
 import { ReminderListRow, SmartListGrid } from '../ReminderTiles';
 import styles from './RemindersRail.module.scss';
 
@@ -42,8 +42,8 @@ export function RemindersRail({ counts, lists, items, selection, onSelect, onAdd
             list={list}
             count={openCountOf(items, list.id)}
             active={activeKey === list.id}
-            onPress={() => onSelect({ kind: 'list', id: list.id })}
-            trailing={(
+            onPress={isPendingId(list.id) ? undefined : () => onSelect({ kind: 'list', id: list.id })}
+            trailing={isPendingId(list.id) ? undefined : (
               <IconLabelButton
                 variant="bare"
                 icon={<Pencil size={15} aria-hidden />}

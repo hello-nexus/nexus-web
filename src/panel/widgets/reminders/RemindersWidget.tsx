@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircleCheck } from 'lucide-react';
+import { Spinner } from '../../../components/common/Spinner/Spinner';
 import type { WidgetProps } from '../types';
 import { surfaceSupportsTouch, widgetLayoutSize, type PanelWidgetSize } from '../../types';
 import { useTranslation } from '../../../lib/i18n';
@@ -7,7 +8,7 @@ import { useReminderMutations } from '../../../hooks/useReminders';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { useCalendarFormat } from '../calendar/useCalendarFormat';
 import { SMART_COLORS, SMART_NAME_KEYS } from './reminderIcons';
-import { buildView, dueLabel, openCountOf, resolveSelection, smartCounts, type ReminderSelection } from './reminderLogic';
+import { buildView, dueLabel, isPendingId, openCountOf, resolveSelection, smartCounts, type ReminderSelection } from './reminderLogic';
 import { ReminderRow } from './ReminderRow';
 import { ReminderListRow, SmartListGrid } from './ReminderTiles';
 import { previewNow, useCheckOff, useReminderData } from './useReminderData';
@@ -59,7 +60,11 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
     return <div className={root}><div className={styles.empty} role="alert">{t('reminders.error.unavailable')}</div></div>;
   }
 
-  if (data.loaded && data.lists.length === 0) {
+  if (!data.loaded) {
+    return <div className={root}><div className={styles.empty}><Spinner size={22} /></div></div>;
+  }
+
+  if (data.lists.length === 0) {
     return <div className={root}><div className={styles.empty}>{t('reminders.empty.noLists')}</div></div>;
   }
 
@@ -103,7 +108,7 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
               color={colorOf(item.listId)}
               due={dueLabel(item, now, t, fmt)}
               leaving={leaving.has(item.id)}
-              onToggle={interactive ? () => toggle(item) : undefined}
+              onToggle={interactive && !isPendingId(item.id) ? () => toggle(item) : undefined}
               listName={selection.kind === 'smart' && size === '4x4' ? data.lists.find(l => l.id === item.listId)?.name : undefined}
             />
           ))}

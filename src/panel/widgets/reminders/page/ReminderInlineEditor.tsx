@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type FocusEvent } from 'react';
+import { REMINDER_LIMITS } from '../../../../api/reminders';
 import { useTranslation } from '../../../../lib/i18n';
 import { TextInput } from '../../../../components/common/TextInput/TextInput';
 import styles from './RemindersPage.module.scss';
 
-const TITLE_MAX = 500;
-const NOTES_MAX = 10000;
 
 interface Props {
   title: string;
@@ -46,7 +45,7 @@ export function ReminderInlineEditor({ title, notes, onCommit, onCancel }: Props
       <TextInput
         value={titleDraft}
         size="sm"
-        maxLength={TITLE_MAX}
+        maxLength={REMINDER_LIMITS.title}
         ariaLabel={t('reminders.edit.title')}
         onInput={setTitleDraft}
         onSubmit={commit}
@@ -56,7 +55,7 @@ export function ReminderInlineEditor({ title, notes, onCommit, onCancel }: Props
         className={styles.notes}
         value={notesDraft}
         rows={2}
-        maxLength={NOTES_MAX}
+        maxLength={REMINDER_LIMITS.notes}
         placeholder={t('reminders.edit.notes')}
         aria-label={t('reminders.edit.notes')}
         onChange={e => setNotesDraft(e.target.value)}

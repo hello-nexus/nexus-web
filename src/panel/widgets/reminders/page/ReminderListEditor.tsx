@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
-import { ReminderRequestError, type ReminderListDto } from '../../../../api/reminders';
+import { REMINDER_LIMITS, ReminderRequestError, type ReminderListDto } from '../../../../api/reminders';
 import { useReminderMutations } from '../../../../hooks/useReminders';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { Button } from '../../../../components/common/Button/Button';
@@ -14,7 +14,6 @@ import { nextListColor } from '../reminderLogic';
 import styles from './ReminderModal.module.scss';
 
 const PICKER_PLACEMENT = 'top-end' as const;
-const NAME_MAX = 100;
 
 export const REMINDER_COLORS: readonly string[] = CALENDAR_COLORS;
 
@@ -37,9 +36,8 @@ export function errorKeyFor(e: unknown): string {
     case 'lastList': return 'reminders.list.delete.lastList';
     case 'notFound': return 'reminders.error.notFound';
     case 'unavailable': return 'reminders.error.unavailable';
-    case 'saveFailed':
-    case 'stale':
-      return 'reminders.error.generic';
+    case 'stale': return 'reminders.error.stale';
+    case 'saveFailed': return 'reminders.error.generic';
     default: return 'reminders.error.generic';
   }
 }
@@ -131,7 +129,7 @@ export function ReminderListEditor({ target, lists, onClose, onCreated, onDelete
             <TextInput
               value={name}
               placeholder={t('reminders.list.namePlaceholder')}
-              maxLength={NAME_MAX}
+              maxLength={REMINDER_LIMITS.listName}
               ariaLabel={t('reminders.list.name')}
               onInput={value => { setName(value); setError(null); }}
               invalid={error !== null}

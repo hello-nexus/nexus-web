@@ -112,6 +112,7 @@ describe('reminder selection and edits', () => {
 
   it('derives new item defaults from the view', () => {
     expect(newItemDefaults(smart('today'), lists, NOW)).toEqual({ listId: 'a', dueDate: TODAY });
+    expect(newItemDefaults(smart('scheduled'), lists, NOW)).toEqual({ listId: 'a', dueDate: TODAY });
     expect(newItemDefaults(smart('flagged'), lists, NOW)).toEqual({ listId: 'a', flagged: true });
     expect(newItemDefaults(smart('completed'), lists, NOW)).toBeNull();
     expect(newItemDefaults({ kind: 'list', id: 'b' }, lists, NOW)).toEqual({ listId: 'b' });

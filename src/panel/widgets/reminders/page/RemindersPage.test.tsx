@@ -18,10 +18,11 @@ const store = vi.hoisted(() => ({
   updateList: vi.fn(() => Promise.resolve()),
   deleteList: vi.fn(() => Promise.resolve()),
   unavailable: false,
+  loaded: true,
 }));
 
 vi.mock('../../../../hooks/useReminders', () => ({
-  useReminders: () => ({ lists: store.lists, items: store.items, loaded: true, unavailable: store.unavailable }),
+  useReminders: () => ({ lists: store.lists, items: store.items, loaded: store.loaded, unavailable: store.unavailable }),
   useReminderMutations: () => ({
     create: store.create, update: store.update, setCompleted: store.setCompleted, remove: store.remove,
     clearCompleted: store.clearCompleted, reorder: store.reorder, createList: store.createList, updateList: store.updateList,
@@ -67,6 +68,7 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   window.localStorage.clear();
   store.unavailable = false;
+  store.loaded = true;
   store.lists = [list('l1', 'Home', 0), list('l2', 'Work', 1)];
   store.items = [
     item('l1', 'Water plants', { dueDate: '2026-11-17', notes: 'Fern first' }),
@@ -105,6 +107,12 @@ describe('RemindersPage', () => {
     render(<RemindersPage tab="l2" />);
     typeInto(screen.getByRole('textbox', { name: 'reminders.new' }), '  Book flights ');
     expect(store.create).toHaveBeenCalledWith({ listId: 'l2', title: 'Book flights' });
+  });
+
+  it('gives a reminder added in Scheduled a due date of today', () => {
+    render(<RemindersPage tab="smart:scheduled" />);
+    typeInto(screen.getByRole('textbox', { name: 'reminders.new' }), 'Plan trip');
+    expect(store.create).toHaveBeenCalledWith({ listId: 'l1', dueDate: '2026-11-17', title: 'Plan trip' });
   });
 
   it('gives a reminder added in Today a due date of today', () => {
@@ -156,12 +164,12 @@ describe('RemindersPage', () => {
   it('shows and hides completed items and remembers the choice', () => {
     const { unmount } = render(<RemindersPage tab="l1" />);
     expect(screen.queryByText('Finished chore')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'reminders.showCompleted' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'reminders.showCompleted' }));
     expect(screen.getByText('Finished chore')).toBeTruthy();
     unmount();
     render(<RemindersPage tab="l1" />);
     expect(screen.getByText('Finished chore')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'reminders.hideCompleted' })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: 'reminders.showCompleted' }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('clears the completed items of the shown list after a confirm', async () => {
@@ -236,6 +244,50 @@ describe('RemindersPage', () => {
     render(<RemindersPage />);
     expect(screen.getByRole('alert').textContent).toContain('reminders.error.unavailable');
     expect(screen.queryByRole('textbox', { name: 'reminders.new' })).toBeNull();
+  });
+
+  it('keeps typing and Enter in the inline editor from starting a keyboard drag', () => {
+    render(<RemindersPage tab="l1" />);
+    fireEvent.click(screen.getByText('Water plants'));
+    const title = screen.getByLabelText('reminders.edit.title');
+    const notes = screen.getByLabelText('reminders.edit.notes');
+    expect(fireEvent.keyDown(title, { key: ' ', code: 'Space' })).toBe(true);
+    expect(fireEvent.keyDown(notes, { key: ' ', code: 'Space' })).toBe(true);
+    expect(fireEvent.keyDown(notes, { key: 'Enter', code: 'Enter' })).toBe(true);
+    fireEvent.input(title, { target: { value: 'Water the ferns' } });
+    expect(fireEvent.keyDown(title, { key: 'Enter', code: 'Enter' })).toBe(true);
+    expect(store.update).toHaveBeenCalledWith(store.items[0].id, { title: 'Water the ferns' });
+  });
+
+  it('keeps Space and Enter on the check circle and the details button for the buttons themselves', () => {
+    render(<RemindersPage tab="l1" />);
+    const check = screen.getByRole('checkbox', { name: 'Water plants' });
+    expect(fireEvent.keyDown(check, { key: ' ', code: 'Space' })).toBe(true);
+    expect(fireEvent.keyDown(check, { key: 'Enter', code: 'Enter' })).toBe(true);
+    expect(fireEvent.keyDown(screen.getByRole('button', { name: 'reminders.details.open|Water plants' }), { key: 'Enter', code: 'Enter' })).toBe(true);
+    fireEvent.click(check);
+    act(() => { vi.advanceTimersByTime(COMPLETE_DELAY_MS + 1); });
+    expect(store.setCompleted).toHaveBeenCalledWith(store.items[0].id, true);
+  });
+
+  it('leaves rows and lists without a service id inert', () => {
+    store.lists = [...store.lists, list('pending-list-1', 'Brand new', 2)];
+    store.items = [item('l1', 'Just added', { id: 'pending-item-1' })];
+    render(<RemindersPage tab="l1" />);
+    expect((screen.getByRole('checkbox', { name: 'Just added' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'reminders.details.open|Just added' })).toBeNull();
+    fireEvent.click(screen.getByText('Just added'));
+    expect(screen.queryByLabelText('reminders.edit.title')).toBeNull();
+    expect(screen.getByText('Brand new').closest('button')).toBeNull();
+  });
+
+  it('shows a spinner instead of the empty state until loaded', () => {
+    store.loaded = false;
+    store.lists = [];
+    store.items = [];
+    render(<RemindersPage />);
+    expect(screen.getByRole('img', { name: 'common.loading' })).toBeTruthy();
+    expect(screen.queryByText('reminders.empty.noLists')).toBeNull();
   });
 
   it('renders community strings as text, never markup', () => {

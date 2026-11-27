@@ -32,7 +32,7 @@
   overflow-y: auto;
   scrollbar-width: thin;
   padding: 0.25rem 0.75rem 0.75rem;
-  font-size: 1rem;
+  font-size: var(--type-body);
   background: var(--surface);
   border-radius: var(--radius);
 }
@@ -67,3 +67,6 @@
 
   &:focus { outline: none; border-color: var(--accent); }
 }
+
+.loading { flex: 1; display: flex; align-items: center; justify-content: center; }
+.showCompleted { display: flex; align-items: center; gap: 0.5rem; font-size: var(--type-small); color: var(--text-dim); }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircleCheck } from 'lucide-react';
+import { Spinner } from '../../../components/common/Spinner/Spinner';
 import type { WidgetProps } from '../types';
 import { surfaceSupportsTouch } from '../../types';
 import { useTranslation } from '../../../lib/i18n';
@@ -8,7 +9,7 @@ import { useElementSize } from '../common/useElementSize';
 import { useCalendarFormat } from '../calendar/useCalendarFormat';
 import { SMART_COLORS, SMART_NAME_KEYS } from './reminderIcons';
 import {
-  buildView, dueLabel, dueMs, openCountOf, resolveSelection, selectionKey, smartCounts, type ReminderSelection,
+  buildView, dueLabel, dueMs, isPendingId, openCountOf, resolveSelection, selectionKey, smartCounts, type ReminderSelection,
 } from './reminderLogic';
 import { ReminderRow } from './ReminderRow';
 import { ReminderListRow, SmartListGrid } from './ReminderTiles';
@@ -43,7 +44,8 @@ export function RemindersImmersive({ widget, surface, deviceTouch }: WidgetProps
   const counts = useMemo(() => smartCounts(data.items, now), [data.items, now]);
   const view = useMemo(
     () => buildView(data.items, data.lists, selection, { now, showCompleted: selection.kind === 'list' && showCompleted }),
-    [data.items, data.lists, selection, now, showCompleted],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selection is rebuilt each render; its kind and id are its identity
+    [data.items, data.lists, selection.kind, selection.id, now, showCompleted],
   );
   const listsById = useMemo(() => new Map(data.lists.map(l => [l.id, l])), [data.lists]);
 
@@ -60,7 +62,7 @@ export function RemindersImmersive({ widget, surface, deviceTouch }: WidgetProps
       color={listsById.get(item.listId)?.color ?? SMART_COLORS.all}
       due={dueLabel(item, now, t, fmt)}
       leaving={leaving.has(item.id)}
-      onToggle={interactive ? () => toggle(item) : undefined}
+      onToggle={interactive && !isPendingId(item.id) ? () => toggle(item) : undefined}
       showNotes
     />
   ));
@@ -69,6 +71,14 @@ export function RemindersImmersive({ widget, surface, deviceTouch }: WidgetProps
     return (
       <div ref={ref} className={`${styles.root} ${styles.portrait}`}>
         <div className={styles.empty} role="alert">{t('reminders.error.unavailable')}</div>
+      </div>
+    );
+  }
+
+  if (!data.loaded) {
+    return (
+      <div ref={ref} className={`${styles.root} ${styles.portrait}`}>
+        <div className={styles.empty}><Spinner size={28} /></div>
       </div>
     );
   }
@@ -91,7 +101,7 @@ export function RemindersImmersive({ widget, surface, deviceTouch }: WidgetProps
                 list={l}
                 count={openCountOf(data.items, l.id)}
                 active={activeKey === l.id}
-                onPress={() => setPicked({ kind: 'list', id: l.id })}
+                onPress={isPendingId(l.id) ? undefined : () => setPicked({ kind: 'list', id: l.id })}
               />
             ))}
           </div>

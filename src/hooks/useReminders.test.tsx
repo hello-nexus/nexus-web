@@ -128,7 +128,7 @@ describe('reminders store', () => {
     expect(result.current.data.items.find(i => i.id === 'a')?.title).toBe('a');
   });
 
-  it('drops a fetch that lands while a write is in flight', async () => {
+  it('keeps an in-flight write on screen when a fetch lands, and refetches once it settles', async () => {
     const { result } = mount();
     await waitFor(() => expect(result.current.data.loaded).toBe(true));
     let release!: () => void;
@@ -137,8 +137,50 @@ describe('reminders store', () => {
     act(() => { job = result.current.mut.remove('a'); });
     await act(async () => { listeners.get('reminders')?.forEach(fn => fn({})); await Promise.resolve(); await Promise.resolve(); });
     expect(result.current.data.items.map(i => i.id)).toEqual(['b']);
+    api.fetchReminders.mockClear();
     api.fetchReminders.mockResolvedValue({ lists: [list('l1', 0)], items: [dto('b')] });
     await act(async () => { release(); await job; });
+    await waitFor(() => expect(api.fetchReminders).toHaveBeenCalledTimes(1));
+    expect(result.current.data.items.map(i => i.id)).toEqual(['b']);
+  });
+
+  it('undoes only the failed write when two are in flight', async () => {
+    const { result } = mount();
+    await waitFor(() => expect(result.current.data.loaded).toBe(true));
+    let failRename!: (e: Error) => void;
+    api.updateReminder.mockImplementation(() => new Promise<void>((_, reject) => { failRename = reject; }));
+    api.createReminder.mockImplementation(() => new Promise(() => {}));
+    let rename!: Promise<void>;
+    act(() => { rename = result.current.mut.update('a', { title: 'renamed' }); void result.current.mut.create({ listId: 'l1', title: 'Fresh' }); });
+    expect(result.current.data.items.map(i => i.title)).toEqual(['renamed', 'b', 'Fresh']);
+    await act(async () => { failRename(new Error('refused')); await rename.catch(() => undefined); });
+    expect(result.current.data.items.map(i => i.title)).toEqual(['a', 'b', 'Fresh']);
+  });
+
+  it('treats any failed load as an error state with a retry, never as an empty list', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+    try {
+      api.fetchReminders.mockRejectedValue(new Error('status 0'));
+      const { result } = renderHook(() => useReminders(), { wrapper });
+      await waitFor(() => expect(result.current.unavailable).toBe(true));
+      api.fetchReminders.mockResolvedValue({ lists: [list('l1', 0)], items: [dto('a')] });
+      await act(async () => { vi.advanceTimersByTime(15_000); });
+      await waitFor(() => expect(result.current.unavailable).toBe(false));
+      expect(result.current.lists).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('marks created rows and lists with a pending id until the service answers', async () => {
+    const { result } = mount();
+    await waitFor(() => expect(result.current.data.loaded).toBe(true));
+    api.createReminder.mockImplementation(() => new Promise(() => {}));
+    act(() => { void result.current.mut.create({ listId: 'l1', title: 'Fresh' }); });
+    const row = result.current.data.items.find(i => i.title === 'Fresh')!;
+    const { isPendingId } = await import('../panel/widgets/reminders/reminderLogic');
+    expect(isPendingId(row.id)).toBe(true);
+    expect(isPendingId('a')).toBe(false);
   });
 
   it('shows a created item at once and swaps in the service copy', async () => {
@@ -179,13 +221,24 @@ describe('reminders store', () => {
     expect(api.reorderReminders).toHaveBeenCalledWith('l1', ['b', 'a', 'done']);
   });
 
-  it('drops a reorder the service calls stale and refetches', async () => {
+  it('builds the reorder set from the server copy, leaving out pending rows', async () => {
+    const { result } = mount();
+    await waitFor(() => expect(result.current.data.loaded).toBe(true));
+    api.createReminder.mockImplementation(() => new Promise(() => {}));
+    act(() => { void result.current.mut.create({ listId: 'l1', title: 'Fresh' }); });
+    const pending = result.current.data.items.find(i => i.title === 'Fresh')!.id;
+    api.reorderReminders.mockResolvedValue(undefined);
+    await act(async () => { await result.current.mut.reorder('l1', [pending, 'b', 'a']); });
+    expect(api.reorderReminders).toHaveBeenCalledWith('l1', ['b', 'a']);
+  });
+
+  it('rejects a stale reorder so the caller can say so, and refetches', async () => {
     const { result } = mount();
     await waitFor(() => expect(result.current.data.loaded).toBe(true));
     const { ReminderRequestError } = await import('../api/reminders');
     api.reorderReminders.mockRejectedValue(new ReminderRequestError('stale', 'stale'));
     api.fetchReminders.mockClear();
-    await act(async () => { await result.current.mut.reorder('l1', ['b', 'a']); });
+    await act(async () => { await expect(result.current.mut.reorder('l1', ['b', 'a'])).rejects.toMatchObject({ code: 'stale' }); });
     await waitFor(() => expect(api.fetchReminders).toHaveBeenCalled());
     expect(result.current.data.items.map(i => i.id)).toEqual(['a', 'b']);
   });

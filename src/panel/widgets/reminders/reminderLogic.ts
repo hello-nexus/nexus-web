@@ -26,6 +26,10 @@ export interface ReminderView {
   openCount: number;
 }
 
+/** Ids of rows the store shows before the service has answered; they cannot be acted on yet. */
+export const PENDING_PREFIX = 'pending-';
+export const isPendingId = (id: string): boolean => id.startsWith(PENDING_PREFIX);
+
 export const DEFAULT_SELECTION_KEY = 'smart:today';
 const SMART_PREFIX = 'smart:';
 
@@ -183,7 +187,7 @@ export function newItemDefaults(
   const first = sortLists(lists)[0];
   if (selection.kind === 'list') return { listId: selection.id };
   if (!first) return null;
-  if (selection.id === 'today') return { listId: first.id, dueDate: isoDate(now) };
+  if (selection.id === 'today' || selection.id === 'scheduled') return { listId: first.id, dueDate: isoDate(now) };
   if (selection.id === 'flagged') return { listId: first.id, flagged: true };
   if (selection.id === 'completed') return null;
   return { listId: first.id };

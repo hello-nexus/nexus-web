@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
-import type { ReminderDto, ReminderListDto, ReminderPatch, ReminderPriority } from '../../../../api/reminders';
+import { REMINDER_LIMITS, type ReminderDto, type ReminderListDto, type ReminderPatch, type ReminderPriority } from '../../../../api/reminders';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { Button } from '../../../../components/common/Button/Button';
 import { TextInput } from '../../../../components/common/TextInput/TextInput';
@@ -14,8 +14,7 @@ import { errorKeyFor } from './ReminderListEditor';
 import styles from './ReminderModal.module.scss';
 
 const DEFAULT_TIME = '09:00';
-const URL_MAX = 2048
-const URL_PLACEHOLDER = 'https://example.com';;
+const URL_PLACEHOLDER = 'https://example.com';
 const WEB_URL = /^https?:\/\/\S+$/i;
 
 const PRIORITY_KEYS: Record<ReminderPriority, string> = {
@@ -30,7 +29,7 @@ const MARKS: Record<ReminderPriority, string> = { 0: '', 1: '!', 2: '!!', 3: '!!
 export const isWebUrl = (value: string): boolean => {
   const v = value.trim();
   if (v === '') return true;
-  if (v.length > URL_MAX || !WEB_URL.test(v)) return false;
+  if (v.length > REMINDER_LIMITS.url || !WEB_URL.test(v)) return false;
   try { new URL(v); return true; } catch { return false; }
 };
 
@@ -167,7 +166,7 @@ export function ReminderDetailsModal({ item, lists, onSave, onDelete, onClose }:
           <TextInput
             value={url}
             placeholder={URL_PLACEHOLDER}
-            maxLength={URL_MAX}
+            maxLength={REMINDER_LIMITS.url}
             ariaLabel={t('reminders.details.url')}
             onInput={setUrl}
             invalid={!urlOk}

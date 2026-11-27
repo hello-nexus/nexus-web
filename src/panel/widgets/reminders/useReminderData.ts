@@ -53,9 +53,15 @@ export interface CheckOff {
 export function useCheckOff(setCompleted: (id: string, completed: boolean) => Promise<void>): CheckOff {
   const [leaving, setLeaving] = useState<ReadonlySet<string>>(() => new Set());
   const timers = useRef(new Map<string, number>());
+  const send = useRef(setCompleted);
+  useEffect(() => { send.current = setCompleted; });
   useEffect(() => {
     const live = timers.current;
-    return () => { live.forEach(id => window.clearTimeout(id)); live.clear(); };
+    // Leaving the screen mid-animation still completes what was checked; only a second tap cancels.
+    return () => {
+      live.forEach((timer, id) => { window.clearTimeout(timer); void send.current(id, true).catch(() => undefined); });
+      live.clear();
+    };
   }, []);
   const drop = useCallback((id: string) => {
     setLeaving(prev => {

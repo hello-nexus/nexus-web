@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CircleCheck, Info, Pencil } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
-import type { ReminderDto, ReminderListDto } from '../../../../api/reminders';
+import { REMINDER_LIMITS, type ReminderDto, type ReminderListDto } from '../../../../api/reminders';
 import { useReminderMutations, useReminders } from '../../../../hooks/useReminders';
 import { Button } from '../../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { Notice } from '../../../../components/common/Notice/Notice';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
+import { Spinner } from '../../../../components/common/Spinner/Spinner';
+import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { SortableList } from '../../../../components/common/SortableList/SortableList';
 import { TextInput } from '../../../../components/common/TextInput/TextInput';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { useCalendarFormat } from '../../calendar/useCalendarFormat';
 import { SMART_COLORS, SMART_NAME_KEYS } from '../reminderIcons';
 import {
-  buildView, dueLabel, dueMs, isViewEmpty, newItemDefaults, parseSelection, reorderableIds, selectedListId, selectionKey,
+  buildView, dueLabel, dueMs, isPendingId, isViewEmpty, newItemDefaults, parseSelection, reorderableIds, selectedListId, selectionKey,
   smartCounts, type ReminderGroup, type ReminderSelection,
 } from '../reminderLogic';
 import { ReminderCheck, ReminderRow } from '../ReminderRow';
@@ -26,7 +28,6 @@ import { RemindersRail } from './RemindersRail';
 import styles from './RemindersPage.module.scss';
 
 const SHOW_COMPLETED_KEY = 'nexus.reminders.showCompleted';
-const TITLE_MAX = 500;
 const TODAY: ReminderSelection = { kind: 'smart', id: 'today' };
 
 function readShowCompleted(): boolean {
@@ -119,14 +120,9 @@ export function RemindersPage({ tab, onTabChange }: Props) {
     if (Object.keys(patch).length > 0) update(item.id, patch).catch(fail);
   };
 
-  const toggleShowCompleted = () => {
-    const next = !showCompleted;
-    setShowCompleted(next);
-    writeShowCompleted(next);
-  };
-
   const renderRow = (item: ReminderDto, extra?: { listName?: string }) => {
     const editing = editingId === item.id;
+    const inert = isPendingId(item.id);
     return (
       <ReminderRow
         key={item.id}
@@ -134,11 +130,11 @@ export function RemindersPage({ tab, onTabChange }: Props) {
         color={colorOf(item.listId)}
         due={dueLabel(item, now, t, fmt)}
         leaving={leaving.has(item.id)}
-        onToggle={() => toggle(item)}
+        onToggle={inert ? undefined : () => toggle(item)}
         listName={extra?.listName}
         showNotes
-        onEdit={() => setEditingId(item.id)}
-        trailing={(
+        onEdit={inert ? undefined : () => setEditingId(item.id)}
+        trailing={inert ? undefined : (
           <IconLabelButton
             variant="bare"
             icon={<Info size={16} aria-hidden />}
@@ -188,7 +184,9 @@ export function RemindersPage({ tab, onTabChange }: Props) {
           <div className={styles.main}>
             {unavailable ? (
               <Notice tone="warning" role="alert">{t('reminders.error.unavailable')}</Notice>
-            ) : lists.length === 0 && loaded ? (
+            ) : !loaded ? (
+              <div className={styles.loading}><Spinner size={28} /></div>
+            ) : lists.length === 0 ? (
               <EmptyState
                 icon={<CircleCheck size={32} />}
                 title={t('reminders.empty.noLists')}
@@ -212,9 +210,10 @@ export function RemindersPage({ tab, onTabChange }: Props) {
                 <div className={styles.subbar}>
                   <span className={styles.completedCount}>{t('reminders.completedCount', { count: doneInScope })}</span>
                   {listId !== null && (
-                    <Button size="sm" tone="neutral" onClick={toggleShowCompleted}>
-                      {t(showCompleted ? 'reminders.hideCompleted' : 'reminders.showCompleted')}
-                    </Button>
+                    <label className={styles.showCompleted}>
+                      <span>{t('reminders.showCompleted')}</span>
+                      <Toggle checked={showCompleted} onChange={on => { setShowCompleted(on); writeShowCompleted(on); }} ariaLabel={t('reminders.showCompleted')} />
+                    </label>
                   )}
                   <Button size="sm" tone="neutral" disabled={doneInScope === 0} onClick={() => setClearing(true)}>
                     {t('reminders.clearCompleted')}
@@ -236,6 +235,8 @@ export function RemindersPage({ tab, onTabChange }: Props) {
                             style={args.style}
                             {...args.attributes}
                             {...args.listeners}
+                            // Only the row itself starts a keyboard drag; keys typed in its editor or pressed on its buttons stay theirs.
+                            onKeyDown={e => { if (e.target === e.currentTarget) (args.listeners?.onKeyDown as ((ev: typeof e) => void) | undefined)?.(e); }}
                             className={args.isDragging ? args.placeholderClassName : undefined}
                           >
                             {renderRow(item)}
@@ -266,7 +267,7 @@ export function RemindersPage({ tab, onTabChange }: Props) {
                       <TextInput
                         value={draft}
                         size="sm"
-                        maxLength={TITLE_MAX}
+                        maxLength={REMINDER_LIMITS.title}
                         placeholder={t('reminders.new')}
                         ariaLabel={t('reminders.new')}
                         onInput={setDraft}
