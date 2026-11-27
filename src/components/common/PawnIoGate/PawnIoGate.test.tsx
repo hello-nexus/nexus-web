@@ -292,3 +292,43 @@ describe('PawnIoGate service restart, rechecks and in-progress fixes', () => {
     }
   });
 });
+
+describe('PawnIoGate when the host poll reads ok', () => {
+  const noop = () => ({ onStatus: vi.fn(), onFixed: vi.fn(), onContinue: vi.fn() });
+
+  it('fixed outside Nexus: makes exactly one fix call and shows the service restart', async () => {
+    fixPawnIo.mockResolvedValue({ kind: 'status', status: { ...status('ok'), restarting: true } });
+    const props = noop();
+    const { rerender } = render(<PawnIoGate status={status('notRunning')} {...props} />);
+    expect(fixPawnIo).not.toHaveBeenCalled();
+    await act(async () => { rerender(<PawnIoGate status={status('ok')} {...props} />); });
+    await act(async () => { rerender(<PawnIoGate status={status('ok')} {...props} />); });
+    expect(fixPawnIo).toHaveBeenCalledTimes(1);
+    expect(props.onFixed).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('pawnioGate.done.body')).toBeTruthy();
+  });
+
+  it('a failed finalizing call still shows the not-restarting success', async () => {
+    fixPawnIo.mockResolvedValue({ kind: 'failed' });
+    const props = noop();
+    const { rerender } = render(<PawnIoGate status={status('notRunning')} {...props} />);
+    await act(async () => { rerender(<PawnIoGate status={status('ok')} {...props} />); });
+    expect(screen.getByText('pawnioGate.done.ready')).toBeTruthy();
+    expect(props.onFixed).toHaveBeenCalledTimes(1);
+  });
+
+  it('install in flight: an ok poll waits for the fix response and does not call fix again', async () => {
+    let resolveFix: (v: unknown) => void = () => undefined;
+    fixPawnIo.mockReturnValue(new Promise(resolve => { resolveFix = resolve; }));
+    const props = noop();
+    const { rerender } = render(<PawnIoGate status={status('notInstalled')} {...props} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'pawnioGate.install.button' })); });
+    await act(async () => { rerender(<PawnIoGate status={status('ok')} {...props} />); });
+    expect(fixPawnIo).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('pawnioGate.done.title')).toBeNull();
+    await act(async () => { resolveFix({ kind: 'status', status: { ...status('ok'), restarting: true } }); });
+    expect(fixPawnIo).toHaveBeenCalledTimes(1);
+    expect(props.onFixed).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('pawnioGate.done.body')).toBeTruthy();
+  });
+});

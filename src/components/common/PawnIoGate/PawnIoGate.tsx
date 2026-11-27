@@ -59,6 +59,9 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
   const stateRef = useRef(status.state);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mounted = useRef(true);
+  // A fix or recheck is awaiting the service; an ok poll then waits for its response.
+  const inFlight = useRef(false);
+  const finalized = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -139,9 +142,14 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       later(() => succeed(false), PREVIEW_WORK_MS);
       return;
     }
-    const result = await fixPawnIo();
-    if (!mounted.current) return;
-    await handleFix(current.state, result, priorPhase);
+    inFlight.current = true;
+    try {
+      const result = await fixPawnIo();
+      if (!mounted.current) return;
+      await handleFix(current.state, result, priorPhase);
+    } finally {
+      inFlight.current = false;
+    }
   }, [current.state, handleFix, later, phase, preview, succeed]);
 
   const restartPc = useCallback(async () => {
@@ -162,7 +170,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
     setNotice(result === 'flashing' ? 'flashing' : 'restartRefused');
   }, [later, preview]);
 
-  const checkAgain = useCallback(async () => {
+  const recheck = useCallback(async () => {
     const priorPhase = phase;
     setPhase('working');
     if (preview) {
@@ -187,6 +195,35 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       onStatus(next);
     }
   }, [handleFix, later, onStatus, phase, preview, succeed]);
+
+  const checkAgain = useCallback(async () => {
+    inFlight.current = true;
+    try {
+      await recheck();
+    } finally {
+      inFlight.current = false;
+    }
+  }, [recheck]);
+
+  // The host's poll read ok while this gate was up (fixed outside Nexus, or an
+  // install finished before its response arrived). With a fix or recheck in
+  // flight its own response runs the success handling; otherwise make the one
+  // fix call that makes the service redetect hardware and restart itself.
+  useEffect(() => {
+    if (preview || status.state !== 'ok' || phase === 'done' || inFlight.current || finalized.current) return;
+    finalized.current = true;
+    inFlight.current = true;
+    void (async () => {
+      try {
+        const result = await fixPawnIo();
+        if (!mounted.current) return;
+        if (result.kind === 'failed') succeed(false);
+        else await handleFix('ok', result, phase);
+      } finally {
+        inFlight.current = false;
+      }
+    })();
+  }, [handleFix, phase, preview, status.state, succeed]);
 
   const exportBundle = useCallback(async () => {
     setBundleBusy(true);

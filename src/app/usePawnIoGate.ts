@@ -21,7 +21,15 @@ export function nextPawnIoStatus(prev: PawnIoStatus | null, fetched: PawnIoStatu
 export function usePawnIoGate(enabled: boolean) {
   const [status, setStatus] = useState<PawnIoStatus | null>(null);
   const [celebrating, setCelebrating] = useState(false);
+  // Once the gate has shown in this connection, a poll reading ok must not
+  // unmount it: the gate finalizes through the fix call (which is what makes
+  // the service redetect hardware) and then releases it via onContinue.
+  const [latched, setLatched] = useState(false);
   const showing = gateShows(status);
+
+  useEffect(() => {
+    if (showing) setLatched(true);
+  }, [showing]);
 
   const onlineSince = useRef(0);
 
@@ -29,7 +37,7 @@ export function usePawnIoGate(enabled: boolean) {
   // and on reconnect the fresh read decides whether the gate shows.
   useEffect(() => {
     if (enabled) onlineSince.current = Date.now();
-    else setCelebrating(false);
+    else { setCelebrating(false); setLatched(false); }
   }, [enabled]);
 
   useEffect(() => {
@@ -52,6 +60,6 @@ export function usePawnIoGate(enabled: boolean) {
   }, [enabled, showing]);
 
   const onFixed = useCallback(() => setCelebrating(true), []);
-  const onContinue = useCallback(() => setCelebrating(false), []);
-  return { status, setStatus, show: showing || celebrating, onFixed, onContinue };
+  const onContinue = useCallback(() => { setCelebrating(false); setLatched(false); }, []);
+  return { status, setStatus, show: status !== null && (showing || celebrating || latched), onFixed, onContinue };
 }

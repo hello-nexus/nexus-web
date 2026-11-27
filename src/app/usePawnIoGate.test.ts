@@ -53,7 +53,7 @@ describe('usePawnIoGate', () => {
     expect(result.current.show).toBe(false);
   });
 
-  it('shows for a not-ok report and leaves once a poll reports ok', async () => {
+  it('shows for a not-ok report and, once shown, stays until the gate releases it', async () => {
     vi.useFakeTimers();
     try {
       fetchPawnIoStatus.mockResolvedValue(status('notInstalled'));
@@ -62,7 +62,7 @@ describe('usePawnIoGate', () => {
       expect(result.current.show).toBe(true);
       fetchPawnIoStatus.mockResolvedValue(status('ok'));
       await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
-      expect(result.current.show).toBe(false);
+      expect(result.current.show).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -110,6 +110,24 @@ describe('usePawnIoGate', () => {
     rerender({ on: true });
     await waitFor(() => expect(fetchPawnIoStatus).toHaveBeenCalled());
     expect(result.current.show).toBe(false);
+  });
+
+  it('once shown, a poll reading ok keeps the gate up until continue', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchPawnIoStatus.mockResolvedValue(status('notRunning'));
+      const { result } = renderHook(() => usePawnIoGate(true));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.show).toBe(true);
+      fetchPawnIoStatus.mockResolvedValue(status('ok'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+      expect(result.current.status?.state).toBe('ok');
+      expect(result.current.show).toBe(true);
+      act(() => result.current.onContinue());
+      expect(result.current.show).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('holds the screen for the success beat after a fix, until continue', async () => {
