@@ -29,6 +29,7 @@ import {
 // them into the registry consumed by the panel engine.
 import { clockApp } from './clock';
 import { calendarApp } from './calendar';
+import { remindersApp } from './reminders';
 import { monitoringApp } from './monitoring';
 import { mediaApp } from './media';
 import { mixerApp } from './mixer';
@@ -67,6 +68,7 @@ import { webViewApp } from './web-view';
 export const APP_REGISTRY: Record<string, AppManifest> = {
   clock:      clockApp,
   calendar:   calendarApp,
+  reminders:  remindersApp,
   monitoring: monitoringApp,
   media:      mediaApp,
   mixer:      mixerApp,

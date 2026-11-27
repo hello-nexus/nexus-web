@@ -1,0 +1,83 @@
+@use '../../styles/flexGap' as *;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5em;
+}
+
+.tile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  min-width: 0;
+  padding: 0.55em 0.65em;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  row-gap: 0.1em;
+}
+button.tile { cursor: pointer; }
+button.tile:hover { background: var(--surface-hover); }
+button.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.active { border-color: var(--rem-color); }
+
+.disc, .listDisc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 50%;
+  background: var(--rem-color);
+  color: #fff;
+}
+.count {
+  justify-self: end;
+  font-size: 1.5em;
+  font-weight: var(--weight-display);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.name {
+  grid-column: 1 / -1;
+  min-width: 0;
+  font-weight: var(--weight-strong);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  &:hover { background: var(--surface-hover); }
+  @include hgap(0.25em);
+}
+.listActive { background: var(--surface); }
+.listMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.45em 0.5em;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  @include hgap(0.6em);
+}
+button.listMain { cursor: pointer; }
+button.listMain:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.listDisc { flex: none; width: 1.6em; height: 1.6em; }
+.listName { flex: 1; min-width: 0; font-weight: var(--weight-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.listCount { flex: none; color: var(--text-dim); font-variant-numeric: tabular-nums; }

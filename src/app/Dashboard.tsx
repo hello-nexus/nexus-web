@@ -22,6 +22,7 @@ const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLi
 const HomeAssistantPage = lazy(() => import('../panel/widgets/home-assistant/HomeAssistantPage').then(m => ({ default: m.HomeAssistantPage })));
 const StorePage = lazy(() => import('../components/views/StorePage/StorePage').then(m => ({ default: m.StorePage })));
 const CalendarPage = lazy(() => import('../panel/widgets/calendar/page/CalendarPage').then(m => ({ default: m.CalendarPage })));
+const RemindersPage = lazy(() => import('../panel/widgets/reminders/page/RemindersPage').then(m => ({ default: m.RemindersPage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const WeatherPage = lazy(() => import('../panel/widgets/weather/WeatherPage').then(m => ({ default: m.WeatherPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
@@ -1031,6 +1032,7 @@ export function Dashboard() {
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} onOpenInLighting={key => { requestLightingEffect(key); navigate('system', 'lighting'); }} />;
       case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} onOpenLighting={() => navigate('system', 'lighting')} onOpenCooling={() => navigate('system', 'cooling')} platform={status.ping?.platform ?? ''} />;
       case 'calendar':   return <CalendarPage tab={subtab} onTabChange={setSubtab} />;
+      case 'reminders':  return <RemindersPage tab={subtab} onTabChange={setSubtab} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage tab={subtab ?? undefined} />;
       case 'steam':      return <SteamPage />;

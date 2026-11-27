@@ -333,6 +333,7 @@ const APP_KEYWORDS: Record<string, string[]> = {
   store: ['shop', 'marketplace', 'apps', 'download', 'install'],
   clock: ['time', 'timezone', 'world clock'],
   calendar: ['events', 'schedule', 'agenda', 'date'],
+  reminders: ['todo', 'to do', 'tasks', 'checklist', 'list', 'due'],
   gallery: ['photos', 'images', 'pictures', 'slideshow', 'wallpaper'],
   steam: ['games', 'game library', 'launch', 'valve', 'playtime'],
   'smart-lights': ['hue', 'govee', 'philips', 'bulb', 'smart', 'lamp'],

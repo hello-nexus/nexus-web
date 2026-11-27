@@ -1,0 +1,18 @@
+.rail {
+  flex: 0 0 320px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  font-size: 0.95rem;
+}
+
+.grid { margin-bottom: var(--space-xl); }
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.heading { font-size: var(--type-small); font-weight: var(--weight-strong); color: var(--text-dim); }
+.lists { display: flex; flex-direction: column; gap: 2px; }

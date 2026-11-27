@@ -5,7 +5,7 @@ import { APP_REGISTRY } from '../widgets/registry';
 
 const VIEWS_WITH_A_CASE = new Set([
   'dashboard', 'monitoring', 'screentime', 'benchmark', 'lighting', 'smart-lights', 'home-assistant', 'cooling',
-  'devices', 'diagnostics', 'frames', 'store', 'build', 'calendar', 'clock', 'weather', 'steam', 'gallery', 'settings',
+  'devices', 'diagnostics', 'frames', 'store', 'build', 'calendar', 'reminders', 'clock', 'weather', 'steam', 'gallery', 'settings',
 ]);
 // Same character rule as the service's OpenAppRoute.Normalize.
 const SAFE_ROUTE = /^\/system\/[A-Za-z0-9/\-_.~?=]{1,192}$/;
