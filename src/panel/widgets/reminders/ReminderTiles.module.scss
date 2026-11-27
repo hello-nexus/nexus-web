@@ -31,30 +31,25 @@
 
 .icon { display: flex; align-items: center; }
 
-// The widget grid: fills its parent on 1fr tracks like the Diagnostics blocks. Standard type tokens and icon size, never scaled
-// to the cell; the name gets the card's full width on its own line under the icon and count.
+// The widget grid: the page's cards at the page's type size, stretched over the tile and centered in their 1fr cells.
 .fill {
   flex: 1;
   min-height: 0;
-  /* c83:allow - .fill is display: grid */
-  gap: 0.5rem;
+  font-size: var(--type-body);
   align-content: stretch;
 
-  .card.card { align-self: stretch; justify-content: center; padding: 0.5rem; }
-  .icon svg { width: 20px; height: 20px; }
-  .count { font-size: var(--type-heading); line-height: 1.1; }
-  .name { margin-top: 0.25rem; font-size: var(--type-mini); text-overflow: clip; }
+  .card.card { align-self: stretch; justify-content: center; }
 }
 
-// The tall strip is one column of single-line cards: its name sits beside the icon, not under it.
+// The tall strip's single-line cards keep the count beside the icon, the name after it.
 .fill.fillRow {
   .row {
     grid-template-columns: auto auto minmax(0, 1fr);
     /* c83:allow - .row is display: grid */
-    column-gap: 0.5rem;
+    column-gap: 0.5em;
   }
   .count { order: 1; }
-  .name { order: 2; margin-top: 0; font-size: var(--type-small); }
+  .name { order: 2; }
 }
 
 .name {
