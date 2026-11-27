@@ -5769,6 +5769,7 @@
   "reminders.myLists": "Moje seznamy",
   "reminders.new": "Nová připomínka",
   "reminders.page.emptySmart": "Nic tu není",
+  "reminders.page.smartTitle": "Připomínky - {name}",
   "reminders.priority.high": "Vysoká",
   "reminders.priority.low": "Nízká",
   "reminders.priority.medium": "Střední",

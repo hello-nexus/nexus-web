@@ -5769,6 +5769,7 @@
   "reminders.myLists": "Мои списки",
   "reminders.new": "Новое напоминание",
   "reminders.page.emptySmart": "Здесь пусто",
+  "reminders.page.smartTitle": "Напоминания - {name}",
   "reminders.priority.high": "Высокий",
   "reminders.priority.low": "Низкий",
   "reminders.priority.medium": "Средний",

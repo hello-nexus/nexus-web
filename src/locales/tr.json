@@ -5718,6 +5718,7 @@
   "reminders.myLists": "Listelerim",
   "reminders.new": "Yeni anımsatıcı",
   "reminders.page.emptySmart": "Burada hiçbir şey yok",
+  "reminders.page.smartTitle": "Anımsatıcılar - {name}",
   "reminders.priority.high": "Yüksek",
   "reminders.priority.low": "Düşük",
   "reminders.priority.medium": "Orta",

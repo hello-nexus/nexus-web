@@ -3,12 +3,12 @@ import { useTranslation } from '../../../../lib/i18n';
 import type { ReminderDto, ReminderListDto } from '../../../../api/reminders';
 import { Button } from '../../../../components/common/Button/Button';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
-import { isPendingId, openCountOf, selectionKey, type ReminderCounts, type ReminderSelection } from '../reminderLogic';
-import { ReminderListRow, SmartListGrid } from '../ReminderTiles';
+import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
+import { isPendingId, openCountOf, type ReminderSelection } from '../reminderLogic';
+import { ReminderListRow } from '../ReminderTiles';
 import styles from './RemindersRail.module.scss';
 
 interface Props {
-  counts: ReminderCounts;
   lists: readonly ReminderListDto[];
   items: readonly ReminderDto[];
   selection: ReminderSelection;
@@ -17,20 +17,14 @@ interface Props {
   onEdit: (list: ReminderListDto) => void;
 }
 
-/** The page rail: the smart-list grid, then My Lists with an edit button per list and Add List. */
-export function RemindersRail({ counts, lists, items, selection, onSelect, onAdd, onEdit }: Props) {
+/** The page rail: My Lists with an edit button per list and Add List. */
+export function RemindersRail({ lists, items, selection, onSelect, onAdd, onEdit }: Props) {
   const { t } = useTranslation();
-  const activeKey = selectionKey(selection);
+  const activeKey = selection.kind === 'list' ? selection.id : null;
   return (
     <aside className={styles.rail} aria-label={t('reminders.lists')}>
-      <SmartListGrid
-        counts={counts}
-        active={selection.kind === 'smart' ? selection.id : null}
-        onSelect={id => onSelect({ kind: 'smart', id })}
-        className={styles.grid}
-      />
       <div className={styles.head}>
-        <span className={styles.heading}>{t('reminders.myLists')}</span>
+        <SectionHeader>{t('reminders.myLists')}</SectionHeader>
         <Button size="sm" tone="neutral" icon={<Plus size={16} aria-hidden />} onClick={onAdd}>
           {t('reminders.list.add.button')}
         </Button>

@@ -82,16 +82,37 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('RemindersPage', () => {
-  it('opens on Today with overdue grouped on top and the smart-list counts in the rail', () => {
+  it('opens on Today with overdue grouped on top and the smart lists as docked page tabs', () => {
     render(<RemindersPage />);
     expect(screen.getByText('reminders.group.overdue')).toBeTruthy();
     const checks = screen.getAllByRole('checkbox').map(c => c.getAttribute('aria-label'));
     expect(checks.slice(0, 2)).toEqual(['Call dentist', 'Water plants']);
-    expect(screen.getByRole('button', { name: /reminders\.smart\.completed/ }).textContent).toContain('1');
+    const tabs = screen.getAllByRole('tab').map(t => t.textContent);
+    expect(tabs).toEqual(['reminders.smart.today', 'reminders.smart.scheduled', 'reminders.smart.all', 'reminders.smart.flagged', 'reminders.smart.completed']);
+    expect(screen.getByRole('tab', { name: 'reminders.smart.today' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('titles the pane after the smart list in one section-title style, with no count grid in the rail', () => {
+    render(<RemindersPage />);
+    expect(screen.getByText('reminders.page.smartTitle|reminders.smart.today')).toBeTruthy();
+    const header = (text: string) => screen.getByText(text).className.split(' ').find(c => c.includes('sectionHeader'));
+    expect(header('reminders.myLists')).toBeTruthy();
+    expect(header('reminders.page.smartTitle|reminders.smart.today')).toBe(header('reminders.myLists'));
+    expect(screen.queryByRole('button', { name: /reminders\.smart\.completed/ })).toBeNull();
+  });
+
+  it('reports a clicked tab as the subtab and shows no tab active for a user list', () => {
+    const onTabChange = vi.fn();
+    const { rerender } = render(<RemindersPage onTabChange={onTabChange} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'reminders.smart.flagged' }));
+    expect(onTabChange).toHaveBeenCalledWith('flagged');
+    rerender(<RemindersPage tab="l2" onTabChange={onTabChange} />);
+    expect(screen.getAllByRole('tab').every(t => t.getAttribute('aria-selected') === 'false')).toBe(true);
+    expect(screen.getAllByText('Work').length).toBeGreaterThan(1);
   });
 
   it('groups Scheduled by date', () => {
-    render(<RemindersPage tab="smart:scheduled" />);
+    render(<RemindersPage tab="scheduled" />);
     expect(screen.getByText('Sunday, November 15')).toBeTruthy();
     expect(screen.getByText('Thursday, November 19')).toBeTruthy();
   });
@@ -110,7 +131,7 @@ describe('RemindersPage', () => {
   });
 
   it('gives a reminder added in Scheduled a due date of today', () => {
-    render(<RemindersPage tab="smart:scheduled" />);
+    render(<RemindersPage tab="scheduled" />);
     typeInto(screen.getByRole('textbox', { name: 'reminders.new' }), 'Plan trip');
     expect(store.create).toHaveBeenCalledWith({ listId: 'l1', dueDate: '2026-11-17', title: 'Plan trip' });
   });
@@ -122,7 +143,7 @@ describe('RemindersPage', () => {
   });
 
   it('has no add row in Completed', () => {
-    render(<RemindersPage tab="smart:completed" />);
+    render(<RemindersPage tab="completed" />);
     expect(screen.queryByRole('textbox', { name: 'reminders.new' })).toBeNull();
     expect(screen.getByText('Finished chore')).toBeTruthy();
   });
@@ -208,7 +229,7 @@ describe('RemindersPage', () => {
     const confirm = await screen.findByRole('alertdialog');
     fireEvent.click(within(confirm).getByRole('button', { name: 'reminders.list.delete.confirm' }));
     await waitFor(() => expect(store.deleteList).toHaveBeenCalledWith('l2'));
-    await waitFor(() => expect(onTabChange).toHaveBeenCalledWith('smart:today'));
+    await waitFor(() => expect(onTabChange).toHaveBeenCalledWith('today'));
   });
 
   it('saves details as a patch of only what changed', async () => {

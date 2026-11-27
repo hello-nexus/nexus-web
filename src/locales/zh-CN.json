@@ -5718,6 +5718,7 @@
   "reminders.myLists": "我的列表",
   "reminders.new": "新提醒事项",
   "reminders.page.emptySmart": "这里什么都没有",
+  "reminders.page.smartTitle": "提醒事项 - {name}",
   "reminders.priority.high": "高",
   "reminders.priority.low": "低",
   "reminders.priority.medium": "中",

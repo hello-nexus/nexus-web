@@ -6,13 +6,10 @@
   font-size: var(--type-body);
 }
 
-.grid { margin-bottom: var(--space-xl); }
-
 .head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-sm);
 }
-.heading { font-size: var(--type-small); font-weight: var(--weight-strong); color: var(--text-dim); }
 .lists { display: flex; flex-direction: column; gap: 2px; }

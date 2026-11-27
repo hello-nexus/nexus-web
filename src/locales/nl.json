@@ -5718,6 +5718,7 @@
   "reminders.myLists": "Mijn lijsten",
   "reminders.new": "Nieuwe herinnering",
   "reminders.page.emptySmart": "Hier staat niets",
+  "reminders.page.smartTitle": "Herinneringen - {name}",
   "reminders.priority.high": "Hoog",
   "reminders.priority.low": "Laag",
   "reminders.priority.medium": "Gemiddeld",

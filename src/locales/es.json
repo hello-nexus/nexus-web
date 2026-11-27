@@ -5718,6 +5718,7 @@
   "reminders.myLists": "Mis listas",
   "reminders.new": "Nuevo recordatorio",
   "reminders.page.emptySmart": "Aquí no hay nada",
+  "reminders.page.smartTitle": "Recordatorios - {name}",
   "reminders.priority.high": "Alta",
   "reminders.priority.low": "Baja",
   "reminders.priority.medium": "Media",

@@ -5718,6 +5718,7 @@
   "reminders.myLists": "I miei elenchi",
   "reminders.new": "Nuovo promemoria",
   "reminders.page.emptySmart": "Qui non c'è niente",
+  "reminders.page.smartTitle": "Promemoria - {name}",
   "reminders.priority.high": "Alta",
   "reminders.priority.low": "Bassa",
   "reminders.priority.medium": "Media",
