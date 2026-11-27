@@ -1077,6 +1077,7 @@ export function Dashboard() {
       <PawnIoGate
         status={pawnIoPreview.status}
         initialPhase={pawnIoPreview.phase}
+        initialRestarting={pawnIoPreview.restarting}
         preview
         onStatus={() => undefined}
         onFixed={() => undefined}

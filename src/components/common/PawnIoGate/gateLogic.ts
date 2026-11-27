@@ -59,10 +59,12 @@ export function fixOutcome(before: PawnIoState, after: PawnIoStatus | null): Fix
 export interface PawnIoPreview {
   status: PawnIoStatus;
   phase: PawnIoPhase;
+  /** The success screen's wording: the service is restarting Nexus. */
+  restarting?: boolean;
 }
 
 function previewStatus(state: PawnIoState, fixAction: PawnIoStatus['fixAction'], installed: boolean): PawnIoStatus {
-  return { installed, open: false, state, errorCode: null, fixAction, fixing: false };
+  return { installed, open: false, state, errorCode: null, fixAction, fixing: false, restarting: false };
 }
 
 const PREVIEWS: Record<string, PawnIoPreview> = {
@@ -71,6 +73,7 @@ const PREVIEWS: Record<string, PawnIoPreview> = {
   permissionDeclined: { status: previewStatus('permissionDeclined', 'install', false), phase: 'idle' },
   installing: { status: previewStatus('notInstalled', 'install', false), phase: 'working' },
   installed: { status: previewStatus('notInstalled', 'install', false), phase: 'done' },
+  installedRestarting: { status: previewStatus('notInstalled', 'install', false), phase: 'done', restarting: true },
   restartRequired: { status: previewStatus('restartRequired', 'restart', true), phase: 'idle' },
   restartLater: { status: previewStatus('restartRequired', 'restart', true), phase: 'restartLater' },
   notRunning: { status: previewStatus('notRunning', 'repair', true), phase: 'idle' },

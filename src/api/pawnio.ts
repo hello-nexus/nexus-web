@@ -19,6 +19,8 @@ export interface PawnIoStatus {
   errorCode: number | null;
   fixAction: PawnIoFixAction;
   fixing: boolean;
+  /** True only in a /pawnio/fix response that scheduled the service's own restart. */
+  restarting: boolean;
 }
 
 const STATES: readonly PawnIoState[] = [
@@ -42,6 +44,7 @@ export function parsePawnIoStatus(raw: unknown): PawnIoStatus | null {
     errorCode: typeof r.errorCode === 'number' ? r.errorCode : null,
     fixAction: r.fixAction ?? 'none',
     fixing: r.fixing === true,
+    restarting: r.restarting === true,
   };
 }
 

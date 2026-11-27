@@ -23,7 +23,7 @@ vi.mock('../../../api/diagnostics', () => ({
 import { PawnIoGate } from './PawnIoGate';
 
 function status(state: PawnIoState): PawnIoStatus {
-  return { installed: true, open: false, state, errorCode: null, fixAction: 'none', fixing: false };
+  return { installed: true, open: false, state, errorCode: null, fixAction: 'none', fixing: false, restarting: false };
 }
 
 function renderGate(state: PawnIoState, over: { phase?: PawnIoPhase; preview?: boolean } = {}) {
@@ -108,6 +108,8 @@ describe('PawnIoGate fix flow', () => {
       expect(props.onFixed).toHaveBeenCalledTimes(1);
       expect(props.onStatus).toHaveBeenCalledWith(expect.objectContaining({ state: 'ok' }));
       expect(screen.getByText('pawnioGate.done.title')).toBeTruthy();
+      expect(screen.getByText('pawnioGate.done.ready')).toBeTruthy();
+      expect(screen.queryByText('pawnioGate.done.body')).toBeNull();
       expect(props.onContinue).not.toHaveBeenCalled();
       await act(async () => { await vi.advanceTimersByTimeAsync(3_000); });
       expect(props.onContinue).toHaveBeenCalledTimes(1);
@@ -217,5 +219,76 @@ describe('PawnIoGate refusals and rechecks', () => {
     expect(screen.getByText('pawnioGate.steps.title')).toBeTruthy();
     rerender(<PawnIoGate status={status('blocked')} initialPhase="failed" {...noop} />);
     expect(screen.getByText('pawnioGate.blocked.title')).toBeTruthy();
+  });
+});
+
+describe('PawnIoGate service restart, rechecks and in-progress fixes', () => {
+  it('says Nexus is restarting only when the fix response says so', async () => {
+    fixPawnIo.mockResolvedValue({ kind: 'status', status: { ...status('ok'), restarting: true } });
+    renderGate('notRunning');
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'pawnioGate.notRunning.button' })); });
+    expect(screen.getByText('pawnioGate.done.body')).toBeTruthy();
+    expect(screen.queryByText('pawnioGate.done.ready')).toBeNull();
+  });
+
+  it('Check again that reads ok finalizes through a fix call and the same success handling', async () => {
+    fetchPawnIoStatus.mockResolvedValue(status('ok'));
+    fixPawnIo.mockResolvedValue({ kind: 'status', status: { ...status('ok'), restarting: true } });
+    const props = renderGate('blocked');
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'pawnioGate.blocked.check' })); });
+    expect(fixPawnIo).toHaveBeenCalledTimes(1);
+    expect(props.onFixed).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('pawnioGate.done.body')).toBeTruthy();
+  });
+
+  it('a restart request that is accepted but leaves the page alive frees the button with a notice', async () => {
+    vi.useFakeTimers();
+    try {
+      restartPcForPawnIo.mockResolvedValue('ok');
+      renderGate('restartRequired');
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'pawnioGate.restart.button' })); });
+      expect(screen.getByRole('button', { name: 'pawnioGate.restart.working' })).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+      expect(screen.getByRole('button', { name: 'pawnioGate.restart.button' })).not.toBeDisabled();
+      expect(screen.getByText('pawnioGate.notice.restartRefused')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a fix answered fixing:true keeps working and polls every 2 s until it settles, never showing the steps', async () => {
+    vi.useFakeTimers();
+    try {
+      fixPawnIo.mockResolvedValue({ kind: 'status', status: { ...status('notRunning'), fixing: true } });
+      fetchPawnIoStatus
+        .mockResolvedValueOnce({ ...status('notRunning'), fixing: true })
+        .mockResolvedValueOnce(status('ok'));
+      const props = renderGate('notRunning');
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'pawnioGate.notRunning.button' })); });
+      expect(screen.queryByText('pawnioGate.steps.title')).toBeNull();
+      expect(screen.getByRole('button', { name: 'pawnioGate.fixing.button' })).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+      expect(screen.queryByText('pawnioGate.steps.title')).toBeNull();
+      expect(props.onFixed).not.toHaveBeenCalled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+      expect(fetchPawnIoStatus).toHaveBeenCalledTimes(2);
+      expect(props.onFixed).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('after an in-progress fix settles on the same state it is a normal failure', async () => {
+    vi.useFakeTimers();
+    try {
+      fixPawnIo.mockResolvedValue({ kind: 'status', status: { ...status('notRunning'), fixing: true } });
+      fetchPawnIoStatus.mockResolvedValue(status('notRunning'));
+      renderGate('notRunning');
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'pawnioGate.notRunning.button' })); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+      expect(screen.getByText('pawnioGate.steps.title')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

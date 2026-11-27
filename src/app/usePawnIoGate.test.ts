@@ -10,7 +10,7 @@ vi.mock('../api/pawnio', () => ({
 import { BOOT_POLL_WINDOW_MS, nextPawnIoStatus, usePawnIoGate } from './usePawnIoGate';
 
 function status(state: PawnIoState): PawnIoStatus {
-  return { installed: true, open: state === 'ok', state, errorCode: null, fixAction: 'none', fixing: false };
+  return { installed: true, open: state === 'ok', state, errorCode: null, fixAction: 'none', fixing: false, restarting: false };
 }
 
 beforeEach(() => { fetchPawnIoStatus.mockReset(); });
@@ -68,15 +68,16 @@ describe('usePawnIoGate', () => {
     }
   });
 
-  it('polls a healthy PC for the boot window only, then stops', async () => {
+  it('polls a healthy PC for the boot window (two minutes) only, then stops', async () => {
     vi.useFakeTimers();
     try {
       fetchPawnIoStatus.mockResolvedValue(status('ok'));
       renderHook(() => usePawnIoGate(true));
       await act(async () => { await vi.advanceTimersByTimeAsync(BOOT_POLL_WINDOW_MS); });
       const calls = fetchPawnIoStatus.mock.calls.length;
-      expect(calls).toBeGreaterThan(5);
-      await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+      expect(calls).toBeGreaterThan(20);
+      expect(BOOT_POLL_WINDOW_MS).toBe(120_000);
+      await act(async () => { await vi.advanceTimersByTimeAsync(120_000); });
       expect(fetchPawnIoStatus.mock.calls.length).toBe(calls);
     } finally {
       vi.useRealTimers();

@@ -10,18 +10,24 @@ import { CaptionButtons } from '../../../app/CaptionButtons';
 import { useWindowDragRegion } from '../../../app/useWindowDragRegion';
 import { isWindowsAppShell } from '../../../app/windowActions';
 import { downloadSupportBundle } from '../../../api/diagnostics';
-import { fetchPawnIoStatus, fixPawnIo, restartPcForPawnIo, type PawnIoStatus } from '../../../api/pawnio';
+import { fetchPawnIoStatus, fixPawnIo, restartPcForPawnIo, type PawnIoFixResult, type PawnIoState, type PawnIoStatus } from '../../../api/pawnio';
 import { canRestartPc, fixOutcome, okStatusFrom, screenFor, type PawnIoPhase } from './gateLogic';
 import styles from './PawnIoGate.module.scss';
 
 const HERO_ICON_SIZE = 30;
 const CONTINUE_DELAY_MS = 3000;
 const PREVIEW_WORK_MS = 1500;
+const FIX_POLL_MS = 2000;
+const FIX_POLL_LIMIT_MS = 5 * 60 * 1000;
+// The shutdown the service schedules after a restart request takes a few seconds; past this the request evidently did not restart the PC.
+const RESTART_GIVE_UP_MS = 30_000;
 
 export interface PawnIoGateProps {
   status: PawnIoStatus;
   /** Phase the screen opens in; previews use it to land on a sub-state. */
   initialPhase?: PawnIoPhase;
+  /** Preview only: open the success screen in its restarting wording. */
+  initialRestarting?: boolean;
   /** Dev-tools preview: no fix or restart request is ever sent, outcomes are simulated. */
   preview?: boolean;
   /** A fix attempt moved the service to a different not-ok state. */
@@ -38,7 +44,7 @@ export interface PawnIoGateProps {
  * host owns the service status and the continue decision; this screen owns
  * only its own flow (working, done, failed, restart later, still blocked).
  */
-export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onStatus, onFixed, onContinue }: PawnIoGateProps) {
+export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = false, preview = false, onStatus, onFixed, onContinue }: PawnIoGateProps) {
   const { t } = useTranslation();
   const dragRegion = useWindowDragRegion();
   const [current, setCurrent] = useState(status);
@@ -47,6 +53,8 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
   const [bundleBusy, setBundleBusy] = useState(false);
   const [bundleFailed, setBundleFailed] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  // Whether the fix that just succeeded scheduled the service's own restart.
+  const [nexusRestarting, setNexusRestarting] = useState(initialRestarting);
   const [notice, setNotice] = useState<'flashing' | 'restartRefused' | null>(null);
   const stateRef = useRef(status.state);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -79,42 +87,62 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
     timers.current.push(setTimeout(() => { if (mounted.current) fn(); }, ms));
   }, []);
 
-  const succeed = useCallback(() => {
+  const succeed = useCallback((serviceRestarting: boolean) => {
     setPhase('done');
     setNotice(null);
+    setNexusRestarting(serviceRestarting);
     onStatus(okStatusFrom(current));
     onFixed();
     later(onContinue, CONTINUE_DELAY_MS);
   }, [current, later, onContinue, onFixed, onStatus]);
 
-  const runFix = useCallback(async () => {
-    const before = current.state;
-    const priorPhase = phase;
-    setPhase('working');
-    setNotice(null);
-    if (preview) {
-      later(succeed, PREVIEW_WORK_MS);
-      return;
+  // A fix answered fixing:true means another press is still running it: keep
+  // the working state and read the status until it settles.
+  const settleFix = useCallback(async (first: PawnIoStatus): Promise<PawnIoStatus | null> => {
+    let latest: PawnIoStatus | null = first;
+    const startedAt = Date.now();
+    while (latest?.fixing) {
+      if (Date.now() - startedAt >= FIX_POLL_LIMIT_MS) return null;
+      await new Promise<void>(resolve => { later(resolve, FIX_POLL_MS); });
+      if (!mounted.current) return null;
+      latest = (await fetchPawnIoStatus()) ?? latest;
     }
-    const result = await fixPawnIo();
-    if (!mounted.current) return;
+    return latest;
+  }, [later]);
+
+  const handleFix = useCallback(async (before: PawnIoState, result: PawnIoFixResult, priorPhase: PawnIoPhase) => {
     if (result.kind === 'flashing') {
       // Not an attempt that failed: stay where we were with the button available.
       setPhase(priorPhase === 'working' ? 'idle' : priorPhase);
       setNotice('flashing');
       return;
     }
-    const outcome = fixOutcome(before, result.kind === 'status' ? result.status : null);
-    if (outcome.kind === 'done') succeed();
+    const settled = result.kind === 'status' ? await settleFix(result.status) : null;
+    if (!mounted.current) return;
+    const outcome = fixOutcome(before, settled);
+    if (outcome.kind === 'done') succeed(settled?.restarting === true);
     else if (outcome.kind === 'moved') {
       setPhase('idle');
       setCurrent(outcome.status);
       onStatus(outcome.status);
     } else {
-      if (result.kind === 'status') setCurrent(result.status);
+      if (settled) setCurrent(settled);
       setPhase('failed');
     }
-  }, [current.state, later, onStatus, phase, preview, succeed]);
+  }, [onStatus, settleFix, succeed]);
+
+  const runFix = useCallback(async () => {
+    const priorPhase = phase;
+    setPhase('working');
+    setNotice(null);
+    if (preview) {
+      later(() => succeed(false), PREVIEW_WORK_MS);
+      return;
+    }
+    const result = await fixPawnIo();
+    if (!mounted.current) return;
+    await handleFix(current.state, result, priorPhase);
+  }, [current.state, handleFix, later, phase, preview, succeed]);
 
   const restartPc = useCallback(async () => {
     setNotice(null);
@@ -125,8 +153,11 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
     }
     const result = await restartPcForPawnIo();
     if (!mounted.current) return;
-    // On success the PC is shutting down (it waits a few seconds first), so the button stays busy.
-    if (result === 'ok') return;
+    if (result === 'ok') {
+      // The PC shuts down after a few seconds, so the button stays busy; if this page is still alive well after that, the restart did not happen.
+      later(() => { setRestarting(false); setNotice('restartRefused'); }, RESTART_GIVE_UP_MS);
+      return;
+    }
     setRestarting(false);
     setNotice(result === 'flashing' ? 'flashing' : 'restartRefused');
   }, [later, preview]);
@@ -145,14 +176,17 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
     } else if (next.state === 'blocked') {
       setPhase('stillBlocked');
     } else if (next.state === 'ok') {
-      setPhase('idle');
-      succeed();
+      // The read is ok, but a service that latched not-ok at boot only restarts itself through a fix call.
+      const result = await fixPawnIo();
+      if (!mounted.current) return;
+      if (result.kind === 'failed') succeed(false);
+      else await handleFix('ok', result, priorPhase);
     } else {
       setCurrent(next);
       setPhase('idle');
       onStatus(next);
     }
-  }, [later, onStatus, phase, preview, succeed]);
+  }, [handleFix, later, onStatus, phase, preview, succeed]);
 
   const exportBundle = useCallback(async () => {
     setBundleBusy(true);
@@ -207,7 +241,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
     heroIcon = <Check size={HERO_ICON_SIZE} aria-hidden />;
     heroTone = 'good';
     title = t('pawnioGate.done.title');
-    body = t('pawnioGate.done.body');
+    body = t(nexusRestarting ? 'pawnioGate.done.body' : 'pawnioGate.done.ready');
     showWhy = false;
     content = (
       <>

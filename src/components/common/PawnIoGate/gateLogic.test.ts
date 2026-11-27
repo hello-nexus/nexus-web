@@ -5,7 +5,7 @@ import {
 } from './gateLogic';
 
 function status(state: PawnIoState): PawnIoStatus {
-  return { installed: true, open: state === 'ok', state, errorCode: null, fixAction: 'none', fixing: false };
+  return { installed: true, open: state === 'ok', state, errorCode: null, fixAction: 'none', fixing: false, restarting: false };
 }
 
 describe('gateShows', () => {

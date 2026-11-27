@@ -19,7 +19,7 @@ describe('parsePawnIoStatus', () => {
   it('reads the contract body', () => {
     expect(parsePawnIoStatus({
       installed: true, open: false, state: 'blocked', errorCode: 577, fixAction: 'none', fixing: false,
-    })).toEqual({ installed: true, open: false, state: 'blocked', errorCode: 577, fixAction: 'none', fixing: false });
+    })).toEqual({ installed: true, open: false, state: 'blocked', errorCode: 577, fixAction: 'none', fixing: false, restarting: false });
   });
 
   it('treats a body from an older service (no state) as unknown', () => {
@@ -46,6 +46,15 @@ describe('fetchPawnIoStatus', () => {
   });
 });
 
+describe('restarting and fixing flags', () => {
+  it('reads restarting only when it is true, and treats an absent field as false', () => {
+    const base = { installed: true, open: true, state: 'ok', errorCode: null, fixAction: 'none', fixing: false };
+    expect(parsePawnIoStatus({ ...base, restarting: true })?.restarting).toBe(true);
+    expect(parsePawnIoStatus(base)?.restarting).toBe(false);
+    expect(parsePawnIoStatus({ ...base, fixing: true })?.fixing).toBe(true);
+  });
+});
+
 describe('fixPawnIo', () => {
   it('returns the status after the attempt', async () => {
     authFetchWithStatus.mockResolvedValue(reply(200, { installed: true, open: true, state: 'ok', errorCode: null, fixAction: 'none', fixing: false }));
@@ -69,6 +78,8 @@ describe('restartPcForPawnIo', () => {
     authFetchWithStatus.mockResolvedValue(reply(409, { error: true, msg: 'A firmware update is in progress; cannot restart now.' }));
     expect(await restartPcForPawnIo()).toBe('flashing');
     authFetchWithStatus.mockResolvedValue(reply(409, { error: true, msg: 'No restart is needed for the driver.' }));
+    expect(await restartPcForPawnIo()).toBe('refused');
+    authFetchWithStatus.mockResolvedValue(reply(500, { error: true, msg: 'shutdown failed' }));
     expect(await restartPcForPawnIo()).toBe('refused');
     authFetchWithStatus.mockResolvedValue({ response: null, status: 0 });
     expect(await restartPcForPawnIo()).toBe('refused');

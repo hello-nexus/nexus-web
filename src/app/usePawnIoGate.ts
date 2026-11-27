@@ -5,7 +5,7 @@ import { gateShows } from '../components/common/PawnIoGate/gateLogic';
 const POLL_MS = 5_000;
 // The service's boot check latches some seconds after it starts, so a window
 // opened before then polls for a bounded time after each transition to online.
-export const BOOT_POLL_WINDOW_MS = 60_000;
+export const BOOT_POLL_WINDOW_MS = 120_000;
 
 /** A failed or unrecognized read keeps what was known: only a positive report moves the gate. */
 export function nextPawnIoStatus(prev: PawnIoStatus | null, fetched: PawnIoStatus | null): PawnIoStatus | null {
