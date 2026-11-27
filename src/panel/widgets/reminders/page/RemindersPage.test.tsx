@@ -111,11 +111,19 @@ describe('RemindersPage', () => {
     expect(grid.children).toHaveLength(6);
     const colors = Object.fromEntries(SMART_LISTS.map(id => [id, SMART_COLORS[id]]));
     for (const id of SMART_LISTS) {
-      const icon = within(rail).getByText(`reminders.smart.${id}`).closest('[role="button"]')!.querySelector('span') as HTMLElement;
+      const icon = within(rail).getByText(`reminders.smart.${id}`).closest('[role="button"]')!.querySelector('[class*="icon"]') as HTMLElement;
       expect(icon).toHaveStyle({ color: colors[id] });
     }
     expect(within(rail).getByText('reminders.smart.today').closest('[role="button"]')!.textContent).toContain('2');
     expect(within(rail).getByText('reminders.smart.overdue').closest('[role="button"]')!.textContent).toContain('1');
+  });
+
+  it('puts each rail card count on the icon line, beside the icon, with the name below', () => {
+    render(<RemindersPage />);
+    const card = within(screen.getByRole('complementary')).getByText('reminders.smart.today').closest('[role="button"]')!;
+    const top = card.querySelector('[class*="top"]')!;
+    expect(top.children[1].textContent).toBe('2');
+    expect(top.contains(within(card as HTMLElement).getByText('reminders.smart.today'))).toBe(false);
   });
 
   it('keeps My Lists as rows with an edit button, and smart cards without one', () => {

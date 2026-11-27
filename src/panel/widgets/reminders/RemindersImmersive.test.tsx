@@ -67,7 +67,7 @@ describe('RemindersImmersive', () => {
     const nav = screen.getByRole('navigation');
     for (const id of SMART_LISTS) {
       const card = within(nav).getByText(`reminders.smart.${id}`).closest('[role="button"]')!;
-      expect(card.querySelector('span')).toHaveStyle({ color: SMART_COLORS[id] });
+      expect(card.querySelector('[class*="icon"]')).toHaveStyle({ color: SMART_COLORS[id] });
     }
     fireEvent.click(within(nav).getByText('reminders.smart.overdue').closest('[role="button"]')!);
     expect(screen.queryByText('Water plants')).toBeNull();

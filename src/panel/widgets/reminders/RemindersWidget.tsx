@@ -76,7 +76,7 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
         <ReminderCardGrid
           counts={counts}
           columns={GRID_COLUMNS[size] ?? 2}
-          layout={size === '4x2' || size === '4x4' ? 'stack' : 'row'}
+          layout={size === '2x4' ? 'row' : 'stack'}
           showLabels={size !== '2x2'}
           className={styles.grid}
         />

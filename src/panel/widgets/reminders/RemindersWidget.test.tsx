@@ -98,7 +98,7 @@ describe('RemindersWidget', () => {
     const { container } = render(<RemindersWidget widget={widget('4x2', { viewMode: 'grid' })} />);
     for (const id of SMART_LISTS) {
       const card = screen.getByText(`reminders.smart.${id}`).parentElement!;
-      expect(card.querySelector('span')).toHaveStyle({ color: SMART_COLORS[id] });
+      expect(card.querySelector('[class*="icon"]')).toHaveStyle({ color: SMART_COLORS[id] });
     }
     expect(container.innerHTML).not.toMatch(/disc/i);
   });
@@ -108,6 +108,26 @@ describe('RemindersWidget', () => {
     const label = screen.getByText('reminders.smart.today');
     expect(label.className).toContain('srOnly');
     expect(document.querySelectorAll('[class*="name"]')).toHaveLength(0);
+  });
+
+  it('puts the count on the icon line, right beside the icon, with the name below, in every stacked card', () => {
+    for (const size of ['2x2', '4x2', '4x4'] as const) {
+      const { container, unmount } = render(<RemindersWidget widget={widget(size, { viewMode: 'grid' })} />);
+      const card = screen.getByText('reminders.smart.all').closest('[class*="stack"]')!;
+      const top = card.querySelector('[class*="top"]')!;
+      expect(top.children).toHaveLength(2);
+      expect(top.children[0].querySelector('svg')).not.toBeNull();
+      expect(top.children[1].textContent).toBe('4');
+      expect(top.contains(screen.getByText('reminders.smart.all'))).toBe(false);
+      expect(container.querySelectorAll('[class*="stack"]')).toHaveLength(6);
+      unmount();
+    }
+  });
+
+  it('keeps the tall strip as one row per card: icon, name, count', () => {
+    const { container } = render(<RemindersWidget widget={widget('2x4', { viewMode: 'grid' })} />);
+    expect(container.querySelectorAll('[class*="stack"]')).toHaveLength(0);
+    expect(container.querySelector('[class*="top"]')).toBeNull();
   });
 
   it('lays the grid out per size: two columns at 2x2, one at 2x4, three at 4x2 and 4x4', () => {

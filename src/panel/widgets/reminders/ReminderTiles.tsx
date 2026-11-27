@@ -16,7 +16,7 @@ interface CardProps {
   count: number;
   active?: boolean;
   onPress?: () => void;
-  // row: icon, name and count on one line. stack: icon and count above the name.
+  // row: icon, name and count on one line. stack: the icon with its count beside it, the name below.
   layout?: CardLayout;
   // Hidden labels stay readable to assistive tech.
   showLabel?: boolean;
@@ -26,6 +26,8 @@ interface CardProps {
 export function ReminderCard({ id, count, active, onPress, layout = 'row', showLabel = true }: CardProps) {
   const { t } = useTranslation();
   const Icon = SMART_ICONS[id];
+  const glyph = <span className={styles.icon} style={{ color: SMART_COLORS[id] }}><Icon size="1.4em" aria-hidden /></span>;
+  const label = <span className={showLabel ? styles.name : styles.srOnly}>{t(SMART_NAME_KEYS[id])}</span>;
   return (
     <Card
       compact
@@ -35,9 +37,18 @@ export function ReminderCard({ id, count, active, onPress, layout = 'row', showL
       selected={active === true}
       className={`${styles.card} ${layout === 'stack' ? styles.stack : ''}`}
     >
-      <span className={styles.icon} style={{ color: SMART_COLORS[id] }}><Icon size="1.4em" aria-hidden /></span>
-      <span className={showLabel ? styles.name : styles.srOnly}>{t(SMART_NAME_KEYS[id])}</span>
-      <span className={styles.count}>{count}</span>
+      {layout === 'stack' ? (
+        <>
+          <span className={styles.top}>{glyph}<span className={styles.count}>{count}</span></span>
+          {label}
+        </>
+      ) : (
+        <>
+          {glyph}
+          {label}
+          <span className={styles.count}>{count}</span>
+        </>
+      )}
     </Card>
   );
 }

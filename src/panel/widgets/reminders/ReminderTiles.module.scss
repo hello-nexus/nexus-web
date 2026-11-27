@@ -22,12 +22,14 @@
 .card .count { grid-column: 3; }
 
 .stack.stack {
-  grid-template-columns: auto 1fr;
-  grid-template-areas: 'icon count' 'name name';
-  /* c83:allow - grid layout */
-  row-gap: 0.15em;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
-.stack .icon { grid-area: icon; }
+.top { display: flex; align-items: center; @include hgap(0.5em); }
+.stack .name { margin-top: 0.2em; }
+
+.icon { grid-area: icon; }
 .stack .count { grid-area: count; justify-self: end; }
 .stack .name { grid-area: name; }
 
