@@ -27,11 +27,11 @@ import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
-import { excludedFanLinks } from './coolingFanState';
+import { excludedFanLinks, excludedFanSeriesIds } from './coolingFanState';
 import { useCoolingFanChannels } from './useCoolingFanChannels';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import { toCoolingTempChartSeries } from './coolingHistoryHelpers';
-import { useFeatureFlags, useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useFeatureFlags, useUiSettingsUpdateSafe, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { GuardTripNotice } from './GuardTripNotice';
 import { SensorList } from './SensorList';
 import { sensorYDomain } from './sensorHistoryHelpers';
@@ -97,6 +97,7 @@ export function ThermalsTab({
   const lookup = useSensorLookup();
   const coolingOn = useFeatureFlags().cooling;
   const coolingChannels = useCoolingFanChannels(coolingOn);
+  const updateUiSettings = useUiSettingsUpdateSafe();
   const coolingFans = useMemo(() => excludedFanLinks(rules, coolingChannels), [rules, coolingChannels]);
   const { sensors, extras, networkSensors, resolve } = lookup;
   const { group, groups, selectedId, groupRules } = resolveThermals(rules, selection);
@@ -221,9 +222,14 @@ export function ThermalsTab({
   );
   const chartLines = useMemo(() => (thermalsGroup ? [...deviceLines, ...customLines] : customLines), [thermalsGroup, deviceLines, customLines]);
   const rangeBands = useMemo(() => ruleOutOfRangeBands(selectedRule ? [selectedRule] : [], chartLines), [selectedRule, chartLines]);
+  // The average fan speed strip leaves out the fans Cooling keeps out, like the fan lines.
+  const trackedCoolingHistory = useMemo(() => {
+    const out = excludedFanSeriesIds(coolingChannels);
+    return !coolingOn || out.size === 0 ? coolingHistory : { ...coolingHistory, series: coolingHistory.series.filter(s => !out.has(s.id)) };
+  }, [coolingOn, coolingChannels, coolingHistory]);
   const chartHistory = useMemo(
-    () => (thermalsGroup && customTemps.length > 0 ? linkHistories(coolingHistory, sensorHistory) : thermalsGroup ? coolingHistory : sensorHistory),
-    [thermalsGroup, customTemps.length, coolingHistory, sensorHistory],
+    () => (thermalsGroup && customTemps.length > 0 ? linkHistories(trackedCoolingHistory, sensorHistory) : thermalsGroup ? trackedCoolingHistory : sensorHistory),
+    [thermalsGroup, customTemps.length, trackedCoolingHistory, sensorHistory],
   );
   const groupType = groupRules[0]?.sensor.type ?? 'Temperature';
   const groupFormat = useMemo(
@@ -239,8 +245,16 @@ export function ThermalsTab({
   const detailFan = detailRule?.builtIn === 'fanSpeed' ? detailRule : undefined;
   const fanLink = detailFan ? coolingFans.get(detailFan.id) : undefined;
   const fanChannel = detailFan ? coolingChannels.find(c => `fan:${c.seriesId}` === builtInSeriesId(detailFan)) : undefined;
-  const coolingFanDetail = coolingOn && detailFan && onOpenCoolingFan && (fanLink || fanChannel)
-    ? { status: fanLink?.status ?? null, onManage: () => onOpenCoolingFan((fanLink?.channelId ?? fanChannel?.id) as string) }
+  // Cooling has no control for the ignore list, so a fan already in it keeps its Enabled switch as the way back.
+  const coolingFanDetail = coolingOn && detailFan?.enabled && onOpenCoolingFan && (fanLink || fanChannel)
+    ? {
+      status: fanLink?.status ?? null,
+      onManage: () => {
+        // Cooling hides these fans unless it shows uncontrolled devices, and the selection must be visible.
+        if (fanLink) updateUiSettings({ showUncontrolledCoolingDevices: true });
+        onOpenCoolingFan((fanLink?.channelId ?? fanChannel?.id) as string);
+      },
+    }
     : undefined;
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
   const bannerAlerts: BannerAlert[] = rules.flatMap(rule => {

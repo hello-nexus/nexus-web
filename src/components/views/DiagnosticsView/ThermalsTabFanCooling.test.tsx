@@ -4,7 +4,7 @@ import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { ThermalsTab } from './ThermalsTab';
 
-const h = vi.hoisted(() => ({ rules: [] as unknown[], channels: [] as unknown[], coolingOn: true }));
+const h = vi.hoisted(() => ({ rules: [] as unknown[], channels: [] as unknown[], coolingOn: true, update: vi.fn() }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
@@ -18,6 +18,7 @@ vi.mock('../../../api/cooling', async importOriginal => ({
 }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
+  useUiSettingsUpdateSafe: () => h.update,
   useFeatureFlags: () => ({ lighting: true, cooling: h.coolingOn, monitoring: true, diagnostics: true }),
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', numberFormat: 'dot', timeFormat: '24h', monitoringWholeNumbers: false, dateFormat: 'system' }),
 }));
@@ -32,8 +33,8 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ language: 'en', t: (key: string, vars?: Record<string, string>) => (vars ? `${key}(${Object.values(vars).join(',')})` : key) }),
 }));
 vi.mock('../../common/TimeSeriesChart/TimeSeriesChart', () => ({
-  TimeSeriesChart: (props: { series: { id: string }[] }) => (
-    <div data-testid="chart">{props.series.map(s => <span key={s.id} data-testid="legend">{s.id}</span>)}</div>
+  TimeSeriesChart: (props: { series: { id: string }[]; ribbons?: { valueLabel?: string }[] }) => (
+    <div data-testid="chart" data-ribbon={props.ribbons?.[0]?.valueLabel ?? ''}>{props.series.map(s => <span key={s.id} data-testid="legend">{s.id}</span>)}</div>
   ),
 }));
 vi.mock('../../common/TimelineBrush/TimelineBrush', () => ({ TIMELINE_BRUSH_DEFAULT_HEIGHT: 28, TimelineBrush: () => null }));
@@ -53,12 +54,12 @@ const fanRule = (seriesId: string): SensorAlertRule => ({
   notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0,
 });
 
-function renderTab(onOpenCoolingFan = vi.fn()) {
+function renderTab(onOpenCoolingFan = vi.fn(), group: 'fans' | 'thermals' = 'fans') {
   const sensorHistory = history(['builtin:fan:s_off', 'builtin:fan:s_on']);
   render(
     <ThermalsTab
-      coolingHistory={{ ...sensorHistory, series: [] }} sensorHistory={sensorHistory} episodes={[]} serviceOnline
-      onGuardTripDismissed={() => {}} selection={{ group: 'fans', selectedId: 'builtin:fan:s_off' }} onSelectionChange={() => {}}
+      coolingHistory={{ ...sensorHistory, series: ['fan:s_off', 'fan:s_on'].map((id, i) => ({ id, kind: 'fan', name: id, points: [{ t: 1000, avg: i * 900, max: i * 900 }] })) as UseMetricHistoryResult['series'] }} sensorHistory={sensorHistory} episodes={[]} serviceOnline
+      onGuardTripDismissed={() => {}} selection={{ group, selectedId: group === 'fans' ? 'builtin:fan:s_off' : null }} onSelectionChange={() => {}}
       onAlertDismissed={() => {}} onOpenCoolingFan={onOpenCoolingFan}
     />,
   );
@@ -83,6 +84,7 @@ describe('ThermalsTab fans follow Cooling', () => {
     expect(screen.queryByRole('switch', { name: /enabledFor/ })).toBeNull();
     fireEvent.click(screen.getByTestId('fan-manage-cooling'));
     expect(onOpen).toHaveBeenCalledWith('hw/off');
+    expect(h.update).toHaveBeenCalledWith({ showUncontrolledCoolingDevices: true });
   });
 
   it('keeps today behavior with the Cooling feature off', async () => {
@@ -92,5 +94,19 @@ describe('ThermalsTab fans follow Cooling', () => {
     expect(screen.getAllByTestId('sensor-row')[0]).not.toHaveAttribute('data-state', 'notControlled');
     expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
+  });
+
+  it('keeps the Enabled switch for a fan already switched off, so it can be turned back on', async () => {
+    h.rules = [{ ...fanRule('s_off'), enabled: false }, fanRule('s_on')];
+    renderTab();
+    await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
+    expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
+    expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
+  });
+
+  it('drops excluded fans from the average fan speed strip', async () => {
+    renderTab(vi.fn(), 'thermals');
+    await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-ribbon', '900 RPM');
   });
 });

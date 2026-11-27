@@ -30,4 +30,9 @@ export function excludedFanLinks(rules: readonly SensorAlertRule[], channels: re
   return links;
 }
 
+/** Monitoring history series ids (`fan:<seriesId>`) of the fans Cooling keeps out. */
+export function excludedFanSeriesIds(channels: readonly FanChannel[]): ReadonlySet<string> {
+  return new Set(channels.filter(ch => ch.seriesId && coolingFanStatus(ch)).map(ch => `fan:${ch.seriesId}`));
+}
+
 export const coolingFanStatusLabelKey = (status: CoolingFanStatus): string => `diagnostics.sensors.fan.${status}`;
