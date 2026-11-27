@@ -131,7 +131,20 @@ describe('RemindersPage', () => {
     expect(glyph.className).not.toContain('Disc');
     expect(screen.queryByText(/reminders\.completedCount/)).toBeNull();
     expect(screen.getByRole('switch', { name: 'reminders.showCompleted' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'reminders.clearCompleted' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'reminders.clearCompleted' })).toBeNull();
+  });
+
+  it('puts Show Completed (lists only) and Clear Completed (Completed only) in the title row', () => {
+    const { rerender } = render(<RemindersPage tab="l1" />);
+    const titleRow = () => screen.getAllByText('Home').map(e => e.closest<HTMLElement>('[class*="toolbar"]')).find(Boolean)!;
+    expect(within(titleRow()).getByRole('switch', { name: 'reminders.showCompleted' })).toBeTruthy();
+    rerender(<RemindersPage tab="today" />);
+    expect(screen.queryByRole('switch', { name: 'reminders.showCompleted' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'reminders.clearCompleted' })).toBeNull();
+    rerender(<RemindersPage tab="completed" />);
+    const row = screen.getByRole('button', { name: 'reminders.clearCompleted' }).closest<HTMLElement>('[class*="toolbar"]')!;
+    expect(within(row).getByText('reminders.smart.completed')).toBeTruthy();
+    expect(document.querySelector('[class*="subbar"]')).toBeNull();
   });
 
   it('reports a clicked smart row as the subtab', () => {
@@ -223,17 +236,18 @@ describe('RemindersPage', () => {
     expect(screen.getByRole('switch', { name: 'reminders.showCompleted' }).getAttribute('aria-checked')).toBe('true');
   });
 
-  it('clears the completed items of the shown list after a confirm', async () => {
-    render(<RemindersPage tab="l1" />);
+  it('clears all completed items from the Completed list after a confirm', async () => {
+    render(<RemindersPage tab="completed" />);
     fireEvent.click(screen.getByRole('button', { name: 'reminders.clearCompleted' }));
     const dialog = screen.getByRole('alertdialog');
     expect(store.clearCompleted).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole('button', { name: 'reminders.clearCompleted.confirm' }));
-    expect(store.clearCompleted).toHaveBeenCalledWith('l1');
+    expect(store.clearCompleted).toHaveBeenCalledWith();
   });
 
   it('disables Clear completed when nothing is completed', () => {
-    render(<RemindersPage tab="l2" />);
+    store.items = store.items.filter(i => !i.completed);
+    render(<RemindersPage tab="completed" />);
     expect((screen.getByRole('button', { name: 'reminders.clearCompleted' }) as HTMLButtonElement).disabled).toBe(true);
   });
 

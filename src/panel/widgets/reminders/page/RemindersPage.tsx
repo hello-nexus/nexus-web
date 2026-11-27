@@ -96,9 +96,7 @@ export function RemindersPage({ tab, onTabChange }: Props) {
   const list = listId ? listsById.get(listId) : undefined;
   const title = list ? list.name : t(SMART_NAME_KEYS[selection.kind === 'smart' ? selection.id : 'all']);
   const ringColor = list ? list.color : SMART_COLORS[selection.kind === 'smart' ? selection.id : 'all'];
-  const doneInScope = listId !== null
-    ? items.filter(i => i.completed && i.listId === listId).length
-    : selection.kind === 'smart' && selection.id === 'completed' ? counts.completed : 0;
+  const onCompleted = selection.kind === 'smart' && selection.id === 'completed';
   const defaults = newItemDefaults(selection, lists, now);
   const detailsItem = detailsId ? items.find(i => i.id === detailsId) ?? null : null;
 
@@ -213,17 +211,17 @@ export function RemindersPage({ tab, onTabChange }: Props) {
                       onPress={() => setListTarget(list)}
                     />
                   )}
-                </div>
-                <div className={styles.subbar}>
                   {listId !== null && (
                     <label className={styles.showCompleted}>
                       <span>{t('reminders.showCompleted')}</span>
-                      <Toggle checked={showCompleted} onChange={on => { setShowCompleted(on); writeShowCompleted(on); }} ariaLabel={t('reminders.showCompleted')} />
+                      <Toggle size="sm" checked={showCompleted} onChange={on => { setShowCompleted(on); writeShowCompleted(on); }} ariaLabel={t('reminders.showCompleted')} />
                     </label>
                   )}
-                  <Button size="sm" tone="neutral" disabled={doneInScope === 0} onClick={() => setClearing(true)}>
-                    {t('reminders.clearCompleted')}
-                  </Button>
+                  {onCompleted && (
+                    <Button size="sm" tone="neutral" disabled={counts.completed === 0} onClick={() => setClearing(true)}>
+                      {t('reminders.clearCompleted')}
+                    </Button>
+                  )}
                 </div>
                 {notice && <p className={styles.error} role="alert">{notice}</p>}
                 <div className={styles.scroll}>
@@ -313,7 +311,7 @@ export function RemindersPage({ tab, onTabChange }: Props) {
         confirmLabel={t('reminders.clearCompleted.confirm')}
         onConfirm={() => {
           setClearing(false);
-          clearCompleted(listId ?? undefined).catch(fail);
+          clearCompleted().catch(fail);
         }}
         onCancel={() => setClearing(false)}
       />
