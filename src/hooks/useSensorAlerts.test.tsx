@@ -125,6 +125,18 @@ describe('useSensorAlerts', () => {
     expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the enabled the service computed when a fan entry save comes back different from the edit', async () => {
+    const fan = rule('builtin-fan', { builtIn: 'fanSpeed', enabled: false });
+    h.fetchSensorAlerts.mockResolvedValue(ok({ rules: [fan], states: [] }));
+    const { result } = renderHook(() => useSensorAlerts(true, false));
+    await act(async () => {});
+    h.updateSensorAlert.mockResolvedValue(ok({ ...fan, enabled: false }));
+
+    await act(async () => { result.current.save({ ...fan, enabled: true }); });
+
+    expect(result.current.rules[0].enabled).toBe(false);
+  });
+
   it('does not poll without liveValues', async () => {
     vi.useFakeTimers();
     await mount(false);

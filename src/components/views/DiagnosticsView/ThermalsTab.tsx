@@ -253,7 +253,7 @@ export function ThermalsTab({
     const fail = () => push({ title: t('diagnostics.alerts.saveFailed') });
     if (!channel) { alerts.save({ ...rule, enabled }, fail); return; }
     alerts.preview({ ...rule, enabled });
-    void setFanControlledWithStatus(channel, enabled).then(({ ok, status }) => {
+    void setFanControlledWithStatus(channel, enabled, enabled).then(({ ok, status }) => {
       if (ok) { alerts.refresh(); return; }
       if (status === 409) { alerts.save({ ...rule, enabled }, fail); return; }
       fail();

@@ -230,9 +230,9 @@ export const setFanPin = (id: string, pinned: boolean) =>
 export const setFanControlled = (id: string, controlled: boolean) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/controlled`, { controlled });
 
-/** Same write as setFanControlled, keeping the status: 409 means the Cooling feature is off. */
-export async function setFanControlledWithStatus(id: string, controlled: boolean): Promise<{ ok: boolean; status: number }> {
-  const { response, status } = await authFetchWithStatus(`/cooling/fan/${encodeURIComponent(id)}/controlled`, { method: 'POST', body: { controlled } });
+/** Same write as setFanControlled, keeping the status: 409 means the Cooling feature is off. `unmute` also clears the fan's legacy monitoring mute when switching on. */
+export async function setFanControlledWithStatus(id: string, controlled: boolean, unmute = false): Promise<{ ok: boolean; status: number }> {
+  const { response, status } = await authFetchWithStatus(`/cooling/fan/${encodeURIComponent(id)}/controlled`, { method: 'POST', body: unmute ? { controlled, unmute } : { controlled } });
   return { ok: !!response?.ok, status };
 }
 

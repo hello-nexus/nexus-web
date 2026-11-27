@@ -264,7 +264,7 @@ describe('ThermalsTab', () => {
       render(<SensorsTab {...props()} />);
       selectFirstRow();
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
-      expect(h.setControlled).toHaveBeenCalledWith('f1', false);
+      expect(h.setControlled).toHaveBeenCalledWith('f1', false, false);
       expect(h.save).not.toHaveBeenCalled();
       expect(h.refresh).toHaveBeenCalled();
     });

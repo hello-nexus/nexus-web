@@ -168,9 +168,9 @@ export function useSensorAlerts(enabled: boolean, liveValues = false): UseSensor
           pendingRef.current.delete(id);
           const res = await updateSensorAlert(next.rule);
           if (res.ok || removingRef.current.has(id)) {
-            // The service may clamp a built-in's limit; show what it stored unless a newer edit is queued.
+            // The service may clamp a built-in's limit and computes a fan entry's switch (control and mute); show what it stored unless a newer edit is queued.
             const stored = res.data;
-            if (stored && stored.builtIn && !pendingRef.current.has(id) && mountedRef.current && (stored.low !== next.rule.low || stored.high !== next.rule.high)) replaceRule(stored);
+            if (stored && stored.builtIn && !pendingRef.current.has(id) && mountedRef.current && (stored.low !== next.rule.low || stored.high !== next.rule.high || stored.enabled !== next.rule.enabled)) replaceRule(stored);
             continue;
           }
           if (mountedRef.current) next.onFail?.(res.code, res.trackedRuleId);
