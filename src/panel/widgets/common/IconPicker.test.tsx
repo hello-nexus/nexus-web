@@ -83,6 +83,15 @@ describe('IconPicker tabs', () => {
     expect(screen.getByRole('button', { name: 'panel.iconPicker.custom' })).toBeInTheDocument();
   });
 
+  it('offers only the requested tabs and opens on the first when the value maps to none of them', () => {
+    render(<IconPicker onChange={() => {}} tabs={['icons', 'emoji']} />);
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.icons' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.emoji' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'panel.iconPicker.auto' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.iconPicker.custom' })).toBeNull();
+    expect(screen.getByLabelText('Star')).toBeInTheDocument();
+  });
+
   it('opens on the Custom tab (with the current image previewed) when the value is an image icon', () => {
     renderPicker({ kind: 'image', value: 'abc' });
     expect(screen.getByText('panel.iconPicker.uploadImage')).toBeInTheDocument();

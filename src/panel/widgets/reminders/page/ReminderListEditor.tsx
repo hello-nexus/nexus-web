@@ -9,24 +9,16 @@ import { ColorPickerWithPresets } from '../../../../components/common/ColorPicke
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { useStackOnOverflow } from '../../../../components/common/ConfirmModal/useStackOnOverflow';
 import { CALENDAR_COLORS } from '../../calendar/page/CalendarSourceModal';
-import { DEFAULT_REMINDER_ICON, REMINDER_ICON_KEYS, reminderIcon } from '../reminderIcons';
+import { IconPicker } from '../../common/IconPicker';
+import { DEFAULT_REMINDER_ICON, keyFromPicker, pickerValueFor } from '../reminderIcons';
+import { ReminderIconGlyph } from '../ReminderIconGlyph';
 import { nextListColor } from '../reminderLogic';
 import styles from './ReminderModal.module.scss';
 
 const PICKER_PLACEMENT = 'top-end' as const;
+const PICKER_TABS = ['icons', 'emoji'] as const;
 
 export const REMINDER_COLORS: readonly string[] = CALENDAR_COLORS;
-
-const ICON_LABEL_KEYS: Record<string, string> = {
-  list: 'reminders.icon.list',
-  bookmark: 'reminders.icon.bookmark',
-  star: 'reminders.icon.star',
-  heart: 'reminders.icon.heart',
-  home: 'reminders.icon.home',
-  cart: 'reminders.icon.cart',
-  briefcase: 'reminders.icon.briefcase',
-  gift: 'reminders.icon.gift',
-};
 
 export function errorKeyFor(e: unknown): string {
   const code = e instanceof ReminderRequestError ? e.code : null;
@@ -152,24 +144,16 @@ export function ReminderListEditor({ target, lists, onClose, onCreated, onDelete
             />
           </div>
           <div className={styles.field}>
-            <span className={styles.label}>{t('reminders.list.icon')}</span>
-            <div className={styles.icons} role="group" aria-label={t('reminders.list.icon')}>
-              {REMINDER_ICON_KEYS.map(key => {
-                const Icon = reminderIcon(key);
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    className={styles.iconButton}
-                    aria-pressed={key === icon}
-                    aria-label={t(ICON_LABEL_KEYS[key])}
-                    onClick={() => setIcon(key)}
-                  >
-                    <Icon size={18} aria-hidden style={{ color }} />
-                  </button>
-                );
-              })}
-            </div>
+            <span className={styles.label}>
+              {t('reminders.list.icon')}
+              <span className={styles.iconPreview} style={{ color }}><ReminderIconGlyph iconKey={icon} /></span>
+            </span>
+            <IconPicker
+              tabs={PICKER_TABS}
+              desktopEditor
+              value={pickerValueFor(icon)}
+              onChange={choice => { if (choice) setIcon(keyFromPicker(choice)); }}
+            />
           </div>
         </div>
         <div ref={actionsRef} className={styles.actions}>

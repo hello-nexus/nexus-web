@@ -26,24 +26,7 @@
 .error { margin: 0; overflow-wrap: anywhere; @include text-body; color: var(--bad); font-size: var(--type-small); }
 .swatches { max-width: none; }
 
-.icons { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.iconButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  padding: 0;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-
-  &:hover { background: var(--surface-hover); }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  &[aria-pressed='true'] { border-color: var(--accent); }
-}
+.iconPreview { display: inline-flex; align-items: center; margin-left: 0.5rem; vertical-align: middle; }
 
 .time {
   min-height: 2rem;

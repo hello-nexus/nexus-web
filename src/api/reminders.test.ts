@@ -80,6 +80,16 @@ describe('reminders dev mock rules', () => {
     await expect(createReminderList({ name: 'x', color: '#112233', icon: 'bad icon' })).rejects.toMatchObject({ code: 'invalid' });
   });
 
+  it('accepts a Lucide name or an emoji icon and refuses a malformed one', async () => {
+    const mk = (icon: string) => createReminderList({ name: 'Icons', color: '#112233', icon });
+    expect((await mk('Rocket')).icon).toBe('Rocket');
+    expect((await mk('emoji:🛒')).icon).toBe('emoji:🛒');
+    expect((await mk('emoji:👨\u200d👩\u200d👧\u200d👦')).icon).toContain('emoji:');
+    await expect(mk('emoji:')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk('emoji:a b')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk('bad icon')).rejects.toMatchObject({ code: 'invalid' });
+  });
+
   it('clears dueTime with dueDate and moves a re-listed item to the end', async () => {
     const snap = await fetchReminders();
     const [a, b] = snap.lists;

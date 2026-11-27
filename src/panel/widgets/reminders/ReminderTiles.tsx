@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ReminderListDto } from '../../../api/reminders';
-import { reminderIcon, SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS, SMART_ROW_ICONS } from './reminderIcons';
+import { SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS, SMART_ROW_ICONS } from './reminderIcons';
+import { ReminderIconGlyph } from './ReminderIconGlyph';
 import { SMART_LISTS, type ReminderCounts, type SmartListId } from './reminderLogic';
 import styles from './ReminderTiles.module.scss';
 
@@ -66,12 +67,11 @@ interface ListRowProps {
 export function ReminderListRow({ list, smart, count, active, onPress, trailing }: ListRowProps) {
   const { t } = useTranslation();
   const SmartIcon = smart ? SMART_ROW_ICONS[smart] : null;
-  const Icon = list ? reminderIcon(list.icon) : null;
   const name = smart ? t(SMART_NAME_KEYS[smart]) : list?.name ?? '';
   const body = (
     <>
       {SmartIcon && <span className={styles.listGlyph}><SmartIcon size="1.25em" aria-hidden /></span>}
-      {Icon && <span className={`${styles.listGlyph} ${styles.listColor}`}><Icon size="1.25em" aria-hidden /></span>}
+      {list && <span className={`${styles.listGlyph} ${styles.listColor}`}><ReminderIconGlyph iconKey={list.icon} /></span>}
       <span className={styles.listName}>{name}</span>
       <span className={styles.listCount}>{count}</span>
     </>

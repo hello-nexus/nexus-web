@@ -264,6 +264,28 @@ describe('RemindersPage', () => {
     await waitFor(() => expect(onTabChange).toHaveBeenCalledWith('made'));
   });
 
+  it('offers the Icons and Emoji tabs only in the list editor and stores a picked deck icon', async () => {
+    render(<RemindersPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'reminders.list.add.button' }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByRole('button', { name: 'panel.iconPicker.icons' })).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'panel.iconPicker.emoji' })).toBeTruthy();
+    expect(within(dialog).queryByRole('button', { name: 'panel.iconPicker.auto' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'panel.iconPicker.custom' })).toBeNull();
+    fireEvent.input(within(dialog).getByLabelText('reminders.list.name'), { target: { value: 'Launch' } });
+    fireEvent.click(within(dialog).getByLabelText('Rocket'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'reminders.list.add.confirm' }));
+    await waitFor(() => expect(store.createList).toHaveBeenCalledWith(expect.objectContaining({ name: 'Launch', icon: 'Rocket' })));
+  });
+
+  it('draws an emoji list icon as its glyph in the rail', () => {
+    store.lists = [...store.lists, { ...list('l3', 'Shopping', 2), icon: 'emoji:🛒' }];
+    render(<RemindersPage />);
+    const row = within(screen.getByRole('complementary')).getByText('Shopping').closest('button')!;
+    expect(within(row).getByText('🛒')).toBeTruthy();
+    expect(row.querySelector('svg')).toBeNull();
+  });
+
   it('edits a list and deletes it after a confirm, leaving it for Today', async () => {
     const onTabChange = vi.fn();
     render(<RemindersPage tab="l2" onTabChange={onTabChange} />);

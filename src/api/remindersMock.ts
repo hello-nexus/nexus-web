@@ -14,7 +14,8 @@ let nextId = 1;
 const listeners = new Set<() => void>();
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-const ICON = /^[A-Za-z0-9_-]{1,64}$/;
+// A Lucide icon name, or an emoji sequence (ZWJ and variation selectors included) after the prefix.
+const ICON = /^([A-Za-z0-9_-]{1,64}|emoji:\S{1,32})$/u;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
