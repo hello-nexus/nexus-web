@@ -34,10 +34,11 @@ export function usePawnIoGate(enabled: boolean) {
   const onlineSince = useRef(0);
 
   // Going offline ends a success beat: the screen it was held for is gone,
-  // and on reconnect the fresh read decides whether the gate shows.
+  // and on reconnect the fresh read decides whether the gate shows, so the
+  // stale status must not survive to re-latch it.
   useEffect(() => {
     if (enabled) onlineSince.current = Date.now();
-    else { setCelebrating(false); setLatched(false); }
+    else { setCelebrating(false); setLatched(false); setStatus(null); }
   }, [enabled]);
 
   useEffect(() => {

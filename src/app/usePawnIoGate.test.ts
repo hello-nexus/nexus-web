@@ -130,6 +130,18 @@ describe('usePawnIoGate', () => {
     }
   });
 
+  it('a reconnect reading ok goes straight to the app, with no stale gate', async () => {
+    fetchPawnIoStatus.mockResolvedValue(status('notRunning'));
+    const { result, rerender } = renderHook(({ on }) => usePawnIoGate(on), { initialProps: { on: true } });
+    await waitFor(() => expect(result.current.show).toBe(true));
+    rerender({ on: false });
+    expect(result.current.status).toBeNull();
+    fetchPawnIoStatus.mockResolvedValue(status('ok'));
+    rerender({ on: true });
+    await waitFor(() => expect(result.current.status?.state).toBe('ok'));
+    expect(result.current.show).toBe(false);
+  });
+
   it('holds the screen for the success beat after a fix, until continue', async () => {
     fetchPawnIoStatus.mockResolvedValue(status('notRunning'));
     const { result } = renderHook(() => usePawnIoGate(true));

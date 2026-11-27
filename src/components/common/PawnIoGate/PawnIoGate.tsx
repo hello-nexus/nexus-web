@@ -75,8 +75,8 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
   stateRef.current = current.state;
 
   // A poll that reports a different not-ok state replaces the screen and
-  // resets its flow; ok is the host's call (it unmounts us, or holds us for
-  // the success beat).
+  // resets its flow. ok is handled by the finalizing effect below, which runs
+  // the one fix call and the success screen; the host releases us after that.
   useEffect(() => {
     if (status.state === 'ok') return;
     if (status.state !== stateRef.current) {
@@ -217,7 +217,9 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       try {
         const result = await fixPawnIo();
         if (!mounted.current) return;
-        if (result.kind === 'failed') succeed(false);
+        // The driver already reads ok, so a refused or failed finalizing call
+        // (flash in progress, request error) must not trap the user here.
+        if (result.kind === 'failed' || result.kind === 'flashing') succeed(false);
         else await handleFix('ok', result, phase);
       } finally {
         inFlight.current = false;

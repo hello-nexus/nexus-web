@@ -331,4 +331,14 @@ describe('PawnIoGate when the host poll reads ok', () => {
     expect(props.onFixed).toHaveBeenCalledTimes(1);
     expect(screen.getByText('pawnioGate.done.body')).toBeTruthy();
   });
+
+  it('a flash refusal of the finalizing call falls through to the not-restarting success', async () => {
+    fixPawnIo.mockResolvedValue({ kind: 'flashing' });
+    const props = noop();
+    const { rerender } = render(<PawnIoGate status={status('restartRequired')} {...props} />);
+    await act(async () => { rerender(<PawnIoGate status={status('ok')} {...props} />); });
+    expect(screen.getByText('pawnioGate.done.ready')).toBeTruthy();
+    expect(screen.queryByText('pawnioGate.notice.flashing')).toBeNull();
+    expect(props.onFixed).toHaveBeenCalledTimes(1);
+  });
 });
