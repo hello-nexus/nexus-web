@@ -245,8 +245,7 @@ export function ThermalsTab({
   const detailFan = detailRule?.builtIn === 'fanSpeed' ? detailRule : undefined;
   const fanLink = detailFan ? coolingFans.get(detailFan.id) : undefined;
   const fanChannel = detailFan ? coolingChannels.find(c => `fan:${c.seriesId}` === builtInSeriesId(detailFan)) : undefined;
-  // Cooling has no control for the ignore list, so a fan already in it keeps its Enabled switch as the way back.
-  const coolingFanDetail = coolingOn && detailFan?.enabled && onOpenCoolingFan && (fanLink || fanChannel)
+  const coolingFanDetail = coolingOn && onOpenCoolingFan && (fanLink || fanChannel)
     ? {
       status: fanLink?.status ?? null,
       onManage: () => {

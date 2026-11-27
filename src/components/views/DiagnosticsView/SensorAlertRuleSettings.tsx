@@ -59,7 +59,7 @@ interface SensorAlertRuleSettingsProps {
   /** The entry already tracking a sensor picked here, if any; the pick is then refused and `onTracked` runs. */
   findTracked?: (sensor: SensorRef) => SensorAlertRule | undefined;
   onTracked?: (existing: SensorAlertRule) => void;
-  /** Set for a fan entry while Cooling is on: the Enabled switch gives way to a link to the Cooling page, the one place the fan is switched. */
+  /** Set for a fan entry that is a Cooling channel while Cooling is on: its Cooling status (null while controlled and responding) and a way to the Cooling page. */
   coolingFan?: { status: CoolingFanStatus | null; onManage: () => void };
 }
 
@@ -106,22 +106,11 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
   const outsideTone = rule.severity === 'act' ? BAD : WARN;
   return (
     <>
-      {coolingFan ? (
-        <SettingRow
-          label={t('diagnostics.alerts.manageInCoolingFor', { name: ruleLabel(rule) })}
-          description={t(coolingFan.status ? `${coolingFanStatusLabelKey(coolingFan.status)}Description` : 'diagnostics.alerts.manageInCoolingHint')}
-        >
-          <Button type="button" tone="neutral" size="sm" data-testid="fan-manage-cooling" icon={<ExternalLink size={13} aria-hidden />} onClick={coolingFan.onManage}>
-            {t('diagnostics.alerts.manageInCooling')}
-          </Button>
-        </SettingRow>
-      ) : (
-        <SettingToggle
-          label={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })}
-          checked={rule.enabled}
-          onChange={onToggleEnabled}
-        />
-      )}
+      <SettingToggle
+        label={t('diagnostics.alerts.enabledFor', { name: ruleLabel(rule) })}
+        checked={rule.enabled}
+        onChange={onToggleEnabled}
+      />
       {!builtIn && (
         <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
           <SensorPicker
@@ -217,6 +206,16 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
           </Button>
         )}
       </SettingRow>
+      {coolingFan && (
+        <SettingRow
+          label={t(coolingFan.status ? coolingFanStatusLabelKey(coolingFan.status) : 'diagnostics.sensors.fan.controlled')}
+          description={coolingFan.status ? t('diagnostics.alerts.fanPaused') : undefined}
+        >
+          <Button type="button" tone="neutral" size="sm" data-testid="fan-manage-cooling" icon={<ExternalLink size={13} aria-hidden />} onClick={coolingFan.onManage}>
+            {t('diagnostics.alerts.manageInCooling')}
+          </Button>
+        </SettingRow>
+      )}
       <ConfirmModal
         open={confirmOpen}
         title={t('common.delete')}

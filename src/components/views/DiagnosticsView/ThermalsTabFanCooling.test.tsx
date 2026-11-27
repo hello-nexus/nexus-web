@@ -54,12 +54,12 @@ const fanRule = (seriesId: string): SensorAlertRule => ({
   notifyDesktop: true, notifyMobile: false, showInHealth: true, repeatMinutes: 0,
 });
 
-function renderTab(onOpenCoolingFan = vi.fn(), group: 'fans' | 'thermals' = 'fans') {
-  const sensorHistory = history(['builtin:fan:s_off', 'builtin:fan:s_on']);
+function renderTab(onOpenCoolingFan = vi.fn(), group: 'fans' | 'thermals' = 'fans', selectedId = 'builtin:fan:s_off') {
+  const sensorHistory = history(['builtin:fan:s_off', 'builtin:fan:s_on', 'builtin:fan:s_other']);
   render(
     <ThermalsTab
       coolingHistory={{ ...sensorHistory, series: ['fan:s_off', 'fan:s_on'].map((id, i) => ({ id, kind: 'fan', name: id, points: [{ t: 1000, avg: i * 900, max: i * 900 }] })) as UseMetricHistoryResult['series'] }} sensorHistory={sensorHistory} episodes={[]} serviceOnline
-      onGuardTripDismissed={() => {}} selection={{ group, selectedId: group === 'fans' ? 'builtin:fan:s_off' : null }} onSelectionChange={() => {}}
+      onGuardTripDismissed={() => {}} selection={{ group, selectedId: group === 'fans' ? selectedId : null }} onSelectionChange={() => {}}
       onAlertDismissed={() => {}} onOpenCoolingFan={onOpenCoolingFan}
     />,
   );
@@ -68,6 +68,7 @@ function renderTab(onOpenCoolingFan = vi.fn(), group: 'fans' | 'thermals' = 'fan
 
 beforeEach(() => {
   h.coolingOn = true;
+  h.update.mockClear();
   h.rules = [fanRule('s_off'), fanRule('s_on')];
   h.channels = [
     { id: 'hw/off', seriesId: 's_off', name: 'Off', controlled: false, rpm: 0, dutyPercent: 0, mode: 'Auto' },
@@ -76,12 +77,13 @@ beforeEach(() => {
 });
 
 describe('ThermalsTab fans follow Cooling', () => {
-  it('marks a control-off fan, drops it from the chart, and links its settings to Cooling', async () => {
+  it('marks a control-off fan, drops it from the chart, and adds a Cooling row to its settings', async () => {
     const onOpen = renderTab();
     await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
     expect(screen.getAllByTestId('sensor-row')[1]).not.toHaveAttribute('data-state', 'notControlled');
     expect(screen.getAllByTestId('legend').map(el => el.textContent)).toEqual(['builtin:fan:s_on']);
-    expect(screen.queryByRole('switch', { name: /enabledFor/ })).toBeNull();
+    expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.alerts.fanPaused')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('fan-manage-cooling'));
     expect(onOpen).toHaveBeenCalledWith('hw/off');
     expect(h.update).toHaveBeenCalledWith({ showUncontrolledCoolingDevices: true });
@@ -96,9 +98,18 @@ describe('ThermalsTab fans follow Cooling', () => {
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
   });
 
-  it('keeps the Enabled switch for a fan already switched off, so it can be turned back on', async () => {
-    h.rules = [{ ...fanRule('s_off'), enabled: false }, fanRule('s_on')];
-    renderTab();
+  it('shows a plain Controlled status, no pause line and no reveal, for a fan Cooling still tracks', async () => {
+    const onOpen = renderTab(vi.fn(), 'fans', 'builtin:fan:s_on');
+    await waitFor(() => expect(screen.getByText('diagnostics.sensors.fan.controlled')).toBeInTheDocument());
+    expect(screen.queryByText('diagnostics.alerts.fanPaused')).toBeNull();
+    fireEvent.click(screen.getByTestId('fan-manage-cooling'));
+    expect(onOpen).toHaveBeenCalledWith('hw/on');
+    expect(h.update).not.toHaveBeenCalled();
+  });
+
+  it('shows no Cooling row for a fan that is not a Cooling channel', async () => {
+    h.rules = [fanRule('s_off'), fanRule('s_on'), fanRule('s_other')];
+    renderTab(vi.fn(), 'fans', 'builtin:fan:s_other');
     await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
     expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
