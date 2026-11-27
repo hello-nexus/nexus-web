@@ -66,7 +66,9 @@ export const DeckEditContext = createContext<DeckEditContextValue>({ freezeSeed:
 // desktop app's own device page can edit another panel's (including a
 // phone's) deck layout, and that save still carries the desktop token.
 function isPrivilegedPickerKind(kind: DeckPickerKind): boolean {
-  return (PRIVILEGED_DECK_ACTION_TYPES as ReadonlySet<string>).has(kind);
+  // 'display' runs through the service dispatch path like the privileged types
+  // (its activation route is dashboard-only), so a phone session cannot author it.
+  return kind === 'display' || (PRIVILEGED_DECK_ACTION_TYPES as ReadonlySet<string>).has(kind);
 }
 
 function deckAuthoringLocked(surface?: PanelSurface, desktopEditor?: boolean): boolean {
@@ -463,7 +465,7 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
     case 'deckSleep':
       return <p className={styles.description}>{t('panel.settings.deck.deckSleepDescription')}</p>;
     case 'nexus':
-      return <NexusFields action={action} onChange={onChange} />;
+      return <NexusFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'monitoring':
       return <MonitoringFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'weather':
@@ -523,7 +525,7 @@ export function defaultNexusAction(op: DeckNexusOp): DeckNexusAction {
   }
 }
 
-function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type: 'nexus' }>; onChange: (a: DeckAction) => void }) {
+function NexusFields({ action, onChange, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'nexus' }>; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const { freezeSeed, serviceOps } = useContext(DeckEditContext);
   const a = action.action;
@@ -549,16 +551,19 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   const presetValue = presets.some(p => p.value === a.presetId) ? a.presetId ?? '' : '';
 
   const isDisplayPreset = a.op === 'displayPreset';
-  const { targets: displayTargets, loaded: displayTargetsLoaded } = useDisplayPresetTargets();
+  // The presets list route is dashboard-only, so a panel session cannot browse it.
+  const displayPresetsLocked = !canBindGlobalHotkey(surface, desktopEditor);
+  const { targets: displayTargets, loaded: displayTargetsLoaded } = useDisplayPresetTargets(isDisplayPreset && !displayPresetsLocked);
+  const selectableDisplays = displayTargets.filter(d => d.presets.length > 0);
   const displayTarget = displayTargets.find(d => d.deviceId === a.deviceId);
   const displayPresetMissing = !!displayTarget && !!a.presetId && !displayTarget.presets.some(p => p.id === a.presetId);
 
   // Seed once, and only an empty key: a stored display or preset that has since
   // gone stays selected as "unavailable" instead of silently re-pointing the key.
   useEffect(() => {
-    if (freezeSeed || !isDisplayPreset || a.deviceId || displayTargets.length === 0) return;
-    onChange({ type: 'nexus', action: { ...a, deviceId: displayTargets[0].deviceId, presetId: displayTargets[0].presets[0].id } });
-  }, [isDisplayPreset, displayTargets, a, onChange, freezeSeed]);
+    if (freezeSeed || !isDisplayPreset || displayPresetsLocked || a.deviceId || selectableDisplays.length === 0) return;
+    onChange({ type: 'nexus', action: { ...a, deviceId: selectableDisplays[0].deviceId, presetId: selectableDisplays[0].presets[0].id } });
+  }, [isDisplayPreset, displayPresetsLocked, selectableDisplays, a, onChange, freezeSeed]);
 
   // A preset list can only be seeded once it has loaded, and has to re-seed
   // when the stored id names a preset that has since been deleted - otherwise
@@ -640,7 +645,8 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
           <p className={styles.description}>{t('panel.settings.deck.noPresets')}</p>
         </Field>
       ))}
-      {isDisplayPreset && (displayTargetsLoaded && displayTargets.length === 0 && !a.deviceId ? (
+      {isDisplayPreset && displayPresetsLocked && <DesktopOnlyBadge />}
+      {isDisplayPreset && !displayPresetsLocked && (displayTargetsLoaded && selectableDisplays.length === 0 && !a.deviceId ? (
         <Field label={t('panel.settings.deck.display')}>
           <p className={styles.description}>{t('panel.settings.deck.noDisplayPresets')}</p>
         </Field>
@@ -650,28 +656,36 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
             label={t('panel.settings.deck.display')}
             value={a.deviceId ?? ''}
             options={[
-              ...displayTargets.map(d => ({ value: d.deviceId, label: d.name })),
+              ...displayTargets
+                .filter(d => d.presets.length > 0 || d.deviceId === a.deviceId)
+                .map(d => ({ value: d.deviceId, label: d.name })),
               ...(a.deviceId && !displayTarget && displayTargetsLoaded
                 ? [{ value: a.deviceId, label: t('panel.settings.deck.missingDisplay') }]
                 : []),
             ]}
             onChange={deviceId => {
               const next = displayTargets.find(d => d.deviceId === deviceId);
-              set({ deviceId, presetId: next?.presets[0].id });
+              set({ deviceId, presetId: next?.presets[0]?.id });
             }}
           />
-          <SelectField
-            label={t('panel.settings.deck.preset')}
-            value={a.presetId ?? ''}
-            options={[
-              ...(displayTarget?.presets ?? []).map(p => ({ value: p.id, label: p.name })),
-              ...(a.presetId && (displayPresetMissing || (displayTargetsLoaded && !displayTarget))
-                ? [{ value: a.presetId, label: t('panel.settings.deck.missingPreset') }]
-                : []),
-            ]}
-            onChange={presetId => set({ presetId })}
-            disabled={!displayTarget && displayTargetsLoaded}
-          />
+          {displayTarget && displayTarget.presets.length === 0 ? (
+            <Field label={t('panel.settings.deck.preset')}>
+              <p className={styles.description}>{t('panel.settings.deck.noPresets')}</p>
+            </Field>
+          ) : (
+            <SelectField
+              label={t('panel.settings.deck.preset')}
+              value={a.presetId ?? ''}
+              options={[
+                ...(displayTarget?.presets ?? []).map(p => ({ value: p.id, label: p.name })),
+                ...(a.presetId && (displayPresetMissing || (displayTargetsLoaded && !displayTarget))
+                  ? [{ value: a.presetId, label: t('panel.settings.deck.missingPreset') }]
+                  : []),
+              ]}
+              onChange={presetId => set({ presetId })}
+              disabled={!displayTarget && displayTargetsLoaded}
+            />
+          )}
         </>
       ))}
       {a.op === 'fanProfile' && (

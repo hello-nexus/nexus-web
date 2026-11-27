@@ -9,7 +9,7 @@ const devices = [
 ];
 
 describe('buildDisplayPresetTargets', () => {
-  it('keeps only displays that own a panel record and at least one preset', () => {
+  it('keeps displays that own a panel record, including one with no presets', () => {
     const targets = buildDisplayPresetTargets(devices, {
       'rec-2': [{ id: 'pa', name: 'frieren' }],
       'rec-3': [{ id: 'pc', name: 'work' }, { id: 'pd', name: 'game' }],
@@ -18,6 +18,7 @@ describe('buildDisplayPresetTargets', () => {
     expect(targets).toEqual([
       { deviceId: 'rec-2', name: 'Lian Li Wireless LCD #2', presets: [{ id: 'pa', name: 'frieren' }] },
       { deviceId: 'rec-3', name: 'Xeneon Edge', presets: [{ id: 'pc', name: 'work' }, { id: 'pd', name: 'game' }] },
+      { deviceId: 'rec-4', name: 'Empty panel', presets: [] },
     ]);
   });
 
@@ -29,7 +30,7 @@ describe('buildDisplayPresetTargets', () => {
     expect(targets.map(t => t.name)).toEqual(['A']);
   });
 
-  it('is empty before any presets have loaded', () => {
-    expect(buildDisplayPresetTargets(devices, {})).toEqual([]);
+  it('lists record-backed displays with no presets before any have loaded', () => {
+    expect(buildDisplayPresetTargets(devices, {}).map(t => t.deviceId)).toEqual(['rec-2', 'rec-3', 'rec-4']);
   });
 });

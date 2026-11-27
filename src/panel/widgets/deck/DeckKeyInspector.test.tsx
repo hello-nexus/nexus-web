@@ -175,6 +175,23 @@ describe('NexusFields - display preset', () => {
     expect(screen.getByLabelText('panel.settings.deck.preset')).toBeDisabled();
   });
 
+  it('a display with no presets reads as no presets, not unavailable', async () => {
+    displayTargets.value = { targets: [{ deviceId: 'rec-2', name: 'Lian Li Wireless LCD #2', presets: [] }], loaded: true };
+    renderInspector([{ action: { type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec-2', presetId: 'gone' } } }]);
+    expect(await screen.findByText('panel.settings.deck.noPresets')).toBeInTheDocument();
+    expect(screen.queryByText('panel.settings.deck.missingDisplay')).not.toBeInTheDocument();
+    expect(screen.queryByText('panel.settings.deck.missingPreset')).not.toBeInTheDocument();
+  });
+
+  it('a kiosk or phone session shows the desktop-only notice instead of the empty-list hint', async () => {
+    for (const surface of ['phone', 'y70'] as const) {
+      const { unmount } = renderWidgetInspector([{ action: { type: 'nexus', action: { op: 'displayPreset' } } }], { surface });
+      expect(await screen.findByText('common.desktopOnly')).toBeInTheDocument();
+      expect(screen.queryByText('panel.settings.deck.noDisplayPresets')).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it('is nestable inside a sequence step', () => {
     renderInspector();
     fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));

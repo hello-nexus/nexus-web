@@ -337,6 +337,25 @@ describe('executeDeckAction → /panel/deck/dispatch', () => {
     });
   });
 
+  it('a display preset key from a panel/kiosk session dispatches instead of posting the dashboard-only route', async () => {
+    const preset: DeckAction = { type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec-2', presetId: 'p1' } };
+    await executeDeckAction(preset, location);
+    expect(postService).toHaveBeenCalledTimes(1);
+    expect(postService).toHaveBeenCalledWith('/panel/deck/dispatch', expect.objectContaining({ deviceId: 'dev1', slot: 3 }));
+  });
+
+  it('a display preset nested in a sequence or toggle dispatches the whole key', async () => {
+    const preset: DeckAction = { type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec-2', presetId: 'p1' } };
+    await executeDeckAction({ type: 'sequence', steps: [{ action: { type: 'nexus', action: { op: 'lightingPreset', presetId: 'l1' } } }, { action: preset }] }, location);
+    await executeDeckAction({ type: 'toggle', on: preset, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'internal' } }, location, 'on');
+    expect(postService.mock.calls.map(c => c[0])).toEqual(['/panel/deck/dispatch', '/panel/deck/dispatch']);
+  });
+
+  it('other nexus ops still run directly from a panel session', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'lightingPreset', presetId: 'l1' } }, location);
+    expect(postService).toHaveBeenCalledWith('/devices/lighting-devices/layout-presets/l1/activate', {});
+  });
+
   it('a direct launchApp target dispatches server-side unless the id is listed; an unloaded list fails closed', async () => {
     resetListedAppIdsForTest();
     const steam: DeckAction = { type: 'launchApp', appId: 'steam://rungameid/2139460' };

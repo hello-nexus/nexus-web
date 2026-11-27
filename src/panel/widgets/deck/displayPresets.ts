@@ -10,7 +10,7 @@ export interface DisplayPresetTarget {
   presets: { id: string; name: string }[];
 }
 
-/** Displays that own a panel record and at least one saved preset. */
+/** Displays that own a panel record, each with its saved presets (possibly none). */
 export function buildDisplayPresetTargets(
   devices: readonly Pick<PanelDevice, 'name' | 'panelRecordId'>[],
   presetsByRecord: Readonly<Record<string, readonly Pick<PanelPreset, 'id' | 'name'>[]>>,
@@ -21,7 +21,6 @@ export function buildDisplayPresetTargets(
     const id = device.panelRecordId;
     if (!id || seen.has(id)) continue;
     const presets = presetsByRecord[id] ?? [];
-    if (presets.length === 0) continue;
     seen.add(id);
     out.push({ deviceId: id, name: device.name, presets: presets.map(p => ({ id: p.id, name: p.name })) });
   }
@@ -29,8 +28,8 @@ export function buildDisplayPresetTargets(
 }
 
 /** Same lists the display device page's preset dropdown shows, one fetch per panel record. */
-export function useDisplayPresetTargets(): { targets: DisplayPresetTarget[]; loaded: boolean } {
-  const { devices, loading } = usePanelDevices(true);
+export function useDisplayPresetTargets(enabled = true): { targets: DisplayPresetTarget[]; loaded: boolean } {
+  const { devices, loading } = usePanelDevices(enabled);
   const recordIds = useMemo(
     () => devices.map(d => d.panelRecordId).filter((id): id is string => !!id),
     [devices],
@@ -40,8 +39,10 @@ export function useDisplayPresetTargets(): { targets: DisplayPresetTarget[]; loa
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
-    void Promise.all(recordIds.map(id => fetchPanelPresets(id).then(res => [id, res?.presets ?? []] as const)))
+    // A rejected fetch settles as no presets, so `loaded` always arrives.
+    void Promise.all(recordIds.map(id => fetchPanelPresets(id).then(res => [id, res?.presets ?? []] as const, () => [id, []] as const)))
       .then(entries => {
         if (cancelled) return;
         setPresetsByRecord(Object.fromEntries(entries));
@@ -50,8 +51,8 @@ export function useDisplayPresetTargets(): { targets: DisplayPresetTarget[]; loa
     return () => { cancelled = true; };
     // recordKey stands for recordIds
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordKey]);
+  }, [enabled, recordKey]);
 
   const targets = useMemo(() => buildDisplayPresetTargets(devices, presetsByRecord), [devices, presetsByRecord]);
-  return { targets, loaded: !loading && loadedKey === recordKey };
+  return { targets, loaded: enabled && !loading && loadedKey === recordKey };
 }

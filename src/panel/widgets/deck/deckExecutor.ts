@@ -38,9 +38,11 @@ export function hasDirectLaunchApp(action: DeckAction): boolean {
 }
 
 /** True when `action` is, or transitively contains (a sequence step, either
- * toggle branch), one of PRIVILEGED_DECK_ACTION_TYPES. */
+ * toggle branch), one of PRIVILEGED_DECK_ACTION_TYPES, or a display preset
+ * (its activation route is dashboard-only, so a panel session dispatches it). */
 export function isPrivilegedDeckAction(action: DeckAction): boolean {
   if (PRIVILEGED_DECK_ACTION_TYPES.has(action.type)) return true;
+  if (action.type === 'nexus' && action.action.op === 'displayPreset') return true;
   // /shortcuts/launch only resolves listed app ids; an unlisted direct target
   // runs through the server-side dispatcher like openFile. An unloaded list
   // fails closed.
