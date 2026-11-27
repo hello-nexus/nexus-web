@@ -8,8 +8,10 @@
 
 .head {
   display: flex;
+  min-height: 2rem;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-sm);
 }
 .lists { display: flex; flex-direction: column; gap: 2px; }
+.smart { margin-bottom: var(--space-xl); }

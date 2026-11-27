@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, CalendarClock, CircleCheck, Flag, Inbox, Info, Pencil, type LucideIcon } from 'lucide-react';
+import { CircleCheck, Info, Pencil } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { REMINDER_LIMITS, type ReminderDto, type ReminderListDto } from '../../../../api/reminders';
 import { useReminderMutations, useReminders } from '../../../../hooks/useReminders';
@@ -30,10 +30,6 @@ import styles from './RemindersPage.module.scss';
 
 const SHOW_COMPLETED_KEY = 'nexus.reminders.showCompleted';
 const TODAY: ReminderSelection = { kind: 'smart', id: 'today' };
-
-const TAB_ICONS: Record<SmartListId, LucideIcon> = {
-  today: CalendarCheck, scheduled: CalendarClock, all: Inbox, flagged: Flag, completed: CircleCheck,
-};
 
 // The subtab is a smart-list id or a list id; a user list leaves every tab inactive.
 const subtabOf = (s: ReminderSelection): string => s.id;
@@ -98,8 +94,8 @@ export function RemindersPage({ tab, onTabChange }: Props) {
   const colorOf = (id: string) => listsById.get(id)?.color ?? SMART_COLORS.all;
 
   const list = listId ? listsById.get(listId) : undefined;
-  const title = list ? list.name : t('reminders.page.smartTitle', { name: t(SMART_NAME_KEYS[selection.kind === 'smart' ? selection.id : 'all']) });
-  const titleColor = list ? list.color : SMART_COLORS[selection.kind === 'smart' ? selection.id : 'all'];
+  const title = list ? list.name : t(SMART_NAME_KEYS[selection.kind === 'smart' ? selection.id : 'all']);
+  const ringColor = list ? list.color : SMART_COLORS[selection.kind === 'smart' ? selection.id : 'all'];
   const doneInScope = listId !== null
     ? items.filter(i => i.completed && i.listId === listId).length
     : selection.kind === 'smart' && selection.id === 'completed' ? counts.completed : 0;
@@ -181,18 +177,11 @@ export function RemindersPage({ tab, onTabChange }: Props) {
 
   return (
     <div className={styles.page}>
-      <ViewHeader
-        title={t('panel.widget.reminders')}
-        tabs={SMART_LISTS.map(id => {
-          const Icon = TAB_ICONS[id];
-          return { key: id, label: t(SMART_NAME_KEYS[id]), icon: <Icon size={14} /> };
-        })}
-        activeTab={selection.kind === 'smart' ? selection.id : ''}
-        onTabChange={key => select({ kind: 'smart', id: key as SmartListId })}
-      />
+      <ViewHeader title={t('panel.widget.reminders')} />
       <div className="pageBodyFill">
         <div className={styles.body}>
           <RemindersRail
+            counts={counts}
             lists={lists}
             items={items}
             selection={selection}
@@ -214,7 +203,7 @@ export function RemindersPage({ tab, onTabChange }: Props) {
             ) : (
               <>
                 <div className={styles.toolbar}>
-                  <SectionHeader className={styles.title} style={list ? { color: titleColor } : undefined}>{title}</SectionHeader>
+                  <SectionHeader className={styles.title}>{title}</SectionHeader>
                   {list && (
                     <IconLabelButton
                       variant="bare"
@@ -281,7 +270,7 @@ export function RemindersPage({ tab, onTabChange }: Props) {
                   )}
                   {defaults && (
                     <div className={styles.addRow}>
-                      <ReminderCheck checked={false} color={titleColor} label={t('reminders.new')} />
+                      <ReminderCheck checked={false} color={ringColor} label={t('reminders.new')} />
                       <TextInput
                         value={draft}
                         size="sm"

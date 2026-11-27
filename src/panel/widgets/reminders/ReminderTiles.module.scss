@@ -79,5 +79,6 @@ button.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1p
 button.listMain { cursor: pointer; }
 button.listMain:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .listDisc { flex: none; width: 1.6em; height: 1.6em; }
+.listGlyph { flex: none; display: flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; color: var(--text); }
 .listName { flex: 1; min-width: 0; font-weight: var(--weight-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .listCount { flex: none; color: var(--text-dim); font-variant-numeric: tabular-nums; }

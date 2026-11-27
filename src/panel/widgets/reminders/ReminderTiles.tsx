@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ReminderListDto } from '../../../api/reminders';
-import { reminderIcon, SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS } from './reminderIcons';
+import { reminderIcon, SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS, SMART_ROW_ICONS } from './reminderIcons';
 import { SMART_LISTS, type ReminderCounts, type SmartListId } from './reminderLogic';
 import styles from './ReminderTiles.module.scss';
 
@@ -53,25 +53,32 @@ export function SmartListGrid({ counts, active, onSelect, className }: GridProps
 }
 
 interface ListRowProps {
-  list: ReminderListDto;
+  // A user list: colored glyph disc and its name. A smart list: its plain icon and localized name.
+  list?: ReminderListDto;
+  smart?: SmartListId;
   count: number;
   active?: boolean;
   onPress?: () => void;
   trailing?: ReactNode;
 }
 
-/** One user list: colored glyph disc, name and open count. */
-export function ReminderListRow({ list, count, active, onPress, trailing }: ListRowProps) {
-  const Icon = reminderIcon(list.icon);
+/** One row of the list rail, user list or smart list, with its open count. */
+export function ReminderListRow({ list, smart, count, active, onPress, trailing }: ListRowProps) {
+  const { t } = useTranslation();
+  const SmartIcon = smart ? SMART_ROW_ICONS[smart] : null;
+  const Icon = list ? reminderIcon(list.icon) : null;
+  const name = smart ? t(SMART_NAME_KEYS[smart]) : list?.name ?? '';
   const body = (
     <>
-      <span className={styles.listDisc}><Icon size="0.9em" aria-hidden /></span>
-      <span className={styles.listName}>{list.name}</span>
+      {SmartIcon
+        ? <span className={styles.listGlyph}><SmartIcon size="1.25em" aria-hidden /></span>
+        : Icon && <span className={styles.listDisc}><Icon size="0.9em" aria-hidden /></span>}
+      <span className={styles.listName}>{name}</span>
       <span className={styles.listCount}>{count}</span>
     </>
   );
   return (
-    <div className={`${styles.listRow} ${active ? styles.listActive : ''}`} style={tint(list.color)}>
+    <div className={`${styles.listRow} ${active ? styles.listActive : ''}`} style={list ? tint(list.color) : undefined}>
       {onPress
         ? <button type="button" className={styles.listMain} aria-pressed={active === true} onClick={onPress}>{body}</button>
         : <div className={styles.listMain}>{body}</div>}

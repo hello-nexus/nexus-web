@@ -1,5 +1,5 @@
 import {
-  Bookmark, Briefcase, CalendarClock, CalendarDays, Check, Flag, Gift, Heart, House, Inbox, List, ShoppingCart, Star,
+  Bookmark, Briefcase, CalendarCheck, CalendarClock, CalendarDays, Check, Flag, Gift, Heart, House, Inbox, List, ShoppingCart, Star,
   type LucideIcon,
 } from 'lucide-react';
 import type { SmartListId } from './reminderLogic';
@@ -16,6 +16,8 @@ export const reminderIcon = (key: string): LucideIcon => REMINDER_ICONS[key] ?? 
 export const SMART_ICONS: Readonly<Record<SmartListId, LucideIcon>> = {
   today: CalendarDays, scheduled: CalendarClock, all: Inbox, flagged: Flag, completed: Check,
 };
+
+export const SMART_ROW_ICONS: Readonly<Record<SmartListId, LucideIcon>> = { ...SMART_ICONS, today: CalendarCheck };
 
 export const SMART_COLORS: Readonly<Record<SmartListId, string>> = {
   today: '#0a84ff', scheduled: '#ff453a', all: '#8e8e93', flagged: '#ff9f0a', completed: '#8e8e93',
