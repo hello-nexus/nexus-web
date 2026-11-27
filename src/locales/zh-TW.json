@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} 已安裝。之後可從任一螢幕的小工具選擇器加入。",
   "store.place.subtitle": "已選取所有相容的螢幕。取消勾選不需要的螢幕；之後也能移動它。",
   "store.place.title": "要把 {name} 放在哪裡？",
+  "store.removeFailed": "無法移除 {name}。請重試。",
   "store.removeTitle": "移除 {name}？",
   "store.removeUnused": "此應用程式未在任何位置使用。",
   "store.removeUsed": "此應用程式正在這些位置使用。移除會一併從那裡刪除。",

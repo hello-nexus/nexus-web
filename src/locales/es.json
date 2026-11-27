@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} está instalado. Añádelo más tarde desde el selector de widgets de cualquier pantalla.",
   "store.place.subtitle": "Todas las pantallas compatibles están seleccionadas. Desmarca las que no quieras; podrás moverlo más tarde.",
   "store.place.title": "¿Dónde quieres poner {name}?",
+  "store.removeFailed": "No se pudo quitar {name}. Inténtalo de nuevo.",
   "store.removeTitle": "¿Quitar {name}?",
   "store.removeUnused": "Esta app no se usa en ningún sitio.",
   "store.removeUsed": "Esta app se usa en estos lugares. Al quitarla también se elimina de ellos.",

@@ -23,6 +23,7 @@ vi.mock('../../../../api/store', () => ({
 }));
 vi.mock('../../../../widgets/marketplaceRegistry', () => ({
   loadMarketplaceApps: () => Promise.resolve(),
+  reloadMarketplaceApps: () => Promise.resolve(true),
 }));
 
 const release = (version: string): StoreVersion => ({

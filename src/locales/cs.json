@@ -6469,6 +6469,7 @@
   "store.place.skipped": "{name} je nainstalováno. Přidejte je později z výběru widgetů na kterékoli obrazovce.",
   "store.place.subtitle": "Všechny kompatibilní obrazovky jsou vybrané. Zrušte výběr těch, které nechcete, přesunout je můžete i později.",
   "store.place.title": "Kam má patřit {name}?",
+  "store.removeFailed": "Nepodařilo se odebrat {name}. Zkuste to znovu.",
   "store.removeTitle": "Odebrat {name}?",
   "store.removeUnused": "Tato aplikace se nikde nepoužívá.",
   "store.removeUsed": "Tato aplikace se používá na těchto místech. Odebráním se smaže i z nich.",

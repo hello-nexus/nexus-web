@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} installed. Add it later from any screen's widget picker.",
   "store.place.subtitle": "Every compatible screen is selected. Uncheck any you don't want; you can move it later.",
   "store.place.title": "Where should {name} go?",
+  "store.removeFailed": "Couldn't remove {name}. Try again.",
   "store.removeTitle": "Remove {name}?",
   "store.removeUnused": "This app is not being used anywhere.",
   "store.removeUsed": "This app is being used in these places. Removing it deletes it from them too.",

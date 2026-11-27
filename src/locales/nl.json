@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} is geïnstalleerd. Voeg het later toe via de widgetkiezer van elk scherm.",
   "store.place.subtitle": "Alle compatibele schermen zijn geselecteerd. Vink uit wat je niet wilt; je kunt het later verplaatsen.",
   "store.place.title": "Waar moet {name} komen?",
+  "store.removeFailed": "{name} kon niet worden verwijderd. Probeer het opnieuw.",
   "store.removeTitle": "{name} verwijderen?",
   "store.removeUnused": "Deze app wordt nergens gebruikt.",
   "store.removeUsed": "Deze app wordt op deze plekken gebruikt. Verwijderen wist hem daar ook.",

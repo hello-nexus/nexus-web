@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} yüklendi. Daha sonra herhangi bir ekranın widget seçicisinden ekleyebilirsiniz.",
   "store.place.subtitle": "Tüm uyumlu ekranlar seçili. İstemediklerinizin işaretini kaldırın; daha sonra taşıyabilirsiniz.",
   "store.place.title": "{name} nereye eklensin?",
+  "store.removeFailed": "{name} kaldırılamadı. Lütfen tekrar deneyin.",
   "store.removeTitle": "{name} kaldırılsın mı?",
   "store.removeUnused": "Bu uygulama hiçbir yerde kullanılmıyor.",
   "store.removeUsed": "Bu uygulama şu yerlerde kullanılıyor. Kaldırmak onu oralardan da siler.",

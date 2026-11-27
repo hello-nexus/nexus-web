@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} ist installiert. Du kannst es später über die Widget-Auswahl jedes Bildschirms hinzufügen.",
   "store.place.subtitle": "Alle kompatiblen Bildschirme sind ausgewählt. Entferne den Haken bei denen, die du nicht möchtest; du kannst es später verschieben.",
   "store.place.title": "Wohin soll {name}?",
+  "store.removeFailed": "{name} konnte nicht entfernt werden. Versuchen Sie es erneut.",
   "store.removeTitle": "{name} entfernen?",
   "store.removeUnused": "Diese App wird nirgends verwendet.",
   "store.removeUsed": "Diese App wird an diesen Orten verwendet. Beim Entfernen wird sie auch dort gelöscht.",

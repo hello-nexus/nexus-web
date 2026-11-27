@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} al è instalât. Zontilu plui indevant dal seletôr di widget di cualsisei schermi.",
   "store.place.subtitle": "Ducj i schermis compatibii a son selezionâts. Gjave il segn a chei che no tu vuelis; tu podarâs spostâlu plui indevant.",
   "store.place.title": "Dulà vuelistu meti {name}?",
+  "store.removeFailed": "No si è rivât a gjavâ {name}. Prove di gnûf.",
   "store.removeTitle": "Gjavâ {name}?",
   "store.removeUnused": "Cheste app no ven doprade in nissun puest.",
   "store.removeUsed": "Cheste app e ven doprade in chescj puescj. Gjavantle e ven eliminade ancje di lôr.",

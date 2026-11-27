@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} をインストールしました。あとで各画面のウィジェット選択から追加できます。",
   "store.place.subtitle": "対応するすべての画面が選択されています。不要なものはチェックを外してください。あとで移動できます。",
   "store.place.title": "{name} をどこに配置しますか？",
+  "store.removeFailed": "{name} を削除できませんでした。もう一度お試しください。",
   "store.removeTitle": "{name} を削除しますか？",
   "store.removeUnused": "このアプリはどこでも使われていません。",
   "store.removeUsed": "このアプリは次の場所で使われています。削除するとそこからも消えます。",

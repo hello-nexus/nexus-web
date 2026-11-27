@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name} 已安装。稍后可从任意屏幕的小组件选择器中添加。",
   "store.place.subtitle": "已选中所有兼容的屏幕。取消勾选不需要的屏幕；之后也可以移动它。",
   "store.place.title": "要把 {name} 放在哪里？",
+  "store.removeFailed": "无法移除 {name}。请重试。",
   "store.removeTitle": "移除 {name}？",
   "store.removeUnused": "该应用未在任何位置使用。",
   "store.removeUsed": "该应用正在这些位置使用。移除会一并从那里删除。",

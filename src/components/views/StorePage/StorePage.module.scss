@@ -158,6 +158,7 @@ $card-gap: 0.6rem;
 }
 
 .heroMain {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -169,6 +170,13 @@ $card-gap: 0.6rem;
   margin: 0;
   @include text-display;
   color: var(--text);
+}
+
+// Top right of the hero, level with the title. It never shrinks, so a long
+// title wraps inside heroMain instead of being squeezed against it.
+.heroRemove {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 // The app page shows the line whole: it wraps rather than clipping, so a

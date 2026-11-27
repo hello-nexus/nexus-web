@@ -6469,6 +6469,7 @@
   "store.place.skipped": "Zainstalowano {name}. Możesz dodać go później z selektora widżetów na dowolnym ekranie.",
   "store.place.subtitle": "Zaznaczono wszystkie zgodne ekrany. Odznacz te, których nie chcesz; możesz go później przenieść.",
   "store.place.title": "Gdzie umieścić {name}?",
+  "store.removeFailed": "Nie udało się usunąć {name}. Spróbuj ponownie.",
   "store.removeTitle": "Usunąć {name}?",
   "store.removeUnused": "Ta aplikacja nie jest nigdzie używana.",
   "store.removeUsed": "Ta aplikacja jest używana w tych miejscach. Usunięcie skasuje ją także tam.",

@@ -6412,6 +6412,7 @@
   "store.place.skipped": "{name}을(를) 설치했습니다. 나중에 아무 화면의 위젯 선택기에서 추가할 수 있습니다.",
   "store.place.subtitle": "호환되는 모든 화면이 선택되어 있습니다. 원하지 않는 화면은 선택 해제하세요. 나중에 옮길 수 있습니다.",
   "store.place.title": "{name}을(를) 어디에 둘까요?",
+  "store.removeFailed": "{name}을(를) 제거하지 못했습니다. 다시 시도해 주세요.",
   "store.removeTitle": "{name}을(를) 제거할까요?",
   "store.removeUnused": "이 앱은 어디에서도 사용되지 않습니다.",
   "store.removeUsed": "이 앱은 다음 위치에서 사용 중입니다. 제거하면 거기서도 삭제됩니다.",
