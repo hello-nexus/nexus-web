@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Limite superior",
   "diagnostics.alerts.limitReached": "Limite da lista de monitorização atingido ({max}).",
   "diagnostics.alerts.lowKnob": "Limite inferior",
+  "diagnostics.alerts.manageInCooling": "Gerir em Refrigeração",
   "diagnostics.alerts.noLowerLimit": "Sem limite inferior",
   "diagnostics.alerts.noPhonesAlertsOn": "Nenhum telemóvel tem os alertas ativados. Ativa-os na app do Nexus para telemóvel.",
   "diagnostics.alerts.noReading": "Sem leitura",

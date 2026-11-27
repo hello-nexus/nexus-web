@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Obergrenze",
   "diagnostics.alerts.limitReached": "Limit der Überwachungsliste erreicht ({max}).",
   "diagnostics.alerts.lowKnob": "Untergrenze",
+  "diagnostics.alerts.manageInCooling": "In Kühlung verwalten",
   "diagnostics.alerts.noLowerLimit": "Keine Untergrenze",
   "diagnostics.alerts.noPhonesAlertsOn": "Bei keinem Telefon sind Warnungen aktiviert. Aktivieren Sie sie in der Nexus-Telefon-App.",
   "diagnostics.alerts.noReading": "Kein Messwert",

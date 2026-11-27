@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Üst sınır",
   "diagnostics.alerts.limitReached": "İzleme listesi sınırına ulaşıldı ({max}).",
   "diagnostics.alerts.lowKnob": "Alt sınır",
+  "diagnostics.alerts.manageInCooling": "Soğutma'da yönet",
   "diagnostics.alerts.noLowerLimit": "Alt sınır yok",
   "diagnostics.alerts.noPhonesAlertsOn": "Hiçbir telefonda uyarılar açık değil. Nexus telefon uygulamasından açın.",
   "diagnostics.alerts.noReading": "Okuma yok",

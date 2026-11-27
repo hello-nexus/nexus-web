@@ -94,7 +94,7 @@ describe('ThermalsTab fans follow Cooling', () => {
     expect(screen.getAllByTestId('legend').map(el => el.textContent)).toEqual(['builtin:fan:s_on']);
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.fanPaused')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('sensor-open-cooling'));
+    fireEvent.click(screen.getByTestId('fan-manage-cooling'));
     expect(onOpen).toHaveBeenCalledWith('hw/off');
     expect(h.update).toHaveBeenCalledWith({ showUncontrolledCoolingDevices: true });
   });
@@ -104,7 +104,7 @@ describe('ThermalsTab fans follow Cooling', () => {
     renderTab();
     expect(screen.getAllByTestId('legend')).toHaveLength(2);
     expect(screen.getAllByTestId('sensor-row')[0]).not.toHaveAttribute('data-state', 'notControlled');
-    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
+    expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe('ThermalsTab fans follow Cooling', () => {
     const onOpen = renderTab(vi.fn(), 'fans', 'builtin:fan:s_on');
     await waitFor(() => expect(screen.getByText('diagnostics.sensors.fan.controlled')).toBeInTheDocument());
     expect(screen.queryByText('diagnostics.alerts.fanPaused')).toBeNull();
-    fireEvent.click(screen.getByTestId('sensor-open-cooling'));
+    fireEvent.click(screen.getByTestId('fan-manage-cooling'));
     expect(onOpen).toHaveBeenCalledWith('hw/on');
     expect(h.update).not.toHaveBeenCalled();
   });
@@ -122,7 +122,7 @@ describe('ThermalsTab fans follow Cooling', () => {
     renderTab(vi.fn(), 'fans', 'builtin:fan:s_other');
     await waitFor(() => expect(screen.getAllByTestId('sensor-row')[0]).toHaveAttribute('data-state', 'notControlled'));
     expect(screen.getByRole('switch', { name: /enabledFor/ })).toBeInTheDocument();
-    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
+    expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
   });
 
   it('drops excluded fans from the average fan speed strip', async () => {

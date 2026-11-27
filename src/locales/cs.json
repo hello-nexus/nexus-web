@@ -2018,6 +2018,7 @@
   "diagnostics.alerts.highKnob": "Horní mez",
   "diagnostics.alerts.limitReached": "Dosažen limit seznamu sledování ({max}).",
   "diagnostics.alerts.lowKnob": "Dolní mez",
+  "diagnostics.alerts.manageInCooling": "Spravovat v Chlazení",
   "diagnostics.alerts.noLowerLimit": "Bez dolního limitu",
   "diagnostics.alerts.noPhonesAlertsOn": "Žádný telefon nemá zapnutá upozornění. Zapněte je v telefonní aplikaci Nexus.",
   "diagnostics.alerts.noReading": "Bez hodnoty",

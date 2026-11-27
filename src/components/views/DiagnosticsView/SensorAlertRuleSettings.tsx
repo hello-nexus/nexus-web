@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCcw, Trash2 } from 'lucide-react';
+import { ExternalLink, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { requestPairPhone } from '../../../app/pairPhoneRequest';
@@ -59,16 +59,14 @@ interface SensorAlertRuleSettingsProps {
   /** The entry already tracking a sensor picked here, if any; the pick is then refused and `onTracked` runs. */
   findTracked?: (sensor: SensorRef) => SensorAlertRule | undefined;
   onTracked?: (existing: SensorAlertRule) => void;
-  /** Opens the Cooling page; a fan built-in then offers a way there. */
-  onOpenCooling?: () => void;
   /** The switch also writes this fan's Nexus Control (it has a control channel and Cooling is on), so the note under it shows. */
   fanControlsNexus?: boolean;
-  /** Set for a fan entry that is a Cooling channel while Cooling is on: its Cooling status (null while controlled and responding) and a way to that fan in Cooling, which the single Open Cooling button prefers over `onOpenCooling`. */
+  /** Set for a fan entry that is a Cooling channel while Cooling is on: its Cooling status (null while controlled and responding) and a way to that fan in Cooling. */
   coolingFan?: { status: CoolingFanStatus | null; onManage: () => void };
 }
 
 /** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Rendered as direct rows of a SettingsSection box, which supplies the hairlines. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling, fanControlsNexus, coolingFan }: SensorAlertRuleSettingsProps) {
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, fanControlsNexus, coolingFan }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -116,12 +114,6 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         checked={rule.enabled}
         onChange={onToggleEnabled}
       />
-      {rule.builtIn === 'fanSpeed' && coolingFan && (
-        <SettingRow
-          label={t(coolingFan.status ? coolingFanStatusLabelKey(coolingFan.status) : 'diagnostics.sensors.fan.controlled')}
-          description={coolingFan.status ? t('diagnostics.alerts.fanPaused') : undefined}
-        />
-      )}
       {!builtIn && (
         <SettingRow label={t('monitoring.settings.sensor')} wrapControl>
           <SensorPicker
@@ -206,10 +198,13 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         checked={rule.notifyMobile}
         onChange={notifyMobile => edit({ notifyMobile }, true)}
       />
-      {rule.builtIn === 'fanSpeed' && (coolingFan?.onManage ?? onOpenCooling) && (
-        <SettingRow>
-          <Button type="button" tone="neutral" size="sm" data-testid="sensor-open-cooling" onClick={coolingFan?.onManage ?? onOpenCooling}>
-            {t('diagnostics.cooling.guardTrip.openCooling')}
+      {rule.builtIn === 'fanSpeed' && coolingFan && (
+        <SettingRow
+          label={t(coolingFan.status ? coolingFanStatusLabelKey(coolingFan.status) : 'diagnostics.sensors.fan.controlled')}
+          description={coolingFan.status ? t('diagnostics.alerts.fanPaused') : undefined}
+        >
+          <Button type="button" tone="neutral" size="sm" data-testid="fan-manage-cooling" icon={<ExternalLink size={13} aria-hidden />} onClick={coolingFan.onManage}>
+            {t('diagnostics.alerts.manageInCooling')}
           </Button>
         </SettingRow>
       )}

@@ -38,7 +38,7 @@ const builtInRule: SensorAlertRule = {
 };
 const lookup = { resolve: () => undefined } as unknown as Parameters<typeof SensorAlertRuleSettings>[0]['lookup'];
 
-function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState; onOpenCooling?: () => void; fanControlsNexus?: boolean; coolingFan?: { status: 'notControlled' | 'notResponding' | null; onManage: () => void } } = {}) {
+function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState; fanControlsNexus?: boolean; coolingFan?: { status: 'notControlled' | 'notResponding' | null; onManage: () => void } } = {}) {
   const onSave = vi.fn();
   const onToggleEnabled = vi.fn();
   const view = render(
@@ -114,23 +114,23 @@ describe('SensorAlertRuleSettings', () => {
     expect(screen.getByTestId('sensor-restore')).toBeInTheDocument();
   });
 
-  it('puts Open Cooling after the notify rows and before Restore default, for a fan built-in with an opener only', () => {
+  it('puts the fan Cooling row after the notify rows and before Restore default, for a fan with a Cooling link only', () => {
     const fanRule: SensorAlertRule = { ...builtInRule, id: 'builtin-fan', builtIn: 'fanSpeed', sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' } };
-    const onOpenCooling = vi.fn();
-    const { unmount } = renderEditor(fanRule, { onOpenCooling });
-    const open = screen.getByTestId('sensor-open-cooling');
+    const onManage = vi.fn();
+    const { unmount } = renderEditor(fanRule, { coolingFan: { status: null, onManage } });
+    const open = screen.getByTestId('fan-manage-cooling');
     fireEvent.click(open);
-    expect(onOpenCooling).toHaveBeenCalledTimes(1);
+    expect(onManage).toHaveBeenCalledTimes(1);
     const mobile = screen.getByRole('switch', { name: 'diagnostics.alerts.notifyMobile' });
     const restore = screen.getByTestId('sensor-restore');
     expect(mobile.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(open.compareDocumentPosition(restore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
-    const noOpener = renderEditor(fanRule);
-    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
-    noOpener.unmount();
-    renderEditor(builtInRule, { onOpenCooling });
-    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
+    const noLink = renderEditor(fanRule);
+    expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
+    noLink.unmount();
+    renderEditor(builtInRule, { coolingFan: { status: null, onManage } });
+    expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
   });
 
   it('shows the picker, both knobs and Delete for a user rule, with no on/off toggles for the limits', () => {
@@ -309,7 +309,7 @@ describe('SensorAlertRuleSettings', () => {
     });
   });
 
-  it('keeps the enabled switch on a fan and shows its Cooling status below the switch and one Open Cooling button before Restore default', () => {
+  it('keeps the enabled switch on a fan and shows one Cooling row with its status and a Manage in Cooling button, before Restore default', () => {
     const onManage = vi.fn();
     const fan = { ...builtInRule, id: 'builtin:fan:a', builtIn: 'fanSpeed' as const, sensor: { ...builtInRule.sensor, type: 'Fan', name: 'Rear' } };
     const { onToggleEnabled } = renderEditor(fan, { coolingFan: { status: 'notControlled', onManage } });
@@ -317,9 +317,9 @@ describe('SensorAlertRuleSettings', () => {
     expect(onToggleEnabled).toHaveBeenCalledWith(false);
     expect(screen.getByText('cooling.fan.notControlled')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.alerts.fanPaused')).toBeInTheDocument();
-    const button = screen.getByTestId('sensor-open-cooling');
+    const button = screen.getByTestId('fan-manage-cooling');
     expect(button.compareDocumentPosition(screen.getByTestId('sensor-restore')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getAllByText('diagnostics.cooling.guardTrip.openCooling')).toHaveLength(1);
+    expect(screen.getAllByText('diagnostics.alerts.manageInCooling')).toHaveLength(1);
     fireEvent.click(button);
     expect(onManage).toHaveBeenCalledTimes(1);
   });
@@ -335,9 +335,9 @@ describe('SensorAlertRuleSettings', () => {
     expect(screen.queryByText('diagnostics.alerts.fanPaused')).toBeNull();
   });
 
-  it('shows no status row and no Open Cooling button on a fan without a Cooling link', () => {
+  it('shows no status row and no Manage in Cooling button on a fan without a Cooling link', () => {
     renderEditor({ ...builtInRule, id: 'builtin:fan:a', builtIn: 'fanSpeed' as const });
-    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
+    expect(screen.queryByTestId('fan-manage-cooling')).toBeNull();
     for (const key of ['diagnostics.sensors.fan.controlled', 'cooling.fan.notControlled', 'cooling.fan.unresponsive']) expect(screen.queryByText(key)).toBeNull();
   });
 });

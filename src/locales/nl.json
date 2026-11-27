@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Bovengrens",
   "diagnostics.alerts.limitReached": "Limiet van de volglijst bereikt ({max}).",
   "diagnostics.alerts.lowKnob": "Ondergrens",
+  "diagnostics.alerts.manageInCooling": "Beheren in Koeling",
   "diagnostics.alerts.noLowerLimit": "Geen ondergrens",
   "diagnostics.alerts.noPhonesAlertsOn": "Op geen enkele telefoon staan waarschuwingen aan. Zet ze aan in de Nexus-app op je telefoon.",
   "diagnostics.alerts.noReading": "Geen meting",

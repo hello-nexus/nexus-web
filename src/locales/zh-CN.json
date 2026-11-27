@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "上限",
   "diagnostics.alerts.limitReached": "已达到监视列表上限 ({max})。",
   "diagnostics.alerts.lowKnob": "下限",
+  "diagnostics.alerts.manageInCooling": "在散热中管理",
   "diagnostics.alerts.noLowerLimit": "无下限",
   "diagnostics.alerts.noPhonesAlertsOn": "没有手机开启提醒。请在 Nexus 手机应用中开启。",
   "diagnostics.alerts.noReading": "无读数",

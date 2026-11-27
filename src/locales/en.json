@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Upper limit",
   "diagnostics.alerts.limitReached": "Watchlist limit reached ({max}).",
   "diagnostics.alerts.lowKnob": "Lower limit",
+  "diagnostics.alerts.manageInCooling": "Manage in Cooling",
   "diagnostics.alerts.noLowerLimit": "No lower limit",
   "diagnostics.alerts.noPhonesAlertsOn": "No phone has alerts on. Turn them on in the Nexus phone app.",
   "diagnostics.alerts.noReading": "No reading",

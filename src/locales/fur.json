@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Limit superiôr",
   "diagnostics.alerts.limitReached": "Limit de liste di control rivât ({max}).",
   "diagnostics.alerts.lowKnob": "Limit inferiôr",
+  "diagnostics.alerts.manageInCooling": "Gjestìs in Refredament",
   "diagnostics.alerts.noLowerLimit": "Nissun limit bas",
   "diagnostics.alerts.noPhonesAlertsOn": "Nissun telefon al à i avîs ativâts. Ativilis inte app di Nexus pal telefon.",
   "diagnostics.alerts.noReading": "Nissune leture",

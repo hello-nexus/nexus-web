@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "상한",
   "diagnostics.alerts.limitReached": "관심 목록 한도에 도달했습니다 ({max}).",
   "diagnostics.alerts.lowKnob": "하한",
+  "diagnostics.alerts.manageInCooling": "냉각에서 관리",
   "diagnostics.alerts.noLowerLimit": "하한 없음",
   "diagnostics.alerts.noPhonesAlertsOn": "알림이 켜진 휴대폰이 없습니다. Nexus 휴대폰 앱에서 켜 주세요.",
   "diagnostics.alerts.noReading": "값 없음",

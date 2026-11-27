@@ -2018,6 +2018,7 @@
   "diagnostics.alerts.highKnob": "Górny limit",
   "diagnostics.alerts.limitReached": "Osiągnięto limit listy obserwowanych ({max}).",
   "diagnostics.alerts.lowKnob": "Dolny limit",
+  "diagnostics.alerts.manageInCooling": "Zarządzaj w Chłodzeniu",
   "diagnostics.alerts.noLowerLimit": "Brak dolnego limitu",
   "diagnostics.alerts.noPhonesAlertsOn": "Żaden telefon nie ma włączonych alertów. Włącz je w aplikacji Nexus na telefon.",
   "diagnostics.alerts.noReading": "Brak odczytu",

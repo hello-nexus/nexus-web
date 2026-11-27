@@ -388,7 +388,6 @@ export function ThermalsTab({
                     onToggleEnabled={enabled => toggleRuleEnabled(detailRule, enabled)}
                     state={stateOf(detailRule.id)}
                     onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
-                    onOpenCooling={onOpenCooling}
                     fanControlsNexus={coolingOn && !!detailRule.source?.controlChannel}
                     coolingFan={coolingFanDetail}
                   />

@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "上限",
   "diagnostics.alerts.limitReached": "ウォッチリストの上限に達しました ({max})。",
   "diagnostics.alerts.lowKnob": "下限",
+  "diagnostics.alerts.manageInCooling": "冷却で管理",
   "diagnostics.alerts.noLowerLimit": "下限なし",
   "diagnostics.alerts.noPhonesAlertsOn": "アラートをオンにしているスマートフォンがありません。Nexus スマートフォンアプリでオンにしてください。",
   "diagnostics.alerts.noReading": "値なし",

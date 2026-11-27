@@ -35,8 +35,8 @@ vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal =
   sensorsForDevice: (_s: unknown, _n: unknown, _e: unknown, category: string) => (category === 'cpu' ? [{ value: 'cpu/temp/0', type: 'Temperature' }] : []),
 }));
 vi.mock('./SensorAlertRuleSettings', () => ({
-  SensorAlertRuleSettings: ({ rule, onDelete, onRestoreDefault, onToggleEnabled, onOpenCooling }: { rule: { id: string; enabled: boolean }; onDelete: () => void; onRestoreDefault: () => void; onToggleEnabled: (enabled: boolean) => void; onOpenCooling?: () => void }) => (
-    <div data-testid="settings-stub">{rule.id}<button type="button" onClick={() => onToggleEnabled(!rule.enabled)}>stub-toggle</button><button type="button" onClick={onDelete}>stub-delete</button><button type="button" onClick={onRestoreDefault}>stub-restore</button>{onOpenCooling && <button type="button" onClick={onOpenCooling}>stub-cooling</button>}</div>
+  SensorAlertRuleSettings: ({ rule, onDelete, onRestoreDefault, onToggleEnabled }: { rule: { id: string; enabled: boolean }; onDelete: () => void; onRestoreDefault: () => void; onToggleEnabled: (enabled: boolean) => void }) => (
+    <div data-testid="settings-stub">{rule.id}<button type="button" onClick={() => onToggleEnabled(!rule.enabled)}>stub-toggle</button><button type="button" onClick={onDelete}>stub-delete</button><button type="button" onClick={onRestoreDefault}>stub-restore</button></div>
   ),
 }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
@@ -252,19 +252,6 @@ describe('ThermalsTab', () => {
     expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1', enabled: false }), expect.any(Function));
     fireEvent.click(screen.getByRole('button', { name: 'stub-delete' }));
     expect(h.remove).toHaveBeenCalledWith('r1');
-  });
-
-  it('hands the Cooling opener to the settings panel, and only when the page supplies one', () => {
-    h.rules = [rule('r1')];
-    const onOpenCooling = vi.fn();
-    const { unmount } = render(<SensorsTab {...props({ onOpenCooling })} />);
-    selectFirstRow();
-    fireEvent.click(screen.getByRole('button', { name: 'stub-cooling' }));
-    expect(onOpenCooling).toHaveBeenCalledTimes(1);
-    unmount();
-    render(<SensorsTab {...props()} />);
-    selectFirstRow();
-    expect(screen.queryByRole('button', { name: 'stub-cooling' })).toBeNull();
   });
 
   describe('a fan entry switch', () => {

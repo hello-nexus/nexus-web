@@ -2009,6 +2009,7 @@
   "diagnostics.alerts.highKnob": "Limite haute",
   "diagnostics.alerts.limitReached": "Limite de la liste de suivi atteinte ({max}).",
   "diagnostics.alerts.lowKnob": "Limite basse",
+  "diagnostics.alerts.manageInCooling": "Gérer dans Refroidissement",
   "diagnostics.alerts.noLowerLimit": "Aucune limite basse",
   "diagnostics.alerts.noPhonesAlertsOn": "Aucun téléphone n'a les alertes activées. Activez-les dans l'application Nexus pour téléphone.",
   "diagnostics.alerts.noReading": "Aucune mesure",
