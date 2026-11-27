@@ -58,10 +58,12 @@ interface SensorAlertRuleSettingsProps {
   /** The entry already tracking a sensor picked here, if any; the pick is then refused and `onTracked` runs. */
   findTracked?: (sensor: SensorRef) => SensorAlertRule | undefined;
   onTracked?: (existing: SensorAlertRule) => void;
+  /** Opens the Cooling page; a fan built-in then offers a way there. */
+  onOpenCooling?: () => void;
 }
 
 /** The editable settings of one tracked sensor: the sensor, its alert limits, delay, urgency and delivery options. Shown inside the sensor's card. */
-export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked }: SensorAlertRuleSettingsProps) {
+export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDelete, onToggleEnabled, state, onRestoreDefault, findTracked, onTracked, onOpenCooling }: SensorAlertRuleSettingsProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -193,6 +195,13 @@ export function SensorAlertRuleSettings({ rule, lookup, onPreview, onSave, onDel
         checked={rule.notifyMobile}
         onChange={notifyMobile => edit({ notifyMobile }, true)}
       />
+      {rule.builtIn === 'fanSpeed' && onOpenCooling && (
+        <SettingRow>
+          <Button type="button" tone="neutral" size="sm" data-testid="sensor-open-cooling" onClick={onOpenCooling}>
+            {t('diagnostics.cooling.guardTrip.openCooling')}
+          </Button>
+        </SettingRow>
+      )}
       <SettingRow>
         {builtIn ? (
           <Button type="button" tone="neutral" size="sm" data-testid="sensor-restore" icon={<RotateCcw size={13} aria-hidden />} onClick={onRestoreDefault}>

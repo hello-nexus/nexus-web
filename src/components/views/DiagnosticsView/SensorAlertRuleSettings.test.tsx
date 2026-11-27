@@ -38,7 +38,7 @@ const builtInRule: SensorAlertRule = {
 };
 const lookup = { resolve: () => undefined } as unknown as Parameters<typeof SensorAlertRuleSettings>[0]['lookup'];
 
-function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState } = {}) {
+function renderEditor(rule: SensorAlertRule, extra: { state?: SensorAlertState; onOpenCooling?: () => void } = {}) {
   const onSave = vi.fn();
   const onToggleEnabled = vi.fn();
   const view = render(
@@ -112,6 +112,25 @@ describe('SensorAlertRuleSettings', () => {
     expect(screen.getByRole('slider', { name: 'diagnostics.alerts.lowKnob' })).toHaveAttribute('data-unset', 'true');
     expect(screen.queryByTestId('sensor-delete')).toBeNull();
     expect(screen.getByTestId('sensor-restore')).toBeInTheDocument();
+  });
+
+  it('puts Manage in Cooling after the notify rows and before Restore default, for a fan built-in with an opener only', () => {
+    const fanRule: SensorAlertRule = { ...builtInRule, id: 'builtin-fan', builtIn: 'fanSpeed', sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' } };
+    const onOpenCooling = vi.fn();
+    const { unmount } = renderEditor(fanRule, { onOpenCooling });
+    const open = screen.getByTestId('sensor-open-cooling');
+    fireEvent.click(open);
+    expect(onOpenCooling).toHaveBeenCalledTimes(1);
+    const mobile = screen.getByRole('switch', { name: 'diagnostics.alerts.notifyMobile' });
+    const restore = screen.getByTestId('sensor-restore');
+    expect(mobile.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(open.compareDocumentPosition(restore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    unmount();
+    const noOpener = renderEditor(fanRule);
+    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
+    noOpener.unmount();
+    renderEditor(builtInRule, { onOpenCooling });
+    expect(screen.queryByTestId('sensor-open-cooling')).toBeNull();
   });
 
   it('shows the picker, both knobs and Delete for a user rule, with no on/off toggles for the limits', () => {

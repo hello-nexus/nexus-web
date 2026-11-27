@@ -23,7 +23,7 @@ import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertBanner } from './SensorAlertBanner';
 import { SensorAlertsBanner, type BannerAlert } from './SensorAlertsBanner';
 import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRule, formatAlertValue, isBannerAlert, rowTitles, ruleLabel, sensorRefOf } from './sensorAlertHelpers';
-import { Card } from '../../common/Card/Card';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
@@ -335,11 +335,8 @@ export function ThermalsTab({
           </div>
           {detailRule ? (
             <div className={styles.detail} data-testid="sensor-detail" data-rule-id={detailRule.id}>
-              <div className={styles.groupHeader}>
-                <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
-              </div>
-              <Card>
-                <div data-testid="sensor-settings">
+              <div data-testid="sensor-settings">
+                <SettingsSection title={t('diagnostics.sensors.settings.title')} flush>
                   <SensorAlertRuleSettings
                     key={detailRule.id}
                     rule={detailRule}
@@ -358,18 +355,16 @@ export function ThermalsTab({
                     onToggleEnabled={enabled => toggleRuleEnabled(detailRule, enabled)}
                     state={stateOf(detailRule.id)}
                     onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
+                    onOpenCooling={onOpenCooling}
                   />
-                </div>
-              </Card>
+                </SettingsSection>
+              </div>
             </div>
           ) : (
             <div className={styles.detail} data-testid="sensor-detail-empty">
-              <div className={styles.groupHeader}>
-                <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
-              </div>
-              <div className={styles.messageBox}>
+              <SettingsSection title={t('diagnostics.sensors.settings.title')} flush>
                 <EmptyState compact icon={<MousePointerClick size={22} />} title={t('diagnostics.thermals.selectHint')} />
-              </div>
+              </SettingsSection>
             </div>
           )}
         </div>
