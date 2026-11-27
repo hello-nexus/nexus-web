@@ -26,7 +26,7 @@ import { SpeakerSimCard } from './SpeakerSimCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { DEV_TOOLS } from '../../lib/devTools';
-import { PAWNIO_PREVIEW_IDS, previewHref } from '../common/PawnIoGate/gateLogic';
+import { PAWNIO_PREVIEW_IDS, previewHref, previewLabelKey } from '../common/PawnIoGate/gateLogic';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -175,7 +175,7 @@ function PawnIoGatePreviewCard() {
       <ul className={styles.previewLinks}>
         {PAWNIO_PREVIEW_IDS.map(id => (
           <li key={id}>
-            <Button tone="neutral" size="sm" href={previewHref(id)}>{id}</Button>
+            <Button tone="neutral" size="sm" href={previewHref(id)}>{t(previewLabelKey(id))}</Button>
           </li>
         ))}
       </ul>

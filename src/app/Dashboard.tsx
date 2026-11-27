@@ -362,8 +362,10 @@ export function Dashboard() {
   useState(() => stashPanelEditorTarget(window.location.pathname, window.location.search));
   // Dev-tools only (statically null in distribution builds). Read here, before
   // useRoute, for the same reason as the stash above.
-  const [pawnIoPreview, setPawnIoPreview] = useState(() =>
+  const [initialPawnIoPreview] = useState(() =>
     DEV_TOOLS ? previewFor(new URLSearchParams(window.location.search).get(PAWNIO_PREVIEW_PARAM)) : null);
+  const [pawnIoPreviewDismissed, setPawnIoPreviewDismissed] = useState(false);
+  const pawnIoPreview = DEV_TOOLS && !pawnIoPreviewDismissed ? initialPawnIoPreview : null;
   const {
     route, section, view, subtab,
     navigate, setView, setSubtab,
@@ -1083,7 +1085,7 @@ export function Dashboard() {
           params.delete(PAWNIO_PREVIEW_PARAM);
           const query = params.toString();
           window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
-          setPawnIoPreview(null);
+          setPawnIoPreviewDismissed(true);
         }}
       />
     );

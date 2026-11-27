@@ -1,4 +1,4 @@
-import { authFetchWithStatus, fetchService, postService } from './service';
+import { authFetchWithStatus, fetchService } from './service';
 
 export type PawnIoState =
   | 'ok'
@@ -54,21 +54,47 @@ export async function fetchPawnIoStatus(signal?: AbortSignal): Promise<PawnIoSta
   }
 }
 
-/** Runs the install or repair; resolves with the status after the attempt, null on a failed request. */
-export async function fixPawnIo(): Promise<PawnIoStatus | null> {
+/** What a /pawnio/fix attempt came back with. */
+export type PawnIoFixResult =
+  | { kind: 'status'; status: PawnIoStatus }
+  | { kind: 'flashing' }
+  | { kind: 'failed' };
+
+/** The service refuses the driver actions with 409 while a firmware flash runs; its message names the flash. */
+function isFlashRefusal(status: number, body: { msg?: unknown } | null): boolean {
+  return status === 409 && typeof body?.msg === 'string' && /firmware/i.test(body.msg);
+}
+
+async function readBody(response: Response | null): Promise<{ msg?: unknown } | null> {
   try {
-    return parsePawnIoStatus(await postService<unknown>('/pawnio/fix', {}));
+    return response ? (await response.json()) as { msg?: unknown } : null;
   } catch {
     return null;
   }
 }
 
-/** Asks the service to restart the PC. */
-export async function restartPcForPawnIo(): Promise<boolean> {
+/** Runs the install or repair; resolves with the status after the attempt. */
+export async function fixPawnIo(): Promise<PawnIoFixResult> {
   try {
-    const { response } = await authFetchWithStatus('/pawnio/restart-pc', { method: 'POST', body: {} });
-    return response?.ok === true;
+    const { response, status } = await authFetchWithStatus('/pawnio/fix', { method: 'POST', body: {} });
+    const body = await readBody(response);
+    if (isFlashRefusal(status, body)) return { kind: 'flashing' };
+    const parsed = response?.ok ? parsePawnIoStatus(body) : null;
+    return parsed ? { kind: 'status', status: parsed } : { kind: 'failed' };
   } catch {
-    return false;
+    return { kind: 'failed' };
+  }
+}
+
+export type PawnIoRestartResult = 'ok' | 'flashing' | 'refused';
+
+/** Asks the service to restart the PC. 'flashing' is the firmware-update refusal; 'refused' is any other failure. */
+export async function restartPcForPawnIo(): Promise<PawnIoRestartResult> {
+  try {
+    const { response, status } = await authFetchWithStatus('/pawnio/restart-pc', { method: 'POST', body: {} });
+    if (response?.ok) return 'ok';
+    return isFlashRefusal(status, await readBody(response)) ? 'flashing' : 'refused';
+  } catch {
+    return 'refused';
   }
 }

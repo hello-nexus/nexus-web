@@ -7,7 +7,7 @@ vi.mock('../api/pawnio', () => ({
   fetchPawnIoStatus: (...args: unknown[]) => fetchPawnIoStatus(...args),
 }));
 
-import { nextPawnIoStatus, usePawnIoGate } from './usePawnIoGate';
+import { BOOT_POLL_WINDOW_MS, nextPawnIoStatus, usePawnIoGate } from './usePawnIoGate';
 
 function status(state: PawnIoState): PawnIoStatus {
   return { installed: true, open: state === 'ok', state, errorCode: null, fixAction: 'none', fixing: false };
@@ -66,6 +66,49 @@ describe('usePawnIoGate', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('polls a healthy PC for the boot window only, then stops', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchPawnIoStatus.mockResolvedValue(status('ok'));
+      renderHook(() => usePawnIoGate(true));
+      await act(async () => { await vi.advanceTimersByTimeAsync(BOOT_POLL_WINDOW_MS); });
+      const calls = fetchPawnIoStatus.mock.calls.length;
+      expect(calls).toBeGreaterThan(5);
+      await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+      expect(fetchPawnIoStatus.mock.calls.length).toBe(calls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows the gate when the boot check latches after the window opened', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchPawnIoStatus.mockResolvedValue(status('ok'));
+      const { result } = renderHook(() => usePawnIoGate(true));
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      expect(result.current.show).toBe(false);
+      fetchPawnIoStatus.mockResolvedValue(status('notInstalled'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+      expect(result.current.show).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('drops the success hold when the service goes offline, so a reconnect with ok shows no gate', async () => {
+    fetchPawnIoStatus.mockResolvedValue(status('notRunning'));
+    const { result, rerender } = renderHook(({ on }) => usePawnIoGate(on), { initialProps: { on: true } });
+    await waitFor(() => expect(result.current.show).toBe(true));
+    act(() => { result.current.setStatus(status('ok')); result.current.onFixed(); });
+    expect(result.current.show).toBe(true);
+    rerender({ on: false });
+    fetchPawnIoStatus.mockResolvedValue(status('ok'));
+    rerender({ on: true });
+    await waitFor(() => expect(fetchPawnIoStatus).toHaveBeenCalled());
+    expect(result.current.show).toBe(false);
   });
 
   it('holds the screen for the success beat after a fix, until continue', async () => {

@@ -91,3 +91,18 @@ export function previewFor(id: string | null): PawnIoPreview | null {
 export function previewHref(id: string): string {
   return `/?${PAWNIO_PREVIEW_PARAM}=${encodeURIComponent(id)}`;
 }
+
+/** The service only restarts the PC for these two states; anywhere else the request is refused. */
+export function canRestartPc(state: PawnIoState): boolean {
+  return state === 'restartRequired' || state === 'notRunning';
+}
+
+/** The status to hand the host once a fix or recheck reached ok. */
+export function okStatusFrom(prev: PawnIoStatus): PawnIoStatus {
+  return { ...prev, installed: true, open: true, state: 'ok', errorCode: null, fixAction: 'none', fixing: false };
+}
+
+/** Locale key of a preview link's label. */
+export function previewLabelKey(id: string): string {
+  return `pawnioGate.preview.${id}`;
+}

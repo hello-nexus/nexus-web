@@ -11,7 +11,7 @@ import { useWindowDragRegion } from '../../../app/useWindowDragRegion';
 import { isWindowsAppShell } from '../../../app/windowActions';
 import { downloadSupportBundle } from '../../../api/diagnostics';
 import { fetchPawnIoStatus, fixPawnIo, restartPcForPawnIo, type PawnIoStatus } from '../../../api/pawnio';
-import { fixOutcome, screenFor, type PawnIoPhase } from './gateLogic';
+import { canRestartPc, fixOutcome, okStatusFrom, screenFor, type PawnIoPhase } from './gateLogic';
 import styles from './PawnIoGate.module.scss';
 
 const HERO_ICON_SIZE = 30;
@@ -47,6 +47,8 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
   const [bundleBusy, setBundleBusy] = useState(false);
   const [bundleFailed, setBundleFailed] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [notice, setNotice] = useState<'flashing' | 'restartRefused' | null>(null);
+  const stateRef = useRef(status.state);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mounted = useRef(true);
 
@@ -59,10 +61,18 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
     };
   }, []);
 
-  // A poll that reports a different not-ok state replaces the screen; ok is
-  // the host's call (it unmounts us, or holds us for the success beat).
+  stateRef.current = current.state;
+
+  // A poll that reports a different not-ok state replaces the screen and
+  // resets its flow; ok is the host's call (it unmounts us, or holds us for
+  // the success beat).
   useEffect(() => {
-    if (status.state !== 'ok') setCurrent(status);
+    if (status.state === 'ok') return;
+    if (status.state !== stateRef.current) {
+      setPhase(p => (p === 'done' ? p : 'idle'));
+      setNotice(null);
+    }
+    setCurrent(status);
   }, [status]);
 
   const later = useCallback((fn: () => void, ms: number) => {
@@ -71,39 +81,58 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
 
   const succeed = useCallback(() => {
     setPhase('done');
+    setNotice(null);
+    onStatus(okStatusFrom(current));
     onFixed();
     later(onContinue, CONTINUE_DELAY_MS);
-  }, [later, onContinue, onFixed]);
+  }, [current, later, onContinue, onFixed, onStatus]);
 
   const runFix = useCallback(async () => {
     const before = current.state;
+    const priorPhase = phase;
     setPhase('working');
+    setNotice(null);
     if (preview) {
       later(succeed, PREVIEW_WORK_MS);
       return;
     }
-    const outcome = fixOutcome(before, await fixPawnIo());
+    const result = await fixPawnIo();
     if (!mounted.current) return;
+    if (result.kind === 'flashing') {
+      // Not an attempt that failed: stay where we were with the button available.
+      setPhase(priorPhase === 'working' ? 'idle' : priorPhase);
+      setNotice('flashing');
+      return;
+    }
+    const outcome = fixOutcome(before, result.kind === 'status' ? result.status : null);
     if (outcome.kind === 'done') succeed();
     else if (outcome.kind === 'moved') {
       setPhase('idle');
       setCurrent(outcome.status);
       onStatus(outcome.status);
-    } else setPhase('failed');
-  }, [current.state, later, onStatus, preview, succeed]);
+    } else {
+      if (result.kind === 'status') setCurrent(result.status);
+      setPhase('failed');
+    }
+  }, [current.state, later, onStatus, phase, preview, succeed]);
 
   const restartPc = useCallback(async () => {
+    setNotice(null);
+    setRestarting(true);
     if (preview) {
-      setRestarting(true);
       later(() => setRestarting(false), PREVIEW_WORK_MS);
       return;
     }
-    setRestarting(true);
-    await restartPcForPawnIo();
-    if (mounted.current) setRestarting(false);
+    const result = await restartPcForPawnIo();
+    if (!mounted.current) return;
+    // On success the PC is shutting down (it waits a few seconds first), so the button stays busy.
+    if (result === 'ok') return;
+    setRestarting(false);
+    setNotice(result === 'flashing' ? 'flashing' : 'restartRefused');
   }, [later, preview]);
 
   const checkAgain = useCallback(async () => {
+    const priorPhase = phase;
     setPhase('working');
     if (preview) {
       later(() => setPhase('stillBlocked'), PREVIEW_WORK_MS);
@@ -111,13 +140,19 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
     }
     const next = await fetchPawnIoStatus();
     if (!mounted.current) return;
-    if (next && next.state !== 'blocked') {
+    if (!next) {
+      setPhase(priorPhase === 'working' ? 'idle' : priorPhase);
+    } else if (next.state === 'blocked') {
+      setPhase('stillBlocked');
+    } else if (next.state === 'ok') {
+      setPhase('idle');
+      succeed();
+    } else {
       setCurrent(next);
       setPhase('idle');
-      if (next.state === 'ok') succeed();
-      else onStatus(next);
-    } else setPhase('stillBlocked');
-  }, [later, onStatus, preview, succeed]);
+      onStatus(next);
+    }
+  }, [later, onStatus, phase, preview, succeed]);
 
   const exportBundle = useCallback(async () => {
     setBundleBusy(true);
@@ -155,7 +190,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
       onClick={restartPc}
       loading={restarting}
     >
-      {t('pawnioGate.restart.button')}
+      {t(restarting ? 'pawnioGate.restart.working' : 'pawnioGate.restart.button')}
     </Button>
   );
 
@@ -166,6 +201,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
   let note: string | null = null;
   let content: React.ReactNode = null;
   let showWhy = true;
+  let retry: React.ReactNode = null;
 
   if (done) {
     heroIcon = <Check size={HERO_ICON_SIZE} aria-hidden />;
@@ -178,7 +214,6 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
         <Button tone="accent" size="lg" className={styles.bigButton} onClick={onContinue}>
           {t('pawnioGate.done.button')}
         </Button>
-        <span className={styles.sub}>{t('pawnioGate.done.hint')}</span>
       </>
     );
   } else if (failed) {
@@ -190,7 +225,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
       <ol className={styles.steps}>
         <li>
           <div>{t('pawnioGate.steps.restart')}</div>
-          <div className={styles.stepAction}>{restartButton(false)}</div>
+          {canRestartPc(current.state) && <div className={styles.stepAction}>{restartButton(false)}</div>}
         </li>
         <li>
           <div>{t('pawnioGate.steps.installer')}</div>
@@ -202,6 +237,11 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
         </li>
       </ol>
     );
+    retry = current.fixAction === 'install' || current.fixAction === 'repair' ? (
+      <Button tone="neutral" size="md" icon={<RefreshCw size={16} aria-hidden />} onClick={runFix}>
+        {t('pawnioGate.steps.retry')}
+      </Button>
+    ) : null;
   } else if (screen === 'install') {
     title = t(working ? 'pawnioGate.installing.title' : 'pawnioGate.install.title');
     body = t(working ? 'pawnioGate.installing.body' : 'pawnioGate.install.body');
@@ -278,9 +318,15 @@ export function PawnIoGate({ status, initialPhase = 'idle', preview = false, onS
         <div className={styles.brand}><NexusWordmark height={22} /></div>
         {!failed && <span className={`${styles.hero} ${styles[heroTone]}`} aria-hidden>{heroIcon}</span>}
         <h1 className={styles.title}>{title}</h1>
+        {notice && (
+          <Notice tone="warning" role="alert" className={styles.note}>
+            {t(notice === 'flashing' ? 'pawnioGate.notice.flashing' : 'pawnioGate.notice.restartRefused')}
+          </Notice>
+        )}
         {note && <Notice tone="warning" role="status" className={styles.note}>{note}</Notice>}
         {body && <p className={styles.body}>{body}</p>}
         {content}
+        {retry}
         {bundleFailed && (
           <Notice tone="critical" role="alert" className={styles.note}>
             {t('settings.diagnostics.supportBundleFailed')}

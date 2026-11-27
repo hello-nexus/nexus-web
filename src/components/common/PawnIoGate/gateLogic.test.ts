@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PawnIoState, PawnIoStatus } from '../../../api/pawnio';
 import {
-  PAWNIO_PREVIEW_IDS, fixOutcome, gateShows, previewFor, previewHref, screenFor,
+  PAWNIO_PREVIEW_IDS, canRestartPc, fixOutcome, gateShows, okStatusFrom, previewFor, previewHref, screenFor,
 } from './gateLogic';
 
 function status(state: PawnIoState): PawnIoStatus {
@@ -73,5 +73,21 @@ describe('previews', () => {
 
   it('builds a link that carries the id', () => {
     expect(previewHref('blocked')).toBe('/?pawnioPreview=blocked');
+  });
+});
+
+describe('canRestartPc and okStatusFrom', () => {
+  it('allows a restart only for restartRequired and notRunning', () => {
+    expect(canRestartPc('restartRequired')).toBe(true);
+    expect(canRestartPc('notRunning')).toBe(true);
+    for (const s of ['notInstalled', 'installFailed', 'permissionDeclined', 'blocked', 'ok'] as const) {
+      expect(canRestartPc(s)).toBe(false);
+    }
+  });
+
+  it('builds an ok status from a not-ok one', () => {
+    const ok = okStatusFrom(status('notRunning'));
+    expect(ok.state).toBe('ok');
+    expect(gateShows(ok)).toBe(false);
   });
 });
