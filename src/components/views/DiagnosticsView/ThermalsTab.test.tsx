@@ -17,14 +17,18 @@ const h = vi.hoisted(() => ({
   acknowledge: vi.fn(),
   resetBuiltIns: vi.fn(),
   push: vi.fn(),
+  setControlled: vi.fn(),
+  refresh: vi.fn(),
+  coolingOn: true,
 }));
 
 vi.mock('../../../hooks/useSensorAlerts', () => ({
   useSensorAlerts: () => ({
-    rules: h.rules, states: h.states, loaded: h.loaded, error: false, loading: false, refresh: vi.fn(), atLimit: h.atLimit,
+    rules: h.rules, states: h.states, loaded: h.loaded, error: false, loading: false, refresh: h.refresh, atLimit: h.atLimit,
     add: h.add, save: h.save, remove: h.remove, acknowledge: h.acknowledge, resetBuiltIns: h.resetBuiltIns, preview: vi.fn(),
   }),
 }));
+vi.mock('../../../api/cooling', async importOriginal => ({ ...(await importOriginal<object>()), setFanControlledWithStatus: h.setControlled }));
 vi.mock('../../common/Toast/Toast', () => ({ useToast: () => ({ push: h.push }) }));
 vi.mock('../../../panel/widgets/monitoring/sensorPicker', async importOriginal => ({
   ...(await importOriginal<object>()),
@@ -37,6 +41,7 @@ vi.mock('./SensorAlertRuleSettings', () => ({
 }));
 vi.mock('../../../hooks/useUiSettings', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUiSettings')>()),
+  useFeatureFlags: () => ({ lighting: true, cooling: h.coolingOn, monitoring: true, diagnostics: true }),
   useUnitPrefs: () => ({ monitoringTempUnit: h.tempUnit, numberFormat: 'dot', timeFormat: '24h', monitoringWholeNumbers: false, dateFormat: 'system' }),
 }));
 vi.mock('../../../lib/i18n', () => ({
@@ -84,6 +89,7 @@ const props = (over = {}) => ({ history: history(), onAlertDismissed: vi.fn(), .
 
 beforeEach(() => {
   vi.clearAllMocks();
+  h.coolingOn = true;
   h.tempUnit = 'c';
   h.rules = [];
   h.states = [];
@@ -194,6 +200,17 @@ describe('ThermalsTab', () => {
     expect(chart.valueFormat(chart.thresholds[0].value)).toBe('176°F');
   });
 
+  it('formats the throughput graph values and limits in MB/s from the stored bytes per second', () => {
+    const MB = 1024 * 1024;
+    h.rules = [rule('r1', { sensor: { category: 'smart', id: '/nvme/0/write', name: 'Write Rate', type: 'Throughput', parentName: 'Drive' }, high: 500 * MB })];
+    h.states = [state('r1', { value: 500 * MB })];
+    render(<SensorsTab {...props({ history: history({ series: [{ id: 'r1', kind: 'sensorAlert', name: 'Write Rate', points: [{ t: 1000, avg: 500 * MB, max: 500 * MB }] }] }) })} />);
+    selectFirstRow();
+    const chart = h.chart.mock.calls.at(-1)![0] as { series: Array<{ points: Array<{ avg: number }> }>; thresholds: Array<{ value: number }>; valueFormat: (v: number) => string };
+    expect(chart.valueFormat(chart.series[0].points[0].avg)).toBe('500 MB/s');
+    expect(chart.valueFormat(chart.thresholds[0].value)).toBe('500 MB/s');
+  });
+
   it('selects nothing by default, and a clicked sensor opens its editor and graph', () => {
     h.rules = [rule('r1'), rule('r2')];
     render(<SensorsTab {...props()} />);
@@ -235,6 +252,64 @@ describe('ThermalsTab', () => {
     expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'r1', enabled: false }), expect.any(Function));
     fireEvent.click(screen.getByRole('button', { name: 'stub-delete' }));
     expect(h.remove).toHaveBeenCalledWith('r1');
+  });
+
+  describe('a fan entry switch', () => {
+    const fanRule = (controlChannel: string | null) => rule('fan1', {
+      builtIn: 'fanSpeed',
+      sensor: { category: 'builtin', id: 'fan', name: 'Fan #1', type: 'Fan', parentName: '' },
+      source: { kind: 'channel', sensor: null, sensors: [], hardwareName: 'Board', controlChannel },
+    });
+
+    it('writes Nexus Control through the Cooling route, leaving the refetch to the cooling topic, never saving the rule', async () => {
+      h.setControlled.mockResolvedValue({ ok: true, status: 200 });
+      h.rules = [fanRule('f1')];
+      render(<SensorsTab {...props()} />);
+      selectFirstRow();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
+      expect(h.setControlled).toHaveBeenCalledWith('f1', false, false);
+      expect(h.save).not.toHaveBeenCalled();
+      expect(h.refresh).not.toHaveBeenCalled();
+    });
+
+    it('saves the plain mute without calling the Cooling route while the Cooling feature is off', async () => {
+      h.coolingOn = false;
+      h.rules = [fanRule('f1')];
+      render(<SensorsTab {...props()} />);
+      selectFirstRow();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
+      expect(h.setControlled).not.toHaveBeenCalled();
+      expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'fan1', enabled: false }), expect.any(Function));
+    });
+
+    it('falls back to the mute save when the service answers 409', async () => {
+      h.setControlled.mockResolvedValue({ ok: false, status: 409 });
+      h.rules = [fanRule('f1')];
+      render(<SensorsTab {...props()} />);
+      selectFirstRow();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
+      expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'fan1', enabled: false }), expect.any(Function));
+    });
+
+    it('toasts and refetches on any other refusal', async () => {
+      h.setControlled.mockResolvedValue({ ok: false, status: 400 });
+      h.rules = [fanRule('f1')];
+      render(<SensorsTab {...props()} />);
+      selectFirstRow();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
+      expect(h.save).not.toHaveBeenCalled();
+      expect(h.push).toHaveBeenCalled();
+      expect(h.refresh).toHaveBeenCalled();
+    });
+
+    it('saves a pump entry (no control channel) as the plain mute', async () => {
+      h.rules = [fanRule(null)];
+      render(<SensorsTab {...props()} />);
+      selectFirstRow();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'stub-toggle' })); });
+      expect(h.setControlled).not.toHaveBeenCalled();
+      expect(h.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'fan1', enabled: false }), expect.any(Function));
+    });
   });
 
   it('toasts when the delete fails', async () => {

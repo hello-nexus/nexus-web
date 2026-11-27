@@ -179,3 +179,32 @@
 
   .card { padding: 0; }
 }
+
+// ── Event dots under the day number ──────────────────────────────
+.cell.hasDots { flex-direction: column; }
+.s-2x4 .cell.hasDots,
+.s-4x4 .cell.hasDots { justify-content: flex-start; }
+
+.dots {
+  display: flex;
+  height: 0.24em;
+  margin-top: 0.12em;
+  @include hgap(0.2em);
+
+  i { width: 0.24em; height: 0.24em; border-radius: 50%; display: block; }
+}
+
+// 4x4 with today's list under a compact grid.
+.month.s-4x4.withList {
+  padding: 20px 22px;
+  @include vgap(6px);
+
+  .calBody { font-size: 1em; flex: 0 0 auto; @include vgap(4px); }
+  .header { font-size: 16px; }
+  .grid { /* c83:allow - .grid is display: grid */ row-gap: 1px; padding-bottom: 0; margin-bottom: 0; }
+  .weekRow { margin-top: 0; }
+  .weekName { font-size: 9px; }
+  .dayNum { font-size: 11.5px; width: 1.75em; height: 1.75em; }
+  .dots i { width: 4px; height: 4px; }
+  .dots { height: 4px; }
+}

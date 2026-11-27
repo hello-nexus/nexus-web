@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { Ban, CheckCheck, ListChecks, Eye, EyeOff, Lightbulb, Maximize2, Pause, SprayCan, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, setAnimateSimple, startStatic, startScreenMirror, stopLighting,
@@ -27,6 +27,9 @@ import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLa
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, getLianLiWirelessState, setLianLiWirelessChainLighting, type LianLiWirelessFan } from '../../../api/lianli-wireless';
+import { isGalleonDeck } from '../../../lib/galleonDeck';
+import { useStreamDecks } from '../../../hooks/useStreamDecks';
+import { GALLEON_SAVE_ANCHOR, galleonDeviceKey, galleonKeyboardCards } from '../../../components/views/DevicePage/galleonKeyboardLighting';
 import { deviceTypeKey, lianLiWirelessDeviceAnchor } from '../../../components/views/DevicePage/LianLiWirelessFansTab';
 import { unboundWirelessCards, unboundWirelessFans } from './page/unboundWireless';
 import { LIANLI_FLEX_CHANNEL_PREFIX, lianLiFlexLightingApi } from '../../../api/lianli-flex';
@@ -131,6 +134,8 @@ import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { PresetAppsModal } from './page/PresetAppsModal';
+import { formatList } from '../../../components/common/Nexus2WelcomeScreen/nexus2WelcomeUtils';
+import { modeBlockedBySavedColors, savedColorsCards, savesColorsToDevice, selectionSavesColors } from './page/savedColorsOnly';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
@@ -195,29 +200,35 @@ const layoutHistoryStore = {
 
 // How long the rail keeps saying a scan is running when none was ever reported.
 const DISCOVERY_GRACE_MS = 4000;
+// A selected device that stays off the list this long is dropped from the stored selection.
+const SELECTION_ABSENT_GRACE_MS = 60_000;
+// One refresh counts at most this much toward the grace window, so a sleep or a stalled
+// page between two refreshes cannot expire an absent device.
+const SELECTION_ABSENT_STEP_CAP_MS = 15_000;
 const DEVICE_ORDER_KEY = 'lighting.deviceOrder';
 
-/** Devices that play their own effect unless set to `lightingPageMode`, keyed by their cards' deviceIds. */
+/** Devices that play their own effect unless set to `lightingPageMode`, matched by their cards' deviceIds. */
 const OWN_EFFECT_DEVICES: readonly {
-  deviceIds: readonly string[];
+  matches: (deviceId: string) => boolean;
   lightingPageMode: string;
   getMode: () => Promise<string | null>;
   setMode: (mode: string) => Promise<unknown>;
 }[] = [
   {
-    deviceIds: ['lianli-hydroshift2'],
+    matches: id => id === 'lianli-hydroshift2',
     lightingPageMode: 'canvas',
     getMode: () => getHydroShift2Lighting().then(l => l?.mode ?? null),
     setMode: mode => setHydroShift2Lighting({ mode }),
   },
   {
-    deviceIds: ['lianli-aio'],
+    matches: id => id === 'lianli-aio',
     lightingPageMode: 'canvas',
     getMode: () => getGalahad2Lighting().then(l => l?.mode ?? null),
     setMode: mode => setGalahad2Lighting({ mode }),
   },
   {
-    deviceIds: ['strimer:atx', 'strimer:gpu'],
+    // Further controllers carry strimer:<n>:atx and strimer:<n>:gpu.
+    matches: id => /^strimer:(\d+:)?(atx|gpu)$/.test(id),
     lightingPageMode: 'custom',
     getMode: () => getStrimerLighting().then(l => l?.mode ?? null),
     setMode: mode => setStrimerLighting({ mode }),
@@ -282,6 +293,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     scanning: serviceState.lighting?.scanning ?? false,
   };
   const [devices, setDevices] = useState<LightingDevice[]>([]);
+  const { decks: streamDecks } = useStreamDecks(true);
+  const galleonDeckSerials = streamDecks.filter(isGalleonDeck).map(d => d.serial);
   // User-made rail groups. The service owns them (they ride the device list),
   // so a write is optimistic and the lighting topic reconciles.
   const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
@@ -301,8 +314,37 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // and the member a stacked frame's label names; every focused frame shows
   // its LED dots.
   useState(clearLegacyLightingKeys);
-  const [selectedDeviceIds, setSelectedDeviceIds] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
-  const [primaryDeviceId, setPrimaryDeviceId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
+  const [storedSelectionIds, setStoredSelection] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
+  const [storedPrimaryId, setPrimaryDeviceId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
+  // The stored selection can name a device that is off the list for the moment
+  // (a wireless chain re-pairing). Everything reads the effective selection,
+  // the stored one cut to the cards a click can select now, so an absent id
+  // never reaches a pin or the canvas. An empty result means "nothing selected".
+  const selectionHoldableIds = useMemo(
+    () => new Set(visibleCards(devices).filter(zoneCardSelectionHoldable).map(d => d.id)),
+    [devices],
+  );
+  const selectedDeviceIds = useMemo(
+    () => (storedSelectionIds.size === 0 || [...storedSelectionIds].every(id => selectionHoldableIds.has(id))
+      ? storedSelectionIds
+      : new Set([...storedSelectionIds].filter(id => selectionHoldableIds.has(id)))),
+    [storedSelectionIds, selectionHoldableIds],
+  );
+  const primaryDeviceId = storedPrimaryId && selectionHoldableIds.has(storedPrimaryId) ? storedPrimaryId : null;
+  // Every edit writes through here: a stored id that is absent right now (still
+  // inside its grace window) rides along, so toggling a card during a dropout
+  // does not forget the device that dropped. Any edit that leaves nothing selected
+  // (select none, or toggling off the last visible card) clears them all.
+  const holdableRef = useRef(selectionHoldableIds);
+  holdableRef.current = selectionHoldableIds;
+  const setSelectedDeviceIds = useCallback((update: SetStateAction<Set<string>>) => {
+    setStoredSelection(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      if (next.size === 0) return next;
+      const absent = [...prev].filter(id => !holdableRef.current.has(id) && !next.has(id));
+      return absent.length === 0 ? next : new Set([...next, ...absent]);
+    });
+  }, [setStoredSelection]);
   // Canvas focus: which of the drawn frames take the frame-level edits (drag,
   // resize, rotate, power, LED dots). Kept apart from the list selection so a
   // click on empty canvas recedes the frames instead of clearing the canvas.
@@ -424,8 +466,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   // Device ids of OWN_EFFECT_DEVICES not following the Lighting page; only present devices are read.
   const [ownEffectIds, setOwnEffectIds] = useState<ReadonlySet<string>>(() => new Set());
+  // The matched ids themselves, so a further controller appearing re-reads the mode.
   const ownEffectPresent = useMemo(
-    () => OWN_EFFECT_DEVICES.map(e => e.deviceIds.some(id => devices.some(d => d.deviceId === id)) ? '1' : '0').join(''),
+    () => OWN_EFFECT_DEVICES.map(e => devices.flatMap(d => d.deviceId && e.matches(d.deviceId) ? [d.deviceId] : []).sort().join(',')).join('|'),
     [devices],
   );
   // Only the newest read applies, so one started before a Take control cannot restore the old state.
@@ -433,26 +476,28 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // A device whose read fails keeps its last known state.
   const refreshOwnEffects = useCallback(async () => {
     const seq = ++ownEffectSeq.current;
+    const present = ownEffectPresent.split('|');
     const modes = await Promise.all(OWN_EFFECT_DEVICES.map((e, i) =>
-      ownEffectPresent[i] === '1' ? e.getMode().catch(() => null) : Promise.resolve(null)));
+      present[i] !== '' ? e.getMode().catch(() => null) : Promise.resolve(null)));
     if (seq !== ownEffectSeq.current) return;
     setOwnEffectIds(prev => {
       const next = new Set<string>();
       OWN_EFFECT_DEVICES.forEach((e, i) => {
-        if (ownEffectPresent[i] !== '1') return;
+        if (present[i] === '') return;
         const mode = modes[i];
-        if (mode === null ? e.deviceIds.some(id => prev.has(id)) : mode !== e.lightingPageMode) {
-          e.deviceIds.forEach(id => next.add(id));
+        const ids = devicesRef.current.flatMap(d => d.deviceId && e.matches(d.deviceId) ? [d.deviceId] : []);
+        if (mode === null ? ids.some(id => prev.has(id)) : mode !== e.lightingPageMode) {
+          ids.forEach(id => next.add(id));
         }
       });
       return next;
     });
   }, [ownEffectPresent]);
   const handleOwnEffectTakeControl = useCallback(async (deviceId: string) => {
-    const entry = OWN_EFFECT_DEVICES.find(e => e.deviceIds.includes(deviceId));
+    const entry = OWN_EFFECT_DEVICES.find(e => e.matches(deviceId));
     if (!entry) return;
     ownEffectSeq.current++;
-    setOwnEffectIds(prev => new Set([...prev].filter(id => !entry.deviceIds.includes(id))));
+    setOwnEffectIds(prev => new Set([...prev].filter(id => !entry.matches(id))));
     if (!await entry.setMode(entry.lightingPageMode)) void refreshOwnEffects();
   }, [refreshOwnEffects]);
   const firmwareDeviceIds = useMemo(
@@ -524,9 +569,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // fully parked device shows one card with its zero-enabled badge so it
   // stays selectable and its LED map editor remains reachable.
   const visibleDevices = useMemo(() => visibleCards(devices), [devices]);
-  // The list selection, which is what the canvas frames, also shrinks without
-  // passing through those handlers: the prune drops devices which stopped
-  // being selectable (unplugged, or their LEDs switched off). A focus id for a
+  // The effective list selection, which is what the canvas frames, also shrinks
+  // without passing through those handlers: it loses devices which stopped
+  // being selectable (unplugged, or off the list). A focus id for a
   // frame the canvas no longer draws would keep the group-drag branch armed
   // on a one-frame canvas, so drop it here.
   useEffect(() => {
@@ -1091,7 +1136,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setTabBaseMode(reconciledTab.base);
     setSelectionTab(reconciledTab.tab);
   }
-  const viewMode: LightingMode = selectionTab ?? mode;
+  // A selected card that keeps its colors on the device can only show a still look.
+  const staticOnly = selectionSavesColors(visibleDevices, selectedDeviceIds);
+  const savedColorNames = staticOnly ? savedColorsCards(visibleDevices, selectedDeviceIds).map(d => d.name) : [];
+  const openedMode: LightingMode = selectionTab ?? mode;
+  const viewMode: LightingMode = staticOnly && modeBlockedBySavedColors(openedMode) ? 'static' : openedMode;
   // Nothing selected on a tab other than the running mode: its picks reach no card until a
   // selection gives them one (or a press of the tab starts the mode), so they flash the scope chip.
   const detachedTab = selectedDeviceIds.size === 0 && viewMode !== mode;
@@ -1680,10 +1729,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Cards a SELECTION can hold, which is wider: a click lands on a dark or
   // un-driven card too, since selecting it is how its menu gets opened.
   const hiddenDeviceIdsRef = useRef<ReadonlySet<string>>(new Set());
-  const selectionKeepIds = useMemo(
-    () => orderedDevices.filter(zoneCardSelectionHoldable).map(d => d.id),
-    [orderedDevices],
-  );
   // Select all takes dark cards too, but skips Nexus Control off ones, which the
   // eye can hide - so it never builds a selection the user cannot see. A search
   // narrows it to the matches for the same reason.
@@ -1784,21 +1829,45 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     ? 'off'
     : (leftOff ? 'detecting' : undefined);
 
-  // A restored selection can name devices that are gone (unplugged between
-  // visits). Drop those once the list has loaded. Judged against what a click
-  // can select, NOT the pick targets: this effect re-runs on every device
-  // poll, so pruning to the narrower set would quietly undo the selection of a
-  // card the user picked precisely because its lights were off.
+  // A stored selection can name devices that are gone for good (unplugged
+  // between visits). Each id gets SELECTION_ABSENT_GRACE_MS off the list before
+  // it is dropped, so a device that drops for a moment, or one OpenRGB has not
+  // enumerated yet, keeps its selection. Time counts only across consecutive
+  // refreshes, each capped, so a sleep between two refreshes adds one step, not
+  // the whole sleep. Reappearing resets the clock. Judged against what a click
+  // can select, NOT the pick targets, so a card picked while its lights were
+  // off stays selected. Checked on each devices refresh.
+  const absentMsRef = useRef(new Map<string, number>());
+  const lastRefreshAtRef = useRef<number | null>(null);
+  const storedSelectionRef = useRef(storedSelectionIds);
+  storedSelectionRef.current = storedSelectionIds;
+  const storedPrimaryRef = useRef(storedPrimaryId);
+  storedPrimaryRef.current = storedPrimaryId;
   useEffect(() => {
-    if (orderedDevices.length === 0) return;
+    const absentMs = absentMsRef.current;
+    const now = Date.now();
+    const step = lastRefreshAtRef.current === null ? 0 : Math.min(Math.max(0, now - lastRefreshAtRef.current), SELECTION_ABSENT_STEP_CAP_MS);
+    lastRefreshAtRef.current = now;
+    if (devices.length === 0) { absentMs.clear(); return; }
     // Hidden OpenRGB cards come back with the daemon, so their ids stay selected.
-    const keep = new Set([...selectionKeepIds, ...hiddenDeviceIdsRef.current]);
-    setSelectedDeviceIds(prev => {
-      if ([...prev].every(id => keep.has(id))) return prev;
-      return new Set([...prev].filter(id => keep.has(id)));
-    });
-    setPrimaryDeviceId(prev => (prev && !keep.has(prev) ? null : prev));
-  }, [orderedDevices, selectionKeepIds, setSelectedDeviceIds, setPrimaryDeviceId]);
+    const present = (id: string) => selectionHoldableIds.has(id) || hiddenDeviceIdsRef.current.has(id);
+    const expired = new Set<string>();
+    const tracked = new Set(storedSelectionRef.current);
+    if (storedPrimaryRef.current) tracked.add(storedPrimaryRef.current);
+    for (const id of tracked) {
+      if (present(id)) { absentMs.delete(id); continue; }
+      const total = (absentMs.get(id) ?? 0) + (absentMs.has(id) ? step : 0);
+      absentMs.set(id, total);
+      if (total >= SELECTION_ABSENT_GRACE_MS) expired.add(id);
+    }
+    for (const id of [...absentMs.keys()]) if (!tracked.has(id)) absentMs.delete(id);
+    if (expired.size === 0) return;
+    for (const id of expired) absentMs.delete(id);
+    setStoredSelection(prev => (
+      [...prev].some(id => expired.has(id)) ? new Set([...prev].filter(id => !expired.has(id))) : prev
+    ));
+    setPrimaryDeviceId(prev => (prev && expired.has(prev) ? null : prev));
+  }, [devices, selectionHoldableIds, setStoredSelection, setPrimaryDeviceId]);
 
   // Devices list: fetch on entry + profile change, then refresh push-driven.
   // The `lighting` topic fires on every /lighting mutation (layout edits,
@@ -2476,24 +2545,29 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       const Icon = LIGHTING_MODE_ICONS[m.key];
       const showPauseToggle = synced && m.key === mode
         && (m.key === 'animate' || m.key === 'gif' || m.key === 'screen');
+      const blocked = staticOnly && modeBlockedBySavedColors(m.key);
+      const blockedTip = t('lighting.mode.savedColorsOnly', { name: formatList(savedColorNames, language), static: t('lighting.mode.static') });
       return {
         key: m.key,
         label: t(m.labelKey),
-        tooltip: serviceOnline ? t(`${m.labelKey}.desc`) : undefined,
+        tooltip: blocked ? blockedTip
+          : serviceOnline ? t(`${m.labelKey}.desc`) : undefined,
         icon: <Icon size={14} />,
+        blocked: blocked || undefined,
         trailing: showPauseToggle ? (
-          <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
+          <HoverTooltip body={blocked ? blockedTip : t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
             <span
               role="button"
               tabIndex={0}
-              className={`${styles.pauseToggle} ${paused ? styles.pauseTogglePaused : ''}`}
+              className={`${styles.pauseToggle} ${paused ? styles.pauseTogglePaused : ''} ${blocked ? styles.pauseToggleBlocked : ''}`}
               aria-label={t(paused ? 'lighting.resume' : 'lighting.pause')}
-              onClick={e => { e.stopPropagation(); void handlePauseToggle(); }}
+              aria-disabled={blocked || undefined}
+              onClick={e => { e.stopPropagation(); if (!blocked) void handlePauseToggle(); }}
               onKeyDown={e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   e.stopPropagation();
-                  void handlePauseToggle();
+                  if (!blocked) void handlePauseToggle();
                 }
               }}
             >
@@ -2515,6 +2589,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     : (viewMode === 'none' ? MODE_MENU_TAB_KEY : viewMode);
   const globalTabKey = !synced ? undefined
     : (mode === 'none' ? MODE_MENU_TAB_KEY : mode);
+  // Every path that makes a look global (no selection, simple mode, presets, sync, another client)
+  // reaches an unpinned card, and a saved keyboard cannot keep an animated one. These cards show their
+  // saved colors then, and the card says so.
+  const savedAnimatedIds = useMemo(
+    () => new Set(visibleDevices.filter(d => savesColorsToDevice(d) && modeBlockedBySavedColors(cardMode(d.id))).map(d => d.id)),
+    [visibleDevices, cardMode],
+  );
   // What a tab press gives the selected cards: that mode's global look, or the
   // one shared Mirror or Media. Off cannot be pinned, so it
   // always changes everything.
@@ -3120,6 +3201,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             runningApps={runningApps}
             curatedControl={curatedControl}
             onOpenAppStrip={setAppStripIds}
+            savedAnimatedIds={savedAnimatedIds}
+            onOpenSaveToDevice={onSectionNavigate ? deviceId => {
+              const deviceKey = galleonDeviceKey(deviceId, galleonDeckSerials, galleonKeyboardCards(devices).length);
+              return deviceKey ? () => onSectionNavigate('device', { deviceKey, scrollAnchors: [GALLEON_SAVE_ANCHOR] }) : null;
+            } : undefined}
             onOpenFixLighting={deviceName => setFixLighting({ deviceName })}
             onOpenFixLightingLink={showCanvas || viewMode === 'static' ? () => setFixLighting({ deviceName: null }) : undefined}
           />

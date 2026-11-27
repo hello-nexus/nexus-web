@@ -38,6 +38,8 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import { LianLiAioScreenSection } from './LianLiAioScreenSection';
+import { FrameRateSetting } from './FrameRateSetting';
+import { useToastSafe } from '../../common/Toast/Toast';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 const WIRELESS_SCREEN_API: LianLiScreenApi = {
@@ -83,6 +85,8 @@ const CONTENT_TYPES: { value: ContentChoice; labelKey: string }[] = [
 ];
 
 const ROTATIONS = [0, 1, 2, 3];
+/** Clip rates the fan screens offer beyond the lighting presets. */
+const FAN_LCD_EXTRA_CAPS_HZ = [60] as const;
 
 const SELECTION_MODES: { key: 'single' | 'multiple'; labelKey: string }[] = [
   { key: 'single', labelKey: 'devices.lianli-wireless.selectionModeSingle' },
@@ -156,6 +160,7 @@ export function LianLiWirelessScreenTab({
   defaultOrder?: readonly string[];
 }) {
   const { t } = useTranslation();
+  const { push } = useToastSafe();
   const { numberFormat } = useUnitPrefs();
   const [screens, setScreens] = useState<LianLiWirelessScreen[] | null>(null);
   const [media, setMedia] = useState<LianLiWirelessMediaItem[]>([]);
@@ -284,6 +289,11 @@ export function LianLiWirelessScreenTab({
   const brightness = sharedValue(targetScreens, s => s.brightness);
   const rotation = sharedValue(targetScreens, s => s.rotation);
   const sleep = sharedValue(targetScreens, s => s.sleepWhenLocked ?? true);
+  // The rate only paces a GIF or video clip, and only on a screen that is not a Nexus panel; an older service sends no cap.
+  const showFrameRate = targetScreens.length > 0 && targetScreens.every(s => s.fpsCap !== undefined
+    && (s.contentType === 'gif' || s.contentType === 'video')
+    && s.nexusPanel !== true);
+  const fpsCap = sharedValue(targetScreens, s => s.fpsCap ?? 0);
   const mixedLabel = t('common.mixed');
   const nexusPanel = sharedValue(targetScreens, s => s.nexusPanel === true);
   // When several fans with different content types are selected the content
@@ -329,6 +339,17 @@ export function LianLiWirelessScreenTab({
       serial => { void api.setSettings(serial, { rotation }); },
     );
   }, [applyToTargets, api]);
+
+  const handleFpsCapSave = useCallback(async (fpsCap: number) => {
+    const serials = targetScreens.map(s => s.serial);
+    const results = await Promise.all(serials.map(serial => api.setSettings(serial, { fpsCap })));
+    const ok = results.every(Boolean);
+    if (ok) {
+      lastEditRef.current = performance.now();
+      setScreens(prev => prev ? prev.map(s => (serials.includes(s.serial) ? { ...s, fpsCap } : s)) : prev);
+    }
+    return ok;
+  }, [targetScreens, api]);
 
   const handleSleepWhenLockedChange = useCallback((sleepWhenLocked: boolean) => {
     const previous = new Map(targetScreens.map(s => [s.serial, s.sleepWhenLocked]));
@@ -413,9 +434,15 @@ export function LianLiWirelessScreenTab({
     try {
       const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
       if (upload) {
-        const item = await importLianLiWirelessMedia(upload, crop);
+        const result = await importLianLiWirelessMedia(upload, crop);
         await refreshMedia();
-        if (item && aliveRef.current) handleMediaSelect(item);
+        if (!result) {
+          push({ title: t('lighting.controls.importFailed'), body: t('lighting.controls.importNetworkError') });
+        } else if ('error' in result) {
+          push({ title: t('lighting.controls.importFailed'), body: t('lighting.controls.importFileFailed') });
+        } else if (aliveRef.current) {
+          handleMediaSelect(result);
+        }
       }
     } finally {
       if (file) URL.revokeObjectURL(src);
@@ -425,7 +452,7 @@ export function LianLiWirelessScreenTab({
         setCropState(null);
       }
     }
-  }, [cropState, refreshMedia, handleMediaSelect]);
+  }, [cropState, refreshMedia, handleMediaSelect, push, t]);
 
   const handleCropCancel = useCallback(() => {
     if (cropState?.file) URL.revokeObjectURL(cropState.src);
@@ -589,6 +616,15 @@ export function LianLiWirelessScreenTab({
             }))}
           />
         </SettingRow>
+        {showFrameRate && (
+          <FrameRateSetting
+            cap={fpsCap.value !== undefined && fpsCap.value >= 1 ? fpsCap.value : null}
+            mixed={fpsCap.mixed}
+            onSave={handleFpsCapSave}
+            extraCapsHz={FAN_LCD_EXTRA_CAPS_HZ}
+            hint={t('devices.lianli-wireless.frameRateClipHint')}
+          />
+        )}
         {lcdRestart && (
           <SettingRow
             label={t('devices.lianli-flex.restartLcd')}

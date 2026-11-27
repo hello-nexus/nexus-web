@@ -372,11 +372,14 @@ function canonicalKey(tok: string): string {
   if (tok.length === 1 && tok >= 'a' && tok <= 'z') return 'Key' + tok.toUpperCase();
   if (tok.length === 1 && tok >= '0' && tok <= '9') return 'Digit' + tok;
   if (/^f([1-9]|1[0-9]|2[0-4])$/.test(tok)) return 'F' + tok.slice(1);
+  if (/^numpad[0-9]$/.test(tok)) return 'Numpad' + tok.slice(6);
   const named: Record<string, string> = {
     space: 'Space', enter: 'Enter', return: 'Enter', tab: 'Tab', esc: 'Escape', escape: 'Escape',
     backspace: 'Backspace', delete: 'Delete', del: 'Delete', insert: 'Insert',
     home: 'Home', end: 'End', pageup: 'PageUp', pagedown: 'PageDown',
     up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
+    numlock: 'NumLock', numpadadd: 'NumpadAdd', numpadsubtract: 'NumpadSubtract', numpadmultiply: 'NumpadMultiply',
+    numpaddivide: 'NumpadDivide', numpaddecimal: 'NumpadDecimal', numpadenter: 'NumpadEnter', numpadequal: 'NumpadEqual',
     printscreen: 'PrintScreen', '.': 'Period',
     ',': 'Comma', '/': 'Slash', ';': 'Semicolon', "'": 'Quote',
     '[': 'BracketLeft', ']': 'BracketRight', '\\': 'Backslash', '-': 'Minus', '=': 'Equal', '`': 'Backquote',

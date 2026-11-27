@@ -11,10 +11,11 @@ interface HarnessProps {
   onSelection?: (next: ThermalsSelection) => void;
   linkedRuleId?: string | null;
   linkNavKey?: unknown;
+  onOpenCooling?: () => void;
 }
 
 /** ThermalsTab with its selection state owned locally, as DiagnosticsView owns it; `history` feeds the Custom sensors chart. */
-export function ThermalsHarness({ history, coolingHistory, onAlertDismissed, initialSelection, onSelection, linkedRuleId, linkNavKey }: HarnessProps) {
+export function ThermalsHarness({ history, coolingHistory, onAlertDismissed, initialSelection, onSelection, linkedRuleId, linkNavKey, onOpenCooling }: HarnessProps) {
   const [selection, setSelection] = useState<ThermalsSelection>(initialSelection ?? INITIAL_THERMALS_SELECTION);
   return (
     <ThermalsTab
@@ -22,6 +23,7 @@ export function ThermalsHarness({ history, coolingHistory, onAlertDismissed, ini
       sensorHistory={history}
       episodes={[]}
       serviceOnline
+      onOpenCooling={onOpenCooling}
       onGuardTripDismissed={() => {}}
       selection={selection}
       onSelectionChange={next => { setSelection(next); onSelection?.(next); }}

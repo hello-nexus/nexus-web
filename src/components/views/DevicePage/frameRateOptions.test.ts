@@ -6,6 +6,10 @@ describe('frameRateCaps', () => {
     expect(frameRateCaps(null)).toEqual([null, 30, 25, 20, 15, 10, 5, 1]);
   });
 
+  it('lists the rates a device adds, in order', () => {
+    expect(frameRateCaps(30, [60])).toEqual([null, 60, 30, 25, 20, 15, 10, 5, 1]);
+  });
+
   it('keeps a stored cap outside the presets listed', () => {
     expect(frameRateCaps(24)).toEqual([null, 30, 25, 24, 20, 15, 10, 5, 1]);
     expect(frameRateCaps(60)).toEqual([null, 60, 30, 25, 20, 15, 10, 5, 1]);

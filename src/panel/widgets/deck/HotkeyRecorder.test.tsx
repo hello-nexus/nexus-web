@@ -29,6 +29,22 @@ describe('HotkeyRecorder', () => {
     expect(setHotkeysSuspended).toHaveBeenCalledTimes(2);
   });
 
+  it('records keypad Enter and Equal as the main-row keys and ignores NumLock', () => {
+    const onChange = vi.fn();
+    render(<HotkeyRecorder value="" onChange={onChange} />);
+    const field = screen.getByText('panel.settings.deck.hotkeySet');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'NumpadEnter', ctrlKey: true });
+    expect(onChange).toHaveBeenLastCalledWith('ctrl+enter');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'NumpadEqual', ctrlKey: true });
+    expect(onChange).toHaveBeenLastCalledWith('ctrl+=');
+    onChange.mockClear();
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'NumLock', ctrlKey: true });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('resumes when recording is abandoned by blur', () => {
     render(<HotkeyRecorder value="" onChange={vi.fn()} />);
     const field = screen.getByText('panel.settings.deck.hotkeySet');

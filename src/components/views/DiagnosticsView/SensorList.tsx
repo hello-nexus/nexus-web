@@ -6,6 +6,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { StatusRow } from '../../common/StatusRow/StatusRow';
 import { formatAlertValue, isNotReported, rowState, rowTitles, stateColor, stateLabelKey } from './sensorAlertHelpers';
 import { sensorCardAnchor } from './sensorHistoryHelpers';
+import { coolingFanStatusLabelKey, type CoolingFanLink } from './coolingFanState';
 import styles from './SensorList.module.scss';
 
 /** Built-in rows lead with their component's icon, the same glyphs the Cooling page and the Diagnostics tabs use. */
@@ -26,16 +27,19 @@ interface SensorListProps {
   /** The sensor dropdown label the picker lists for a stored sensor, when it needs live data. */
   pickerLabel?: (sensor: SensorRef) => string | undefined;
   onSelect: (id: string) => void;
+  /** Fan entries the Cooling page keeps out (control off or not responding), by rule id; they show their own chip in place of the alert state. */
+  coolingFans?: ReadonlyMap<string, CoolingFanLink>;
 }
 
 /** The tracked sensors, one row each: name, live value, dim reading and state chip. A row selects the sensor for the detail pane; the enabled switch lives in that pane. */
-export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onSelect }: SensorListProps) {
+export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onSelect, coolingFans }: SensorListProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit: tempUnit, numberFormat, monitoringWholeNumbers } = useUnitPrefs();
   return (
     <ul className={styles.list}>
       {rules.map(rule => {
         const st = states.find(s => s.ruleId === rule.id);
+        const coolingFan = coolingFans?.get(rule.id);
         const kind = rowState(rule, st);
         // The service's verdict wins: it nulls the value of a sensor it judged unreported, while the picker's
         // live list can still carry a stale 0 for the same entry, which would show as a reading beside NOT REPORTED.
@@ -54,7 +58,7 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
             key={rule.id}
             className={styles.row}
             data-selected={selected ? 'true' : 'false'}
-            data-state={notReported ? 'notReported' : kind}
+            data-state={coolingFan ? coolingFan.status : notReported ? 'notReported' : kind}
             data-testid="sensor-row"
             data-rule-id={rule.id}
             data-search-anchor={sensorCardAnchor(rule.id)}
@@ -68,7 +72,9 @@ export function SensorList({ rules, states, selectedId, liveOf, pickerLabel, onS
               value={reading !== null
                 ? formatAlertValue(reading, rule.sensor.type, tempUnit, numberFormat, monitoringWholeNumbers)
                 : undefined}
-              chip={awaiting
+              chip={coolingFan
+                ? <Badge label={t(coolingFanStatusLabelKey(coolingFan.status))} color="var(--text-dim)" />
+                : awaiting
                 ? undefined
                 : notReported
                   ? <Badge label={t('diagnostics.sensors.notReported')} color="var(--text-dim)" />

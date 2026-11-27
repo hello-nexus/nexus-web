@@ -245,7 +245,7 @@ describe('MonitoringSettings', () => {
 
     fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'smart' } });
     const sensorSelect = screen.getByRole('combobox', { name: 'monitoring.settings.sensor' });
-    expect(optionLabels(sensorSelect)).toEqual(['Composite Temperature (Temperature)']);
+    expect(optionLabels(sensorSelect)).toEqual(['Test NVMe: Composite Temperature (Temperature)']);
   });
 
   it('filters sensor choices to the selected category', () => {

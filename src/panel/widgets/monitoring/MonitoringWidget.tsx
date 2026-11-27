@@ -25,7 +25,7 @@ import { currentFanProbeName, extrasSensorsForDevice, fanProbeAlias, gpu2Sensors
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { adaptiveFillMax, chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
 import { defaultValueColorReverse, designSupportsValueColor, gaugeAccentVars, gaugeValueStateAttrs, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
@@ -368,7 +368,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const sensorMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type, sensor?.value);
+    : sensorMax || adaptiveFillMax(sensor, rawValue, history, staticMaxForDevice(device, sensor?.name, sensor?.type, sensor?.value));
   const fixedDefaultMax = defaultFixedMax(device, sensor, effectiveSensorName);
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, fixedDefaultMax);
   // Value-fill gauges scale to the Fixed [min, max] window when set; otherwise

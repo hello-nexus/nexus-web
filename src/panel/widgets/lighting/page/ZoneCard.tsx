@@ -27,6 +27,12 @@ import { type SortableRowArgs } from '../../../../components/common/SortableList
 import styles from '../LightingPage.module.scss';
 import type { StackSlot } from '../../../../lib/stackSlots';
 
+const SAVE_BLOCKED_NOTE_KEYS = {
+  'foreign-host': 'lighting.devices.saveStrip.reason.foreignHost',
+  'write-failed': 'lighting.devices.saveStrip.reason.writeFailed',
+  'write-cap': 'lighting.devices.saveStrip.reason.writeCap',
+} as const;
+
 /**
  * True when ZoneCard renders this card non-interactive. A zone with 0 LEDs is
  * NOT "detection failed" - ARGB is one-way so the user must tell us how many
@@ -317,6 +323,8 @@ export function ZoneCard({
   pulseSeq,
   appStrip,
   onOpenAppStrip,
+  onOpenSaveToDevice,
+  savedShowsAnimated,
   onOpenFixLighting,
   onOpenBinding,
 }: {
@@ -415,6 +423,10 @@ export function ZoneCard({
   appStrip?: CardAppStrip;
   /** Strip press: opens the conflict dialog for those apps. */
   onOpenAppStrip?: () => void;
+  /** Press on the save-colors strip of a keyboard that can hold its colors: opens that device's page at the toggle. */
+  onOpenSaveToDevice?: () => void;
+  /** The effective look is animated while the keyboard keeps saved colors: the keyboard shows those, so the readout stays dark and the strip says so. */
+  savedShowsAnimated?: boolean;
   /** Opens the Fix lighting flow from the not-responding strip. */
   onOpenFixLighting?: () => void;
   /** Marks a wireless device that is not bound to this PC: a card with no lighting controls whose press opens the controller page to bind it. */
@@ -481,6 +493,11 @@ export function ZoneCard({
   // A running competing app explains the failed writes, so its strip takes the slot.
   const showFailingStrip = !showAppStrip && device.writeHealth === 'failing' && controlled && !!onOpenFixLighting
     && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
+  // The quietest strip: a conflict or a not-responding warning on the same card says more.
+  const showSaveStrip = !showAppStrip && !showFailingStrip && !onOpenBinding && !!device.saveToDeviceSupported && !!onOpenSaveToDevice
+    && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
+  const saveBlockedReason = device.savedToDevice && device.savedToDeviceReason ? device.savedToDeviceReason : null;
+  const saveStripState = saveBlockedReason ? 'blocked' : device.savedToDevice ? 'saved' : 'keep';
   const clickable = !unavailable && !firmwareControlled
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
@@ -666,7 +683,7 @@ export function ZoneCard({
         onOpenBinding ? styles.deviceCardNeedsBinding : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
-        showAppStrip || showFailingStrip || onOpenBinding ? styles.deviceCardWithStrip : '',
+        showAppStrip || showFailingStrip || showSaveStrip || onOpenBinding ? styles.deviceCardWithStrip : '',
         stacked ? styles.deviceCardStacked : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
@@ -783,7 +800,7 @@ export function ZoneCard({
         )}
         {/* A dark device has nothing to read out, and firmware lighting does not
             come from our canvas, so the bar is absent rather than blank. */}
-        {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
+        {!unavailable && !firmwareControlled && controlled && device.ledsOn && !(savedShowsAnimated && device.savedToDevice) && (
           <DeviceLedStrip device={device} slot={stackSlot} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
         )}
         {/* Only a pinned card carries the button, in its mode's tab icon; hover
@@ -864,6 +881,14 @@ export function ZoneCard({
       {showAppStrip && <ControlledByStrip strip={appStrip} onOpen={onOpenAppStrip} />}
       {onOpenBinding && <ControlledByStrip label={t('lighting.devices.needsBinding')} onOpen={onOpenBinding} passive />}
       {showFailingStrip && <ControlledByStrip label={t('lighting.writeHealth.badge')} onOpen={onOpenFixLighting} />}
+      {showSaveStrip && (
+        <ControlledByStrip
+          saveToDevice={saveStripState}
+          note={saveBlockedReason ? t(SAVE_BLOCKED_NOTE_KEYS[saveBlockedReason])
+            : t(savedShowsAnimated ? 'lighting.devices.saveStrip.animated' : 'lighting.devices.saveStrip.limit')}
+          onOpen={onOpenSaveToDevice}
+        />
+      )}
       {menuEnabled && (
         <MenuArrowButton
           variant="card"

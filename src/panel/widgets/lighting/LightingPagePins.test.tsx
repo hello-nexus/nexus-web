@@ -938,6 +938,7 @@ describe('LightingPage pins', () => {
     });
 
     it('focuses the first-selected card when the selected cards wear different animations', async () => {
+      withDevices('a', 'b');
       vi.mocked(fetchPins).mockImplementation(() => Promise.resolve({
         a: { kind: 'animate', effect: 'aurora' },
         b: { kind: 'animate', effect: 'plasma' },
@@ -980,6 +981,7 @@ describe('LightingPage pins', () => {
     });
 
     it('offers no fullscreen on a selection reaching outside the tab, and closes it when the selection does', async () => {
+      withDevices('a', 'b');
       vi.mocked(fetchPins).mockImplementation(() => Promise.resolve({ a: { kind: 'animate', effect: 'aurora' }, b: { kind: 'mirror' } }));
       renderPage();
       await waitFor(() => expect(pinOf()?.effect).toBe('aurora'));

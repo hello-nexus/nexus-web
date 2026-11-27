@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SensorAlertRule, SensorAlertState } from '../../../api/diagnosticsAlerts';
 import {
-  baseBounds, chipState, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel, findTrackedRule, rowTitles, isNotReported,
+  ALERT_SENSOR_TYPES, baseBounds, chipState, stepFor, defaultHigh, defaultRule, displayBounds, formatAlertValue, formatDisplayValue, fromDisplay, ALERT_SENSOR_CATEGORIES, delayChoices, delayLabel, rowState, seedBound, alertBannerText, isBannerAlert, sensorLabel, stateColor, snapDisplay, toDisplay, widenBounds, padBounds, stateLabelKey, ruleLabel, findTrackedRule, rowTitles, isNotReported,
 } from './sensorAlertHelpers';
 
 const rule = (over: Partial<SensorAlertRule> = {}): SensorAlertRule => ({
@@ -44,6 +44,70 @@ describe('temperature unit conversion', () => {
     expect(formatDisplayValue(175, 'Temperature', 'f', 'dot')).toBe('175°F');
     expect(formatDisplayValue(80, 'Temperature', 'c', 'dot')).toBe('80°C');
     expect(formatDisplayValue(9.5, 'Current', 'f', 'dot')).toBe('9.5 A');
+  });
+});
+
+describe('data and throughput types', () => {
+  const MB = 1024 * 1024;
+
+  it('are offered in the picker', () => {
+    expect(ALERT_SENSOR_TYPES).toContain('Data');
+    expect(ALERT_SENSOR_TYPES).toContain('Throughput');
+  });
+
+  it('shows throughput stored in bytes per second as MB/s and converts back', () => {
+    expect(toDisplay(250 * MB, 'Throughput', 'c')).toBe(250);
+    expect(fromDisplay(250, 'Throughput', 'c')).toBe(250 * MB);
+    expect(formatAlertValue(1.5 * MB, 'Throughput', 'c', 'dot')).toBe('1.5 MB/s');
+    expect(stepFor('Throughput')).toBe(1);
+    expect(stepFor('Data')).toBe(0.1);
+  });
+
+  it('shows data in GB unchanged', () => {
+    expect(toDisplay(12.5, 'Data', 'c')).toBe(12.5);
+    expect(formatAlertValue(12.5, 'Data', 'c', 'dot')).toBe('12.5 GB');
+    expect(formatAlertValue(12.5, 'Data', 'c', 'dot', true)).toBe('12.5 GB');
+    expect(formatAlertValue(1.5 * MB, 'Throughput', 'c', 'dot', true)).toBe('1.5 MB/s');
+  });
+
+  it('seeds the upper limit in the stored unit', () => {
+    expect(defaultHigh('Data', null)).toBe(100);
+    expect(defaultHigh('Data', 50)).toBe(60);
+    expect(defaultHigh('Throughput', null)).toBe(500 * MB);
+    expect(defaultHigh('Throughput', 100 * MB)).toBe(120 * MB);
+  });
+
+  it('never seeds a throughput limit below one display step on an idle reading', () => {
+    expect(defaultHigh('Throughput', 2400)).toBe(1 * MB);
+    expect(formatAlertValue(defaultHigh('Throughput', 2400), 'Throughput', 'c', 'dot')).toBe('1 MB/s');
+  });
+
+  it('rounds a scaled default limit to the display step', () => {
+    expect(defaultHigh('Throughput', 100.4 * MB)).toBe(120 * MB);
+    expect(defaultHigh('Throughput', 7.3 * MB)).toBe(9 * MB);
+  });
+
+  it('keeps sub-step limits and the other knob when snapping', () => {
+    expect(snapDisplay(0.4, 'Data')).toBe(0.4);
+    expect(snapDisplay(3, 'Throughput')).toBe(3);
+    expect(fromDisplay(0.4, 'Data', 'c')).toBe(0.4);
+  });
+
+  it('seeds a throughput limit in display units', () => {
+    const bounds = { min: 0, max: 1024 * MB };
+    expect(seedBound('high', 'Throughput', 100 * MB, bounds, null)).toBe(120 * MB);
+  });
+
+  it('sizes the track from the reading', () => {
+    expect(baseBounds('Throughput', 10 * MB, null, 500 * MB)).toEqual({ min: 0, max: 1024 * MB });
+    expect(baseBounds('Throughput', 2048 * MB, null, null).max).toBeCloseTo(2457.6 * MB);
+    expect(baseBounds('Data', 50, null, 100)).toEqual({ min: 0, max: 100 });
+    expect(displayBounds({ min: 0, max: 1024 * MB }, 'Throughput', 'c')).toEqual({ min: 0, max: 1024 });
+  });
+
+  it('keeps a seeded throughput limit a display step clear of the other', () => {
+    const bounds = { min: 0, max: 1024 * MB };
+    expect(seedBound('high', 'Throughput', 0, bounds, 100 * MB)).toBeGreaterThanOrEqual(110 * MB);
   });
 });
 
@@ -271,6 +335,7 @@ describe('findTrackedRule and rowTitles', () => {
     expect(row({ category: 'motherboard', name: '+12V', type: 'Voltage' }).subtitle).toBe('+12V (Voltage)');
     expect(row({ category: 'fan', name: 'Fan #2', type: 'Fan' })).toEqual({ title: 'monitoring.settings.category.motherboard', subtitle: 'Fan #2' });
     expect(row({ category: 'storage', name: 'Temperature', type: 'Temperature' }).subtitle).toBe('Temperature');
+    expect(row({ category: 'smart', name: 'Data Written (24 h)', type: 'Data', parentName: 'Samsung SSD 990 PRO 2TB' }).subtitle).toBe('Samsung SSD 990 PRO 2TB: Data Written (24 h) (Data)');
   });
 
   it('prefers the live picker label when one is supplied and keeps the old shape for an unknown category', () => {

@@ -1,0 +1,30 @@
+// Event tint: a translucent layer plus a left bar in the calendar colour.
+// Built from opacity, not color-mix, which Chromium 83 lacks.
+@mixin tint($opacity: 0.24) {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--cal-color);
+    opacity: $opacity;
+    border-radius: inherit;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--cal-color);
+  }
+
+  > * { position: relative; z-index: 1; }
+}

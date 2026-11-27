@@ -1,4 +1,4 @@
-import { fetchService, postService, postServiceForm, putService, deleteService, resolveHttp } from './service';
+import { fetchService, postService, postServiceFormResult, putService, deleteService, resolveHttp, type ServiceRefusal } from './service';
 import { getTokenSync } from './auth';
 import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
 
@@ -332,6 +332,8 @@ export interface LianLiWirelessScreen {
   colorB?: string;
   /** Display unit for a temperature sensor source. */
   tempUnit?: LianLiWirelessTempUnit;
+  /** Clip frame rate cap in fps the screen plays under; 0 = Off. Absent on an older service. */
+  fpsCap?: number;
   /** Absent/null = on. */
   sleepWhenLocked?: boolean | null;
   /**
@@ -391,6 +393,8 @@ export interface LianLiScreenSettingsPatch {
   rotation?: number;
   sleepWhenLocked?: boolean;
   nexusPanel?: boolean;
+  /** Clip frame rate cap in fps; 0 = Off, the clip plays at its own rate. */
+  fpsCap?: number;
 }
 
 /** The screen endpoints of one Lian Li fan LCD family; the Screens tab is written against this. */
@@ -451,14 +455,16 @@ interface MediaImportResponse extends OkResponse {
 export async function importLianLiWirelessMedia(
   file: File,
   crop: NormalizedCrop,
-): Promise<LianLiWirelessMediaItem | null> {
+): Promise<LianLiWirelessMediaItem | ServiceRefusal | null> {
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('crop', serializeCrop(crop));
   form.append('targetWidth', String(LIANLI_WIRELESS_MEDIA_WIDTH));
   form.append('targetHeight', String(LIANLI_WIRELESS_MEDIA_HEIGHT));
-  const r = await postServiceForm<MediaImportResponse>('/devices/lianli-wireless/media/import', form);
-  if (!r || r.error || !r.mediaId) return null;
+  const r = await postServiceFormResult<MediaImportResponse & { error: boolean; msg: string }>('/devices/lianli-wireless/media/import', form);
+  if (!r) return null;
+  // A refusal carries the service's own message; an answer with no media id is one too.
+  if (r.error || !('mediaId' in r) || !r.mediaId) return { error: true, msg: r.msg ?? '' };
   return { id: r.mediaId, name: r.name ?? file.name, kind: r.kind ?? 'image', thumb: mediaThumbUrl(r.mediaId) };
 }
 

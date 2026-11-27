@@ -1,5 +1,5 @@
 // Pure selection and chart-linking logic for the Thermals tab (ThermalsTab).
-import { Activity, Clock, Fan, Gauge, Plug, Signal, SlidersHorizontal, Thermometer, Zap, type LucideIcon } from 'lucide-react';
+import { Activity, Clock, Database, Fan, Gauge, HardDriveDownload, Plug, Signal, SlidersHorizontal, Thermometer, Zap, type LucideIcon } from 'lucide-react';
 import type { SensorAlertRule } from '../../../api/diagnosticsAlerts';
 import type { TimeSeriesBand, TimeSeriesPoint, TimeSeriesSeries, TimeSeriesThreshold } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
@@ -8,19 +8,19 @@ import { isBuiltIn } from './sensorAlertHelpers';
 import { distinctLineColors } from './temperatureHelpers';
 
 /** The unit groups the watchlist charts by; each plots its entries together on one axis. */
-export type ThermalGroup = 'thermals' | 'loads' | 'voltages' | 'power' | 'fans' | 'clocks' | 'currents' | 'controls' | 'levels';
+export type ThermalGroup = 'thermals' | 'loads' | 'voltages' | 'power' | 'fans' | 'clocks' | 'currents' | 'controls' | 'levels' | 'data' | 'throughput';
 
-export const THERMAL_GROUP_ORDER: readonly ThermalGroup[] = ['thermals', 'loads', 'voltages', 'power', 'fans', 'clocks', 'currents', 'controls', 'levels'];
+export const THERMAL_GROUP_ORDER: readonly ThermalGroup[] = ['thermals', 'loads', 'voltages', 'power', 'fans', 'clocks', 'currents', 'controls', 'levels', 'data', 'throughput'];
 
 /** The glyph a group's chart shows while it has no recorded line. */
 export const GROUP_ICON: Record<ThermalGroup, LucideIcon> = {
   thermals: Thermometer, loads: Gauge, voltages: Zap, power: Plug, fans: Fan,
-  clocks: Clock, currents: Activity, controls: SlidersHorizontal, levels: Signal,
+  clocks: Clock, currents: Activity, controls: SlidersHorizontal, levels: Signal, data: Database, throughput: HardDriveDownload,
 };
 
 const GROUP_BY_TYPE: Record<string, ThermalGroup> = {
   Temperature: 'thermals', Load: 'loads', Voltage: 'voltages', Power: 'power', Fan: 'fans',
-  Clock: 'clocks', Current: 'currents', Control: 'controls', Level: 'levels',
+  Clock: 'clocks', Current: 'currents', Control: 'controls', Level: 'levels', Data: 'data', Throughput: 'throughput',
 };
 
 /** The group an entry charts in, by its sensor type (a built-in without a known type is a device temperature). */

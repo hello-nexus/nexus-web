@@ -93,4 +93,11 @@ describe('lianli-flex sync api', () => {
     expect(await setLianLiFlexSync(sync)).toBe(true);
     expect(mockPut).toHaveBeenCalledWith('/devices/lianli-flex/sync', sync);
   });
+
+  it('sends a screen frame rate cap, 0 for Off, and does not treat it as nothing to send', async () => {
+    expect(await lianLiFlexScreenApi.setSettings('S1', { fpsCap: 60 })).toBe(true);
+    expect(mockPost).toHaveBeenLastCalledWith('/devices/lianli-flex/screen/settings', { serial: 'S1', fpsCap: 60 });
+    await lianLiFlexScreenApi.setSettings('S1', { fpsCap: 0 });
+    expect(mockPost).toHaveBeenLastCalledWith('/devices/lianli-flex/screen/settings', { serial: 'S1', fpsCap: 0 });
+  });
 });

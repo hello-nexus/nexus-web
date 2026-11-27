@@ -23,8 +23,12 @@ vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
   useLightingSync: () => lightingSync,
 }));
+const lightingTopicCallbacks = vi.hoisted(() => ({ latest: new Map<string, () => void>() }));
+
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
-  useTopicCallback: vi.fn(),
+  useTopicCallback: (topic: string, _enabled: boolean, cb: () => void) => {
+    lightingTopicCallbacks.latest.set(topic, cb);
+  },
   useTopic: vi.fn(() => null),
 }));
 vi.mock('../../../hooks/useLightingFrames', () => ({
@@ -139,6 +143,36 @@ describe('LightingPage cards of devices playing their own effect', () => {
     expect(setStrimerLighting).toHaveBeenCalledWith({ mode: 'custom' });
     await waitFor(() => {
       expect(screen.getByTestId('rail').dataset.firmware).toBe('');
+    });
+  });
+
+  it('treats a second Strimer controller like the first', async () => {
+    devicesRef.current = [
+      device('strimer:atx:z0', 'strimer:atx'),
+      device('strimer:2:atx:z0', 'strimer:2:atx'),
+      device('strimer:2:gpu:z0', 'strimer:2:gpu'),
+    ];
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('rail').dataset.firmware).toBe('strimer:2:atx,strimer:2:gpu,strimer:atx');
+    });
+  });
+
+  it('picks up a second Strimer that appears after the first', async () => {
+    devicesRef.current = [device('strimer:atx:z0', 'strimer:atx')];
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('rail').dataset.firmware).toBe('strimer:atx');
+    });
+    expect(getStrimerLighting).toHaveBeenCalledTimes(1);
+
+    // The same-family card set grows, as when a second controller is plugged in.
+    devicesRef.current = [device('strimer:atx:z0', 'strimer:atx'), device('strimer:2:atx:z0', 'strimer:2:atx')];
+    await act(async () => {
+      lightingTopicCallbacks.latest.get('devices')?.();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('rail').dataset.firmware).toBe('strimer:2:atx,strimer:atx');
     });
   });
 

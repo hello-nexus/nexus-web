@@ -24,6 +24,40 @@ describe('HotkeyInput capture', () => {
     expect(onChange).toHaveBeenCalledWith('ctrl+m');
   });
 
+  it('records keypad keys as numpad tokens', () => {
+    const onChange = vi.fn();
+    render(<HotkeyInput value="" onChange={onChange} />);
+    const field = screen.getByText('panel.settings.deck.hotkeySet');
+    const cases: Array<[string, string]> = [
+      ['Numpad7', 'numpad7'], ['NumpadAdd', 'numpadadd'], ['NumpadEnter', 'numpadenter'],
+      ['NumpadEqual', 'numpadequal'], ['NumLock', 'numlock'],
+    ];
+    for (const [code, token] of cases) {
+      fireEvent.click(field);
+      fireEvent.keyDown(field, { code, ctrlKey: true });
+      expect(onChange).toHaveBeenLastCalledWith(`ctrl+${token}`);
+    }
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'Enter' });
+    expect(onChange).toHaveBeenLastCalledWith('enter');
+  });
+
+  it('records a global hotkey keypad Enter and Equal as the main-row tokens and skips NumLock', () => {
+    const onChange = vi.fn();
+    render(<HotkeyInput value="" onChange={onChange} global />);
+    const field = screen.getByText('panel.settings.deck.hotkeySet');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'NumpadEnter', ctrlKey: true });
+    expect(onChange).toHaveBeenLastCalledWith('ctrl+enter');
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'NumpadEqual', ctrlKey: true });
+    expect(onChange).toHaveBeenLastCalledWith('ctrl+=');
+    onChange.mockClear();
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'NumLock' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('captures the new printscreen and period tokens', () => {
     const onChange = vi.fn();
     render(<HotkeyInput value="" onChange={onChange} />);

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { chartDomainForScale, defaultFixedMax, designIsFill, designSupportsRange, designSupportsScale, fixedFillPercent, isHeterogeneousTypeDevice, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
+import { currentFamilyKey, adaptiveCurrentMax, adaptiveFillMax, observedPeak, chartDomainForScale, defaultFixedMax, designIsFill, designSupportsRange, designSupportsScale, fixedFillPercent, isHeterogeneousTypeDevice, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
 
 describe('designSupportsScale', () => {
   it('supports only sparkline and line', () => {
@@ -59,6 +59,82 @@ describe('chartDomainForScale', () => {
 
   it('an inverted min/max still falls back to [0, dmax] even when both exceed dmax', () => {
     expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 15000, 2000, 100)).toEqual([0, 100]);
+  });
+});
+
+describe('adaptiveCurrentMax', () => {
+  it('uses the live value as the peak when there is no history', () => {
+    expect(adaptiveCurrentMax(0.99, [])).toBeCloseTo(1.188);
+    expect(adaptiveCurrentMax(30, [])).toBeCloseTo(36);
+  });
+  it('a single sample is its own peak', () => {
+    expect(adaptiveCurrentMax(0.9, [0.9])).toBeCloseTo(1.08);
+  });
+  it('holds a spike for as long as it stays in the window, then decays with it', () => {
+    expect(adaptiveCurrentMax(0.9, [0.9, 5, 0.9])).toBeCloseTo(6);
+    expect(adaptiveCurrentMax(0.9, [0.9, 0.9, 0.9])).toBeCloseTo(1.08);
+  });
+  it('never drops below 1 A and ignores non-finite samples', () => {
+    expect(adaptiveCurrentMax(0, [])).toBe(1);
+    expect(adaptiveCurrentMax(0.2, [Number.NaN, 0.3])).toBe(1);
+    expect(adaptiveCurrentMax(Number.NaN, [Infinity, 0.5])).toBe(1);
+  });
+  it('puts 0.88 to 0.99 A pins at roughly 70 to 85 percent fill', () => {
+    const peak = 0.993;
+    const max = adaptiveCurrentMax(0.881, [0.881, peak]);
+    expect((0.881 / max) * 100).toBeGreaterThan(70);
+    expect((peak / max) * 100).toBeLessThan(85);
+  });
+});
+
+describe('shared Current peak', () => {
+  it('observedPeak takes the largest finite sample including the live value', () => {
+    expect(observedPeak(0.9, [0.5, 2, Number.NaN])).toBe(2);
+    expect(observedPeak(Number.NaN, [])).toBe(0);
+  });
+  it('rows with different values keep their relative heights under one shared peak', () => {
+    const pins = [0.881, 0.921, 0.993];
+    const shared = Math.max(...pins);
+    const fills = pins.map(v => (v / adaptiveCurrentMax(v, [v], shared)) * 100);
+    expect(fills[2]).toBeCloseTo(83.33, 1);
+    expect(fills[0]).toBeLessThan(fills[1]);
+    expect(fills[1]).toBeLessThan(fills[2]);
+    expect(fills[0] / fills[2]).toBeCloseTo(0.881 / 0.993, 5);
+  });
+  it('a row beyond the shared peak still sets its own ceiling', () => {
+    expect(adaptiveCurrentMax(5, [5], 1)).toBeCloseTo(6);
+  });
+  it('only Current rows are affected by a shared peak', () => {
+    const cur = { id: 'c', name: 'Pin 1', type: 'Current', value: 1, units: 'A', formatted: '1', parent: { id: 'p', name: 'p' } };
+    const temp = { ...cur, type: 'Temperature' };
+    expect(adaptiveFillMax(cur, 0.9, [0.9], 100, 30)).toBeCloseTo(36);
+    expect(adaptiveFillMax(temp, 70, [70], 100, 30)).toBe(100);
+  });
+});
+
+describe('currentFamilyKey', () => {
+  it('pins that differ only by a standalone number share a family', () => {
+    expect(currentFamilyKey('gpu', 'Pin 1 Current')).toBe(currentFamilyKey('gpu', 'Pin 6 Current'));
+  });
+  it('rails whose digits are attached to letters stay apart', () => {
+    const keys = ['12V Current', '5V Current', '3.3V Current'].map(n => currentFamilyKey('psu', n));
+    expect(new Set(keys).size).toBe(3);
+  });
+  it('different devices never share a family', () => {
+    expect(currentFamilyKey('gpu', 'Pin 1 Current')).not.toBe(currentFamilyKey('cooler', 'Pin 1 Current'));
+  });
+});
+
+describe('adaptiveFillMax', () => {
+  const sensor = (type: string, tm?: number) => ({ id: 's', name: 'n', type, value: 1, units: 'A', formatted: '1', theoreticalMaximum: tm, parent: { id: 'p', name: 'p' } });
+  it('applies to Current only and leaves a sensor-supplied maximum alone', () => {
+    expect(adaptiveFillMax(sensor('Current'), 0.9, [0.9], 100)).toBeCloseTo(1.08);
+    expect(adaptiveFillMax(sensor('Temperature'), 70, [70], 100)).toBe(100);
+    expect(adaptiveFillMax(sensor('Current', 20), 0.9, [0.9], 100)).toBe(100);
+    expect(adaptiveFillMax(undefined, 0.9, [], 100)).toBe(100);
+  });
+  it('leaves the static ceiling and Fixed default for Current at 100', () => {
+    expect(staticMaxForDevice('gpu', 'Pin 1 Current', 'Current', 0.9)).toBe(100);
   });
 });
 

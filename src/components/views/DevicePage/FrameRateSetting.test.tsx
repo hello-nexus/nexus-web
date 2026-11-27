@@ -42,6 +42,15 @@ describe('FrameRateSetting', () => {
     expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([OFF, ...[30, 25, 20, 15, 10, 5, 1].map(HZ)]);
   });
 
+  it('shows the panel hint by default and a caller hint when given', () => {
+    const { unmount } = render(<FrameRateSetting recordId="p1" cap={null} />);
+    expect(screen.getByText('devices.lcd.frameRateHint')).toBeInTheDocument();
+    unmount();
+    render(<FrameRateSetting recordId="p1" cap={null} hint="custom hint" />);
+    expect(screen.getByText('custom hint')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lcd.frameRateHint')).not.toBeInTheDocument();
+  });
+
   it('sends the pick, and 0 for Off', async () => {
     api.patchPanelDevice.mockResolvedValue({ id: 'p1' });
     render(<FrameRateSetting recordId="p1" cap={null} />);
@@ -94,5 +103,26 @@ describe('FrameRateSetting', () => {
     await act(async () => { second.resolve(null); });
     await act(async () => { first.resolve({ id: 'p1' }); });
     await waitFor(() => expect(trigger().textContent).toContain(HZ(10)));
+  });
+
+  it('saves through onSave instead of a panel record, 0 for Off, and offers the extra rates', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    render(<FrameRateSetting cap={30} onSave={onSave} extraCapsHz={[60]} />);
+    fireEvent.click(trigger());
+    expect(screen.getByRole('option', { name: HZ(60) })).toBeTruthy();
+    fireEvent.click(screen.getByRole('option', { name: HZ(60) }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(60));
+    pick(OFF);
+    await waitFor(() => expect(onSave).toHaveBeenLastCalledWith(0));
+    expect(api.patchPanelDevice).not.toHaveBeenCalled();
+  });
+
+  it('reads Mixed again when the first save from the mixed state fails', async () => {
+    const onSave = vi.fn().mockResolvedValue(false);
+    render(<FrameRateSetting cap={null} mixed onSave={onSave} />);
+    expect(trigger().textContent).toContain('common.mixed');
+    pick(HZ(25));
+    await waitFor(() => expect(toast.push).toHaveBeenCalled());
+    expect(trigger().textContent).toContain('common.mixed');
   });
 });

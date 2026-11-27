@@ -7,6 +7,7 @@ import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckI
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+vi.mock('./GalleonKeyboardLightingSection', () => ({ GalleonKeyboardLightingSection: () => null }));
 vi.mock('../../../api/service', () => ({
   isLocalhostUnreachable: () => false,
   // DeckRecentAppsSection resolves excluded-chip display names from

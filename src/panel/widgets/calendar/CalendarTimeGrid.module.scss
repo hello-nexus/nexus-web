@@ -1,0 +1,218 @@
+@use './calendarTint' as *;
+@use '../../styles/flexGap' as *;
+
+.root {
+  --gutter: 52px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+.compact { --gutter: 38px; }
+.page {
+  --gutter: 58px;
+  font-size: 13px;
+}
+
+.head,
+.allDayGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--days), 1fr);
+  margin-left: var(--gutter);
+}
+
+.weekday {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: calc(0.06em + var(--small-tracking, 0em));
+  padding-bottom: 3px;
+
+  b {
+    display: flex;
+    width: 26px;
+    height: 26px;
+    margin: 2px auto 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: var(--weight-strong);
+    color: var(--text);
+    letter-spacing: 0;
+  }
+}
+.weekdayToday {
+  color: var(--panel-accent);
+
+  b { background: var(--panel-accent); color: var(--accent-text); }
+}
+
+.allDay {
+  position: relative;
+  flex: none;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--separator);
+}
+.allDayLabel {
+  position: absolute;
+  left: 0;
+  width: calc(var(--gutter) - 6px);
+  text-align: right;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  top: 3px;
+  white-space: nowrap;
+}
+.compact .allDayLabel { font-size: 8px; }
+.allDayGrid { /* c83:allow - display: grid, set with .head above */ row-gap: 2px; }
+.allDayChip {
+  @include tint;
+  font-size: 11.5px;
+  font-weight: var(--weight-strong);
+  padding: 2px 7px;
+  margin: 0 2px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  text-align: left;
+}
+.noLeft { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; &::after { display: none; } }
+.noRight { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  margin-top: 4px;
+
+  &::-webkit-scrollbar { display: none; }
+}
+.fixed { overflow-y: hidden; }
+
+.inner {
+  position: relative;
+  padding-left: var(--gutter);
+  padding-top: 5px;
+  height: calc(24 * var(--hh) + 10px);
+  box-sizing: border-box;
+}
+
+.hourLabel {
+  position: absolute;
+  left: 0;
+  width: calc(var(--gutter) - 6px);
+  text-align: right;
+  font-size: 10px;
+  color: var(--text-dim);
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: repeat(var(--days), 1fr);
+  height: calc(24 * var(--hh));
+}
+.col {
+  position: relative;
+  border-left: 1px solid var(--separator);
+  background-image: linear-gradient(var(--separator) 1px, transparent 1px);
+  background-size: 100% var(--hh);
+
+  &:last-child { border-right: 1px solid var(--separator); }
+}
+.colToday { background-color: var(--accent-soft); }
+
+.block {
+  @include tint;
+  position: absolute;
+  border-radius: 5px;
+  padding: 2px 5px 2px 8px;
+  min-width: 0;
+  box-sizing: border-box;
+  text-align: left;
+}
+.compact .block { font-size: 9.5px; padding: 1px 2px 1px 6px; }
+.page .block { font-size: 12.5px; cursor: pointer; }
+.blockTitle {
+  font-weight: var(--weight-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.blockWhen {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compact .blockWhen { font-size: 8.5px; }
+.page .blockWhen { font-size: 11px; }
+.short {
+  display: flex;
+  align-items: baseline;
+  padding-top: 0;
+  padding-bottom: 0;
+  @include hgap(6px);
+
+  .blockTitle { white-space: nowrap; display: block; flex: 0 1 auto; }
+}
+.past { opacity: 0.5; }
+.tentative::before { opacity: 0.12; }
+
+.nowLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1.5px solid var(--bad);
+  z-index: 5;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bad);
+  }
+}
+.nowLabel {
+  position: absolute;
+  left: 0;
+  width: calc(var(--gutter) - 4px);
+  transform: translateY(-50%);
+  z-index: 6;
+  font-size: 10px;
+  font-weight: var(--weight-strong);
+  color: #fff;
+  background: var(--bad);
+  border-radius: 4px;
+  text-align: center;
+  padding: 1px 0;
+  white-space: nowrap;
+}
+.compact .nowLabel { font-size: 9px; }
+
+// The event whose popover is open.
+.block[data-selected='true'],
+.allDayChip[data-selected='true'] {
+  box-shadow: 0 0 0 2px var(--cal-color);
+  z-index: 4;
+
+  &::before { opacity: 0.6; }
+}

@@ -51,13 +51,26 @@ export const MICRO_WIDE_COUNTS = [6, 8] as const;
 // sweeping the whole row behind the caption), and Backdrop (dim filled history
 // graph behind the caption). Rendered by MicroBar, not the tile GaugeComponents.
 // 'simple' is Micro-only: label above value, no track, fill, or graph.
-export type MicroDesignKey = Extract<GaugeDesignKey, 'bar' | 'fill' | 'backdrop'> | 'simple';
-export const MICRO_DESIGN_KEYS: MicroDesignKey[] = ['bar', 'fill', 'backdrop', 'simple'];
+// 'columns' is Micro-only: every row becomes a vertical fill column with its
+// value underneath, side by side in one row; labels are dropped.
+export type MicroDesignKey = Extract<GaugeDesignKey, 'bar' | 'fill' | 'backdrop'> | 'simple' | 'columns';
+export const MICRO_DESIGN_KEYS: MicroDesignKey[] = ['bar', 'fill', 'backdrop', 'simple', 'columns'];
 export const DEFAULT_MICRO_DESIGN: MicroDesignKey = 'bar';
 
-export function microDesignOf(config: Record<string, PanelConfigValue> | undefined): MicroDesignKey {
+// Vertical Bars is withheld from the tall 2x4 at the wide counts
+// (MICRO_WIDE_COUNTS): the columns get too narrow for their values to stay
+// readable.
+export function columnsDesignOffered(size: PanelWidgetSize, count: number): boolean {
+  return !(widgetLayoutSize(size) === '2x4' && (MICRO_WIDE_COUNTS as readonly number[]).includes(count));
+}
+
+// With size and count given, a stored design the layout no longer offers falls
+// back to the default; the stored value itself is left alone.
+export function microDesignOf(config: Record<string, PanelConfigValue> | undefined, size?: PanelWidgetSize, count?: number): MicroDesignKey {
   const raw = config?.micro_design;
-  return (MICRO_DESIGN_KEYS as unknown[]).includes(raw) ? (raw as MicroDesignKey) : DEFAULT_MICRO_DESIGN;
+  if (!(MICRO_DESIGN_KEYS as unknown[]).includes(raw)) return DEFAULT_MICRO_DESIGN;
+  if (raw === 'columns' && size !== undefined && count !== undefined && !columnsDesignOffered(size, count)) return DEFAULT_MICRO_DESIGN;
+  return raw as MicroDesignKey;
 }
 
 // Text alignment of the 'simple' design's label and value (`micro_align`).

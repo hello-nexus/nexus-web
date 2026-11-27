@@ -69,14 +69,15 @@ async function getLianLiTlScreens(): Promise<LianLiWirelessScreen[] | null> {
   return r?.screens ?? null;
 }
 
-// TL screens have no brightness or sleep-when-locked; only rotation and the panel switch are sent.
+// TL screens have no brightness or sleep-when-locked; only rotation, the panel switch and the clip frame rate are sent.
 async function setLianLiTlScreenSettings(serial: string, settings: LianLiScreenSettingsPatch): Promise<boolean> {
-  const { rotation, nexusPanel } = settings;
-  if (rotation === undefined && nexusPanel === undefined) return true;
+  const { rotation, nexusPanel, fpsCap } = settings;
+  if (rotation === undefined && nexusPanel === undefined && fpsCap === undefined) return true;
   return isOk(await postService<OkResponse>('/devices/lianli-tl/screen/settings', {
     serial,
     ...(rotation !== undefined ? { rotation } : {}),
     ...(nexusPanel !== undefined ? { nexusPanel } : {}),
+    ...(fpsCap !== undefined ? { fpsCap } : {}),
   }));
 }
 

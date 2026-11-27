@@ -3,6 +3,7 @@ import { Calendar } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatDate, type DateFormat } from '../../../lib/units';
+import { MonthGrid } from '../MonthGrid/MonthGrid';
 import styles from './DatePicker.module.scss';
 
 const POPUP_MIN_WIDTH = 260;
@@ -130,7 +131,8 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
     };
   }, [open, viewMonth]);
 
-  const grid = useMemo(() => buildGrid(viewMonth), [viewMonth]);
+  const [viewYear, viewMonthNumber] = viewMonth.split('-').map(Number);
+  const viewMonthIndex = viewMonthNumber - 1;
   const todayIso = useMemo(() => isoToday(), []);
 
   const shiftMonth = (delta: number) => {
@@ -149,7 +151,6 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
   const { dateFormat } = useUnitPrefs();
   const displayLabel = useMemo(() => formatDisplay(value, dateFormat), [value, dateFormat]);
   const monthLabel = useMemo(() => formatMonth(viewMonth), [viewMonth]);
-  const weekdays = useMemo(() => getWeekdayLabels(), []);
 
   const canGoNext = !max || monthEnd(viewMonth) < max || viewMonth < max.slice(0, 7);
   const canGoPrev = !min || monthStart(viewMonth) > min || viewMonth > min.slice(0, 7);
@@ -189,31 +190,16 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
               aria-label={t('datepicker.nextMonth')}>›</button>
           </div>
 
-          <div className={styles.weekdays}>
-            {weekdays.map(w => <div key={w} className={styles.weekday}>{w}</div>)}
-          </div>
-
-          <div className={styles.grid}>
-            {grid.map((cell, i) => {
-              const isSelected = cell.iso === value;
-              const isToday = cell.iso === todayIso;
-              const isDisabled = (!!max && cell.iso > max) || (!!min && cell.iso < min);
-              const classes = [
-                cell.inMonth ? styles.cell : styles.cellOut,
-                isSelected ? styles.cellSelected : '',
-                isToday && !isSelected ? styles.cellToday : '',
-                isDisabled ? styles.cellDisabled : '',
-              ].filter(Boolean).join(' ');
-              return (
-                <button key={i} type="button"
-                  className={classes}
-                  onClick={() => pick(cell.iso)}
-                  disabled={isDisabled}>
-                  {cell.day}
-                </button>
-              );
-            })}
-          </div>
+          <MonthGrid
+            year={viewYear}
+            month={viewMonthIndex}
+            weekStart={0}
+            monoDays
+            isSelected={day => toIso(new Date(day)) === value}
+            isToday={day => toIso(new Date(day)) === todayIso}
+            isDisabled={day => { const iso = toIso(new Date(day)); return (!!max && iso > max) || (!!min && iso < min); }}
+            onPick={day => pick(toIso(new Date(day)))}
+          />
 
           <div className={styles.footer}>
             <button type="button" className={styles.todayBtn}
@@ -226,37 +212,6 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
       )}
     </div>
   );
-}
-
-interface Cell {
-  iso: string;
-  day: number;
-  inMonth: boolean;
-}
-
-function buildGrid(ym: string): Cell[] {
-  const [y, m] = ym.split('-').map(Number);
-  const firstOfMonth = new Date(y, m - 1, 1);
-  const firstDow = firstOfMonth.getDay();
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const prevMonthDays = new Date(y, m - 1, 0).getDate();
-
-  const cells: Cell[] = [];
-  for (let i = firstDow - 1; i >= 0; i--) {
-    const day = prevMonthDays - i;
-    const pd = new Date(y, m - 2, day);
-    cells.push({ iso: toIso(pd), day, inMonth: false });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ iso: `${y}-${pad2(m)}-${pad2(d)}`, day: d, inMonth: true });
-  }
-  while (cells.length % 7 !== 0) {
-    const last = cells[cells.length - 1];
-    const [ly, lm, ld] = last.iso.split('-').map(Number);
-    const nd = new Date(ly, lm - 1, ld + 1);
-    cells.push({ iso: toIso(nd), day: nd.getDate(), inMonth: false });
-  }
-  return cells;
 }
 
 function monthStart(ym: string) { return ym + '-01'; }
@@ -287,15 +242,4 @@ function formatMonth(ym: string) {
   const [y, m] = ym.split('-').map(Number);
   const dt = new Date(y, m - 1, 1);
   return dt.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
-}
-
-function getWeekdayLabels() {
-  const base = new Date(2024, 0, 7);
-  const out: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    out.push(d.toLocaleDateString(undefined, { weekday: 'narrow' }));
-  }
-  return out;
 }

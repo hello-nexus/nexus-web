@@ -2,6 +2,7 @@
 import type { Language } from './settings';
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/MXAuxKKfVM';
+export const ADD_CALENDAR_GUIDE_URL = 'https://hellonexus.com/docs/guides/remote-devices/add-a-calendar';
 export const AI_INTEGRATION_GUIDE_URL = 'https://hellonexus.com/docs/guides/ai/mcp-server';
 
 // The site serves each app language under /<lowercased tag>/docs, English at /docs.

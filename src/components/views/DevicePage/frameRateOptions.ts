@@ -3,9 +3,12 @@ import { RATE_CAP_OPTIONS_HZ } from '../../../panel/widgets/lighting/page/RateCa
 /** Select value of "no cap": the device runs at its own rate. */
 export const FRAME_RATE_OFF = '';
 
-/** Options of the per-device Frame rate select: Off, then the same caps the lighting frame cap offers. */
-export function frameRateCaps(storedCap: number | null | undefined): Array<number | null> {
+/** Options of the per-device Frame rate select: Off, then the same caps the lighting frame cap offers, plus any a device adds. */
+export function frameRateCaps(storedCap: number | null | undefined, extraCaps: readonly number[] = []): Array<number | null> {
   const caps: number[] = [...RATE_CAP_OPTIONS_HZ];
+  // A device that can show more than the lighting presets offers its higher rates too.
+  for (const extra of extraCaps) if (!caps.includes(extra)) caps.push(extra);
+  caps.sort((a, b) => b - a);
   // A stored cap outside the presets stays listed so the select shows what is applied.
   if (typeof storedCap === 'number' && storedCap >= 1 && !caps.includes(storedCap)) {
     caps.push(storedCap);

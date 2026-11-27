@@ -21,6 +21,7 @@ import {
   MICRO_ALIGN_KEYS,
   MICRO_DESIGN_KEYS,
   microAlignOf,
+  columnsDesignOffered,
   microDesignOf,
   microRowDevice,
   resolvedSlotLayout,
@@ -427,9 +428,9 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
     }));
     const microCanType = canEditFreeText(surface, desktopEditor);
     // Row style shared by every row.
-    const microDesign = microDesignOf(widget.config);
+    const microDesign = microDesignOf(widget.config, widget.size, count);
     const microAlign = microAlignOf(widget.config);
-    const microDesignLabel = (k: MicroDesignKey) => (k === 'simple' ? t('monitoring.settings.designSimple') : GAUGE_DESIGN_LABELS[k]);
+    const microDesignLabel = (k: MicroDesignKey) => (k === 'simple' ? t('monitoring.settings.designSimple') : k === 'columns' ? t('monitoring.settings.designColumns') : GAUGE_DESIGN_LABELS[k]);
     // Micro has one shared range for every bar (no per-slot scale). The default
     // Fixed ceiling is the device's static max; the user types free overrides.
     const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
@@ -456,7 +457,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       <div className={styles.settingsRoot}>
         <SettingsSection title={t('monitoring.settings.design')}>
           <div className={styles.microDesignRow}>
-            {MICRO_DESIGN_KEYS.map(k => {
+            {MICRO_DESIGN_KEYS.filter(k => k !== 'columns' || columnsDesignOffered(widget.size, count)).map(k => {
               const Icon = DESIGN_ICONS[k];
               return (
                 <IconLabelButton
@@ -569,13 +570,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                       {sensorSelect}
                     </div>
                   ) : sensorSelect}
-                  <LabelControls
+                  {microDesign !== 'columns' && <LabelControls
                     mode={(widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined) ?? 'auto'}
                     override={sOverride}
                     autoLabel={sAuto}
                     canType={microCanType}
                     {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
-                  />
+                  />}
                 </div>
               );
             })}

@@ -4,8 +4,10 @@ import {
   INITIAL_THERMALS_SELECTION,
   builtInSeriesId,
   deselect,
+  groupLabelKey,
   groupOf,
   groupedRules,
+  groupTitleKey,
   groupsPresent,
   outOfRangeBands,
   resolveThermals,
@@ -47,6 +49,15 @@ describe('grouping', () => {
     expect(groupOf(rule('p', {}, 'Power'))).toBe('power');
     expect(groupOf(rule('c', {}, 'Clock'))).toBe('clocks');
     expect(groupOf(rule('a', {}, 'Current'))).toBe('currents');
+  });
+
+  it('charts Data and Throughput in their own groups, apart from Level percentages', () => {
+    expect(groupOf(rule('d', {}, 'Data'))).toBe('data');
+    expect(groupOf(rule('t', {}, 'Throughput'))).toBe('throughput');
+    expect(groupOf(rule('l', {}, 'Level'))).toBe('levels');
+    expect(groupsPresent([rule('d', {}, 'Data'), rule('t', {}, 'Throughput'), rule('l', {}, 'Level')])).toEqual(['thermals', 'levels', 'data', 'throughput']);
+    expect(groupLabelKey('data')).toBe('diagnostics.thermals.group.data');
+    expect(groupTitleKey('throughput')).toBe('diagnostics.thermals.history.throughput');
   });
 
   it('offers Thermals always and then only the groups that have an entry, in chart order', () => {

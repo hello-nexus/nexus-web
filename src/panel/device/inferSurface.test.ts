@@ -53,6 +53,10 @@ describe('panelSurfaceHint', () => {
     expect(panelSurfaceHint('phone')).toBe('phone');
   });
 
+  it('rejects the desktop dashboard, which is never a panel session', () => {
+    expect(panelSurfaceHint('desktop')).toBeNull();
+  });
+
   it('ignores the retired kraken surface', () => {
     expect(panelSurfaceHint('kraken')).toBeNull();
   });

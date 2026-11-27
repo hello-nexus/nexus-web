@@ -2,6 +2,7 @@ import type { BuiltInSensorKind, NewSensorAlertRule, SensorAlertRule, SensorAler
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import { CATEGORY_LABEL_KEYS } from '../../../panel/widgets/monitoring/sensorPicker';
 import { bareSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
+import { smartSensorOptionLabel } from '../../../panel/widgets/monitoring/sensorCategories';
 import type { DeviceKey } from '../../../panel/widgets/monitoring/perfSlots';
 import type { Language } from '../../../lib/settings';
 import { pluralKey } from '../../../lib/pluralKey';
@@ -11,7 +12,7 @@ import { convertTemperature, formatDateTime, formatNumber, hour12OptionFor, temp
 export interface AlertUnitPrefs { monitoringTempUnit: TempUnit; numberFormat: NumberFormat; monitoringWholeNumbers: boolean }
 
 /** Sensor types a threshold makes sense for, in picker order. */
-export const ALERT_SENSOR_TYPES = ['Temperature', 'Current', 'Power', 'Voltage', 'Fan', 'Load', 'Clock', 'Control', 'Level'] as const;
+export const ALERT_SENSOR_TYPES = ['Temperature', 'Current', 'Power', 'Voltage', 'Fan', 'Load', 'Clock', 'Control', 'Level', 'Data', 'Throughput'] as const;
 
 /** Resolver categories the service can re-find a sensor in. */
 export const ALERT_SENSOR_CATEGORIES = ['cpu', 'gpu', 'memory', 'motherboard', 'storage', 'smart', 'psu', 'cooler'] as const;
@@ -44,9 +45,14 @@ interface TypeSpec {
   decimals: number;
   /** Slider step in the displayed unit. */
   step: number;
-  /** Upper limit seed when the sensor has no usable reading. */
+  /** Upper limit seed, in the stored unit, when the sensor has no usable reading. */
   fallbackHigh: number;
+  /** Stored units per displayed unit; omitted when they match. */
+  scale?: number;
 }
+
+// Throughput is stored in bytes per second and shown in MB/s on the same 1024 base as formatRate.
+const BYTES_PER_MB = 1024 * 1024;
 
 const TYPE_SPECS: Record<string, TypeSpec> = {
   Temperature: { unit: '', decimals: 1, step: 1, fallbackHigh: 80 },
@@ -58,6 +64,8 @@ const TYPE_SPECS: Record<string, TypeSpec> = {
   Clock: { unit: 'MHz', decimals: 0, step: 10, fallbackHigh: 4000 },
   Control: { unit: '%', decimals: 0, step: 1, fallbackHigh: 90 },
   Level: { unit: '%', decimals: 0, step: 1, fallbackHigh: 90 },
+  Data: { unit: 'GB', decimals: 1, step: 0.1, fallbackHigh: 100 },
+  Throughput: { unit: 'MB/s', decimals: 1, step: 1, fallbackHigh: 500 * BYTES_PER_MB, scale: BYTES_PER_MB },
 };
 
 const GENERIC_SPEC: TypeSpec = { unit: '', decimals: 1, step: 1, fallbackHigh: 100 };
@@ -81,13 +89,16 @@ export function stepFor(type: string): number {
 
 /** A stored (native) value as the user sees it: Fahrenheit for a temperature when the user prefers it. */
 export function toDisplay(value: number, type: string, tempUnit: TempUnit): number {
-  return type === 'Temperature' ? roundTo(convertTemperature(value, tempUnit), 1) : value;
+  if (type === 'Temperature') return roundTo(convertTemperature(value, tempUnit), 1);
+  const scale = specOf(type).scale;
+  return scale ? roundTo(value / scale, 2) : value;
 }
 
 /** A value the user typed or dragged to, back in the stored unit; temperatures go to Celsius rounded to one decimal. */
 export function fromDisplay(value: number, type: string, tempUnit: TempUnit): number {
   if (type === 'Temperature') return roundTo(tempUnit === 'f' ? (value - 32) * 5 / 9 : value, 1);
-  return roundTo(value, specOf(type).decimals + 1);
+  const spec = specOf(type);
+  return roundTo(value * (spec.scale ?? 1), spec.decimals + 1);
 }
 
 /** A displayed value snapped to the slider step, so a converted Fahrenheit value sits on the grid. */
@@ -125,6 +136,7 @@ export function baseBounds(type: string, observed: number | null, low: number | 
     case 'Power': bounds = { min: 0, max: Math.max(100, 1.5 * (seen ?? 0)) }; break;
     case 'Fan': bounds = { min: 0, max: Math.max(5000, 1.2 * (seen ?? 0)) }; break;
     case 'Clock': bounds = { min: 0, max: Math.max(5000, 1.2 * (seen ?? 0)) }; break;
+    case 'Throughput': bounds = { min: 0, max: Math.max(1024 * BYTES_PER_MB, 1.2 * (seen ?? 0)) }; break;
     case 'Voltage': {
       const set = [low, high].filter((v): v is number => v !== null);
       const center = seen ?? (set.length ? set.reduce((a, b) => a + b, 0) / set.length : 12);
@@ -173,9 +185,12 @@ export function displayBounds(bounds: Bounds, type: string, tempUnit: TempUnit):
 export function defaultHigh(type: string, observed: number | null): number {
   const spec = specOf(type);
   if (observed === null || !Number.isFinite(observed) || observed <= 0) return spec.fallbackHigh;
+  const scale = spec.scale ?? 1;
   const decimals = type === 'Temperature' ? 0 : spec.decimals;
-  const next = roundTo(observed * 1.2, decimals);
-  return next > observed ? next : spec.fallbackHigh;
+  // Rounded in the displayed unit; a scaled type never seeds below one display step, so an idle reading does not seed a limit that any burst trips.
+  const shown = observed / scale;
+  const next = scale === 1 ? roundTo(shown * 1.2, decimals) : Math.max(roundTo(Math.round(shown * 1.2 / spec.step) * spec.step, decimals), spec.step);
+  return next > shown ? roundTo(next * scale, spec.decimals + 1) : spec.fallbackHigh;
 }
 
 export function sensorRefOf(category: string, sensor: { id: string; name: string; type: string; parent: { name: string } }): SensorRef {
@@ -207,13 +222,14 @@ export function seedBound(
   bounds: Bounds,
   other: number | null,
 ): number {
-  const step = stepFor(type);
-  const gap = Math.max(step, (bounds.max - bounds.min) / 40);
-  const decimals = specOf(type).decimals + 1;
-  const around = observed !== null && Number.isFinite(observed) ? observed : (bounds.min + bounds.max) / 2;
+  const spec = specOf(type);
+  const scale = spec.scale ?? 1;
+  // Worked in the displayed unit, so the gap and rounding mean display steps and decimals.
+  const gap = Math.max(spec.step, (bounds.max - bounds.min) / scale / 40);
+  const around = (observed !== null && Number.isFinite(observed) ? observed : (bounds.min + bounds.max) / 2) / scale;
   let v = side === 'high' ? around * 1.2 : around * 0.8;
-  if (other !== null) v = side === 'high' ? Math.max(v, other + gap) : Math.min(v, other - gap);
-  return roundTo(v, decimals);
+  if (other !== null) v = side === 'high' ? Math.max(v, other / scale + gap) : Math.min(v, other / scale - gap);
+  return roundTo(roundTo(v, spec.decimals + 1) * scale, spec.decimals + 1);
 }
 
 export type AlertChipState = 'ok' | 'pending' | 'active' | 'unavailable';
@@ -397,6 +413,8 @@ function pickerSensorLabel(sensor: SensorRef): string {
       return sensor.name;
     case 'network':
       return bareSensorLabel(device, sensor.name) || sensor.name;
+    case 'smart':
+      return smartSensorOptionLabel(sensor.parentName, bareSensorLabel(device, sensor.name) || sensor.name, sensor.type);
     default:
       return `${bareSensorLabel(device, sensor.name) || sensor.name} (${sensor.type})`;
   }

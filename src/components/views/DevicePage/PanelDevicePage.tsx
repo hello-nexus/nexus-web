@@ -122,6 +122,7 @@ import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { KrakenCoolerSettings } from './KrakenCoolerSettings';
+import { Galahad2LcdRingEffectSection } from './Galahad2LcdRingEffect';
 import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
 import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
@@ -557,6 +558,7 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
   const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
   const isGlacialLcdPanel = recordFamily === 'asus-glacial-lcd' && !isSimulated;
+  const isGalahad2LcdPanel = recordFamily === 'lianli-galahad2-lcd' && !isSimulated;
   const curveScreen = useHydroShift2CurveScreen(isHydroShift2CurvePanel);
   // Cooler LCDs whose firmware takes a backlight command. The service decides
   // which those are and stamps the capability on the record, so a new dimmable
@@ -654,7 +656,8 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
     || isDimmableLcdPanel
     || isSecondaryMonitorCapablePanel
     || hasFrameRateSetting
-    || isGlacialLcdPanel;
+    || isGlacialLcdPanel
+    || isGalahad2LcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Theme and layout read and write the panel record for simulators and hardware alike;
   // a simulator has no display or cooler, so its hardware controls are off.
@@ -2177,6 +2180,11 @@ export function PanelDevicePage({ device, platform = '', onOpenFirmware, onSecti
                   {activeTab === 'settings' && isGlacialLcdPanel && (
                     <div className={styles.settingsContent}>
                       <AsusGlacialLcdControls />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && isGalahad2LcdPanel && (
+                    <div className={styles.settingsContent}>
+                      <Galahad2LcdRingEffectSection onSectionNavigate={onSectionNavigate} />
                     </div>
                   )}
                   {activeTab === 'settings' && isKrakenPanel && !isSimulated && (

@@ -242,3 +242,26 @@ describe('Tabs fullWidth', () => {
     expect(host.className).not.toMatch(/hostFull/);
   });
 });
+
+describe('Tabs blocked tab', () => {
+  it('stays focusable, announces aria-disabled and ignores presses', () => {
+    const onChange = vi.fn();
+    render(<Tabs tabs={[{ key: 'a', label: 'A' }, { key: 'b', label: 'B', blocked: true, tooltip: 'why' }]} activeKey="a" onChange={onChange} />);
+    const b = screen.getByRole('tab', { name: 'B' }) as HTMLButtonElement;
+    expect(b.disabled).toBe(false);
+    expect(b.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(b);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.focus(b);
+    expect(screen.getByText('why')).toBeTruthy();
+  });
+
+  it('does not preview a hover on a blocked tab but still does on a normal one', () => {
+    const onHover = vi.fn();
+    render(<Tabs tabs={[{ key: 'a', label: 'A' }, { key: 'b', label: 'B', blocked: true }]} activeKey="a" onChange={() => {}} onHover={onHover} />);
+    fireEvent.pointerEnter(screen.getByRole('tab', { name: 'B' }), { pointerType: 'mouse' });
+    expect(onHover).not.toHaveBeenCalled();
+    fireEvent.pointerEnter(screen.getByRole('tab', { name: 'A' }), { pointerType: 'mouse' });
+    expect(onHover).toHaveBeenCalledWith('a');
+  });
+});

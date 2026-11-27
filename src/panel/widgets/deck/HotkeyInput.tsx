@@ -22,6 +22,8 @@ interface HotkeyInputProps {
   onClear?: () => void;
   /** Shows the clear x even with no value (a caller whose clear removes more than the value); defaults to `value` being set. */
   showClear?: boolean;
+  /** A global OS hotkey: the service cannot register numpad Enter, numpad Equal or NumLock, so those record as Enter and Equal or not at all. */
+  global?: boolean;
 }
 
 const MOD_CODES = new Set([
@@ -36,18 +38,28 @@ const MOD_CODES = new Set([
 // deckExecutor.ts's own canonicalKey, so a captured token always resolves on
 // both the physical and widget dispatch paths.
 const NAMED: Record<string, string> = {
-  Space: 'space', Enter: 'enter', NumpadEnter: 'enter', Tab: 'tab', Escape: 'escape',
+  Space: 'space', Enter: 'enter', Tab: 'tab', Escape: 'escape',
   Backspace: 'backspace', Delete: 'delete', Insert: 'insert', Home: 'home', End: 'end',
   PageUp: 'pageup', PageDown: 'pagedown',
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  NumLock: 'numlock', NumpadAdd: 'numpadadd', NumpadSubtract: 'numpadsubtract', NumpadMultiply: 'numpadmultiply',
+  NumpadDivide: 'numpaddivide', NumpadDecimal: 'numpaddecimal', NumpadEnter: 'numpadenter', NumpadEqual: 'numpadequal',
   PrintScreen: 'printscreen', Period: '.',
   Comma: ',', Slash: '/', Semicolon: ';', Quote: "'",
   BracketLeft: '[', BracketRight: ']', Backslash: '\\', Minus: '-', Equal: '=', Backquote: '`',
 };
 
-function codeToToken(code: string): string {
+// Keypad keys with a main-row twin that a global hotkey can actually register.
+const GLOBAL_KEYPAD_ALIAS: Record<string, string> = { NumpadEnter: 'enter', NumpadEqual: '=' };
+
+function codeToToken(code: string, global = false): string {
+  if (global) {
+    if (code === 'NumLock') return '';
+    if (GLOBAL_KEYPAD_ALIAS[code]) return GLOBAL_KEYPAD_ALIAS[code];
+  }
   if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
   if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+  if (/^Numpad[0-9]$/.test(code)) return code.toLowerCase();
   if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) return code.toLowerCase();
   return NAMED[code] ?? '';
 }
@@ -59,7 +71,7 @@ function codeToToken(code: string): string {
  * categorized preset list (mirrors Stream Deck's own hotkey picker) without
  * requiring a capture at all.
  */
-export function HotkeyInput({ value, onChange, disabled = false, display, hidePresets = false, onCaptureChange, cancelOnEscape = false, onClear, showClear }: HotkeyInputProps) {
+export function HotkeyInput({ value, onChange, disabled = false, display, hidePresets = false, onCaptureChange, cancelOnEscape = false, onClear, showClear, global = false }: HotkeyInputProps) {
   const { t } = useTranslation();
   const [capturing, setCapturing] = useState(false);
   const captureCb = useRef(onCaptureChange);
@@ -79,7 +91,7 @@ export function HotkeyInput({ value, onChange, disabled = false, display, hidePr
       return;
     }
     if (MOD_CODES.has(e.code)) return; // wait for a non-modifier key
-    const token = codeToToken(e.code);
+    const token = codeToToken(e.code, global);
     if (!token) return;
     const parts: string[] = [];
     if (e.ctrlKey) parts.push('ctrl');

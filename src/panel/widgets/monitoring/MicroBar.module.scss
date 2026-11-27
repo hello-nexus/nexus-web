@@ -52,7 +52,8 @@
 // Fill and Graph designs turn each row into a full-height rounded surface with
 // the caption overlaid; they grow to share the column height evenly.
 .rowFill,
-.rowGraph {
+.rowGraph,
+.columnTrack {
   position: relative;
   flex: 1;
   display: flex;
@@ -156,6 +157,52 @@
 
   flex: 0 0 auto;
   font-size: var(--type-body);
+  color: var(--text);
+  white-space: nowrap;
+
+  :global(.panel-gauge-unit) {
+    font-size: var(--type-tiny);
+  }
+}
+
+// Columns: a vertical fill track (styled with the fill row surface above) over
+// its value. Sibling columns share the row width evenly.
+.rowColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+
+  @include vgap(4px);
+}
+
+.columnFill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--panel-accent-shadow);
+}
+
+.columnValueBox {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.columnValueContent {
+  flex: 0 0 auto;
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+.columnValue {
+  @include text-numeric;
+
   color: var(--text);
   white-space: nowrap;
 

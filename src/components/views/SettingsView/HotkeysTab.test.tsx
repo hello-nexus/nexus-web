@@ -83,6 +83,14 @@ describe('HotkeysTab', () => {
     expect(screen.getByText('hotkeys.status.orphaned')).toBeInTheDocument();
   });
 
+  it('flags a key with no code on this system on its own row while the feature stays usable', () => {
+    current = state([win({ status: 'unsupported' }), brightness]);
+    render(<HotkeysTab serviceOnline />);
+    expect(screen.getByText('hotkeys.status.unsupported')).toBeInTheDocument();
+    expect(screen.queryByText('hotkeys.unsupported')).toBeNull();
+    expect(screen.getByRole('button', { name: 'hotkeys.addButton' })).toBeInTheDocument();
+  });
+
   it('shows one notice and no controls when the platform has no global hotkeys', () => {
     current = state([win()], { supported: false, platform: 'linux' });
     render(<HotkeysTab serviceOnline />);

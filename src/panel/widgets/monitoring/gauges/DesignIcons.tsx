@@ -264,6 +264,19 @@ function SimpleIcon(p: P) {
   );
 }
 
+function ColumnsIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <rect x="3" y="3" width="4.5" height="18" rx="1.5" fill="currentColor" opacity="0.2" />
+      <rect x="3" y="12" width="4.5" height="9" rx="1.5" fill="currentColor" />
+      <rect x="9.75" y="3" width="4.5" height="18" rx="1.5" fill="currentColor" opacity="0.2" />
+      <rect x="9.75" y="7" width="4.5" height="14" rx="1.5" fill="currentColor" />
+      <rect x="16.5" y="3" width="4.5" height="18" rx="1.5" fill="currentColor" opacity="0.2" />
+      <rect x="16.5" y="15" width="4.5" height="6" rx="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   sparkline: AreaIcon,
   text: ValueIcon,
@@ -289,4 +302,5 @@ export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   backdrop: BackdropIcon,
   fill: FillIcon,
   simple: SimpleIcon,
+  columns: ColumnsIcon,
 };

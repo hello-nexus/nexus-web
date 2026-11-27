@@ -1337,3 +1337,77 @@ describe('ZoneCard needs-binding state', () => {
     expect(card.className).toContain(styles.deviceCardWithStrip);
   });
 });
+
+describe('ZoneCard save-colors strip', () => {
+  const keyboard = { ...baseDevice, saveToDeviceSupported: true } as LightingDevice;
+  const conflict = { controlled: false, apps: [{ id: 'app-0', name: 'Corsair iCUE' }] };
+  function renderKeyboard(device: LightingDevice, extra: Record<string, unknown> = {}, onOpenSaveToDevice: () => void = () => {}) {
+    return render(<ZoneCard device={device} selected={false} indent={false} onSelect={() => {}} onOpenSaveToDevice={onOpenSaveToDevice} {...extra} />);
+  }
+
+  it('offers the keys line in the gray tone while the toggle is off', () => {
+    renderKeyboard(keyboard);
+    const button = screen.getByRole('button', { name: /saveStrip\.keep/ });
+    expect(button.className).not.toContain(styles.deviceControlledByWarn);
+    expect(button.querySelector('b')?.textContent).toBe('lighting.devices.saveStrip.keys');
+    expect(button.querySelector(`.${styles.deviceControlledByChevron}`)).not.toBeNull();
+    expect(document.querySelector(`.${styles.deviceCard}`)?.className).toContain(styles.deviceCardWithStrip);
+  });
+
+  it('says saved while the toggle is on', () => {
+    renderKeyboard({ ...keyboard, savedToDevice: true });
+    const button = screen.getByRole('button', { name: /saveStrip\.saved/ });
+    expect(button.className).not.toContain(styles.deviceControlledByWarn);
+    expect(screen.queryByRole('button', { name: /saveStrip\.keep/ })).toBeNull();
+  });
+
+  it('shows the blocked state in the gray tone instead of saved when a reason is set', () => {
+    renderKeyboard({ ...keyboard, savedToDevice: true, savedToDeviceReason: 'foreign-host' });
+    const strip = screen.getByRole('button', { name: /saveStrip\.blocked/ });
+    expect(strip.className).not.toContain(styles.deviceControlledByWarn);
+    expect(strip.textContent).toContain('lighting.devices.saveStrip.reason.foreignHost');
+    expect(strip.textContent).not.toContain('lighting.devices.saveStrip.limit');
+    expect(screen.queryByRole('button', { name: /saveStrip\.saved/ })).toBeNull();
+  });
+
+  it('explains the color limit inside the strip only while the toggle is on', () => {
+    const { unmount } = renderKeyboard({ ...keyboard, savedToDevice: true });
+    const strip = screen.getByRole('button', { name: /saveStrip\.saved/ });
+    expect(strip.textContent).toContain('lighting.devices.saveStrip.limit');
+    expect(document.querySelector('canvas')).not.toBeNull();
+    unmount();
+    renderKeyboard(keyboard);
+    expect(screen.queryByText('lighting.devices.saveStrip.limit')).toBeNull();
+  });
+
+  it('swaps the note to the saved-colors line and darkens the readout while the look is animated', () => {
+    renderKeyboard({ ...keyboard, savedToDevice: true }, { savedShowsAnimated: true });
+    const strip = screen.getByRole('button', { name: /saveStrip\.saved/ });
+    expect(strip.textContent).toContain('lighting.devices.saveStrip.animated');
+    expect(strip.textContent).not.toContain('lighting.devices.saveStrip.limit');
+    expect(document.querySelector('canvas')).toBeNull();
+  });
+
+  it('renders nothing on a card that cannot save colors', () => {
+    renderKeyboard(baseDevice);
+    expect(screen.queryByRole('button', { name: /saveStrip/ })).toBeNull();
+  });
+
+  it('opens the device page on press without selecting the card', () => {
+    const onSelect = vi.fn();
+    const onOpen = vi.fn();
+    render(<ZoneCard device={keyboard} selected={false} indent={false} onSelect={onSelect} onOpenSaveToDevice={onOpen} />);
+    fireEvent.click(screen.getByRole('button', { name: /saveStrip\.keep/ }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('gives way to the conflict strip and the not-responding strip', () => {
+    renderKeyboard({ ...keyboard, controlled: false }, { appStrip: conflict, onOpenAppStrip: () => {} });
+    expect(screen.queryByRole('button', { name: /saveStrip/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /controlledBy/ })).toBeTruthy();
+    cleanup();
+    renderKeyboard({ ...keyboard, writeHealth: 'failing' }, { onOpenFixLighting: () => {} });
+    expect(screen.queryByRole('button', { name: /saveStrip/ })).toBeNull();
+  });
+});

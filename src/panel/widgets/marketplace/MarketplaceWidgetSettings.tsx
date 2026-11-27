@@ -74,7 +74,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   // Bridge is keyed by placement id (per-instance) so two placements of the
   // same marketplace widget keep separate settings.
-  const bridge = useMemo(() => (widget.id ? new WidgetSettingsBridge(widget.id) : null), [widget.id]);
+  const bridge = useMemo(() => (widget.id ? WidgetSettingsBridge.for(widget.id) : null), [widget.id]);
 
   // Sync the listing with the dynamic registry (covers the case where the
   // settings drawer opens before the catalog refresh has landed).
@@ -87,12 +87,29 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
 
   // Load persisted values + subscribe to changes from anywhere else the
   // settings might be edited.
+  // While a local edit is buffered or in flight, incoming documents must not overwrite the optimistic
+  // values (the control would snap back mid-drag); the canonical doc is adopted once the patch settles.
+  const inFlight = useRef(0);
+  const pending = useRef<Record<string, unknown>>({});
+  const localEditActive = () => inFlight.current > 0 || Object.keys(pending.current).length > 0;
   useEffect(() => {
     if (!bridge) return;
-    void bridge.load().then((v) => setValues(v));
-    const unsub = bridge.onChange((v) => setValues({ ...v }));
-    return unsub;
+    const release = bridge.retain();
+    bridge.load().then((v) => { if (!localEditActive()) setValues({ ...v }); }).catch(() => { /* panel shows defaults */ });
+    const unsub = bridge.onChange((v) => { if (!localEditActive()) setValues({ ...v }); });
+    return () => { unsub(); release(); };
   }, [bridge]);
+
+  const sendPatch = (buffered: Record<string, unknown>) => {
+    if (!bridge || Object.keys(buffered).length === 0) return;
+    inFlight.current++;
+    void Promise.resolve(bridge.patch({ set: buffered }))
+      .catch(() => { /* keep optimistic values */ })
+      .finally(() => {
+        inFlight.current--;
+        if (!localEditActive()) setValues({ ...bridge.get() });
+      });
+  };
 
   const schema: ManifestSetting[] = useMemo(() => {
     const raw = (listing as unknown as { settings?: ManifestSetting[] })?.settings;
@@ -100,7 +117,6 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   }, [listing]);
 
   // Per-key debounce so a color drag emits one PATCH, not 60.
-  const pending = useRef<Record<string, unknown>>({});
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queue = (key: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -110,9 +126,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
       flushTimer.current = null;
       const buffered = pending.current;
       pending.current = {};
-      if (bridge && Object.keys(buffered).length > 0) {
-        void bridge.patch({ set: buffered });
-      }
+      sendPatch(buffered);
     }, DEBOUNCE_MS);
   };
   useEffect(() => () => {

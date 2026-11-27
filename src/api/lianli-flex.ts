@@ -52,14 +52,15 @@ async function getScreens(): Promise<LianLiWirelessScreen[] | null> {
 }
 
 async function setScreenSettings(serial: string, settings: LianLiScreenSettingsPatch): Promise<boolean> {
-  const { brightness, rotation, nexusPanel, sleepWhenLocked } = settings;
-  if (brightness === undefined && rotation === undefined && nexusPanel === undefined && sleepWhenLocked === undefined) return true;
+  const { brightness, rotation, nexusPanel, sleepWhenLocked, fpsCap } = settings;
+  if (brightness === undefined && rotation === undefined && nexusPanel === undefined && sleepWhenLocked === undefined && fpsCap === undefined) return true;
   return isOk(await postService<OkResponse>(`${BASE}/screen/settings`, {
     serial,
     ...(brightness !== undefined ? { brightness } : {}),
     ...(rotation !== undefined ? { rotation } : {}),
     ...(nexusPanel !== undefined ? { nexusPanel } : {}),
     ...(sleepWhenLocked !== undefined ? { sleepWhenLocked } : {}),
+    ...(fpsCap !== undefined ? { fpsCap } : {}),
   }));
 }
 

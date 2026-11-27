@@ -16,7 +16,9 @@ const RATCHETS = [
     // The Frames history card's enlarged avg-fps number needs a tighter
     // line-height than text-heading's own 1.3 (the hero digits otherwise
     // carry visible line-box padding); it added a second raw type line.
-    baseline: 726,
+    // The calendar views (time grid, month grid, agenda, tiles) lay out at the
+    // panel design-px scale like the other widgets, so their sizes and radii are raw.
+    baseline: 794,
     hint: 'use the --radius/--shadow/--alpha/--blur/--ease tokens and text mixins instead of raw values (run "npm run audit:styles" for the list)',
   },
   {
@@ -38,7 +40,9 @@ const RATCHETS = [
     // that same idiom, so the cap tracks up with them (the Fill gauge added 4).
     // The calendar widget's date/day/month display fonts are the same em-tier
     // idiom (like the clock).
-    baseline: 502,
+    // The calendar views' event text sits at fixed design-px sizes inside
+    // scaled panel tiles, the same idiom as the gauges.
+    baseline: 538,
     hint: 'use the @include text-* mixins or var(--type-*/--weight-*) tokens from _text.scss (run "npm run audit:text-styles" for the list)',
   },
 ] as const;

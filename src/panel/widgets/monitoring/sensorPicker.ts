@@ -7,7 +7,7 @@ import type { useSensorExtras } from '../../../hooks/useSensorExtras';
 import type { buildNetworkSensors } from './networkSensors';
 import { networkSensorOptions } from './networkSensors';
 import { bareSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorsForCategory, smartStorageSensors, storageSensorLabel } from './sensorCategories';
+import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorsForCategory, smartSensorDrive, smartSensorOptionLabel, smartStorageSensors, storageSensorLabel } from './sensorCategories';
 import type { DeviceKey } from './perfSlots';
 
 export interface SensorOption {
@@ -102,7 +102,7 @@ export function sensorsForDevice(
     case 'smart':
       options = smartStorageSensors(sensors).map(s => ({
         value: s.id,
-        label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
+        label: smartSensorOptionLabel(smartSensorDrive(sensors, s), bareSensorLabel(device, s.name) || s.name, s.type),
         sensorName: s.name,
         type: s.type,
       }));

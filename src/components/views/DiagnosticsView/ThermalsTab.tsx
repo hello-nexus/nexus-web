@@ -8,6 +8,7 @@ import {
 } from '../../../api/diagnosticsAlerts';
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import { useSensorAlerts } from '../../../hooks/useSensorAlerts';
+import { setFanControlledWithStatus } from '../../../api/cooling';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -21,15 +22,17 @@ import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { SensorAlertBanner } from './SensorAlertBanner';
 import { SensorAlertsBanner, type BannerAlert } from './SensorAlertsBanner';
-import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRule, formatDisplayValue, isBannerAlert, rowTitles, ruleLabel, sensorRefOf } from './sensorAlertHelpers';
-import { Card } from '../../common/Card/Card';
+import { ALERT_SENSOR_CATEGORIES, ALERT_SENSOR_TYPES, defaultRule, findTrackedRule, formatAlertValue, isBannerAlert, rowTitles, ruleLabel, sensorRefOf } from './sensorAlertHelpers';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { SensorAlertRuleSettings } from './SensorAlertRuleSettings';
+import { excludedFanLinks, excludedFanSeriesIds } from './coolingFanState';
+import { useCoolingFanChannels } from './useCoolingFanChannels';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import { toCoolingTempChartSeries } from './coolingHistoryHelpers';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useFeatureFlags, useUiSettingsUpdateSafe, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { GuardTripNotice } from './GuardTripNotice';
 import { SensorList } from './SensorList';
 import { sensorYDomain } from './sensorHistoryHelpers';
@@ -44,6 +47,7 @@ import {
   ruleForSeries,
   ruleLines,
   ruleOutOfRangeBands,
+  builtInSeriesId,
   ruleThresholds,
   selectGroup,
   selectRule,
@@ -63,6 +67,8 @@ interface ThermalsTabProps {
   serviceOnline: boolean;
   /** Opens the Cooling page, for an active thermal guard trip. */
   onOpenCooling?: () => void;
+  /** Opens the Cooling page with this fan channel selected. */
+  onOpenCoolingFan?: (channelId: string) => void;
   /** The user dismissed an ended trip: refresh whatever shows it. */
   onGuardTripDismissed: () => void;
   /** Chart group and the entry picked, owned by DiagnosticsView so they survive tab switches. */
@@ -82,7 +88,7 @@ interface ThermalsTabProps {
  * entry shows its group, and a chart legend item selects its entry; selecting it again clears the pick.
  */
 export function ThermalsTab({
-  coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed,
+  coolingHistory, sensorHistory, episodes, serviceOnline, onOpenCooling, onOpenCoolingFan, onGuardTripDismissed,
   selection, onSelectionChange, onAlertDismissed, linkedRuleId, linkNavKey,
 }: ThermalsTabProps) {
   const { t, language } = useTranslation();
@@ -90,6 +96,10 @@ export function ThermalsTab({
   const alerts = useSensorAlerts(true, true);
   const { rules, states, loaded, error, loading, refresh } = alerts;
   const lookup = useSensorLookup();
+  const coolingOn = useFeatureFlags().cooling;
+  const coolingChannels = useCoolingFanChannels(coolingOn);
+  const updateUiSettings = useUiSettingsUpdateSafe();
+  const coolingFans = useMemo(() => excludedFanLinks(rules, coolingChannels), [rules, coolingChannels]);
   const { sensors, extras, networkSensors, resolve } = lookup;
   const { group, groups, selectedId, groupRules } = resolveThermals(rules, selection);
   const selectedRule = rules.find(r => r.id === selectedId);
@@ -206,19 +216,25 @@ export function ThermalsTab({
   const GroupIcon = GROUP_ICON[group];
   const customTemps = useMemo(() => groupRules.filter(r => !r.builtIn), [groupRules]);
   const deviceLines = useMemo(() => toCoolingTempChartSeries(coolingHistory.series), [coolingHistory.series]);
+  const chartRules = useMemo(() => groupRules.filter(r => !coolingFans.has(r.id)), [groupRules, coolingFans]);
   const customLines = useMemo(
-    () => ruleLines(thermalsGroup ? customTemps : groupRules, sensorHistory.series, ruleLabel, new Set(deviceLines.map(l => l.color))),
-    [thermalsGroup, customTemps, groupRules, sensorHistory.series, deviceLines],
+    () => ruleLines(thermalsGroup ? customTemps : chartRules, sensorHistory.series, ruleLabel, new Set(deviceLines.map(l => l.color))),
+    [thermalsGroup, customTemps, chartRules, sensorHistory.series, deviceLines],
   );
   const chartLines = useMemo(() => (thermalsGroup ? [...deviceLines, ...customLines] : customLines), [thermalsGroup, deviceLines, customLines]);
   const rangeBands = useMemo(() => ruleOutOfRangeBands(selectedRule ? [selectedRule] : [], chartLines), [selectedRule, chartLines]);
+  // The average fan speed strip leaves out the fans Cooling keeps out, like the fan lines.
+  const trackedCoolingHistory = useMemo(() => {
+    const out = excludedFanSeriesIds(rules, coolingFans);
+    return !coolingOn || out.size === 0 ? coolingHistory : { ...coolingHistory, series: coolingHistory.series.filter(s => !out.has(s.id)) };
+  }, [coolingOn, rules, coolingFans, coolingHistory]);
   const chartHistory = useMemo(
-    () => (thermalsGroup && customTemps.length > 0 ? linkHistories(coolingHistory, sensorHistory) : thermalsGroup ? coolingHistory : sensorHistory),
-    [thermalsGroup, customTemps.length, coolingHistory, sensorHistory],
+    () => (thermalsGroup && customTemps.length > 0 ? linkHistories(trackedCoolingHistory, sensorHistory) : thermalsGroup ? trackedCoolingHistory : sensorHistory),
+    [thermalsGroup, customTemps.length, trackedCoolingHistory, sensorHistory],
   );
   const groupType = groupRules[0]?.sensor.type ?? 'Temperature';
   const groupFormat = useMemo(
-    () => (v: number) => formatDisplayValue(v, groupType, monitoringTempUnit, numberFormat, monitoringWholeNumbers),
+    () => (v: number) => formatAlertValue(v, groupType, monitoringTempUnit, numberFormat, monitoringWholeNumbers),
     [groupType, monitoringTempUnit, numberFormat, monitoringWholeNumbers],
   );
   const thresholds = useMemo(() => ruleThresholds(selectedRule), [selectedRule]);
@@ -227,6 +243,19 @@ export function ThermalsTab({
     [thermalsGroup, customLines, thresholds],
   );
 
+  const detailFan = detailRule?.builtIn === 'fanSpeed' ? detailRule : undefined;
+  const fanLink = detailFan ? coolingFans.get(detailFan.id) : undefined;
+  const fanChannel = detailFan ? coolingChannels.find(c => `fan:${c.seriesId}` === builtInSeriesId(detailFan)) : undefined;
+  const coolingFanDetail = coolingOn && onOpenCoolingFan && (fanLink || fanChannel)
+    ? {
+      status: fanLink?.status ?? null,
+      onManage: () => {
+        // Cooling hides these fans unless it shows uncontrolled devices, and the selection must be visible.
+        if (fanLink) updateUiSettings({ showUncontrolledCoolingDevices: true });
+        onOpenCoolingFan((fanLink?.channelId ?? fanChannel?.id) as string);
+      },
+    }
+    : undefined;
   const stateOf = (id: string) => states.find(s => s.ruleId === id);
   const bannerAlerts: BannerAlert[] = rules.flatMap(rule => {
     const state = stateOf(rule.id);
@@ -241,10 +270,26 @@ export function ThermalsTab({
     states,
     selectedId,
     pickerLabel,
+    coolingFans,
     liveOf: (rule: SensorAlertRule) => resolve(rule.sensor.category, rule.sensor.id)?.value ?? null,
     onSelect: (id: string) => { const rule = rules.find(r => r.id === id); if (rule) toggleSelect(rule); },
   };
   const restoreBuiltIn = (id: string) => { void alerts.resetBuiltIns(id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.saveFailed') }); }); };
+  // A fan entry's switch is the fan's Nexus Control, written through the Cooling route (it owns the gate, the unknown-channel
+  // guard and the refresh). Only a refused gate (409) falls back to the plain mute; a pump has no control channel and saves as before.
+  const toggleRuleEnabled = (rule: SensorAlertRule, enabled: boolean) => {
+    const channel = rule.builtIn === 'fanSpeed' && coolingOn ? rule.source?.controlChannel : null;
+    const fail = () => push({ title: t('diagnostics.alerts.saveFailed') });
+    if (!channel) { alerts.save({ ...rule, enabled }, fail); return; }
+    alerts.preview({ ...rule, enabled });
+    // On success the cooling topic refetches the rules and the channel list; no refresh here.
+    void setFanControlledWithStatus(channel, enabled, enabled).then(({ ok, status }) => {
+      if (ok) return;
+      if (status === 409) { alerts.save({ ...rule, enabled }, fail); return; }
+      fail();
+      alerts.refresh();
+    });
+  };
   const note = alerts.atLimit
     ? t('diagnostics.alerts.limitReached', { max: MAX_SENSOR_ALERT_RULES })
     : loaded && !firstSensor && rules.length === 0 ? t('diagnostics.alerts.noSensors') : null;
@@ -323,8 +368,8 @@ export function ThermalsTab({
               <div className={styles.groupHeader}>
                 <SectionHeader>{t('diagnostics.sensors.settings.title')}</SectionHeader>
               </div>
-              <Card>
-                <div data-testid="sensor-settings">
+              <div data-testid="sensor-settings">
+                <SettingsSection flush>
                   <SensorAlertRuleSettings
                     key={detailRule.id}
                     rule={detailRule}
@@ -340,12 +385,14 @@ export function ThermalsTab({
                     findTracked={sensor => findTracked(sensor, detailRule.id)}
                     onTracked={setTrackedBy}
                     onDelete={() => { void alerts.remove(detailRule.id).then(ok => { if (!ok) push({ title: t('diagnostics.alerts.deleteFailed') }); }); }}
-                    onToggleEnabled={enabled => alerts.save({ ...detailRule, enabled }, () => push({ title: t('diagnostics.alerts.saveFailed') }))}
+                    onToggleEnabled={enabled => toggleRuleEnabled(detailRule, enabled)}
                     state={stateOf(detailRule.id)}
                     onRestoreDefault={() => restoreBuiltIn(detailRule.id)}
+                    fanControlsNexus={coolingOn && !!detailRule.source?.controlChannel}
+                    coolingFan={coolingFanDetail}
                   />
-                </div>
-              </Card>
+                </SettingsSection>
+              </div>
             </div>
           ) : (
             <div className={styles.detail} data-testid="sensor-detail-empty">

@@ -315,6 +315,32 @@ describe('MonitoringSettings - Micro mode with summary sensors present', () => {
   });
 });
 
+describe('MonitoringSettings - Vertical Bars', () => {
+  const AUTO = 'monitoring.settings.labelAuto';
+  const withDesign = (count: number, size: PanelWidget['size'] = '4x2') => {
+    const w = microWidget(count);
+    return { ...w, size, config: { ...w.config, micro_design: 'columns' } };
+  };
+
+  it('hides the per-sensor label chips but keeps the device label, and stores nothing', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={withDesign(4)} onUpdate={cfg => updates.push(cfg)} />);
+    expect(screen.getAllByRole('radio', { name: AUTO })).toHaveLength(1);
+    expect(mergedPatch(updates).micro_design).toBeUndefined();
+  });
+
+  it('is not offered on a 2x4 with 8 columns, and a stored columns design shows the labels again', () => {
+    render(<MicroHarness initial={withDesign(8, '2x4')} />);
+    expect(screen.queryByRole('button', { name: 'monitoring.settings.designColumns' })).toBeNull();
+    expect(screen.getAllByRole('radio', { name: AUTO })).toHaveLength(9);
+  });
+
+  it('is offered on a 2x4 with 4 columns', () => {
+    render(<MicroHarness initial={withDesign(4, '2x4')} />);
+    expect(screen.getByRole('button', { name: 'monitoring.settings.designColumns' })).toBeTruthy();
+  });
+});
+
 describe('MonitoringSettings - Micro Label chips (category + per-sensor)', () => {
   const AUTO = 'monitoring.settings.labelAuto';
   const HIDE = 'monitoring.settings.labelHide';

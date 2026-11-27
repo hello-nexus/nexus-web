@@ -126,6 +126,57 @@ export function defaultFixedMax(device: DeviceKey, sensor: HardwareSensor | unde
   return sMax || staticMaxForDevice(device, sensor?.name ?? nameFallback, sensor?.type, sensor?.value);
 }
 
+const CURRENT_HEADROOM = 1.2;
+const CURRENT_FLOOR = 1;
+
+/** Largest finite value among the live reading and the samples given. */
+export function observedPeak(rawValue: number, history: readonly number[]): number {
+  let peak = Number.isFinite(rawValue) ? rawValue : 0;
+  for (const v of history) {
+    if (Number.isFinite(v) && v > peak) peak = v;
+  }
+  return peak;
+}
+
+/**
+ * Adaptive fill ceiling for Current sensors: the peak scaled by CURRENT_HEADROOM,
+ * never below CURRENT_FLOOR. Current has no natural percent scale, and a fixed
+ * ceiling would leave small readings near empty. `sharedPeak` is the largest
+ * peak among the rows of one family (see currentFamilyKey), so sibling rows keep
+ * their heights relative to each other instead of each reading full.
+ */
+export function adaptiveCurrentMax(rawValue: number, history: readonly number[], sharedPeak = 0): number {
+  const peak = Math.max(observedPeak(rawValue, history), Number.isFinite(sharedPeak) ? sharedPeak : 0);
+  return Math.max(CURRENT_HEADROOM * peak, CURRENT_FLOOR);
+}
+
+/** The Adaptive fill ceiling: the peak-based one for Current, else `staticMax`. */
+export function adaptiveFillMax(
+  sensor: HardwareSensor | undefined,
+  rawValue: number,
+  history: readonly number[],
+  staticMax: number,
+  sharedPeak = 0,
+): number {
+  if (!usesAdaptiveCurrent(sensor)) return staticMax;
+  return adaptiveCurrentMax(rawValue, history, sharedPeak);
+}
+
+/**
+ * Rows that share one Adaptive Current peak: same device and the same sensor
+ * name once standalone integers are masked ("Pin 1 Current" and "Pin 2 Current"
+ * match; "12V Current" and "5V Current" stay apart because their digits are
+ * attached to letters).
+ */
+export function currentFamilyKey(device: DeviceKey, sensorName: string): string {
+  return `${device}::${sensorName.replace(/\b\d+\b/g, '#')}`;
+}
+
+/** Whether a sensor's Adaptive fill follows the observed Current peak. */
+export function usesAdaptiveCurrent(sensor: HardwareSensor | undefined): boolean {
+  return sensor?.type === 'Current' && !((sensor.theoreticalMaximum ?? 0) > 0);
+}
+
 export function chartDomainForScale(
   device: DeviceKey,
   rawValue: number,
@@ -181,10 +232,7 @@ export function relativeHistoryDomain(
 ): [number, number] {
   if (device === 'network') return [0, staticMax];
 
-  let observed = Number.isFinite(rawValue) ? rawValue : 0;
-  for (const v of history) {
-    if (Number.isFinite(v) && v > observed) observed = v;
-  }
+  const observed = observedPeak(rawValue, history);
 
   if (device === 'fan') {
     return [0, Math.max(FAN_FLOOR, Math.ceil(observed / FAN_STEP) * FAN_STEP)];

@@ -1,6 +1,6 @@
 // Cooling API wrapper - authenticated fetch/post to the local service.
 
-import { fetchService, postService, putService, deleteService } from './service';
+import { authFetchWithStatus, fetchService, postService, putService, deleteService } from './service';
 import { type DeviceGroup } from '../lib/deviceGroups';
 
 // ── Types ──
@@ -229,6 +229,12 @@ export const setFanPin = (id: string, pinned: boolean) =>
 
 export const setFanControlled = (id: string, controlled: boolean) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/controlled`, { controlled });
+
+/** Same write as setFanControlled, keeping the status: 409 means the Cooling feature is off. `unmute` also clears the fan's legacy monitoring mute when switching on. */
+export async function setFanControlledWithStatus(id: string, controlled: boolean, unmute = false): Promise<{ ok: boolean; status: number }> {
+  const { response, status } = await authFetchWithStatus(`/cooling/fan/${encodeURIComponent(id)}/controlled`, { method: 'POST', body: unmute ? { controlled, unmute } : { controlled } });
+  return { ok: !!response?.ok, status };
+}
 
 export const setFanRole = (id: string, role: FanRole) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/role`, { role });

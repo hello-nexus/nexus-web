@@ -8,12 +8,13 @@
 // (relay-aware). Everything else (worker, MessagePort UI channel, remote-dom)
 // runs locally in the panel's browser.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMultiplex, useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
 import { createAppDispatch } from '../../../sandbox/appDispatch';
 import { useToastSafe } from '../../../components/common/Toast/Toast';
-import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
+import { WidgetSettingsBridge, appSettingsTopic } from '../../../widgets/settingsBridge';
 import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -58,14 +59,32 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
 
   // Per-instance settings via the shared settings bridge. Preview skips the
   // bridge entirely - get() fire-and-forgets a network load on first call.
-  const settingsBridge = useMemo(() => new WidgetSettingsBridge(instanceId), [instanceId]);
+  const settingsBridge = useMemo(() => WidgetSettingsBridge.for(instanceId), [instanceId]);
   const [settings, setSettings] = useState<Record<string, unknown>>(() => (preview ? {} : settingsBridge.get()));
   useEffect(() => {
     if (preview) return;
+    const release = settingsBridge.retain();
     const unsub = settingsBridge.onChange((v) => setSettings({ ...v }));
-    void settingsBridge.load();
-    return unsub;
+    settingsBridge.load().catch(() => { /* the next reconnect or broadcast retries */ });
+    return () => { unsub(); release(); };
   }, [settingsBridge, preview]);
+
+  // Cross-device: the service broadcasts the full settings doc after each write. An older service never
+  // sends the topic, so this stays inert. apply() skips equal docs, so a local save plus its echo is one update.
+  useTopicCallback(appSettingsTopic(instanceId), !preview, (raw) => {
+    const frame = raw as { values?: unknown; revision?: unknown } | null;
+    const values = frame?.values;
+    if (values && typeof values === 'object' && !Array.isArray(values)) {
+      settingsBridge.apply(values as Record<string, unknown>, typeof frame?.revision === 'number' ? frame.revision : undefined);
+    }
+  });
+  // A broadcast sent while the socket was down is not replayed; re-read on reconnect.
+  const connected = useMultiplex()?.connected ?? false;
+  const wasConnected = useRef(connected);
+  useEffect(() => {
+    if (!preview && connected && !wasConnected.current) settingsBridge.load().catch(() => { /* next reconnect retries */ });
+    wasConnected.current = connected;
+  }, [connected, settingsBridge, preview]);
 
   // Tells the service the app is running, on mount and hourly while mounted so a kiosk widget that stays up
   // across midnight counts each UTC day. The settings editor deliberately does not do this.

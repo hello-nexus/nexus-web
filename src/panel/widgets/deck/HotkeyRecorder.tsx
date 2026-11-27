@@ -51,6 +51,7 @@ export function HotkeyRecorder({ value, display, onChange, disabled, onClear, sh
       onChange={onChange}
       disabled={disabled}
       hidePresets
+      global
       cancelOnEscape
       onClear={onClear}
       showClear={showClear}

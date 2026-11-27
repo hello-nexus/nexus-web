@@ -160,6 +160,15 @@ describe('curve editor controls per mode', () => {
     expect(screen.queryByText('cooling.curve.source')).not.toBeInTheDocument();
   });
 
+  it('lets the response time reach 10 seconds', () => {
+    const curve = curveOf('auto');
+    const { container } = renderCard({ ...curve, auto: { ...curve.auto, responseTime: 10 } });
+    const response = [...container.querySelectorAll<HTMLInputElement>('input[type="range"]')]
+      .find(r => r.step === '0.1');
+    expect(response?.max).toBe('10');
+    expect(response?.value).toBe('10');
+  });
+
   it('keeps the temperature source row for trigger and auto', () => {
     renderCard(curveOf('trigger'));
     expect(screen.getByText('cooling.curve.source')).toBeInTheDocument();

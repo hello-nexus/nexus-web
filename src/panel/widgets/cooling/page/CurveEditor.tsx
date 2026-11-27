@@ -142,7 +142,7 @@ function ResponseTimeSlider({ value, onChange, disabled }: { value: number; onCh
       // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
       orientation="stacked" editable label={t('cooling.curve.response')}
       info={t('cooling.curve.response.help')} value={value}
-      min={0.1} max={5.0} step={0.1} trackFill
+      min={0.1} max={10.0} step={0.1} trackFill
       formatValue={v => t('cooling.curve.responseSeconds', { value: localizeNumbers(v.toFixed(1), numberFormat) })} onChange={onChange} disabled={disabled} />
   );
 }

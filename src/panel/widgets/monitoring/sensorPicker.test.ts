@@ -76,3 +76,23 @@ describe('option sensor types', () => {
     expect(sensorsForDevice(state, [], EMPTY_SENSOR_EXTRAS, 'igpu').map(o => o.type)).toEqual(['Temperature']);
   });
 });
+
+describe('smart picker category', () => {
+  const written = (id: string, parent: string) => sensor({ id, name: 'Data Written (24 h)', type: 'Data', parent: { id: '', name: parent } });
+  const a = written('/nvme/0/data/24h', 'Samsung SSD 990 PRO 2TB');
+  const b = written('/nvme/1/data/24h', 'WD_BLACK SN850X 1TB');
+  const comp = (id: string, name: string, s: HardwareSensor) => ({ id, name, capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '', sensors: [s] });
+  const state: SensorState = {
+    ...EMPTY_SENSORS,
+    storageComponents: { 'smart/nvme/0': comp('smart/nvme/0', 'Samsung SSD 990 PRO 2TB', a), 'smart/nvme/1': comp('smart/nvme/1', 'WD_BLACK SN850X 1TB', b) },
+  };
+
+  it('prefixes each option with its drive so identical sensor names stay distinct', () => {
+    const labels = sensorsForDevice(state, [], EMPTY_SENSOR_EXTRAS, 'smart').map(o => o.label);
+    expect(labels).toEqual([
+      'Samsung SSD 990 PRO 2TB: Data Written (24 h) (Data)',
+      'WD_BLACK SN850X 1TB: Data Written (24 h) (Data)',
+    ]);
+    expect(new Set(labels).size).toBe(2);
+  });
+});

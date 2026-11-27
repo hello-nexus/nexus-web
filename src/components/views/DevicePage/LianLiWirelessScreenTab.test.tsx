@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 
@@ -22,6 +22,9 @@ const mockGetAioScreen = vi.fn(() => Promise.resolve({
   brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
   showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false, nexusWidgets: true,
 }));
+
+const toast = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('../../common/Toast/Toast', () => ({ useToastSafe: () => toast }));
 
 const mockSearchKlipy = vi.fn();
 const mockStageKlipy = vi.fn();
@@ -476,6 +479,46 @@ describe('LianLiWirelessScreenTab', () => {
     await waitFor(() => expect(mockGetMedia).toHaveBeenCalledTimes(2));
   });
 
+  async function importOneFile() {
+    await renderTab();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [new File(['data'], 'clip.mp4', { type: 'video/mp4' })] } });
+    });
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'cropper.title' })).getByRole('button', { name: 'cropper.confirm' }));
+    await waitFor(() => expect(mockImportMedia).toHaveBeenCalledTimes(1));
+  }
+
+  it('shows a friendly body, never encoder stderr, when a conversion fails', async () => {
+    mockImportMedia.mockResolvedValue({ error: true, msg: 'ffmpeg exit 1: bad' });
+    await importOneFile();
+    await waitFor(() => expect(toast.push).toHaveBeenCalledWith({
+      title: 'lighting.controls.importFailed', body: 'lighting.controls.importFileFailed',
+    }));
+  });
+
+  it('never shows the service message, even a short one', async () => {
+    mockImportMedia.mockResolvedValue({ error: true, msg: 'File is too large' });
+    await importOneFile();
+    await waitFor(() => expect(toast.push).toHaveBeenCalledWith({
+      title: 'lighting.controls.importFailed', body: 'lighting.controls.importFileFailed',
+    }));
+  });
+
+  it('says the service could not be reached when an import gets no answer', async () => {
+    mockImportMedia.mockResolvedValue(null);
+    await importOneFile();
+    await waitFor(() => expect(toast.push).toHaveBeenCalledWith({
+      title: 'lighting.controls.importFailed', body: 'lighting.controls.importNetworkError',
+    }));
+  });
+
+  it('shows no failure toast when an import succeeds', async () => {
+    await importOneFile();
+    await waitFor(() => expect(mockGetMedia).toHaveBeenCalledTimes(2));
+    expect(toast.push).not.toHaveBeenCalled();
+  });
+
   const panelScreen = (over: Record<string, unknown> = {}) => ({
     serial: 'S1', position: 0, width: 400, height: 400, brightness: 80, rotation: 0, contentType: 'image', mediaId: 'm1', ...over,
   });
@@ -732,5 +775,56 @@ describe('LianLiWirelessScreenTab Restart LCD', () => {
   it('has no Restart LCD row for a family that cannot restart', async () => {
     await renderTab();
     expect(screen.queryByText('devices.lianli-flex.restartLcd')).not.toBeInTheDocument();
+  });
+
+  describe('frame rate', () => {
+    const RATE = 'lighting.ledMap.rateCap';
+    const HZ = (hz: number) => `lighting.ledMap.rateCapHz:{"hz":${hz}}`;
+    const clip = (serial: string, fpsCap?: number, contentType = 'gif') => ({
+      serial, position: 0, width: 400, height: 400, brightness: 80, rotation: 0, contentType, mediaId: 'm2', fpsCap,
+    });
+
+    it('shows for a GIF or video screen that reports a cap, with the cap as the value', async () => {
+      mockGetScreens.mockResolvedValue([clip('S1', 30)]);
+      await renderTab();
+      expect(screen.getByRole('button', { name: RATE })).toHaveTextContent(HZ(30));
+    });
+
+    it('uses the clip hint rather than the panel redraw hint', async () => {
+      mockGetScreens.mockResolvedValue([clip('S1', 30)]);
+      await renderTab();
+      expect(screen.getByText('devices.lianli-wireless.frameRateClipHint')).toBeInTheDocument();
+      expect(screen.queryByText('devices.lcd.frameRateHint')).not.toBeInTheDocument();
+    });
+
+    it('is hidden for a still image, for a screen without a cap (older service) and for a Nexus panel', async () => {
+      mockGetScreens.mockResolvedValue([clip('S1', 30, 'image')]);
+      await renderTab();
+      expect(screen.queryByRole('button', { name: RATE })).not.toBeInTheDocument();
+      cleanup();
+      mockGetScreens.mockResolvedValue([clip('S1', undefined)]);
+      await renderTab();
+      expect(screen.queryByRole('button', { name: RATE })).not.toBeInTheDocument();
+      cleanup();
+      mockGetScreens.mockResolvedValue([{ ...clip('S1', 30), nexusPanel: true }]);
+      await renderTab();
+      expect(screen.queryByRole('button', { name: RATE })).not.toBeInTheDocument();
+    });
+
+    it('reads Mixed when the selected screens differ and saves the pick to every one of them', async () => {
+      mockGetScreens.mockResolvedValue([clip('S1', 30), clip('S2', 0)]);
+      await renderTab();
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+      fireEvent.click(fanTile(2));
+      expect(screen.getByRole('button', { name: RATE })).toHaveTextContent('common.mixed');
+
+      fireEvent.click(screen.getByRole('button', { name: RATE }));
+      fireEvent.click(screen.getByRole('option', { name: HZ(60) }));
+
+      await waitFor(() => {
+        expect(mockSetSettings).toHaveBeenCalledWith('S1', { fpsCap: 60 });
+        expect(mockSetSettings).toHaveBeenCalledWith('S2', { fpsCap: 60 });
+      });
+    });
   });
 });

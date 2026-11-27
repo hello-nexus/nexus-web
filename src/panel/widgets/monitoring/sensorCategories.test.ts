@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
 import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
-import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, gpu2Components, gpu2Sensors, igpuComponents, igpuSensors, SENSOR_CATEGORIES, sensorCaptionName, sensorsForCategory, smartStorageSensors, storageSensorLabel } from './sensorCategories';
+import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, gpu2Components, gpu2Sensors, igpuComponents, igpuSensors, SENSOR_CATEGORIES, sensorCaptionName, sensorsForCategory, smartSensorDrive, smartStorageSensors, storageSensorLabel } from './sensorCategories';
 
 function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; type: string }): HardwareSensor {
   return { value: 0, units: '', formatted: '', parent: { id: '', name: '' }, ...partial };
@@ -206,5 +206,30 @@ describe('storage drive labels', () => {
     expect(sensorCaptionName('storage', sensors, s)).toBe('C: Used');
     expect(sensorCaptionName('cpu', sensors, s)).toBe('Used');
     expect(sensorCaptionName('storage', sensors, undefined)).toBeUndefined();
+  });
+});
+
+describe('smartSensorDrive', () => {
+  const comp = (id: string, name: string, sensorId: string) => ({
+    id, name, capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '',
+    sensors: [sensor({ id: sensorId, name: 'Data Written (24 h)', type: 'Data' })],
+  });
+  const state = (components: Record<string, ReturnType<typeof comp>>): SensorState => ({ ...EMPTY_SENSORS, storageComponents: components });
+
+  it('leaves a unique drive name alone', () => {
+    const sensors = state({ 'smart/nvme/0': comp('smart/nvme/0', 'Samsung SSD 990 PRO 2TB', '/nvme/0/w') });
+    expect(smartSensorDrive(sensors, sensors.storageComponents['smart/nvme/0'].sensors![0])).toBe('Samsung SSD 990 PRO 2TB');
+  });
+
+  it('numbers same-named drives by component id order, independent of insertion order', () => {
+    const sensors = state({
+      'smart/nvme/10': comp('smart/nvme/10', 'Samsung SSD 990 PRO 2TB', '/nvme/10/w'),
+      'smart/nvme/2': comp('smart/nvme/2', 'Samsung SSD 990 PRO 2TB', '/nvme/2/w'),
+      'smart/nvme/3': comp('smart/nvme/3', 'Other', '/nvme/3/w'),
+    });
+    const drive = (k: string) => smartSensorDrive(sensors, sensors.storageComponents[k].sensors![0]);
+    expect(drive('smart/nvme/2')).toBe('Samsung SSD 990 PRO 2TB (1)');
+    expect(drive('smart/nvme/10')).toBe('Samsung SSD 990 PRO 2TB (2)');
+    expect(drive('smart/nvme/3')).toBe('Other');
   });
 });

@@ -1,0 +1,8 @@
+.rail {
+  flex: 0 0 364px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.mini { margin-bottom: var(--space-xl); }

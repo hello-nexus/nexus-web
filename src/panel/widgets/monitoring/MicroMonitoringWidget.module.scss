@@ -90,3 +90,14 @@
 .rowSelectableGrow.rowSelectableGrow {
   flex: 1;
 }
+
+// Columns design: every row is a vertical bar, all side by side in one row.
+.barColumns {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  min-width: 0;
+
+  @include hgap(6px);
+}

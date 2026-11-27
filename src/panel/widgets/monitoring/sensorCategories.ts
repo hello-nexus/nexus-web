@@ -117,6 +117,31 @@ export function smartStorageSensors(sensors: SensorState): HardwareSensor[] {
     .flatMap(([, component]) => component.sensors ?? []);
 }
 
+/**
+ * Picker label of a SMART sensor with its drive in front ("Samsung SSD 990 PRO 2TB: Data Written (24 h) (Data)").
+ * Every drive reports the same derived sensor names, so without the drive a multi-drive box lists identical options.
+ * `drive` already carries a position suffix when two drives share a model name (see smartSensorDrive).
+ */
+export function smartSensorOptionLabel(drive: string | undefined, bareName: string, type: string): string {
+  const label = `${bareName} (${type})`;
+  return drive ? `${drive}: ${label}` : label;
+}
+
+/**
+ * Drive name of a SMART sensor: its component's name, else the sensor's parent. Drives of one model share a name,
+ * so each gets a "(n)" suffix, its position among the same-named SMART components in component id order.
+ */
+export function smartSensorDrive(sensors: SensorState, sensor: HardwareSensor): string | undefined {
+  const smart = Object.entries(sensors.storageComponents)
+    .filter(([id]) => isSmartStorageComponentId(id))
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+  const found = smart.find(([, c]) => c.sensors?.some(s => s.id === sensor.id));
+  const name = found?.[1].name;
+  if (!name) return sensor.parent?.name || undefined;
+  const twins = smart.filter(([, c]) => c.name === name);
+  return twins.length > 1 ? `${name} (${twins.findIndex(([id]) => id === found[0]) + 1})` : name;
+}
+
 /** The name an iCUE LINK QX probe carried before it was a fan sensor, as its current one; any other text unchanged. */
 export function currentFanProbeName(name: string): string {
   const match = /^iCUE LINK QX RGB probe \((.*)\)$/.exec(name);

@@ -9,6 +9,7 @@ import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckI
 // rendered a model chooser or test-pattern button even in dev builds (they
 // live on the Tools page now); this asserts that stays true under DEV_TOOLS
 // off too.
+vi.mock('./GalleonKeyboardLightingSection', () => ({ GalleonKeyboardLightingSection: () => null }));
 vi.mock('../../../lib/devTools', () => ({ DEV_TOOLS: false }));
 
 vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => false, fetchService: () => Promise.resolve(null) }));

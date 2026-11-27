@@ -44,6 +44,8 @@ import { FeatureDisabled } from '../components/common/FeatureDisabled/FeatureDis
 import { PageHero } from '../components/common/PageHero/PageHero';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
+import { MiniMonth } from '../components/common/MiniMonth/MiniMonth';
+import { MonthGrid } from '../components/common/MonthGrid/MonthGrid';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
 import { PairedPcsContent } from '../components/common/PairedPcs/PairedPcsContent';
 import { EffectControls } from '../panel/widgets/lighting/page/EffectControls';
@@ -222,7 +224,7 @@ function PreviewSliderStacked() {
 
 function PreviewSliderFormatted() {
   const [v, setV] = useState(1.5);
-  return <Slider orientation="stacked" label="Response time" value={v} min={0.1} max={5.0} step={0.1}
+  return <Slider orientation="stacked" label="Response time" value={v} min={0.1} max={10.0} step={0.1}
     formatValue={x => x.toFixed(1) + 's'} onChange={setV} />;
 }
 
@@ -275,6 +277,43 @@ function PreviewDatePicker() {
   const iso = new Date().toISOString().slice(0, 10);
   const [v, setV] = useState(iso);
   return <DatePicker value={v} max={iso} onChange={setV} />;
+}
+
+function PreviewMonthGrid() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [selected, setSelected] = useState(today.getTime());
+  return (
+    <div style={{ width: 260 }}>
+      <MonthGrid
+        year={today.getFullYear()}
+        month={today.getMonth()}
+        weekStart={0}
+        isSelected={day => day === selected}
+        isToday={day => day === today.getTime()}
+        onPick={setSelected}
+      />
+    </div>
+  );
+}
+
+function PreviewMiniMonth() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [month, setMonth] = useState(today.getTime());
+  const [selected, setSelected] = useState(today.getTime());
+  return (
+    <div style={{ width: 260 }}>
+      <MiniMonth
+        month={month}
+        selected={selected}
+        today={today.getTime()}
+        weekStart={0}
+        highlightWeek
+        onSelect={setSelected}
+        onMonthChange={delta => { const d = new Date(month); setMonth(new Date(d.getFullYear(), d.getMonth() + delta, 1).getTime()); }}
+        onSelectMonth={setMonth}
+      />
+    </div>
+  );
 }
 
 function PreviewHeartBurst() {
@@ -2858,7 +2897,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SensorAlertRuleSettings', category: 'cards',
     filePath: 'src/components/views/DiagnosticsView/SensorAlertRuleSettings.tsx',
-    description: 'The alert settings of one tracked sensor, shown beside the Watchlist list: the sensor picker, an open-ended RangeSlider for the normal range (a knob on its track end means no limit), the raise delay with a one-line legend, the Urgent switch, the desktop notification switch, and Delete or Restore default. The panel opens with the alerts switch for the entry (the list rows carry no switch). Switching alerts off only stops the alerting: every setting stays visible and editable, and the sensor keeps its reading and its line on the chart.',
+    description: 'The alert settings of one tracked sensor, shown beside the Watchlist list: the sensor picker, an open-ended RangeSlider for the normal range (a knob on its track end means no limit), the raise delay with a one-line legend, the Urgent switch, the desktop notification switch, an Open Cooling button for a fan built-in when the page can open Cooling, and Delete or Restore default. The panel opens with the alerts switch for the entry (the list rows carry no switch). Switching alerts off only stops the alerting: every setting stays visible and editable, and the sensor keeps its reading and its line on the chart.',
     notes: 'No live preview - it reads live sensors through useSensorLookup and writes through useSensorAlerts.',
   },
   {
@@ -3014,6 +3053,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/DatePicker/DatePicker.tsx',
     description: 'Themed date input - trigger + month-grid popup. Replaces native `<input type="date">` whose popup ignored app chrome. Used in Screen Time browse (day nav, custom-range clear). Respects min / max bounds.', Preview: PreviewDatePicker,
     notes: 'Click outside or Escape closes. "Today" button jumps to today if within bounds. Disabled cells are past / future out of range.',
+  },
+  {
+    name: 'MonthGrid', category: 'inputs',
+    filePath: 'src/components/common/MonthGrid/MonthGrid.tsx',
+    description: 'Weekday header and day cells of one month: the shared grid under DatePicker\'s popup and MiniMonth. Days are local-midnight epoch ms; the caller defines selected, today and disabled.', Preview: PreviewMonthGrid,
+    notes: 'Optional `highlightWeek` tints a whole week row. Cells are buttons with `aria-pressed` for the selected day.',
+  },
+  {
+    name: 'MiniMonth', category: 'inputs',
+    filePath: 'src/components/common/MiniMonth/MiniMonth.tsx',
+    description: 'An always-open month with arrow navigation and a year drill-up, for a side rail that picks a day (the Calendar page). Built on the same MonthGrid as DatePicker.', Preview: PreviewMiniMonth,
+    notes: 'Controlled: the caller owns the shown month and the selected day. The title opens a year view of twelve months (arrows step a year, Escape or the title returns); a picked month goes to `onSelectMonth`. `highlightWeek` tints the selected day\'s whole row for week-based views.',
   },
   {
     name: 'InfoTooltip', category: 'status',

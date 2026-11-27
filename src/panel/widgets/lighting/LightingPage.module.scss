@@ -269,6 +269,11 @@
   @include bare-icon-button;
 }
 
+.pauseToggleBlocked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .pauseTogglePaused {
   @include bare-icon-lit;
 
@@ -1232,6 +1237,25 @@
     outline: 1px solid var(--accent);
     outline-offset: -1px;
   }
+}
+
+.deviceControlledByStack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+// Sentence case and one line: the strip's own caps style is for its label.
+.deviceControlledByNote {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: var(--small-tracking, 0em);
+}
+
+.deviceControlledByChevron {
+  margin-left: auto;
 }
 
 .deviceControlledByWarn {

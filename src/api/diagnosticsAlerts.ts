@@ -30,6 +30,8 @@ export interface SensorAlertSource {
   sensor: SensorRef | null;
   sensors: SensorRef[];
   hardwareName: string;
+  /** The cooling channel whose Nexus Control flag is this fan entry's on/off; absent for a pump or any other entry. */
+  controlChannel?: string | null;
 }
 
 export interface SensorAlertRule {

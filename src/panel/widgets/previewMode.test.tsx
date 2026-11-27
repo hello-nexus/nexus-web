@@ -78,6 +78,8 @@ const multiplexStub: MultiplexContextValue = {
 // load-bearing fixture fields - fails when a widget's UI stops rendering them.
 const PREVIEW_CONTENT: Record<string, string[]> = {
   steam: ['Nova', 'Star Voyager', 'Driftline'],
+  // A default calendar is the date card: its month line carries the year.
+  calendar: [String(new Date().getFullYear())],
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
   // The condition label comes from the fixture's weather code through the

@@ -6,6 +6,7 @@ import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckI
 // /streamdeck/* is .LocalhostOnly(); a remote-paired session reaching the
 // dashboard must see a desktop-only notice, never sit forever on a blank
 // page waiting for useStreamDecks (which itself refuses to fetch there).
+vi.mock('./GalleonKeyboardLightingSection', () => ({ GalleonKeyboardLightingSection: () => null }));
 vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => true, fetchService: () => Promise.resolve(null) }));
 vi.mock('../../../hooks/useStreamDecks', () => ({
   useStreamDecks: () => ({

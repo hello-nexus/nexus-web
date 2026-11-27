@@ -15,6 +15,7 @@ import {
   isTwoColumnMicro,
   isWideMicroCount,
   microAlignOf,
+  columnsDesignOffered,
   microDesignOf,
   microSupportsSize,
   resolvedSlotCountForSize,
@@ -37,10 +38,27 @@ import {
 } from './perfSlots';
 import { FRAME_FILLING_DESIGNS, GAUGE_DESIGN_KEYS } from './gauges';
 
+describe('Vertical Bars availability', () => {
+  it('is offered everywhere except 2x4 with 6 or 8 columns', () => {
+    expect(columnsDesignOffered('2x2', 4)).toBe(true);
+    expect(columnsDesignOffered('4x2', 8)).toBe(true);
+    expect(columnsDesignOffered('2x4', 3)).toBe(true);
+    expect(columnsDesignOffered('2x4', 4)).toBe(true);
+    expect(columnsDesignOffered('2x4', 6)).toBe(false);
+    expect(columnsDesignOffered('2x4', 8)).toBe(false);
+  });
+  it('a stored columns design falls back to the default where it is not offered', () => {
+    expect(microDesignOf({ micro_design: 'columns' }, '2x4', 8)).toBe('bar');
+    expect(microDesignOf({ micro_design: 'columns' }, '2x4', 4)).toBe('columns');
+    expect(microDesignOf({ micro_design: 'columns' })).toBe('columns');
+    expect(microDesignOf({ micro_design: 'fill' }, '2x4', 8)).toBe('fill');
+  });
+});
+
 describe('perfSlots', () => {
   describe('Micro simple design', () => {
     it('is offered alongside the bar designs', () => {
-      expect(MICRO_DESIGN_KEYS).toEqual(['bar', 'fill', 'backdrop', 'simple']);
+      expect(MICRO_DESIGN_KEYS).toEqual(['bar', 'fill', 'backdrop', 'simple', 'columns']);
     });
     it('microDesignOf falls back to bar for unknown or missing values', () => {
       expect(microDesignOf(undefined)).toBe('bar');

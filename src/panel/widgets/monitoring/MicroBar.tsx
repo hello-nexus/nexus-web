@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react';
+import { createContext, useCallback, useContext, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { columnFitScale, uniformColumnScale } from './microColumnScale';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../common/panelHistoryConfig';
 import { GaugeValue, GaugeValueStateContext } from './gauges/GaugeValue';
@@ -11,6 +12,8 @@ import styles from './MicroBar.module.scss';
 
 interface MicroBarProps {
   label: string;
+  /** Full sensor name; the Vertical Bars accessible name, as `label` may be hidden or custom. */
+  name?: string;
   formatted: string;
   fillPercent: number;
   // One of the Micro design keys (see MICRO_DESIGN_KEYS): 'bar' (fill track),
@@ -26,6 +29,69 @@ interface MicroBarProps {
   gradient?: GaugeGradient | null;
   /** --panel-accent* overrides when the row is value-coloured (see valueColor.ts). */
   style?: CSSProperties;
+}
+
+// Vertical Bars rows report the scale their own value needs; the provider keeps
+// the smallest so every column renders its value at one size.
+interface ColumnScaleValue {
+  scale: number;
+  report: (id: string, needed: number) => void;
+  drop: (id: string) => void;
+}
+const ColumnScaleContext = createContext<ColumnScaleValue | null>(null);
+
+export function ColumnScaleProvider({ children }: { children: ReactNode }) {
+  const needed = useRef(new Map<string, number>());
+  const [scale, setScale] = useState(1);
+  const sync = useCallback(() => {
+    const next = uniformColumnScale(needed.current.values());
+    setScale(prev => (prev === next ? prev : next));
+  }, []);
+  const report = useCallback((id: string, n: number) => { needed.current.set(id, n); sync(); }, [sync]);
+  const drop = useCallback((id: string) => { needed.current.delete(id); sync(); }, [sync]);
+  const value = useMemo(() => ({ scale, report, drop }), [scale, report, drop]);
+  return <ColumnScaleContext.Provider value={value}>{children}</ColumnScaleContext.Provider>;
+}
+
+function useColumnFit() {
+  const ctx = useContext(ColumnScaleContext);
+  const id = useId();
+  const [box, setBox] = useState<HTMLElement | null>(null);
+  const [content, setContent] = useState<HTMLElement | null>(null);
+  const [local, setLocal] = useState(1);
+  useLayoutEffect(() => {
+    if (!box || !content) return undefined;
+    const update = () => {
+      const needed = columnFitScale(box.clientWidth, content.scrollWidth);
+      if (ctx) ctx.report(id, needed);
+      else setLocal(needed);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(box);
+    ro.observe(content);
+    return () => { ro.disconnect(); ctx?.drop(id); };
+  // ctx.report/drop are stable; the provider value changing must not re-measure.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [box, content, id, ctx?.report, ctx?.drop]);
+  return { boxRef: setBox, contentRef: setContent, scale: ctx ? ctx.scale : local };
+}
+
+function ColumnRow({ name, formatted, fillPercent, style }: { name?: string; formatted: string; fillPercent: number; style?: CSSProperties }) {
+  const { boxRef, contentRef, scale } = useColumnFit();
+  const clamped = Math.max(0, Math.min(100, fillPercent));
+  return (
+    <div className={styles.rowColumn} style={style} role={name ? 'group' : undefined} aria-label={name || undefined}>
+      <div className={styles.columnTrack}>
+        <div className={styles.columnFill} style={{ height: `${clamped}%` }} />
+      </div>
+      <div ref={boxRef} className={styles.columnValueBox}>
+        <div ref={contentRef} className={styles.columnValueContent} style={{ transform: `scale(${scale})` }}>
+          <GaugeValue formatted={formatted} className={styles.columnValue} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SimpleRow({ label, formatted, align, style }: { label: string; formatted: string; align: MicroAlign; style?: CSSProperties }) {
@@ -47,7 +113,8 @@ export function MicroBar(props: MicroBarProps) {
   return <GaugeValueStateContext.Provider value={state}><MicroBarRow {...props} /></GaugeValueStateContext.Provider>;
 }
 
-function MicroBarRow({ label, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
+function MicroBarRow({ label, name, formatted, fillPercent, design = 'bar', align = 'left', history, historyDomain, gradient, style }: MicroBarProps) {
+  if (design === 'columns') return <ColumnRow name={name} formatted={formatted} fillPercent={fillPercent} style={style} />;
   if (design === 'simple') return <SimpleRow label={label} formatted={formatted} align={align} style={style} />;
 
   const head = (
