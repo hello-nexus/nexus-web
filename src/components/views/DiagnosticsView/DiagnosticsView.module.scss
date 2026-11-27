@@ -24,14 +24,9 @@
   padding-bottom: 1rem;
 }
 
-// The Sensors tab hands its bottom gap to the watchlist's scroller so the scrollbar reaches the bottom edge, and pins the chart by not scrolling the page. Phone width keeps the page scroll.
+// The Sensors tab hands its bottom gap to the watchlist's scroller so the scrollbar reaches the bottom edge.
 .tabContentFill {
   padding-bottom: 0;
-  overflow-y: hidden;
-
-  @media (max-width: 600px) {
-    overflow-y: auto;
-  }
 }
 
 // ── Action bar ──
