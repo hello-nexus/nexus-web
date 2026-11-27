@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "Alles",
   "reminders.smart.completed": "Voltooid",
   "reminders.smart.flagged": "Gemarkeerd",
+  "reminders.smart.overdue": "Te laat",
   "reminders.smart.scheduled": "Gepland",
   "reminders.smart.today": "Vandaag",
   "reminders.widget.allDone": "Alles gedaan",

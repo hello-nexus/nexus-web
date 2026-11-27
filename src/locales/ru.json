@@ -5774,6 +5774,7 @@
   "reminders.smart.all": "Все",
   "reminders.smart.completed": "Выполненные",
   "reminders.smart.flagged": "С флажком",
+  "reminders.smart.overdue": "Просроченные",
   "reminders.smart.scheduled": "Запланированные",
   "reminders.smart.today": "Сегодня",
   "reminders.widget.allDone": "Всё сделано",

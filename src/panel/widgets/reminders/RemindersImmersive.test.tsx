@@ -1,7 +1,9 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReminderDto, ReminderListDto } from '../../../api/reminders';
 import type { PanelWidget } from '../../types';
+import { SMART_COLORS } from './reminderIcons';
+import { SMART_LISTS } from './reminderLogic';
 import { COMPLETE_DELAY_MS } from './useReminderData';
 import { RemindersImmersive } from './RemindersImmersive';
 
@@ -58,6 +60,17 @@ describe('RemindersImmersive', () => {
     expect(store.setCompleted).toHaveBeenCalledWith(store.items[1].id, true);
     fireEvent.click(screen.getByRole('button', { name: /reminders\.smart\.all/ }));
     expect(screen.getAllByText('Home').length).toBeGreaterThan(1);
+  });
+
+  it('uses the shared smart-list cards, six of them with the category colors, and opens Overdue', () => {
+    render(<RemindersImmersive widget={widget()} />);
+    const nav = screen.getByRole('navigation');
+    for (const id of SMART_LISTS) {
+      const card = within(nav).getByText(`reminders.smart.${id}`).closest('[role="button"]')!;
+      expect(card.querySelector('span')).toHaveStyle({ color: SMART_COLORS[id] });
+    }
+    fireEvent.click(within(nav).getByText('reminders.smart.overdue').closest('[role="button"]')!);
+    expect(screen.queryByText('Water plants')).toBeNull();
   });
 
   it('shows an error state while the service is unavailable', () => {

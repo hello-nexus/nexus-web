@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "전체",
   "reminders.smart.completed": "완료됨",
   "reminders.smart.flagged": "깃발 표시",
+  "reminders.smart.overdue": "기한 지남",
   "reminders.smart.scheduled": "예정됨",
   "reminders.smart.today": "오늘",
   "reminders.widget.allDone": "모두 완료",

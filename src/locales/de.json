@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "Alle",
   "reminders.smart.completed": "Erledigt",
   "reminders.smart.flagged": "Markiert",
+  "reminders.smart.overdue": "Überfällig",
   "reminders.smart.scheduled": "Geplant",
   "reminders.smart.today": "Heute",
   "reminders.widget.allDone": "Alles erledigt",

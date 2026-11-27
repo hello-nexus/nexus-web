@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "Tümü",
   "reminders.smart.completed": "Tamamlanan",
   "reminders.smart.flagged": "Bayraklı",
+  "reminders.smart.overdue": "Gecikmiş",
   "reminders.smart.scheduled": "Planlanan",
   "reminders.smart.today": "Bugün",
   "reminders.widget.allDone": "Hepsi tamam",

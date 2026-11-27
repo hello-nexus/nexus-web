@@ -1,55 +1,59 @@
 @use '../../styles/flexGap' as *;
 
-.grid {
+// Sizes are em so each surface (tile, immersive view, page) sets its own font-size.
+.cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* c83:allow - .cards is display: grid */
   gap: 0.5em;
 }
 
-.tile {
+// Doubled selector: the shared Card sets its own flex layout and padding.
+.card.card {
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   min-width: 0;
-  padding: 0.55em 0.65em;
-  font: inherit;
-  color: var(--text);
-  text-align: left;
-  background: var(--surface);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  row-gap: 0.1em;
+  padding: 0.55em 0.7em;
+  column-gap: 0.6em;
+  row-gap: 0;
+  font-size: inherit;
 }
-button.tile { cursor: pointer; }
-button.tile:hover { background: var(--surface-hover); }
-button.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.active { border-color: var(--rem-color); }
 
-.disc {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.7em;
-  height: 1.7em;
-  border-radius: 50%;
-  background: var(--rem-color);
-  color: #fff;
+.card .count { grid-column: 3; }
+
+.stack.stack {
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'icon count' 'name name';
+  /* c83:allow - grid layout */
+  row-gap: 0.15em;
 }
-.count {
-  justify-self: end;
-  font-size: 1.5em;
-  font-weight: var(--weight-display);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
+.stack .icon { grid-area: icon; }
+.stack .count { grid-area: count; justify-self: end; }
+.stack .name { grid-area: name; }
+
+.icon { display: flex; align-items: center; }
+
 .name {
-  grid-column: 1 / -1;
   min-width: 0;
   font-weight: var(--weight-strong);
-  color: var(--text-dim);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
 }
 
@@ -78,7 +82,6 @@ button.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1p
 }
 button.listMain { cursor: pointer; }
 button.listMain:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.listGlyph { flex: none; display: flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; color: var(--text); }
+.listGlyph { flex: none; display: flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; }
 .listName { flex: 1; min-width: 0; font-weight: var(--weight-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .listCount { flex: none; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-.listColor { color: var(--rem-color); }

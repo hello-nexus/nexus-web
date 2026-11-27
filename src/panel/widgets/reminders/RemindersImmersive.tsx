@@ -12,7 +12,7 @@ import {
   buildView, dueLabel, dueMs, isPendingId, openCountOf, resolveSelection, selectionKey, smartCounts, type ReminderSelection,
 } from './reminderLogic';
 import { ReminderRow } from './ReminderRow';
-import { ReminderListRow, SmartListGrid } from './ReminderTiles';
+import { ReminderCardGrid, ReminderListRow } from './ReminderTiles';
 import { useCheckOff, useReminderData } from './useReminderData';
 import styles from './RemindersImmersive.module.scss';
 
@@ -87,10 +87,12 @@ export function RemindersImmersive({ widget, surface, deviceTouch }: WidgetProps
     <div ref={ref} className={`${styles.root} ${landscape ? styles.landscape : styles.portrait}`}>
       {interactive && (
         <nav className={styles.side} aria-label={t('reminders.lists')}>
-          <SmartListGrid
+          <ReminderCardGrid
             counts={counts}
             active={selection.kind === 'smart' ? selection.id : null}
             onSelect={id => setPicked({ kind: 'smart', id })}
+            columns={landscape ? 2 : 3}
+            layout="stack"
             className={styles.tiles}
           />
           <div className={styles.myLists}>

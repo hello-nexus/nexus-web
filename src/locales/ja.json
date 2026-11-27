@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "すべて",
   "reminders.smart.completed": "完了済み",
   "reminders.smart.flagged": "フラグ付き",
+  "reminders.smart.overdue": "期限超過",
   "reminders.smart.scheduled": "予定あり",
   "reminders.smart.today": "今日",
   "reminders.widget.allDone": "すべて完了",

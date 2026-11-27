@@ -1,37 +1,44 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ReminderListDto } from '../../../api/reminders';
-import { SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS, SMART_ROW_ICONS } from './reminderIcons';
+import { Card } from '../../../components/common/Card/Card';
+import { SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS } from './reminderIcons';
 import { ReminderIconGlyph } from './ReminderIconGlyph';
 import { SMART_LISTS, type ReminderCounts, type SmartListId } from './reminderLogic';
 import styles from './ReminderTiles.module.scss';
 
 const tint = (color: string) => ({ '--rem-color': color }) as CSSProperties;
 
-interface TileProps {
+export type CardLayout = 'row' | 'stack';
+
+interface CardProps {
   id: SmartListId;
   count: number;
   active?: boolean;
   onPress?: () => void;
+  // row: icon, name and count on one line. stack: icon and count above the name.
+  layout?: CardLayout;
+  // Hidden labels stay readable to assistive tech.
+  showLabel?: boolean;
 }
 
-/** One smart list: a tinted glyph, its open count and its name. A button when onPress is given. */
-export function SmartListTile({ id, count, active, onPress }: TileProps) {
+/** One smart list as a card: its icon in the category color, the name and the open count. The one card the page, widget and immersive view share. */
+export function ReminderCard({ id, count, active, onPress, layout = 'row', showLabel = true }: CardProps) {
   const { t } = useTranslation();
   const Icon = SMART_ICONS[id];
-  const content = (
-    <>
-      <span className={styles.disc}><Icon size="0.95em" aria-hidden /></span>
-      <span className={styles.count}>{count}</span>
-      <span className={styles.name}>{t(SMART_NAME_KEYS[id])}</span>
-    </>
-  );
-  const cls = `${styles.tile} ${active ? styles.active : ''}`;
-  if (!onPress) return <div className={cls} style={tint(SMART_COLORS[id])}>{content}</div>;
   return (
-    <button type="button" className={cls} style={tint(SMART_COLORS[id])} aria-pressed={active === true} onClick={onPress}>
-      {content}
-    </button>
+    <Card
+      compact
+      interactive={onPress !== undefined}
+      onClick={onPress}
+      pressed={onPress ? active === true : undefined}
+      selected={active === true}
+      className={`${styles.card} ${layout === 'stack' ? styles.stack : ''}`}
+    >
+      <span className={styles.icon} style={{ color: SMART_COLORS[id] }}><Icon size="1.4em" aria-hidden /></span>
+      <span className={showLabel ? styles.name : styles.srOnly}>{t(SMART_NAME_KEYS[id])}</span>
+      <span className={styles.count}>{count}</span>
+    </Card>
   );
 }
 
@@ -39,45 +46,50 @@ interface GridProps {
   counts: ReminderCounts;
   active?: SmartListId | null;
   onSelect?: (id: SmartListId) => void;
+  columns: number;
+  layout?: CardLayout;
+  showLabels?: boolean;
   className?: string;
 }
 
-/** The Reminders home grid: Today, Scheduled, All, Flagged, Completed. */
-export function SmartListGrid({ counts, active, onSelect, className }: GridProps) {
+/** The six smart-list cards in a grid of `columns`. */
+export function ReminderCardGrid({ counts, active, onSelect, columns, layout, showLabels = true, className }: GridProps) {
   return (
-    <div className={`${styles.grid} ${className ?? ''}`}>
+    <div className={`${styles.cards} ${className ?? ''}`} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {SMART_LISTS.map(id => (
-        <SmartListTile key={id} id={id} count={counts[id]} active={active === id} onPress={onSelect ? () => onSelect(id) : undefined} />
+        <ReminderCard
+          key={id}
+          id={id}
+          count={counts[id]}
+          active={active === id}
+          onPress={onSelect ? () => onSelect(id) : undefined}
+          layout={layout}
+          showLabel={showLabels}
+        />
       ))}
     </div>
   );
 }
 
 interface ListRowProps {
-  // A user list: its icon in the list color and its name. A smart list: its plain icon and localized name.
-  list?: ReminderListDto;
-  smart?: SmartListId;
+  list: ReminderListDto;
   count: number;
   active?: boolean;
   onPress?: () => void;
   trailing?: ReactNode;
 }
 
-/** One row of the list rail, user list or smart list, with its open count. A user list's icon takes the list color directly. */
-export function ReminderListRow({ list, smart, count, active, onPress, trailing }: ListRowProps) {
-  const { t } = useTranslation();
-  const SmartIcon = smart ? SMART_ROW_ICONS[smart] : null;
-  const name = smart ? t(SMART_NAME_KEYS[smart]) : list?.name ?? '';
+/** One user list row: its icon (list color for a Lucide icon), name and open count. */
+export function ReminderListRow({ list, count, active, onPress, trailing }: ListRowProps) {
   const body = (
     <>
-      {SmartIcon && <span className={styles.listGlyph}><SmartIcon size="1.25em" aria-hidden /></span>}
-      {list && <span className={`${styles.listGlyph} ${styles.listColor}`}><ReminderIconGlyph iconKey={list.icon} /></span>}
-      <span className={styles.listName}>{name}</span>
+      <span className={styles.listGlyph} style={{ color: list.color }}><ReminderIconGlyph iconKey={list.icon} /></span>
+      <span className={styles.listName}>{list.name}</span>
       <span className={styles.listCount}>{count}</span>
     </>
   );
   return (
-    <div className={`${styles.listRow} ${active ? styles.listActive : ''}`} style={list ? tint(list.color) : undefined}>
+    <div className={`${styles.listRow} ${active ? styles.listActive : ''}`} style={tint(list.color)}>
       {onPress
         ? <button type="button" className={styles.listMain} aria-pressed={active === true} onClick={onPress}>{body}</button>
         : <div className={styles.listMain}>{body}</div>}

@@ -10,12 +10,14 @@ import { useCalendarFormat } from '../calendar/useCalendarFormat';
 import { SMART_COLORS, SMART_NAME_KEYS } from './reminderIcons';
 import { buildView, dueLabel, isPendingId, openCountOf, resolveSelection, smartCounts, type ReminderSelection } from './reminderLogic';
 import { ReminderRow } from './ReminderRow';
-import { ReminderListRow, SmartListGrid } from './ReminderTiles';
+import { ReminderCardGrid, ReminderListRow } from './ReminderTiles';
 import { previewNow, useCheckOff, useReminderData } from './useReminderData';
 import styles from './RemindersWidget.module.scss';
 
 const MAX_ROWS: Partial<Record<PanelWidgetSize, number>> = { '2x2': 3, '2x4': 6, '4x2': 3, '4x4': 9 };
 const GRID_LISTS = 4;
+// Cards per row in the grid view: 2x2 is two compact icon-and-count cards by three; the tall strip is one labeled column; the wide sizes are three by two.
+const GRID_COLUMNS: Partial<Record<PanelWidgetSize, number>> = { '2x2': 2, '2x4': 1, '4x2': 3, '4x4': 3 };
 
 /**
  * Reminders tile. List view shows one list's open items under its colored
@@ -71,7 +73,13 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
   if (grid) {
     return (
       <div className={root}>
-        <SmartListGrid counts={counts} className={styles.grid} />
+        <ReminderCardGrid
+          counts={counts}
+          columns={GRID_COLUMNS[size] ?? 2}
+          layout={size === '4x2' || size === '4x4' ? 'stack' : 'row'}
+          showLabels={size !== '2x2'}
+          className={styles.grid}
+        />
         {size === '4x4' && (
           <div className={styles.lists}>
             {data.lists.slice(0, GRID_LISTS).map(l => <ReminderListRow key={l.id} list={l} count={openCountOf(data.items, l.id)} />)}

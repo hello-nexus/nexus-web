@@ -5774,6 +5774,7 @@
   "reminders.smart.all": "Wszystkie",
   "reminders.smart.completed": "Ukończone",
   "reminders.smart.flagged": "Oflagowane",
+  "reminders.smart.overdue": "Zaległe",
   "reminders.smart.scheduled": "Zaplanowane",
   "reminders.smart.today": "Dziś",
   "reminders.widget.allDone": "Wszystko zrobione",

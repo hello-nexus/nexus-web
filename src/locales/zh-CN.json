@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "全部",
   "reminders.smart.completed": "已完成",
   "reminders.smart.flagged": "已标记旗标",
+  "reminders.smart.overdue": "已逾期",
   "reminders.smart.scheduled": "已计划",
   "reminders.smart.today": "今天",
   "reminders.widget.allDone": "全部完成",

@@ -4,8 +4,8 @@ import type { ReminderDto, ReminderListDto } from '../../../../api/reminders';
 import { Button } from '../../../../components/common/Button/Button';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
-import { isPendingId, openCountOf, SMART_LISTS, type ReminderCounts, type ReminderSelection } from '../reminderLogic';
-import { ReminderListRow } from '../ReminderTiles';
+import { isPendingId, openCountOf, type ReminderCounts, type ReminderSelection } from '../reminderLogic';
+import { ReminderCardGrid, ReminderListRow } from '../ReminderTiles';
 import styles from './RemindersRail.module.scss';
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
   onEdit: (list: ReminderListDto) => void;
 }
 
-/** The page rail: the smart lists, then My Lists with an edit button per list and Add List. One row across both is selected. */
+/** The page rail: the smart-list cards, then My Lists with an edit button per list and Add List. One card or row across both is selected. */
 export function RemindersRail({ counts, lists, items, selection, onSelect, onAdd, onEdit }: Props) {
   const { t } = useTranslation();
   const activeKey = selection.kind === 'list' ? selection.id : null;
@@ -27,17 +27,14 @@ export function RemindersRail({ counts, lists, items, selection, onSelect, onAdd
       <div className={styles.head}>
         <SectionHeader>{t('panel.widget.reminders')}</SectionHeader>
       </div>
-      <div className={`${styles.lists} ${styles.smart}`}>
-        {SMART_LISTS.map(id => (
-          <ReminderListRow
-            key={id}
-            smart={id}
-            count={counts[id]}
-            active={selection.kind === 'smart' && selection.id === id}
-            onPress={() => onSelect({ kind: 'smart', id })}
-          />
-        ))}
-      </div>
+      <ReminderCardGrid
+        counts={counts}
+        active={selection.kind === 'smart' ? selection.id : null}
+        onSelect={id => onSelect({ kind: 'smart', id })}
+        columns={2}
+        layout="stack"
+        className={styles.cards}
+      />
       <div className={styles.head}>
         <SectionHeader>{t('reminders.myLists')}</SectionHeader>
         <Button size="sm" tone="neutral" icon={<Plus size={16} aria-hidden />} onClick={onAdd}>

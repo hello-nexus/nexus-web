@@ -1,8 +1,8 @@
 import type { ReminderDto, ReminderListDto, ReminderPatch, ReminderPriority } from '../../../api/reminders';
 import type { CalendarFormat } from '../calendar/useCalendarFormat';
 
-export type SmartListId = 'today' | 'scheduled' | 'all' | 'flagged' | 'completed';
-export const SMART_LISTS: readonly SmartListId[] = ['today', 'scheduled', 'all', 'flagged', 'completed'];
+export type SmartListId = 'today' | 'scheduled' | 'overdue' | 'flagged' | 'all' | 'completed';
+export const SMART_LISTS: readonly SmartListId[] = ['today', 'scheduled', 'overdue', 'flagged', 'all', 'completed'];
 
 export type ReminderSelection = { kind: 'smart'; id: SmartListId } | { kind: 'list'; id: string };
 
@@ -79,7 +79,7 @@ const byCompletedDesc = (a: ReminderDto, b: ReminderDto) => (b.completedAt ?? 0)
 
 export function smartCounts(items: readonly ReminderDto[], now: number): ReminderCounts {
   const today = isoDate(now);
-  const counts: ReminderCounts = { today: 0, scheduled: 0, all: 0, flagged: 0, completed: 0 };
+  const counts: ReminderCounts = { today: 0, scheduled: 0, overdue: 0, flagged: 0, all: 0, completed: 0 };
   for (const item of items) {
     if (item.completed) { counts.completed++; continue; }
     counts.all++;
@@ -87,6 +87,7 @@ export function smartCounts(items: readonly ReminderDto[], now: number): Reminde
     if (item.dueDate) {
       counts.scheduled++;
       if (item.dueDate <= today) counts.today++;
+      if (isOverdue(item, now)) counts.overdue++;
     }
   }
   return counts;
@@ -142,6 +143,10 @@ export function buildView(
       const due = open.filter(i => i.dueDate !== null).sort(byDue);
       return { groups: groupByDate(due), completed: [], openCount: due.length };
     }
+    case 'overdue': {
+      const late = open.filter(i => isOverdue(i, opts.now)).sort(byDue);
+      return { groups: plain(late), completed: [], openCount: late.length };
+    }
     case 'flagged': {
       const flagged = open.filter(i => i.flagged).sort(byDue);
       return { groups: plain(flagged), completed: [], openCount: flagged.length };
@@ -189,7 +194,7 @@ export function newItemDefaults(
   if (!first) return null;
   if (selection.id === 'today' || selection.id === 'scheduled') return { listId: first.id, dueDate: isoDate(now) };
   if (selection.id === 'flagged') return { listId: first.id, flagged: true };
-  if (selection.id === 'completed') return null;
+  if (selection.id === 'completed' || selection.id === 'overdue') return null;
   return { listId: first.id };
 }
 

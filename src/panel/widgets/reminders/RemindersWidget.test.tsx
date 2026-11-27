@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReminderDto, ReminderListDto } from '../../../api/reminders';
 import type { PanelWidget, PanelWidgetSize } from '../../types';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
+import { SMART_COLORS } from './reminderIcons';
+import { SMART_LISTS } from './reminderLogic';
 import { COMPLETE_DELAY_MS } from './useReminderData';
 import { RemindersWidget } from './RemindersWidget';
 
@@ -83,10 +85,49 @@ describe('RemindersWidget', () => {
     expect(screen.getByText('Finished task')).toBeTruthy();
   });
 
-  it('renders the smart-list grid with counts', () => {
+  it('renders the six smart-list cards with counts in the category order', () => {
     render(<RemindersWidget widget={widget('4x2', { viewMode: 'grid' })} />);
-    for (const key of ['today', 'scheduled', 'all', 'flagged', 'completed']) expect(screen.getByText(`reminders.smart.${key}`)).toBeTruthy();
+    const order = ['today', 'scheduled', 'overdue', 'flagged', 'all', 'completed'];
+    const names = Array.from(document.querySelectorAll('[class*="name"]')).map(n => n.textContent);
+    expect(names).toEqual(order.map(id => `reminders.smart.${id}`));
     expect(screen.getByText('reminders.smart.all').parentElement?.textContent).toContain('4');
+    expect(screen.getByText('reminders.smart.overdue').parentElement?.textContent).toContain('1');
+  });
+
+  it('colors each card icon from the one category map, with no disc', () => {
+    const { container } = render(<RemindersWidget widget={widget('4x2', { viewMode: 'grid' })} />);
+    for (const id of SMART_LISTS) {
+      const card = screen.getByText(`reminders.smart.${id}`).parentElement!;
+      expect(card.querySelector('span')).toHaveStyle({ color: SMART_COLORS[id] });
+    }
+    expect(container.innerHTML).not.toMatch(/disc/i);
+  });
+
+  it('shows only icon and count at 2x2, keeping the names for assistive tech', () => {
+    render(<RemindersWidget widget={widget('2x2', { viewMode: 'grid' })} />);
+    const label = screen.getByText('reminders.smart.today');
+    expect(label.className).toContain('srOnly');
+    expect(document.querySelectorAll('[class*="name"]')).toHaveLength(0);
+  });
+
+  it('lays the grid out per size: two columns at 2x2, one at 2x4, three at 4x2 and 4x4', () => {
+    const columns = (size: PanelWidgetSize) => {
+      const { container, unmount } = render(<RemindersWidget widget={widget(size, { viewMode: 'grid' })} />);
+      const grid = container.querySelector<HTMLElement>('[class*="cards"]')!;
+      const value = grid.style.gridTemplateColumns;
+      unmount();
+      return value;
+    };
+    expect(columns('2x2')).toBe('repeat(2, minmax(0, 1fr))');
+    expect(columns('2x4')).toBe('repeat(1, minmax(0, 1fr))');
+    expect(columns('4x2')).toBe('repeat(3, minmax(0, 1fr))');
+    expect(columns('4x4')).toBe('repeat(3, minmax(0, 1fr))');
+  });
+
+  it('colors a smart list header from the map and lists Overdue', () => {
+    render(<RemindersWidget widget={widget('2x4', { list: 'smart:overdue' })} />);
+    expect(screen.getByText('reminders.smart.overdue')).toHaveStyle({ color: SMART_COLORS.overdue });
+    expect(screen.getAllByRole('checkbox').map(c => c.getAttribute('aria-label'))).toEqual(['Call dentist']);
   });
 
   it('adds My Lists under the grid at 4x4 only', () => {

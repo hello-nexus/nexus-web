@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReminderDto, ReminderListDto } from '../../../../api/reminders';
+import { SMART_COLORS } from '../reminderIcons';
+import { SMART_LISTS } from '../reminderLogic';
 import { COMPLETE_DELAY_MS } from '../useReminderData';
 import { detailsPatch, isWebUrl } from './ReminderDetailsModal';
 import { RemindersPage } from './RemindersPage';
@@ -89,24 +91,37 @@ describe('RemindersPage', () => {
     expect(checks.slice(0, 2)).toEqual(['Call dentist', 'Water plants']);
   });
 
-  it('has no page tabs: the smart lists are rows of a Reminders section in the rail', () => {
+  it('has no page tabs: the six smart lists are cards in a Reminders section of the rail', () => {
     render(<RemindersPage />);
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
     const rail = screen.getByRole('complementary');
-    const smart = ['today', 'scheduled', 'all', 'flagged', 'completed'].map(id => within(rail).getByText(`reminders.smart.${id}`));
-    expect(smart).toHaveLength(5);
+    const names = ['today', 'scheduled', 'overdue', 'flagged', 'all', 'completed'];
+    const cards = names.map(id => within(rail).getByText(`reminders.smart.${id}`).closest('[role="button"]')!);
+    expect(cards.every(Boolean)).toBe(true);
+    expect(cards.every(c => c.parentElement === cards[0].parentElement)).toBe(true);
     expect(within(rail).getByText('panel.widget.reminders')).toBeTruthy();
     expect(within(rail).getByText('reminders.myLists')).toBeTruthy();
   });
 
-  it('shows the same row and open count for smart lists and My Lists, with an edit button only on lists', () => {
+  it('lays the cards out two per row, colors each icon from the category map, and shows counts', () => {
     render(<RemindersPage />);
     const rail = screen.getByRole('complementary');
-    const todayRow = within(rail).getByText('reminders.smart.today').closest('button')!;
-    const homeRow = within(rail).getByText('Home').closest('button')!;
-    expect(todayRow.className).toBe(homeRow.className);
-    expect(todayRow.textContent).toContain('2');
-    expect(homeRow.textContent).toContain('2');
+    const grid = within(rail).getByText('reminders.smart.today').closest('[role="button"]')!.parentElement as HTMLElement;
+    expect(grid.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+    expect(grid.children).toHaveLength(6);
+    const colors = Object.fromEntries(SMART_LISTS.map(id => [id, SMART_COLORS[id]]));
+    for (const id of SMART_LISTS) {
+      const icon = within(rail).getByText(`reminders.smart.${id}`).closest('[role="button"]')!.querySelector('span') as HTMLElement;
+      expect(icon).toHaveStyle({ color: colors[id] });
+    }
+    expect(within(rail).getByText('reminders.smart.today').closest('[role="button"]')!.textContent).toContain('2');
+    expect(within(rail).getByText('reminders.smart.overdue').closest('[role="button"]')!.textContent).toContain('1');
+  });
+
+  it('keeps My Lists as rows with an edit button, and smart cards without one', () => {
+    render(<RemindersPage />);
+    const rail = screen.getByRole('complementary');
+    expect(within(rail).getByText('Home').closest('button')).toBeTruthy();
     expect(within(rail).queryByRole('button', { name: 'reminders.list.edit.button|reminders.smart.today' })).toBeNull();
     expect(within(rail).getByRole('button', { name: 'reminders.list.edit.button|Home' })).toBeTruthy();
   });
@@ -124,11 +139,10 @@ describe('RemindersPage', () => {
     expect(screen.getAllByText('Work').length).toBeGreaterThan(1);
   });
 
-  it('colors a list icon directly, without a disc, and has no completed-count line', () => {
+  it('colors a list icon directly with its list color and has no completed-count line', () => {
     render(<RemindersPage tab="l1" />);
     const glyph = within(screen.getByRole('complementary')).getByText('Home').closest('button')!.querySelector('span')!;
-    expect(glyph.className).toContain('listColor');
-    expect(glyph.className).not.toContain('Disc');
+    expect(glyph).toHaveStyle({ color: '#0a84ff' });
     expect(screen.queryByText(/reminders\.completedCount/)).toBeNull();
     expect(screen.getByRole('switch', { name: 'reminders.showCompleted' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'reminders.clearCompleted' })).toBeNull();
@@ -150,7 +164,7 @@ describe('RemindersPage', () => {
   it('reports a clicked smart row as the subtab', () => {
     const onTabChange = vi.fn();
     render(<RemindersPage onTabChange={onTabChange} />);
-    fireEvent.click(screen.getByText('reminders.smart.flagged').closest('button')!);
+    fireEvent.click(screen.getByText('reminders.smart.flagged').closest('[role="button"]')!);
     expect(onTabChange).toHaveBeenCalledWith('flagged');
   });
 

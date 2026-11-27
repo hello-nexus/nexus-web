@@ -43,6 +43,5 @@
 }
 
 .grid { flex: none; }
-.s-2x2 .grid, .s-2x4 .grid { /* c83:allow - .grid is display: grid */ gap: 6px; }
-.s-4x2 .grid, .s-4x4 .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.s-2x2 .grid { /* c83:allow - .grid is display: grid */ gap: 6px; }
 .lists { flex: 1; min-height: 0; overflow: hidden; }

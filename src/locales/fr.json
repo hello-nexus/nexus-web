@@ -5723,6 +5723,7 @@
   "reminders.smart.all": "Tous",
   "reminders.smart.completed": "Terminés",
   "reminders.smart.flagged": "Avec drapeau",
+  "reminders.smart.overdue": "En retard",
   "reminders.smart.scheduled": "Planifiés",
   "reminders.smart.today": "Aujourd'hui",
   "reminders.widget.allDone": "Tout est fait",

@@ -1,5 +1,5 @@
 import {
-  Bookmark, Briefcase, CalendarCheck, CalendarClock, CalendarDays, Check, Flag, Gift, Heart, House, Inbox, List, ShoppingCart, Star,
+  AlarmClock, Bookmark, Briefcase, CalendarCheck, CalendarClock, CircleCheck, Flag, Gift, Heart, House, Inbox, List, ShoppingCart, Star,
   type LucideIcon,
 } from 'lucide-react';
 import { DECK_ICONS } from '../deck/deckIcons';
@@ -35,19 +35,19 @@ export function pickerValueFor(key: string): DeckIcon | undefined {
 export const keyFromPicker = (icon: DeckIcon): string => (icon.kind === 'emoji' ? `${EMOJI_PREFIX}${icon.value}` : icon.value);
 
 export const SMART_ICONS: Readonly<Record<SmartListId, LucideIcon>> = {
-  today: CalendarDays, scheduled: CalendarClock, all: Inbox, flagged: Flag, completed: Check,
+  today: CalendarCheck, scheduled: CalendarClock, overdue: AlarmClock, flagged: Flag, all: Inbox, completed: CircleCheck,
 };
 
-export const SMART_ROW_ICONS: Readonly<Record<SmartListId, LucideIcon>> = { ...SMART_ICONS, today: CalendarCheck };
-
+/** One fixed color per smart list, applied to its icon alone. */
 export const SMART_COLORS: Readonly<Record<SmartListId, string>> = {
-  today: '#0a84ff', scheduled: '#ff453a', all: '#8e8e93', flagged: '#ff9f0a', completed: '#8e8e93',
+  today: '#0a84ff', scheduled: '#bf5af2', overdue: '#ff453a', flagged: '#ff9f0a', all: '#8e8e93', completed: '#8e8e93',
 };
 
 export const SMART_NAME_KEYS: Readonly<Record<SmartListId, string>> = {
   today: 'reminders.smart.today',
   scheduled: 'reminders.smart.scheduled',
-  all: 'reminders.smart.all',
+  overdue: 'reminders.smart.overdue',
   flagged: 'reminders.smart.flagged',
+  all: 'reminders.smart.all',
   completed: 'reminders.smart.completed',
 };

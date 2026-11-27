@@ -33,12 +33,12 @@ const items: ReminderDto[] = [
   item('b', 'done b', { completed: true, completedAt: 200, dueDate: TODAY }),
 ];
 
-const smart = (id: 'today' | 'scheduled' | 'all' | 'flagged' | 'completed'): ReminderSelection => ({ kind: 'smart', id });
+const smart = (id: 'today' | 'scheduled' | 'overdue' | 'flagged' | 'all' | 'completed'): ReminderSelection => ({ kind: 'smart', id });
 const titles = (v: ReturnType<typeof buildView>) => v.groups.map(g => g.items.map(i => i.title));
 
 describe('reminder smart lists', () => {
   it('counts each smart list from open items', () => {
-    expect(smartCounts(items, NOW)).toEqual({ today: 4, scheduled: 5, all: 6, flagged: 1, completed: 2 });
+    expect(smartCounts(items, NOW)).toEqual({ today: 4, scheduled: 5, overdue: 2, flagged: 1, all: 6, completed: 2 });
   });
 
   it('puts overdue first in Today, then the rest by due time with all-day first', () => {
@@ -52,6 +52,14 @@ describe('reminder smart lists', () => {
     const view = buildView(items, lists, smart('scheduled'), { now: NOW, showCompleted: false });
     expect(view.groups.map(g => g.date)).toEqual(['2026-11-15', TODAY, '2026-11-18']);
     expect(view.groups[1].items.map(i => i.title)).toEqual(['today all day', 'overdue time', 'later today']);
+  });
+
+  it('lists Overdue as open items past due, oldest first, and keeps them in Today too', () => {
+    const view = buildView(items, lists, smart('overdue'), { now: NOW, showCompleted: false });
+    expect(titles(view)).toEqual([['overdue day', 'overdue time']]);
+    expect(view.openCount).toBe(2);
+    const today = buildView(items, lists, smart('today'), { now: NOW, showCompleted: false });
+    expect(today.groups[0].items.map(i => i.title)).toEqual(['overdue day', 'overdue time']);
   });
 
   it('groups All by list in list order and skips empty lists', () => {
@@ -70,6 +78,39 @@ describe('reminder smart lists', () => {
     expect(titles(hidden)).toEqual([['today all day', 'tomorrow', 'undated']]);
     expect(hidden.completed).toEqual([]);
     expect(buildView(items, lists, sel, { now: NOW, showCompleted: true }).completed.map(i => i.title)).toEqual(['done b']);
+  });
+});
+
+describe('overdue at the day boundary', () => {
+  const at = (y: number, m: number, d: number, h: number, min: number, s = 0, ms = 0) => new Date(y, m, d, h, min, s, ms).getTime();
+  const dateOnly = item('a', 'date only', { dueDate: TODAY });
+  const timed = (time: string) => item('a', 'timed', { dueDate: TODAY, dueTime: time });
+  const yesterdayLate = item('a', 'yesterday late', { dueDate: '2026-11-16', dueTime: '23:59' });
+
+  it('does not count a date-only item until its day has passed', () => {
+    expect(isOverdue(dateOnly, at(2026, 10, 17, 0, 0))).toBe(false);
+    expect(isOverdue(dateOnly, at(2026, 10, 17, 23, 59, 59, 999))).toBe(false);
+    expect(isOverdue(dateOnly, at(2026, 10, 18, 0, 0))).toBe(true);
+  });
+
+  it('counts a timed item only once its minute is past, strictly', () => {
+    expect(isOverdue(timed('00:00'), at(2026, 10, 17, 0, 0))).toBe(false);
+    expect(isOverdue(timed('00:00'), at(2026, 10, 17, 0, 0, 0, 1))).toBe(true);
+    expect(isOverdue(timed('23:59'), at(2026, 10, 17, 23, 59, 59, 999))).toBe(true);
+    expect(isOverdue(yesterdayLate, at(2026, 10, 17, 0, 0))).toBe(true);
+  });
+
+  it('fills the Overdue count and list from those rules across midnight', () => {
+    const rows = [dateOnly, timed('00:00'), yesterdayLate];
+    const justAfterMidnight = at(2026, 10, 17, 0, 0);
+    expect(smartCounts(rows, justAfterMidnight).overdue).toBe(1);
+    const nextDay = at(2026, 10, 18, 0, 0);
+    expect(smartCounts(rows, nextDay).overdue).toBe(3);
+    expect(buildView(rows, lists, smart('overdue'), { now: nextDay, showCompleted: false }).openCount).toBe(3);
+  });
+
+  it('has no add row in Overdue', () => {
+    expect(newItemDefaults(smart('overdue'), lists, NOW)).toBeNull();
   });
 });
 

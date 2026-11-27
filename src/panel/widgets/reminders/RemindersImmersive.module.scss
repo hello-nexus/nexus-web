@@ -25,7 +25,6 @@
 .landscape .side { width: 32%; max-width: 340px; }
 .portrait .side { max-height: 40%; }
 .tiles { font-size: 0.9em; }
-.portrait .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .sectionTitle {
   padding: 0 0.5em 0.3em;

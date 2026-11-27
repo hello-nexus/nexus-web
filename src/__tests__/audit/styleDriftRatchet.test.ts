@@ -19,7 +19,7 @@ const RATCHETS = [
     // The calendar views (time grid, month grid, agenda, tiles) lay out at the
     // panel design-px scale like the other widgets, so their sizes and radii are raw.
     // The reminders tile and immersive view lay out at the panel design-px scale like the calendar's, so their sizes and radii are raw.
-    baseline: 804,
+    baseline: 802,
     hint: 'use the --radius/--shadow/--alpha/--blur/--ease tokens and text mixins instead of raw values (run "npm run audit:styles" for the list)',
   },
   {
@@ -44,7 +44,7 @@ const RATCHETS = [
     // The calendar views' event text sits at fixed design-px sizes inside
     // scaled panel tiles, the same idiom as the gauges.
     // The reminders tile and immersive text sits at fixed design-px sizes, the same idiom as the calendar text.
-    baseline: 548,
+    baseline: 546,
     hint: 'use the @include text-* mixins or var(--type-*/--weight-*) tokens from _text.scss (run "npm run audit:text-styles" for the list)',
   },
 ] as const;
