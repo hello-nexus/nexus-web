@@ -7,12 +7,10 @@ import { useTranslation } from '../../../lib/i18n';
 import type { ReminderDto, ReminderListDto } from '../../../api/reminders';
 import { useReminderMutations } from '../../../hooks/useReminders';
 import { usePanelPreview } from '../common/PanelPreviewContext';
-import { useElementSize } from '../common/useElementSize';
 import { useCalendarFormat } from '../calendar/useCalendarFormat';
 import { SMART_COLORS, SMART_NAME_KEYS } from './reminderIcons';
 import { buildView, dueLabel, isPendingId, openCountOf, resolveSelection, smartCounts, type ReminderSelection } from './reminderLogic';
 import { ReminderRow } from './ReminderRow';
-import { listFontSize } from './reminderFit';
 import { ReminderCardGrid, ReminderListRow } from './ReminderTiles';
 import { previewNow, useCheckOff, useReminderData } from './useReminderData';
 import styles from './RemindersWidget.module.scss';
@@ -127,17 +125,11 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
   );
 }
 
-/** My Lists filling the bottom half of the 4x4 grid view: rows share the measured height and scale with it. */
+/** My Lists filling the bottom half of the 4x4 grid view: the rows share the height on 1fr tracks. */
 function FilledLists({ lists, items }: { lists: readonly ReminderListDto[]; items: readonly ReminderDto[] }) {
-  const { ref, size } = useElementSize();
   const shown = lists.slice(0, MAX_LIST_ROWS);
-  const fontSize = size ? listFontSize(size.width, size.height, shown.length) : undefined;
   return (
-    <div
-      ref={ref}
-      className={styles.lists}
-      style={{ gridTemplateRows: `repeat(${Math.max(shown.length, 1)}, minmax(0, 1fr))`, ...(fontSize === undefined ? {} : { fontSize: `${fontSize}px` }) }}
-    >
+    <div className={styles.lists} style={{ gridTemplateRows: `repeat(${Math.max(shown.length, 1)}, minmax(0, 1fr))` }}>
       {shown.map(l => <ReminderListRow key={l.id} list={l} count={openCountOf(items, l.id)} />)}
     </div>
   );

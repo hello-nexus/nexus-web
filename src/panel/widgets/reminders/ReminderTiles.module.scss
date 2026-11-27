@@ -9,19 +9,19 @@
 
 // Doubled selector: the shared Card sets its own flex layout and padding.
 .card.card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
   min-width: 0;
   padding: 0.55em 0.7em;
-  column-gap: 0.6em;
-  row-gap: 0;
   font-size: inherit;
 }
 
-.card .count { grid-column: 3; }
-
-.stack.stack {
+.inner { min-width: 0; }
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.6em;
+}
+.stack {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -29,9 +29,28 @@
 .top { display: flex; align-items: center; @include hgap(0.5em); }
 .stack .name { margin-top: 0.2em; }
 
-.icon { grid-area: icon; }
-.stack .count { grid-area: count; justify-self: end; }
-.stack .name { grid-area: name; }
+.icon { display: flex; align-items: center; }
+
+// The widget grid: fills its parent on 1fr tracks like the Diagnostics blocks. Standard type tokens and icon size, never scaled
+// to the cell; the name gets the card's full width on its own line under the icon and count.
+.fill {
+  flex: 1;
+  min-height: 0;
+  /* c83:allow - .fill is display: grid */
+  gap: 0.5rem;
+  align-content: stretch;
+
+  .card.card { align-self: stretch; justify-content: center; padding: 0.5rem; }
+  .top { justify-content: space-between; }
+  .icon svg { width: 20px; height: 20px; }
+  .count { font-size: var(--type-heading); line-height: 1.1; }
+  .name { margin-top: 0.25rem; font-size: var(--type-mini); text-overflow: clip; }
+}
+
+// The tall strip is one column of single-line cards: its name sits beside the icon, not under it.
+.fill.fillRow .name { margin-top: 0; font-size: var(--type-small); }
+
+.name { margin-top: 0.2em; }
 
 .icon { display: flex; align-items: center; }
 

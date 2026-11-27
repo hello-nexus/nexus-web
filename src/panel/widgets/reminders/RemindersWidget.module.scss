@@ -49,6 +49,7 @@
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  font-size: var(--type-small);
 
   > * { align-self: stretch; }
 }

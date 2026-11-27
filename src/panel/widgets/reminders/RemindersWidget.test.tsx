@@ -8,9 +8,6 @@ import { SMART_LISTS } from './reminderLogic';
 import { COMPLETE_DELAY_MS } from './useReminderData';
 import { RemindersWidget } from './RemindersWidget';
 
-const measured = vi.hoisted(() => ({ size: null as { width: number; height: number } | null }));
-vi.mock('../common/useElementSize', () => ({ useElementSize: () => ({ ref: () => {}, size: measured.size }) }));
-
 const store = vi.hoisted(() => ({
   lists: [] as ReminderListDto[],
   items: [] as ReminderDto[],
@@ -65,7 +62,6 @@ beforeEach(() => {
   store.enabledSeen = [];
   store.unavailable = false;
   store.setCompleted.mockClear();
-  measured.size = null;
 });
 
 afterEach(() => vi.useRealTimers());
@@ -134,36 +130,27 @@ describe('RemindersWidget', () => {
     expect(container.querySelector('[class*="top"]')).toBeNull();
   });
 
-  it('stretches the grid over the tile and scales card contents to the cell it measures', () => {
-    measured.size = { width: 150, height: 150 };
-    const { container, rerender } = render(<RemindersWidget widget={widget('2x2', { viewMode: 'grid' })} />);
+  it('stretches the grid over the tile on 1fr tracks', () => {
+    const { container } = render(<RemindersWidget widget={widget('2x2', { viewMode: 'grid' })} />);
     const grid = container.querySelector<HTMLElement>('[class*="cards"]')!;
     expect(grid.className).toContain('fill');
     expect(grid.style.gridTemplateRows).toBe('repeat(3, minmax(0, 1fr))');
-    const small = parseFloat(grid.style.fontSize);
-    expect(small).toBeGreaterThan(10);
-    measured.size = { width: 300, height: 300 };
-    rerender(<RemindersWidget widget={widget('2x2', { viewMode: 'grid' })} />);
-    expect(parseFloat(container.querySelector<HTMLElement>('[class*="cards"]')!.style.fontSize)).toBeGreaterThan(small);
+    expect(grid.style.fontSize).toBe('');
   });
 
   it('fills the 4x2 as three columns by two rows and the 2x4 as six rows', () => {
-    measured.size = { width: 320, height: 150 };
     const wide = render(<RemindersWidget widget={widget('4x2', { viewMode: 'grid' })} />);
     const wideGrid = wide.container.querySelector<HTMLElement>('[class*="cards"]')!;
     expect(wideGrid.style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))');
     expect(wideGrid.style.gridTemplateRows).toBe('repeat(2, minmax(0, 1fr))');
     wide.unmount();
-    measured.size = { width: 150, height: 320 };
     const tall = render(<RemindersWidget widget={widget('2x4', { viewMode: 'grid' })} />);
     expect(tall.container.querySelector<HTMLElement>('[class*="cards"]')!.style.gridTemplateRows).toBe('repeat(6, minmax(0, 1fr))');
   });
 
   it('makes the 4x4 top the same block as the 4x2 and fills the bottom with My Lists rows', () => {
-    measured.size = { width: 320, height: 150 };
     const four = render(<RemindersWidget widget={widget('4x4', { viewMode: 'grid' })} />);
     const topGrid = four.container.querySelector<HTMLElement>('[class*="cards"]')!;
-    const topFont = topGrid.style.fontSize;
     expect(topGrid.style.gridTemplateRows).toBe('repeat(2, minmax(0, 1fr))');
     expect(topGrid.style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))');
     const lists = four.container.querySelector<HTMLElement>('[class*="lists"]')!;
@@ -171,7 +158,9 @@ describe('RemindersWidget', () => {
     expect(lists.textContent).toContain('Home');
     four.unmount();
     const two = render(<RemindersWidget widget={widget('4x2', { viewMode: 'grid' })} />);
-    expect(two.container.querySelector<HTMLElement>('[class*="cards"]')!.style.fontSize).toBe(topFont);
+    const twoGrid = two.container.querySelector<HTMLElement>('[class*="cards"]')!;
+    expect(twoGrid.style.gridTemplateColumns).toBe(topGrid.style.gridTemplateColumns);
+    expect(twoGrid.style.gridTemplateRows).toBe(topGrid.style.gridTemplateRows);
   });
 
   it('lays the grid out per size: two columns at 2x2, one at 2x4, three at 4x2 and 4x4', () => {
