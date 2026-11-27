@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Elimina completati",
   "reminders.clearCompleted.confirm": "Elimina",
   "reminders.clearCompleted.message": "Eliminare tutti i promemoria completati mostrati qui? L'operazione non può essere annullata.",
-  "reminders.completedCount": "{count} completati",
   "reminders.desktopOnlyHint": "Aggiungi, modifica o elimina promemoria ed elenchi dall'app Nexus sul tuo PC.",
   "reminders.details.date": "Data",
   "reminders.details.delete": "Elimina",

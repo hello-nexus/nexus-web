@@ -5714,7 +5714,6 @@
   "reminders.clearCompleted": "Очистить выполненные",
   "reminders.clearCompleted.confirm": "Очистить",
   "reminders.clearCompleted.message": "Удалить все показанные здесь выполненные напоминания? Это действие нельзя отменить.",
-  "reminders.completedCount": "Выполнено: {count}",
   "reminders.desktopOnlyHint": "Добавляйте, изменяйте и удаляйте напоминания и списки в приложении Nexus на ПК.",
   "reminders.details.date": "Дата",
   "reminders.details.delete": "Удалить",

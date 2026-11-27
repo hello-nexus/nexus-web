@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "完了済みを消去",
   "reminders.clearCompleted.confirm": "消去",
   "reminders.clearCompleted.message": "ここに表示されている完了済みのリマインダーをすべて削除しますか？この操作は取り消せません。",
-  "reminders.completedCount": "完了 {count} 件",
   "reminders.desktopOnlyHint": "リマインダーとリストの追加、編集、削除は、PC の Nexus アプリで行ってください。",
   "reminders.details.date": "日付",
   "reminders.details.delete": "削除",

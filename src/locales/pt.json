@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Limpar concluídos",
   "reminders.clearCompleted.confirm": "Limpar",
   "reminders.clearCompleted.message": "Eliminar todos os lembretes concluídos apresentados aqui? Esta ação não pode ser anulada.",
-  "reminders.completedCount": "{count} concluídos",
   "reminders.desktopOnlyHint": "Adicione, edite ou elimine lembretes e listas na aplicação Nexus no seu PC.",
   "reminders.details.date": "Data",
   "reminders.details.delete": "Eliminar",

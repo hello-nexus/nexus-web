@@ -53,7 +53,7 @@ export function SmartListGrid({ counts, active, onSelect, className }: GridProps
 }
 
 interface ListRowProps {
-  // A user list: colored glyph disc and its name. A smart list: its plain icon and localized name.
+  // A user list: its icon in the list color and its name. A smart list: its plain icon and localized name.
   list?: ReminderListDto;
   smart?: SmartListId;
   count: number;
@@ -62,7 +62,7 @@ interface ListRowProps {
   trailing?: ReactNode;
 }
 
-/** One row of the list rail, user list or smart list, with its open count. */
+/** One row of the list rail, user list or smart list, with its open count. A user list's icon takes the list color directly. */
 export function ReminderListRow({ list, smart, count, active, onPress, trailing }: ListRowProps) {
   const { t } = useTranslation();
   const SmartIcon = smart ? SMART_ROW_ICONS[smart] : null;
@@ -70,9 +70,8 @@ export function ReminderListRow({ list, smart, count, active, onPress, trailing 
   const name = smart ? t(SMART_NAME_KEYS[smart]) : list?.name ?? '';
   const body = (
     <>
-      {SmartIcon
-        ? <span className={styles.listGlyph}><SmartIcon size="1.25em" aria-hidden /></span>
-        : Icon && <span className={styles.listDisc}><Icon size="0.9em" aria-hidden /></span>}
+      {SmartIcon && <span className={styles.listGlyph}><SmartIcon size="1.25em" aria-hidden /></span>}
+      {Icon && <span className={`${styles.listGlyph} ${styles.listColor}`}><Icon size="1.25em" aria-hidden /></span>}
       <span className={styles.listName}>{name}</span>
       <span className={styles.listCount}>{count}</span>
     </>

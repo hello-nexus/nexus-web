@@ -5714,7 +5714,6 @@
   "reminders.clearCompleted": "Wyczyść ukończone",
   "reminders.clearCompleted.confirm": "Wyczyść",
   "reminders.clearCompleted.message": "Usunąć wszystkie wyświetlane tu ukończone przypomnienia? Tej operacji nie można cofnąć.",
-  "reminders.completedCount": "Ukończone: {count}",
   "reminders.desktopOnlyHint": "Przypomnienia i listy dodaje się, edytuje i usuwa w aplikacji Nexus na komputerze.",
   "reminders.details.date": "Data",
   "reminders.details.delete": "Usuń",

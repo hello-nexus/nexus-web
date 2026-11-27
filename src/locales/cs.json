@@ -5714,7 +5714,6 @@
   "reminders.clearCompleted": "Vymazat dokončené",
   "reminders.clearCompleted.confirm": "Vymazat",
   "reminders.clearCompleted.message": "Smazat všechny zobrazené dokončené připomínky? Tuto akci nelze vrátit zpět.",
-  "reminders.completedCount": "Dokončeno: {count}",
   "reminders.desktopOnlyHint": "Připomínky a seznamy přidávejte, upravujte nebo mažte v aplikaci Nexus na svém PC.",
   "reminders.details.date": "Datum",
   "reminders.details.delete": "Smazat",

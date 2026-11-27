@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Gjave i completâts",
   "reminders.clearCompleted.confirm": "Gjave",
   "reminders.clearCompleted.message": "Eliminâ ducj i promemorie completâts mostrâts achì? No si pues tornâ indaûr.",
-  "reminders.completedCount": "{count} completâts",
   "reminders.desktopOnlyHint": "Zonte, modifiche o elimine promemorie e listis te aplicazion Nexus sul to PC.",
   "reminders.details.date": "Date",
   "reminders.details.delete": "Elimine",

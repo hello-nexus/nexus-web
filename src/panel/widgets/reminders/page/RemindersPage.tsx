@@ -215,7 +215,6 @@ export function RemindersPage({ tab, onTabChange }: Props) {
                   )}
                 </div>
                 <div className={styles.subbar}>
-                  <span className={styles.completedCount}>{t('reminders.completedCount', { count: doneInScope })}</span>
                   {listId !== null && (
                     <label className={styles.showCompleted}>
                       <span>{t('reminders.showCompleted')}</span>

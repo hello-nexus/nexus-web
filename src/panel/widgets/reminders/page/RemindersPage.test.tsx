@@ -124,6 +124,16 @@ describe('RemindersPage', () => {
     expect(screen.getAllByText('Work').length).toBeGreaterThan(1);
   });
 
+  it('colors a list icon directly, without a disc, and has no completed-count line', () => {
+    render(<RemindersPage tab="l1" />);
+    const glyph = within(screen.getByRole('complementary')).getByText('Home').closest('button')!.querySelector('span')!;
+    expect(glyph.className).toContain('listColor');
+    expect(glyph.className).not.toContain('Disc');
+    expect(screen.queryByText(/reminders\.completedCount/)).toBeNull();
+    expect(screen.getByRole('switch', { name: 'reminders.showCompleted' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'reminders.clearCompleted' })).toBeTruthy();
+  });
+
   it('reports a clicked smart row as the subtab', () => {
     const onTabChange = vi.fn();
     render(<RemindersPage onTabChange={onTabChange} />);

@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Tamamlananları temizle",
   "reminders.clearCompleted.confirm": "Temizle",
   "reminders.clearCompleted.message": "Burada gösterilen tüm tamamlanmış anımsatıcılar silinsin mi? Bu işlem geri alınamaz.",
-  "reminders.completedCount": "{count} tamamlandı",
   "reminders.desktopOnlyHint": "Anımsatıcıları ve listeleri, bilgisayarınızdaki Nexus uygulamasında ekleyin, düzenleyin veya silin.",
   "reminders.details.date": "Tarih",
   "reminders.details.delete": "Sil",

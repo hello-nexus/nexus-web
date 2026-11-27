@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Voltooide wissen",
   "reminders.clearCompleted.confirm": "Wissen",
   "reminders.clearCompleted.message": "Alle voltooide herinneringen die hier staan verwijderen? Dit kan niet ongedaan worden gemaakt.",
-  "reminders.completedCount": "{count} voltooid",
   "reminders.desktopOnlyHint": "Voeg herinneringen en lijsten toe, bewerk of verwijder ze in de Nexus-app op je pc.",
   "reminders.details.date": "Datum",
   "reminders.details.delete": "Verwijderen",

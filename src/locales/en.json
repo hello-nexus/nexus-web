@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Clear completed",
   "reminders.clearCompleted.confirm": "Clear",
   "reminders.clearCompleted.message": "Delete all completed reminders shown here? This cannot be undone.",
-  "reminders.completedCount": "{count} completed",
   "reminders.desktopOnlyHint": "Add, edit or delete reminders and lists from the Nexus app on your PC.",
   "reminders.details.date": "Date",
   "reminders.details.delete": "Delete",

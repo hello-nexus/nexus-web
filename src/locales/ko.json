@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "완료 항목 지우기",
   "reminders.clearCompleted.confirm": "지우기",
   "reminders.clearCompleted.message": "여기에 표시된 완료된 미리 알림을 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
-  "reminders.completedCount": "완료 {count}개",
   "reminders.desktopOnlyHint": "미리 알림과 목록 추가, 편집, 삭제는 PC의 Nexus 앱에서 하세요.",
   "reminders.details.date": "날짜",
   "reminders.details.delete": "삭제",

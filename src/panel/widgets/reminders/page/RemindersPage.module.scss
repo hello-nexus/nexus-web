@@ -7,8 +7,7 @@
 .toolbar { flex: none; display: flex; align-items: center; gap: 0.5rem; }
 .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.subbar { flex: none; display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.75rem; }
-.completedCount { flex: 1; font-size: var(--type-small); color: var(--text-dim); }
+.subbar { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; margin: 0.25rem 0 0.75rem; }
 
 .error { margin: 0 0 0.5rem; font-size: var(--type-small); color: var(--bad); }
 

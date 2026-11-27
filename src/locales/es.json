@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Borrar completados",
   "reminders.clearCompleted.confirm": "Borrar",
   "reminders.clearCompleted.message": "¿Eliminar todos los recordatorios completados que se muestran aquí? No se puede deshacer.",
-  "reminders.completedCount": "{count} completados",
   "reminders.desktopOnlyHint": "Añade, edita o elimina recordatorios y listas desde la app de Nexus en tu PC.",
   "reminders.details.date": "Fecha",
   "reminders.details.delete": "Eliminar",

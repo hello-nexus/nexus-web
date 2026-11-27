@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "清除已完成",
   "reminders.clearCompleted.confirm": "清除",
   "reminders.clearCompleted.message": "要删除此处显示的所有已完成提醒事项吗？此操作无法撤销。",
-  "reminders.completedCount": "已完成 {count} 项",
   "reminders.desktopOnlyHint": "请在电脑上的 Nexus 应用中添加、编辑或删除提醒事项和列表。",
   "reminders.details.date": "日期",
   "reminders.details.delete": "删除",

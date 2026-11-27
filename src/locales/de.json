@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Erledigte löschen",
   "reminders.clearCompleted.confirm": "Löschen",
   "reminders.clearCompleted.message": "Alle hier angezeigten erledigten Erinnerungen löschen? Das lässt sich nicht rückgängig machen.",
-  "reminders.completedCount": "{count} erledigt",
   "reminders.desktopOnlyHint": "Erinnerungen und Listen fügen Sie in der Nexus-App auf Ihrem PC hinzu, bearbeiten oder löschen sie dort.",
   "reminders.details.date": "Datum",
   "reminders.details.delete": "Löschen",

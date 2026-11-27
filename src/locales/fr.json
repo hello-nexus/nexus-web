@@ -5663,7 +5663,6 @@
   "reminders.clearCompleted": "Effacer les terminés",
   "reminders.clearCompleted.confirm": "Effacer",
   "reminders.clearCompleted.message": "Supprimer tous les rappels terminés affichés ici ? Cette action est irréversible.",
-  "reminders.completedCount": "{count} terminés",
   "reminders.desktopOnlyHint": "Ajoutez, modifiez ou supprimez des rappels et des listes depuis l'application Nexus sur votre PC.",
   "reminders.details.date": "Date",
   "reminders.details.delete": "Supprimer",
