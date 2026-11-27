@@ -42,6 +42,13 @@
   @include vgap(6px);
 }
 
-.grid { flex: none; }
-.s-2x2 .grid { /* c83:allow - .grid is display: grid */ gap: 6px; }
-.lists { flex: 1; min-height: 0; overflow: hidden; }
+.grid { min-width: 0; }
+.lists {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+
+  > * { align-self: stretch; }
+}

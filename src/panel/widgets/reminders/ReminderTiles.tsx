@@ -1,9 +1,11 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { useElementSize } from '../common/useElementSize';
 import type { ReminderListDto } from '../../../api/reminders';
 import { Card } from '../../../components/common/Card/Card';
 import { SMART_COLORS, SMART_ICONS, SMART_NAME_KEYS } from './reminderIcons';
 import { ReminderIconGlyph } from './ReminderIconGlyph';
+import { cardFontSize } from './reminderFit';
 import { SMART_LISTS, type ReminderCounts, type SmartListId } from './reminderLogic';
 import styles from './ReminderTiles.module.scss';
 
@@ -61,12 +63,23 @@ interface GridProps {
   layout?: CardLayout;
   showLabels?: boolean;
   className?: string;
+  // The widget grid: stretches over its parent and scales the cards' contents to the cell the 1fr tracks give them.
+  fill?: boolean;
 }
 
 /** The six smart-list cards in a grid of `columns`. */
-export function ReminderCardGrid({ counts, active, onSelect, columns, layout, showLabels = true, className }: GridProps) {
+export function ReminderCardGrid({ counts, active, onSelect, columns, layout = 'row', showLabels = true, className, fill = false }: GridProps) {
+  const { ref, size } = useElementSize();
+  const rows = Math.ceil(SMART_LISTS.length / columns);
+  const fontSize = useMemo(
+    () => (fill && size ? cardFontSize({ width: size.width, height: size.height, columns, rows, layout, labels: showLabels }) : undefined),
+    [fill, size, columns, rows, layout, showLabels],
+  );
+  const style: CSSProperties = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
+  if (fill) style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+  if (fontSize !== undefined) style.fontSize = `${fontSize}px`;
   return (
-    <div className={`${styles.cards} ${className ?? ''}`} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+    <div ref={ref} className={`${styles.cards} ${fill ? styles.fill : ''} ${className ?? ''}`} style={style}>
       {SMART_LISTS.map(id => (
         <ReminderCard
           key={id}

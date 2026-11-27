@@ -4,18 +4,21 @@ import { Spinner } from '../../../components/common/Spinner/Spinner';
 import type { WidgetProps } from '../types';
 import { surfaceSupportsTouch, widgetLayoutSize, type PanelWidgetSize } from '../../types';
 import { useTranslation } from '../../../lib/i18n';
+import type { ReminderDto, ReminderListDto } from '../../../api/reminders';
 import { useReminderMutations } from '../../../hooks/useReminders';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { useElementSize } from '../common/useElementSize';
 import { useCalendarFormat } from '../calendar/useCalendarFormat';
 import { SMART_COLORS, SMART_NAME_KEYS } from './reminderIcons';
 import { buildView, dueLabel, isPendingId, openCountOf, resolveSelection, smartCounts, type ReminderSelection } from './reminderLogic';
 import { ReminderRow } from './ReminderRow';
+import { listFontSize } from './reminderFit';
 import { ReminderCardGrid, ReminderListRow } from './ReminderTiles';
 import { previewNow, useCheckOff, useReminderData } from './useReminderData';
 import styles from './RemindersWidget.module.scss';
 
 const MAX_ROWS: Partial<Record<PanelWidgetSize, number>> = { '2x2': 3, '2x4': 6, '4x2': 3, '4x4': 9 };
-const GRID_LISTS = 4;
+const MAX_LIST_ROWS = 5;
 // Cards per row in the grid view: 2x2 is two compact icon-and-count cards by three; the tall strip is one labeled column; the wide sizes are three by two.
 const GRID_COLUMNS: Partial<Record<PanelWidgetSize, number>> = { '2x2': 2, '2x4': 1, '4x2': 3, '4x4': 3 };
 
@@ -79,12 +82,9 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
           layout={size === '2x4' ? 'row' : 'stack'}
           showLabels={size !== '2x2'}
           className={styles.grid}
+          fill
         />
-        {size === '4x4' && (
-          <div className={styles.lists}>
-            {data.lists.slice(0, GRID_LISTS).map(l => <ReminderListRow key={l.id} list={l} count={openCountOf(data.items, l.id)} />)}
-          </div>
-        )}
+        {size === '4x4' && <FilledLists lists={data.lists} items={data.items} />}
       </div>
     );
   }
@@ -123,6 +123,22 @@ export function RemindersWidget({ widget, surface, deviceTouch }: WidgetProps) {
           {rows.length > shown.length && <div className={styles.more}>{t('reminders.widget.more', { count: rows.length - shown.length })}</div>}
         </div>
       )}
+    </div>
+  );
+}
+
+/** My Lists filling the bottom half of the 4x4 grid view: rows share the measured height and scale with it. */
+function FilledLists({ lists, items }: { lists: readonly ReminderListDto[]; items: readonly ReminderDto[] }) {
+  const { ref, size } = useElementSize();
+  const shown = lists.slice(0, MAX_LIST_ROWS);
+  const fontSize = size ? listFontSize(size.width, size.height, shown.length) : undefined;
+  return (
+    <div
+      ref={ref}
+      className={styles.lists}
+      style={{ gridTemplateRows: `repeat(${Math.max(shown.length, 1)}, minmax(0, 1fr))`, ...(fontSize === undefined ? {} : { fontSize: `${fontSize}px` }) }}
+    >
+      {shown.map(l => <ReminderListRow key={l.id} list={l} count={openCountOf(items, l.id)} />)}
     </div>
   );
 }
