@@ -20,6 +20,10 @@ vi.mock('../../../api/service', () => ({
   isDirectActive: vi.fn(() => false),
   pickSystemPath: vi.fn(() => Promise.resolve(null)),
 }));
+const displayTargets = vi.hoisted(() => ({
+  value: { targets: [] as { deviceId: string; name: string; presets: { id: string; name: string }[] }[], loaded: true },
+}));
+vi.mock('./displayPresets', () => ({ useDisplayPresetTargets: () => displayTargets.value }));
 vi.mock('../../../app/windowActions', () => ({
   isWindowsAppShell: vi.fn(() => false),
   isMacAppShell: vi.fn(() => false),
@@ -128,6 +132,56 @@ describe('NexusFields - lighting effect mode', () => {
   it('falls back to a hint when no presets are saved', async () => {
     renderInspector([{ action: { type: 'nexus', action: { op: 'coolingPreset' } } }]);
     expect(await screen.findByText('panel.settings.deck.noPresets')).toBeInTheDocument();
+  });
+});
+
+describe('NexusFields - display preset', () => {
+  const lcd = { deviceId: 'rec-2', name: 'Lian Li Wireless LCD #2', presets: [{ id: 'pa', name: 'frieren' }, { id: 'pb', name: 'night' }] };
+  const other = { deviceId: 'rec-3', name: 'Xeneon Edge', presets: [{ id: 'pc', name: 'work' }] };
+  afterEach(() => { displayTargets.value = { targets: [], loaded: true }; });
+
+  it('the display op starts bare and the Display entry sits in the Nexus category', async () => {
+    expect(defaultNexusAction('displayPreset')).toEqual({ op: 'displayPreset' });
+    renderInspector([{ action: { type: 'nexus', action: { op: 'displayPreset' } } }]);
+    expandActionList();
+    expect(await screen.findByRole('option', { name: /panel.settings.deck.action.display/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('picking Display seeds the first display and its first preset', async () => {
+    displayTargets.value = { targets: [lcd, other], loaded: true };
+    renderInspector([{ action: { type: 'nexus', action: { op: 'displayPreset' } } }]);
+    expect(await screen.findByLabelText('panel.settings.deck.display')).toBeInTheDocument();
+    expect(screen.getByLabelText('panel.settings.deck.preset')).toBeInTheDocument();
+    expect(screen.getByText('Lian Li Wireless LCD #2')).toBeInTheDocument();
+    expect(screen.getByText('frieren')).toBeInTheDocument();
+  });
+
+  it('shows the hint when no display has presets', async () => {
+    renderInspector([{ action: { type: 'nexus', action: { op: 'displayPreset' } } }]);
+    expect(await screen.findByText('panel.settings.deck.noDisplayPresets')).toBeInTheDocument();
+  });
+
+  it('a deleted preset renders as unavailable and is not silently re-pointed', async () => {
+    displayTargets.value = { targets: [lcd], loaded: true };
+    renderInspector([{ action: { type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec-2', presetId: 'gone' } } }]);
+    expect(await screen.findByText('panel.settings.deck.missingPreset')).toBeInTheDocument();
+    expect(screen.getByText('Lian Li Wireless LCD #2')).toBeInTheDocument();
+  });
+
+  it('a removed display renders as unavailable', async () => {
+    displayTargets.value = { targets: [other], loaded: true };
+    renderInspector([{ action: { type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec-2', presetId: 'pa' } } }]);
+    expect(await screen.findByText('panel.settings.deck.missingDisplay')).toBeInTheDocument();
+    expect(screen.getByLabelText('panel.settings.deck.preset')).toBeDisabled();
+  });
+
+  it('is nestable inside a sequence step', () => {
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
+    fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionType' }));
+    const options = screen.getAllByRole('option', { name: 'panel.settings.deck.action.display' });
+    expect(options.some(o => o.tagName === 'LI')).toBe(true);
   });
 });
 

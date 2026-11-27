@@ -33,7 +33,7 @@ export interface DeckSystemAction {
 // them Lighting effect / Cooling mode (see panel.settings.deck.nexus.*).
 export type DeckNexusOp =
   | 'rgbEffect' | 'lightingBrightness' | 'lightingPreset'
-  | 'fanProfile' | 'coolingPreset'
+  | 'fanProfile' | 'coolingPreset' | 'displayPreset'
   | 'y70Power' | 'y70Brightness' | 'y70Rotation'
   // Global hotkey ops; toggleWindow is service-only (see SERVICE_ONLY_NEXUS_OPS).
   | 'toggleWindow' | 'lightingPowerToggle' | 'lightingBrightnessStep';
@@ -45,7 +45,8 @@ export interface DeckNexusAction {
   op: DeckNexusOp;
   mode?: DeckLightingMode; // rgbEffect; absent = 'animate'
   effect?: string;        // rgbEffect, mode 'animate'
-  presetId?: string;      // lightingPreset, coolingPreset
+  presetId?: string;      // lightingPreset, coolingPreset, displayPreset
+  deviceId?: string;      // displayPreset: panel record id whose preset is activated
   profile?: string;       // fanProfile: off | silent | balanced | turbo | max | custom
   value?: number;         // lightingBrightness (0..1), y70Brightness (0..100), lightingBrightnessStep (signed fraction)
   on?: boolean;           // y70Power

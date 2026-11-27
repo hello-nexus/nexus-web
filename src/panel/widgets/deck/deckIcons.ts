@@ -193,6 +193,7 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         case 'lightingPreset': return 'Lightbulb';
         case 'fanProfile':
         case 'coolingPreset': return 'Fan';
+        case 'displayPreset':
         case 'y70Power':
         case 'y70Brightness':
         case 'y70Rotation': return 'Monitor';

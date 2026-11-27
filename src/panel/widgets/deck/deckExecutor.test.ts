@@ -167,6 +167,15 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'coolingPreset', presetId: 'c1' } });
     expect(postService).toHaveBeenCalledWith('/cooling/presets/c1/activate', {});
   });
+  it('nexus display preset activates that display\'s saved preset', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec 2', presetId: 'p 1' } });
+    expect(postService).toHaveBeenCalledWith('/panel/devices/rec%202/presets/p%201/activate', {});
+  });
+  it('nexus display preset with no display or preset chosen does nothing', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'displayPreset', deviceId: 'rec-2' } });
+    await executeDeckAction({ type: 'nexus', action: { op: 'displayPreset', presetId: 'p1' } });
+    expect(postService).not.toHaveBeenCalled();
+  });
   it('nexus y70 power maps on→toggle:false', async () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'y70Power', on: true } });
     expect(postService).toHaveBeenCalledWith('/y70/toggle', { toggle: false });

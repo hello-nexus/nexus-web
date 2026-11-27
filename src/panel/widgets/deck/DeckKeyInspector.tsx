@@ -41,6 +41,7 @@ import { WeatherLocationSearch } from '../weather/WeatherLocationSearch';
 import type { WeatherGeocodeResult } from '../../../api/weather';
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
 import { PRIVILEGED_DECK_ACTION_TYPES } from './deckExecutor';
+import { useDisplayPresetTargets } from './displayPresets';
 import type {
   DeckAction, DeckActionType, DeckLightingMode, DeckMonitoringCategory, DeckMonitoringPress,
   DeckMonitoringStyle, DeckNexusAction, DeckNexusOp, DeckSlot, DeckTitleStyle,
@@ -93,7 +94,7 @@ export function canBindGlobalHotkey(surface?: PanelSurface, desktopEditor?: bool
 // which doesn't fit a continuously-rendered sensor tile.
 export const NESTED_KINDS: DeckPickerKind[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
-  'text', 'power', 'lighting', 'cooling', 'y70', 'nexusApp', 'deckBrightness', 'deckSleep', 'playAudio',
+  'text', 'power', 'lighting', 'cooling', 'display', 'y70', 'nexusApp', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
 
 // deckBrightness/deckSleep control a physical Stream Deck's own screen (see
@@ -120,15 +121,16 @@ export function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTar
 export type DeckPickerKind =
   | Exclude<DeckActionType, 'page' | 'nexus'>
   | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto'
-  | 'lighting' | 'cooling' | 'y70' | 'nexusApp';
+  | 'lighting' | 'cooling' | 'display' | 'y70' | 'nexusApp';
 
 /** Which picker entry (and op dropdown) a nexus op belongs to. */
 export const NEXUS_OP_GROUPS = {
   lighting: ['rgbEffect', 'lightingBrightness', 'lightingPreset', 'lightingPowerToggle', 'lightingBrightnessStep'],
   cooling: ['fanProfile', 'coolingPreset'],
+  display: ['displayPreset'],
   y70: ['y70Power', 'y70Brightness', 'y70Rotation'],
   nexusApp: ['toggleWindow'],
-} as const satisfies Record<'lighting' | 'cooling' | 'y70' | 'nexusApp', readonly DeckNexusOp[]>;
+} as const satisfies Record<'lighting' | 'cooling' | 'display' | 'y70' | 'nexusApp', readonly DeckNexusOp[]>;
 
 /** Ops a touch widget has no route for; only the service (a physical deck or a hotkey) can run them. */
 export const SERVICE_ONLY_NEXUS_OPS: ReadonlySet<DeckNexusOp> = new Set<DeckNexusOp>(['toggleWindow']);
@@ -137,6 +139,7 @@ export type DeckNexusGroup = keyof typeof NEXUS_OP_GROUPS;
 
 export function nexusGroupForOp(op: DeckNexusOp): DeckNexusGroup {
   if ((NEXUS_OP_GROUPS.cooling as readonly string[]).includes(op)) return 'cooling';
+  if ((NEXUS_OP_GROUPS.display as readonly string[]).includes(op)) return 'display';
   if ((NEXUS_OP_GROUPS.y70 as readonly string[]).includes(op)) return 'y70';
   if ((NEXUS_OP_GROUPS.nexusApp as readonly string[]).includes(op)) return 'nexusApp';
   return 'lighting';
@@ -167,7 +170,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['nexusApp', 'lighting', 'cooling', 'y70', 'monitoring', 'weather'],
+    kinds: ['nexusApp', 'lighting', 'cooling', 'display', 'y70', 'monitoring', 'weather'],
   },
   {
     key: 'multi',
@@ -232,6 +235,7 @@ function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): De
     case 'pageGoto': return { type: 'page', op: 'goto', target: 0 };
     case 'lighting':
     case 'cooling':
+    case 'display':
     case 'y70':
     case 'nexusApp': return { type: 'nexus', action: defaultNexusAction(NEXUS_OP_GROUPS[kind][0]) };
     default: return defaultActionFor(kind);
@@ -544,6 +548,18 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   );
   const presetValue = presets.some(p => p.value === a.presetId) ? a.presetId ?? '' : '';
 
+  const isDisplayPreset = a.op === 'displayPreset';
+  const { targets: displayTargets, loaded: displayTargetsLoaded } = useDisplayPresetTargets();
+  const displayTarget = displayTargets.find(d => d.deviceId === a.deviceId);
+  const displayPresetMissing = !!displayTarget && !!a.presetId && !displayTarget.presets.some(p => p.id === a.presetId);
+
+  // Seed once, and only an empty key: a stored display or preset that has since
+  // gone stays selected as "unavailable" instead of silently re-pointing the key.
+  useEffect(() => {
+    if (freezeSeed || !isDisplayPreset || a.deviceId || displayTargets.length === 0) return;
+    onChange({ type: 'nexus', action: { ...a, deviceId: displayTargets[0].deviceId, presetId: displayTargets[0].presets[0].id } });
+  }, [isDisplayPreset, displayTargets, a, onChange, freezeSeed]);
+
   // A preset list can only be seeded once it has loaded, and has to re-seed
   // when the stored id names a preset that has since been deleted - otherwise
   // the select renders blank and the key fires nothing.
@@ -623,6 +639,40 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
         <Field label={t('panel.settings.deck.preset')}>
           <p className={styles.description}>{t('panel.settings.deck.noPresets')}</p>
         </Field>
+      ))}
+      {isDisplayPreset && (displayTargetsLoaded && displayTargets.length === 0 && !a.deviceId ? (
+        <Field label={t('panel.settings.deck.display')}>
+          <p className={styles.description}>{t('panel.settings.deck.noDisplayPresets')}</p>
+        </Field>
+      ) : (
+        <>
+          <SelectField
+            label={t('panel.settings.deck.display')}
+            value={a.deviceId ?? ''}
+            options={[
+              ...displayTargets.map(d => ({ value: d.deviceId, label: d.name })),
+              ...(a.deviceId && !displayTarget && displayTargetsLoaded
+                ? [{ value: a.deviceId, label: t('panel.settings.deck.missingDisplay') }]
+                : []),
+            ]}
+            onChange={deviceId => {
+              const next = displayTargets.find(d => d.deviceId === deviceId);
+              set({ deviceId, presetId: next?.presets[0].id });
+            }}
+          />
+          <SelectField
+            label={t('panel.settings.deck.preset')}
+            value={a.presetId ?? ''}
+            options={[
+              ...(displayTarget?.presets ?? []).map(p => ({ value: p.id, label: p.name })),
+              ...(a.presetId && (displayPresetMissing || (displayTargetsLoaded && !displayTarget))
+                ? [{ value: a.presetId, label: t('panel.settings.deck.missingPreset') }]
+                : []),
+            ]}
+            onChange={presetId => set({ presetId })}
+            disabled={!displayTarget && displayTargetsLoaded}
+          />
+        </>
       ))}
       {a.op === 'fanProfile' && (
         <SelectField

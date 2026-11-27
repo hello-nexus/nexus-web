@@ -1,6 +1,7 @@
 import { fetchService, postService } from '../../../api/service';
 import { startAnimate, startScreenMirror, setGlobalBrightness, fetchGlobalBrightness, activateLayoutPreset, fetchLightingDevices, setLightingDevicePower } from '../../../api/lighting';
 import { applyProfile, activateCoolingPreset } from '../../../api/cooling';
+import { activatePanelPreset } from '../../../api/panel';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { controlMedia } from '../../../hooks/useMedia';
 import type { MediaSession } from '../../../hooks/useMedia';
@@ -291,6 +292,9 @@ async function runNexus(a: DeckNexusAction): Promise<void> {
       return;
     case 'coolingPreset':
       if (a.presetId) await activateCoolingPreset(a.presetId);
+      return;
+    case 'displayPreset':
+      if (a.deviceId && a.presetId) await activatePanelPreset(a.deviceId, a.presetId);
       return;
     case 'y70Power':
       await postService('/y70/toggle', { toggle: !(a.on ?? true) });
