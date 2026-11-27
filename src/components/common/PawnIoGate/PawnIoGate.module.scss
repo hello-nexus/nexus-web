@@ -1,0 +1,156 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/onboarding' as *;
+
+// The app's own canvas, opaque, so nothing of the dashboard can show through.
+.page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px 32px;
+  background: var(--backdrop-base);
+  color: var(--text);
+
+  :global(html.nexus-shell-native-glass[data-bg='glass']) & {
+    background: transparent;
+  }
+}
+
+// Window drag and caption buttons for the frameless Windows shell, since the
+// dashboard top bar that normally owns them is not mounted.
+.topBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card {
+  width: min(440px, 100%);
+  padding: 32px;
+  @include onboarding-hero-in;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.brand {
+  display: inline-flex;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.hero {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.accent { background: var(--accent-soft); color: var(--accent-glow); }
+.good { background: rgba(16, 185, 129, 0.15); color: var(--good); }
+.warn { background: var(--warn-soft); color: var(--warn); }
+
+.title {
+  @include text-display;
+  margin: 0;
+}
+
+.body {
+  @include text-body;
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 24rem;
+}
+
+.note {
+  width: 100%;
+  text-align: left;
+}
+
+.bigButton {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sub,
+.dim {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.link {
+  @include text-caption;
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  &:hover { color: var(--text); }
+}
+
+.steps {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+
+  li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 38px;
+    @include text-body;
+  }
+
+  li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    @include text-label;
+    background: var(--bg);
+    border: 1px solid var(--control-border);
+  }
+}
+
+.stepAction {
+  margin-top: 8px;
+}
+
+.why {
+  width: 100%;
+  margin-top: 4px;
+  border-top: 1px solid var(--separator);
+  padding-top: 8px;
+  text-align: left;
+}
+
+.whyBody {
+  @include text-caption;
+  margin: 4px 0 0;
+  padding: 0 var(--space-md, 12px) var(--space-sm, 8px);
+  color: var(--text-dim);
+}

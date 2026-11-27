@@ -84,6 +84,9 @@ import { SystemAccentSync } from './SystemAccentSync';
 import { SidebarCollapsedSync } from './SidebarCollapsedSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { ServiceGatePage } from './ServiceGatePage';
+import { PawnIoGate } from '../components/common/PawnIoGate/PawnIoGate';
+import { PAWNIO_PREVIEW_PARAM, previewFor } from '../components/common/PawnIoGate/pawnioGate';
+import { usePawnIoGate } from './usePawnIoGate';
 import { heroForView } from '../components/common/PageHero/PageHero';
 import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
@@ -357,6 +360,10 @@ function ConflictOnboardingGate({
 export function Dashboard() {
   // Before useRoute: its canonical-path redirect drops the query this reads.
   useState(() => stashPanelEditorTarget(window.location.pathname, window.location.search));
+  // Dev-tools only (statically null in distribution builds). Read here, before
+  // useRoute, for the same reason as the stash above.
+  const [pawnIoPreview, setPawnIoPreview] = useState(() =>
+    DEV_TOOLS ? previewFor(new URLSearchParams(window.location.search).get(PAWNIO_PREVIEW_PARAM)) : null);
   const {
     route, section, view, subtab,
     navigate, setView, setSubtab,
@@ -376,6 +383,8 @@ export function Dashboard() {
   }, [buildFrame.canGoForward, routeGoForward]);
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
+  // Never blocks first paint: null until the service positively reports a not-ok driver.
+  const pawnIo = usePawnIoGate(online && !isRemoteOrigin);
   // Re-read on every reconnect: a factory reset restarts the service and puts
   // all three flags back to pending under this same page. Counted, not keyed on
   // `online` itself: a read issued while the service is down exhausts its
@@ -1061,6 +1070,37 @@ export function Dashboard() {
   // On the bundled local app (localhost / --app shell, isServedFromService) this
   // whole block is skipped: it shows its normal connecting / "service required"
   // UI.
+  if (pawnIoPreview) {
+    return (
+      <PawnIoGate
+        status={pawnIoPreview.status}
+        initialPhase={pawnIoPreview.phase}
+        preview
+        onStatus={() => undefined}
+        onFixed={() => undefined}
+        onContinue={() => {
+          const params = new URLSearchParams(window.location.search);
+          params.delete(PAWNIO_PREVIEW_PARAM);
+          const query = params.toString();
+          window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+          setPawnIoPreview(null);
+        }}
+      />
+    );
+  }
+
+  // The driver gate replaces the whole app, with no sidebar or dashboard behind it.
+  if (online && pawnIo.show && pawnIo.status) {
+    return (
+      <PawnIoGate
+        status={pawnIo.status}
+        onStatus={pawnIo.setStatus}
+        onFixed={pawnIo.onFixed}
+        onContinue={pawnIo.onContinue}
+      />
+    );
+  }
+
   if (isRemoteOrigin && status.state !== 'online') {
     return status.state === 'checking'
       ? <div style={{ minHeight: '100dvh', background: 'var(--backdrop-base)' }} />

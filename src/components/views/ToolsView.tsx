@@ -26,6 +26,7 @@ import { SpeakerSimCard } from './SpeakerSimCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { DEV_TOOLS } from '../../lib/devTools';
+import { PAWNIO_PREVIEW_IDS, previewHref } from '../common/PawnIoGate/pawnioGate';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -67,6 +68,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             {DEV_TOOLS && <AppTelemetryCard />}
             <InstallDefaultsCard />
             <PawnIoCard />
+            {DEV_TOOLS && <PawnIoGatePreviewCard />}
             <PanelSimulatorCard />
             {DEV_TOOLS && <DevSimEventsCard />}
             {DEV_TOOLS && <AstralSimCard />}
@@ -159,6 +161,24 @@ function PawnIoCard() {
       ) : (
         <span className={styles.dim}>{t('tools.pawnio.loading')}</span>
       )}
+    </Card>
+  );
+}
+
+// Dev tools only: opens the driver gate screens with canned data. Nothing is
+// installed or restarted from a preview.
+function PawnIoGatePreviewCard() {
+  const { t } = useTranslation();
+  return (
+    <Card title={t('pawnioGate.preview.title')}>
+      <span className={styles.dim}>{t('pawnioGate.preview.label')}</span>
+      <ul className={styles.previewLinks}>
+        {PAWNIO_PREVIEW_IDS.map(id => (
+          <li key={id}>
+            <Button tone="neutral" size="sm" href={previewHref(id)}>{id}</Button>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
