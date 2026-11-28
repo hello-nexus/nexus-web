@@ -555,6 +555,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }>({ undo: () => null, redo: () => null });
   const pushHistoryRef = useRef<((s: CoolingHistorySnapshot) => void) | null>(null);
   const pushHistory = useCallback(() => { pushHistoryRef.current?.(captureHistory()); }, [captureHistory]);
+  const pushHistoryGestureRef = useRef<((s: CoolingHistorySnapshot) => void) | null>(null);
+  const pushHistoryGesture = useCallback(() => { pushHistoryGestureRef.current?.(captureHistory()); }, [captureHistory]);
 
   // Mode first (it rewrites assignments), then the curve library and
   // assignments the snapshot actually recorded, then the per-fan values.
@@ -592,6 +594,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   const {
     push: pushHistorySnapshot,
+    pushGesture: pushHistoryGestureSnapshot,
+    endGesture: endHistoryGesture,
     undo: undoHistory,
     redo: redoHistory,
     canUndo,
@@ -604,6 +608,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   });
   undoRedoRef.current = { undo: undoHistory, redo: redoHistory };
   pushHistoryRef.current = pushHistorySnapshot;
+  pushHistoryGestureRef.current = pushHistoryGestureSnapshot;
 
   // Fired after any change the preset stores. The service captures live state,
   // so this needs no payload - and it is a no-op when no preset is loaded.
@@ -1091,10 +1096,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
   }, [curves, fanStates, pushCurves, selectedCurveId, setSelectedCurveId]);
 
-  const saveCurveAndPush = useCallback((updated: CurveDef) => {
-    // One entry per drag: CurveEditor commits on pointer-up (onChange), while
-    // the continuous in-drag stream goes to onPreview and never lands here.
-    pushHistory();
+  const saveCurveAndPush = useCallback((updated: CurveDef, live = false) => {
+    // Graph drags: CurveEditor commits on pointer-up (onChange) and its in-drag
+    // stream goes to onPreview, so each graph drag lands here once.
+    // Slider steps arrive here live and share one entry until the slider commits.
+    if (live) pushHistoryGesture(); else pushHistory();
     // Any edit to a preset curve diverges it from defaults; flip the dirty
     // flag optimistically so the Reset button enables immediately. The echoed
     // `cooling` refresh is suppressed below (so the edit isn't clobbered
@@ -1108,7 +1114,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // multipoint) isn't clobbered mid-gesture by our own save bouncing back.
     curveEditLockUntilRef.current = Date.now() + 2000;
     pushCurves(next, fanStates);
-  }, [curves, fanStates, pushCurves, pushHistory]);
+  }, [curves, fanStates, pushCurves, pushHistory, pushHistoryGesture]);
 
   // A curve owns one temp source for every fan on it. Editing it with only some
   // of those fans selected would silently re-point the rest, so the change
@@ -1139,7 +1145,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return selectedFanIds.size > 0 && [...selectedFanIds].every(id => set.has(id));
   }, [selectedFanIds]);
 
-  const handleCurveEdit = useCallback((updated: CurveDef) => {
+  const handleCurveEdit = useCallback((updated: CurveDef, live = false) => {
     const current = curves.find(c => c.id === updated.id);
     if (current && updated.sourceId !== current.sourceId) {
       if (selectionWithin(fanIdsOnCurve(current.id)) && hasUnselectedSelectable(current.id)) {
@@ -1147,7 +1153,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         return;
       }
     }
-    saveCurveAndPush(updated);
+    saveCurveAndPush(updated, live);
   }, [curves, fanIdsOnCurve, hasUnselectedSelectable, saveCurveAndPush, selectionWithin]);
 
   // The dialog can outlive the state it was opened on; both actions re-read
@@ -1239,6 +1245,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const curveEditorInert = scopedCurveId === null;
   // The thermal guard's own curve: shown, never edited.
   const curveManaged = isManagedCurve(selectedCurve?.id);
+
+  // A slider drag can end without onCommit (unmount, disable, focus moved), so
+  // close any open history gesture when the editing context changes.
+  useEffect(() => { endHistoryGesture(); }, [effectiveCurveId, curveEditorInert, curveManaged, activeMode, endHistoryGesture]);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
@@ -2165,6 +2175,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 channels={channels}
                 syncExcludedIds={syncExcludedIds}
                 onChange={curveEditorInert || curveManaged ? noopCurveEdit : handleCurveEdit}
+                onCommit={endHistoryGesture}
                 onDelete={curveEditorInert || curveManaged ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
                 onResetPreset={selectedCurve.preset
                   ? (curveEditorInert || curveManaged ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))

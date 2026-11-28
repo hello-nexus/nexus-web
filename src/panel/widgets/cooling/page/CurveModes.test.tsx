@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CurveCard, computeCurveSpeed } from './CurveEditor';
 import { newCurve } from '../../../../types/cooling';
@@ -172,5 +172,34 @@ describe('curve editor controls per mode', () => {
   it('keeps the temperature source row for trigger and auto', () => {
     renderCard(curveOf('trigger'));
     expect(screen.getByText('cooling.curve.source')).toBeInTheDocument();
+  });
+
+  describe('history gestures', () => {
+    function renderTracked(curve: CurveDef) {
+      const onChange = vi.fn();
+      const onCommit = vi.fn();
+      const { container } = render(
+        <CurveCard curve={curve} allCurves={[curve]} sources={[SOURCE]} onChange={onChange} onCommit={onCommit} onDelete={() => {}} />,
+      );
+      return { container, onChange, onCommit };
+    }
+
+    it('marks a slider drag step live', () => {
+      const { container, onChange } = renderTracked(curveOf('auto'));
+      const response = [...container.querySelectorAll<HTMLInputElement>('input[type="range"]')]
+        .find(r => r.step === '0.1')!;
+      fireEvent.change(response, { target: { value: '3' } });
+      expect(onChange).toHaveBeenLastCalledWith(expect.anything(), true);
+    });
+
+    it('does not mark a typed range value live, so it records its own entry', () => {
+      const { container, onChange } = renderTracked(curveOf('auto'));
+      const idleTemp = curveOf('auto').auto.idleTemp;
+      fireEvent.click(screen.getByRole('button', { name: `${idleTemp}°` }));
+      const field = container.querySelector('input[type="number"]') as HTMLInputElement;
+      fireEvent.change(field, { target: { value: '45' } });
+      fireEvent.keyDown(field, { key: 'Enter' });
+      expect(onChange).toHaveBeenLastCalledWith(expect.anything(), false);
+    });
   });
 });
