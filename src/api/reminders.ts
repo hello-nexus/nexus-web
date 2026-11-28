@@ -66,6 +66,7 @@ export const REMINDER_LIMITS = {
   notes: 10000,
   listName: 100,
   url: 2048,
+  emojiGlyph: 32,
   maxOrder: 1_000_000,
 } as const;
 

@@ -14,18 +14,25 @@ let nextId = 1;
 const listeners = new Set<() => void>();
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-// A Lucide icon name, or an emoji glyph: up to 32 UTF-16 units, no control or whitespace, no format character but ZWJ, not only joiners and variation selectors.
+// A Lucide icon name, or an emoji glyph capped in UTF-16 units. Joiners, variation selectors and tag characters may sit inside a sequence but
+// never stand alone; control, whitespace, other format, unassigned, private-use and unpaired surrogate characters are rejected.
 const ICON_NAME = /^[A-Za-z0-9_-]{1,64}$/;
-const EMOJI_PREFIX_LEN = 'emoji:'.length;
+const EMOJI_PREFIX = 'emoji:';
+const REJECTED_GLYPH_CHAR = /[\p{Cc}\p{Cf}\p{Cn}\p{Co}\p{Cs}\s]/u;
+
+const isModifier = (c: string): boolean => {
+  const v = c.codePointAt(0)!;
+  return v === 0x200d || (v >= 0xfe00 && v <= 0xfe0f) || (v >= 0xe0020 && v <= 0xe007f);
+};
 
 function validIcon(icon: string): boolean {
   if (ICON_NAME.test(icon)) return true;
-  if (!icon.startsWith('emoji:')) return false;
-  const glyph = icon.slice(EMOJI_PREFIX_LEN);
-  if (glyph.length < 1 || glyph.length > 32) return false;
-  if (/[\p{Cc}\s]/u.test(glyph)) return false;
-  if (/(?![\u200D])\p{Cf}/u.test(glyph)) return false;
-  return [...glyph].some(c => c !== '\u200D' && !(c >= '\uFE00' && c <= '\uFE0F'));
+  if (!icon.startsWith(EMOJI_PREFIX)) return false;
+  const glyph = icon.slice(EMOJI_PREFIX.length);
+  if (glyph.length < 1 || glyph.length > REMINDER_LIMITS.emojiGlyph) return false;
+  const chars = [...glyph];
+  if (chars.some(c => !isModifier(c) && REJECTED_GLYPH_CHAR.test(c))) return false;
+  return chars.some(c => !isModifier(c));
 }
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;

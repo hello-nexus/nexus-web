@@ -90,6 +90,10 @@ describe('reminders dev mock rules', () => {
     await expect(mk('emoji:a\u200bb')).rejects.toMatchObject({ code: 'invalid' });
     await expect(mk(`emoji:${'a'.repeat(33)}`)).rejects.toMatchObject({ code: 'invalid' });
     expect((await mk('emoji:\u2764\ufe0f')).icon).toContain('emoji:');
+    expect((await mk('emoji:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f')).icon).toContain('emoji:');
+    await expect(mk('emoji:\ue000')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk(`emoji:${'\ud83d'}`)).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk('emoji:\udb40\udc67')).rejects.toMatchObject({ code: 'invalid' });
     await expect(mk('bad icon')).rejects.toMatchObject({ code: 'invalid' });
   });
 
