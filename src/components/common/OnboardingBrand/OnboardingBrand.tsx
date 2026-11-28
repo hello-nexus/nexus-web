@@ -21,7 +21,7 @@ export function useNexusVersion(enabled: boolean): string {
 }
 
 /**
- * The first onboarding page's brand block: the colour mark, then the
+ * The first onboarding page's brand block: the color mark, then the
  * wordmark with the version line under it. Renders as two siblings meant to
  * sit inside the page's centered hero column.
  */

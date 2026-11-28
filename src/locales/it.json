@@ -5556,7 +5556,7 @@
   "pawnioGate.install.title": "Installa il driver hardware",
   "pawnioGate.installing.button": "Installazione...",
   "pawnioGate.installing.title": "Installazione del driver",
-  "pawnioGate.notRunning.body": "Nexus di solito può risolvere per te.",
+  "pawnioGate.notRunning.body": "Di solito Nexus può risolverlo per te.",
   "pawnioGate.notRunning.button": "Ripara driver",
   "pawnioGate.notRunning.title": "Il driver hardware non è in esecuzione",
   "pawnioGate.notice.flashing": "Un aggiornamento del firmware è in corso. Attendi che finisca e riprova.",
