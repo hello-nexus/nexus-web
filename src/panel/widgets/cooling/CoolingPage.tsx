@@ -1097,9 +1097,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [curves, fanStates, pushCurves, selectedCurveId, setSelectedCurveId]);
 
   const saveCurveAndPush = useCallback((updated: CurveDef, live = false) => {
-    // One entry per drag: CurveEditor commits on pointer-up (onChange), while
-    // the continuous in-drag stream goes to onPreview and never lands here.
-    // Slider steps arrive here live; they share one entry until the slider commits.
+    // Graph drags: CurveEditor commits on pointer-up (onChange) and its in-drag
+    // stream goes to onPreview, so each graph drag lands here once.
+    // Slider steps arrive here live and share one entry until the slider commits.
     if (live) pushHistoryGesture(); else pushHistory();
     // Any edit to a preset curve diverges it from defaults; flip the dirty
     // flag optimistically so the Reset button enables immediately. The echoed
@@ -1245,6 +1245,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const curveEditorInert = scopedCurveId === null;
   // The thermal guard's own curve: shown, never edited.
   const curveManaged = isManagedCurve(selectedCurve?.id);
+
+  // A slider drag can end without onCommit (unmount, disable, focus moved), so
+  // close any open history gesture when the editing context changes.
+  useEffect(() => { endHistoryGesture(); }, [selectedCurveId, curveEditorInert, curveManaged, activeMode, endHistoryGesture]);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 

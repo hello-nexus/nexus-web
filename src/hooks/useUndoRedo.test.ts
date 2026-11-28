@@ -144,7 +144,7 @@ describe('useUndoRedo', () => {
   describe('gesture coalescing', () => {
     it('records one entry for a multi-step drag and undo restores the pre-drag value', () => {
       const { result } = renderHook(() => useUndoRedo<number>());
-      // Drag from 1 to 4: the caller snapshots the current value before each step.
+      // Multi-step drag: the caller snapshots the current value before each step.
       act(() => { result.current.pushGesture(1); });
       act(() => { result.current.pushGesture(2); });
       act(() => { result.current.pushGesture(3); });

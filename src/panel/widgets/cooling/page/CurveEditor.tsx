@@ -134,7 +134,7 @@ export function computeCurveSpeed(
 
 // ── Response time helper ──────────────────────────────────────────────────
 // Wraps the canonical Slider with the seconds formatter so callers stay terse.
-function ResponseTimeSlider({ value, onChange, onCommit, disabled }: { value: number; onChange: (v: number) => void; onCommit?: () => void; disabled?: boolean }) {
+function ResponseTimeSlider({ value, onChange, onCommit, disabled }: { value: number; onChange: (v: number, commit?: boolean) => void; onCommit?: () => void; disabled?: boolean }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   return (
@@ -761,7 +761,9 @@ export const CurveCard = memo(function CurveCard({
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const set = (partial: Partial<CurveDef>) => onChange({ ...curve, ...partial });
-  const setLive = (partial: Partial<CurveDef>) => onChange({ ...curve, ...partial }, true);
+  // A slider step is live (history waits for onCommit); a typed value arrives
+  // with commit set and has no gesture, so it records its own entry.
+  const setLive = (partial: Partial<CurveDef>, commit = false) => onChange({ ...curve, ...partial }, !commit);
 
   const excludedSyncIds = useMemo(() => new Set(syncExcludedIds), [syncExcludedIds]);
 
@@ -859,31 +861,31 @@ export const CurveCard = memo(function CurveCard({
     <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.fixed.speed')}
       info={t('cooling.curve.fixed.speed.help')}
       value={curve.flat.speed} min={0} max={100} trackFill formatValue={v => `${v}%`}
-      onChange={v => setLive({ flat: { speed: v } })} onCommit={onCommit} />
+      onChange={(v, commit) => setLive({ flat: { speed: v } }, commit)} onCommit={onCommit} />
   );
   const linearBlock = (
     <div className={styles.linearControls}>
       <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.linear.temp')}
         info={t('cooling.curve.linear.temp.help')}
         value={[curve.linear.minTemp, curve.linear.maxTemp]} min={20} max={100} formatValue={v => `${v}°`}
-        onChange={([minTemp, maxTemp]) => setLive({ linear: { ...curve.linear, minTemp, maxTemp } })} onCommit={onCommit} />
+        onChange={([minTemp, maxTemp], commit) => setLive({ linear: { ...curve.linear, minTemp, maxTemp } }, commit)} onCommit={onCommit} />
       <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.linear.speed')}
         info={t('cooling.curve.linear.speed.help')}
         value={[curve.linear.minSpeed, curve.linear.maxSpeed]} min={0} max={100} formatValue={v => `${v}%`}
-        onChange={([minSpeed, maxSpeed]) => setLive({ linear: { ...curve.linear, minSpeed, maxSpeed } })} onCommit={onCommit} />
+        onChange={([minSpeed, maxSpeed], commit) => setLive({ linear: { ...curve.linear, minSpeed, maxSpeed } }, commit)} onCommit={onCommit} />
       <ResponseTimeSlider disabled={readOnly} value={curve.linear.responseTime}
-        onChange={v => setLive({ linear: { ...curve.linear, responseTime: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ linear: { ...curve.linear, responseTime: v } }, commit)} onCommit={onCommit} />
     </div>
   );
   const multipointResponse = (
     <ResponseTimeSlider disabled={readOnly} value={curve.multipoint.responseTime}
-      onChange={v => setLive({ multipoint: { ...curve.multipoint, responseTime: v } })} onCommit={onCommit} />
+      onChange={(v, commit) => setLive({ multipoint: { ...curve.multipoint, responseTime: v } }, commit)} onCommit={onCommit} />
   );
   const mixBlock = (
     <>
       <MixControls curve={curve} allCurves={allCurves} sources={sources} channels={channels} onChange={onChange} />
       <ResponseTimeSlider disabled={readOnly} value={curve.mix.responseTime}
-        onChange={v => setLive({ mix: { ...curve.mix, responseTime: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ mix: { ...curve.mix, responseTime: v } }, commit)} onCommit={onCommit} />
     </>
   );
 
@@ -892,13 +894,13 @@ export const CurveCard = memo(function CurveCard({
       <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.trigger.temp')}
         info={t('cooling.curve.trigger.temp.help')}
         value={[curve.trigger.idleTemp, curve.trigger.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
-        onChange={([idleTemp, loadTemp]) => setLive({ trigger: { ...curve.trigger, idleTemp, loadTemp } })} onCommit={onCommit} />
+        onChange={([idleTemp, loadTemp], commit) => setLive({ trigger: { ...curve.trigger, idleTemp, loadTemp } }, commit)} onCommit={onCommit} />
       <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.trigger.speed')}
         info={t('cooling.curve.trigger.speed.help')}
         value={[curve.trigger.idleSpeed, curve.trigger.loadSpeed]} min={0} max={100} formatValue={v => `${v}%`}
-        onChange={([idleSpeed, loadSpeed]) => setLive({ trigger: { ...curve.trigger, idleSpeed, loadSpeed } })} onCommit={onCommit} />
+        onChange={([idleSpeed, loadSpeed], commit) => setLive({ trigger: { ...curve.trigger, idleSpeed, loadSpeed } }, commit)} onCommit={onCommit} />
       <ResponseTimeSlider disabled={readOnly} value={curve.trigger.responseTime}
-        onChange={v => setLive({ trigger: { ...curve.trigger, responseTime: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ trigger: { ...curve.trigger, responseTime: v } }, commit)} onCommit={onCommit} />
     </div>
   );
 
@@ -909,21 +911,21 @@ export const CurveCard = memo(function CurveCard({
         info={t('cooling.curve.auto.temp.help')}
         value={[curve.auto.idleTemp, curve.auto.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
         minGap={curve.auto.deadband + 1}
-        onChange={([idleTemp, loadTemp]) => setLive({ auto: { ...curve.auto, idleTemp, loadTemp } })} onCommit={onCommit} />
+        onChange={([idleTemp, loadTemp], commit) => setLive({ auto: { ...curve.auto, idleTemp, loadTemp } }, commit)} onCommit={onCommit} />
       <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.speed')}
         info={t('cooling.curve.auto.speed.help')}
         value={[curve.auto.minSpeed, curve.auto.maxSpeed]} min={0} max={100} formatValue={v => `${v}%`}
-        onChange={([minSpeed, maxSpeed]) => setLive({ auto: { ...curve.auto, minSpeed, maxSpeed } })} onCommit={onCommit} />
+        onChange={([minSpeed, maxSpeed], commit) => setLive({ auto: { ...curve.auto, minSpeed, maxSpeed } }, commit)} onCommit={onCommit} />
       <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.step')}
         info={t('cooling.curve.auto.step.help')}
         value={curve.auto.step} min={1} max={20} step={1} trackFill formatValue={v => `${v}%`}
-        onChange={v => setLive({ auto: { ...curve.auto, step: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ auto: { ...curve.auto, step: v } }, commit)} onCommit={onCommit} />
       <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.deadband')}
         info={t('cooling.curve.auto.deadband.help')}
         value={curve.auto.deadband} min={0} max={10} step={1} trackFill formatValue={v => `${v}°`}
-        onChange={v => setLive({ auto: { ...curve.auto, deadband: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ auto: { ...curve.auto, deadband: v } }, commit)} onCommit={onCommit} />
       <ResponseTimeSlider disabled={readOnly} value={curve.auto.responseTime}
-        onChange={v => setLive({ auto: { ...curve.auto, responseTime: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ auto: { ...curve.auto, responseTime: v } }, commit)} onCommit={onCommit} />
     </div>
   );
 
@@ -959,7 +961,7 @@ export const CurveCard = memo(function CurveCard({
         info={t('cooling.curve.sync.offset.help')}
         value={curve.sync.offset} min={-50} max={50} step={1} trackFill
         formatValue={v => (curve.sync.proportional ? `${v > 0 ? '+' : ''}${v}%` : `${v > 0 ? '+' : ''}${v}`)}
-        onChange={v => setLive({ sync: { ...curve.sync, offset: v } })} onCommit={onCommit} />
+        onChange={(v, commit) => setLive({ sync: { ...curve.sync, offset: v } }, commit)} onCommit={onCommit} />
     </div>
   );
 
