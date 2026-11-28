@@ -21,11 +21,13 @@ interface Props {
   variant?: 'panel' | 'page';
   onEventPress?: (ev: CalEvent, el: HTMLElement) => void;
   onMorePress?: (day: number, el: HTMLElement) => void;
+  // Makes each day number a button that opens that day.
+  onDayPress?: (day: number) => void;
   selectedEventId?: string | null;
 }
 
 export function CalendarMonthGrid({
-  monthStart, weekStart, events, now, fmt, lookFor, rows, showTimes = false, compact, variant = 'panel', onEventPress, onMorePress, selectedEventId,
+  monthStart, weekStart, events, now, fmt, lookFor, rows, showTimes = false, compact, variant = 'panel', onEventPress, onMorePress, onDayPress, selectedEventId,
 }: Props) {
   const { t } = useTranslation();
   const today = startOfDay(now);
@@ -55,7 +57,9 @@ export function CalendarMonthGrid({
               ].filter(Boolean).join(' ');
               return (
                 <div key={day} className={cls} style={{ gridColumn: i + 1 }} data-today={day === today ? 'true' : undefined}>
-                  <span>{fmt.dayNumber(day)}</span>
+                  {onDayPress
+                    ? <button type="button" className={styles.dayButton} aria-label={fmt.fullDate(day)} onClick={() => onDayPress(day)}>{fmt.dayNumber(day)}</button>
+                    : <span>{fmt.dayNumber(day)}</span>}
                 </div>
               );
             })}

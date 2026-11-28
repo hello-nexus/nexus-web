@@ -46,7 +46,7 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 
-  span {
+  span, .dayButton {
     display: inline-flex;
     width: 20px;
     height: 20px;
@@ -55,12 +55,22 @@
     border-radius: 50%;
   }
 }
+.dayButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover { background: var(--accent-soft); }
+}
 .page .num { font-size: 13px; }
 .compact .num { padding-left: 3px; }
 .out { color: var(--text-dim); opacity: 0.55; }
 .weekend { color: var(--text-dim); }
 .todayFill { grid-row: 1 / -1; background-color: var(--accent-soft); pointer-events: none; }
-.today span { background: var(--panel-accent); color: var(--accent-text); font-weight: var(--weight-strong); }
+.today span, .today .dayButton { background: var(--panel-accent); color: var(--accent-text); font-weight: var(--weight-strong); }
 
 .bar {
   @include tint;

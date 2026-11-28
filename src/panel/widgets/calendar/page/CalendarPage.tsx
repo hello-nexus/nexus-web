@@ -220,6 +220,7 @@ export function CalendarPage({ tab, onTabChange }: Props) {
                   variant="page"
                   onEventPress={openEvent}
                   onMorePress={openMore}
+                  onDayPress={selectDay}
                   selectedEventId={popupEvent?.id}
                 />
               )}

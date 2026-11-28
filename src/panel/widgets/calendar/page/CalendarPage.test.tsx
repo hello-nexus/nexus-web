@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CalendarRequestError, type CalendarProbe, type CalendarSourceDto } from '../../../../api/calendar';
@@ -85,6 +86,42 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+function Host({ start }: { start: string }) {
+  const [tab, setTab] = useState<string | null>(start);
+  return <CalendarPage tab={tab} onTabChange={setTab} />;
+}
+
+describe('CalendarPage date selection', () => {
+  const activeTab = (c: HTMLElement) => c.querySelector('[role="tab"][aria-selected="true"]')?.textContent;
+  const railDay = (c: HTMLElement, label: string) => within(c.querySelector('aside') as HTMLElement).getByRole('button', { name: label });
+
+  it('opens the day clicked in the rail mini-month and stays on it', () => {
+    const { container } = render(<Host start="month" />);
+    fireEvent.click(railDay(container, '30'));
+    expect(activeTab(container)).toBe('panel.widget.calendar.view.day');
+    expect(screen.getByText('Monday, November 30')).toBeTruthy();
+  });
+
+  it('opens the day whose number is clicked in the month grid', () => {
+    const { container } = render(<Host start="month" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Monday, November 30' }));
+    expect(activeTab(container)).toBe('panel.widget.calendar.view.day');
+    expect(screen.getByText('Monday, November 30')).toBeTruthy();
+  });
+
+  it('steps and returns to today from a day picked in the month grid', () => {
+    render(<Host start="month" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Monday, November 30' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.calendar.next' }));
+    expect(screen.getByText('Tuesday, December 1')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.calendar.prev' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.calendar.prev' }));
+    expect(screen.getByText('Sunday, November 29')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.calendar.today' }));
+    expect(screen.getByText('Tuesday, November 17')).toBeTruthy();
+  });
 });
 
 describe('CalendarPage', () => {
