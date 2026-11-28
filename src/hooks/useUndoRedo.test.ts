@@ -140,4 +140,50 @@ describe('useUndoRedo', () => {
     });
     expect(redos).toBe(1);
   });
+
+  describe('gesture coalescing', () => {
+    it('records one entry for a multi-step drag and undo restores the pre-drag value', () => {
+      const { result } = renderHook(() => useUndoRedo<number>());
+      // Drag from 1 to 4: the caller snapshots the current value before each step.
+      act(() => { result.current.pushGesture(1); });
+      act(() => { result.current.pushGesture(2); });
+      act(() => { result.current.pushGesture(3); });
+      act(() => { result.current.endGesture(); });
+      let restored: number | null = null;
+      act(() => { restored = result.current.undo(4); });
+      expect(restored).toBe(1);
+      expect(result.current.canUndo).toBe(false);
+    });
+
+    it('records a new entry per gesture after endGesture', () => {
+      const { result } = renderHook(() => useUndoRedo<number>());
+      act(() => { result.current.pushGesture(1); });
+      act(() => { result.current.pushGesture(2); });
+      act(() => { result.current.endGesture(); });
+      act(() => { result.current.pushGesture(5); });
+      act(() => { result.current.pushGesture(6); });
+      act(() => { result.current.endGesture(); });
+      let first: number | null = null;
+      let second: number | null = null;
+      act(() => { first = result.current.undo(9); });
+      act(() => { second = result.current.undo(5); });
+      expect(first).toBe(5);
+      expect(second).toBe(1);
+      expect(result.current.canUndo).toBe(false);
+    });
+
+    it('a plain push closes an open gesture', () => {
+      const { result } = renderHook(() => useUndoRedo<number>());
+      act(() => { result.current.pushGesture(1); });
+      act(() => { result.current.push(2); });
+      act(() => { result.current.pushGesture(3); });
+      let restored: number | null = null;
+      act(() => { restored = result.current.undo(4); });
+      expect(restored).toBe(3);
+      act(() => { restored = result.current.undo(3); });
+      expect(restored).toBe(2);
+      act(() => { restored = result.current.undo(2); });
+      expect(restored).toBe(1);
+    });
+  });
 });

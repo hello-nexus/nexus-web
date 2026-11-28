@@ -18,6 +18,10 @@ export interface UseUndoRedoOptions<T = unknown> {
 
 export interface UseUndoRedoResult<T> {
   push: (snapshot: T) => void;
+  /** Like push, but only the first call of an open gesture records; later calls are dropped until endGesture. */
+  pushGesture: (snapshot: T) => void;
+  /** Closes the open gesture so the next pushGesture records again. */
+  endGesture: () => void;
   undo: (current: T) => T | null;
   redo: (current: T) => T | null;
   canUndo: boolean;
@@ -38,7 +42,10 @@ export function useUndoRedo<T>(opts: UseUndoRedoOptions<T> = {}): UseUndoRedoRes
   storeRef.current = opts.store;
   useEffect(() => { storeRef.current?.write(stacks); }, [stacks]);
 
+  const gestureOpenRef = useRef(false);
+
   const push = useCallback((snapshot: T) => {
+    gestureOpenRef.current = false;
     setStacks(prev => {
       const next = [...prev.undo, snapshot];
       if (next.length > maxDepth) next.shift();
@@ -46,7 +53,16 @@ export function useUndoRedo<T>(opts: UseUndoRedoOptions<T> = {}): UseUndoRedoRes
     });
   }, [maxDepth]);
 
+  const pushGesture = useCallback((snapshot: T) => {
+    if (gestureOpenRef.current) return;
+    push(snapshot);
+    gestureOpenRef.current = true;
+  }, [push]);
+
+  const endGesture = useCallback(() => { gestureOpenRef.current = false; }, []);
+
   const undo = useCallback((current: T): T | null => {
+    gestureOpenRef.current = false;
     const s = stacksRef.current;
     if (s.undo.length === 0) return null;
     const restored = s.undo[s.undo.length - 1];
@@ -55,6 +71,7 @@ export function useUndoRedo<T>(opts: UseUndoRedoOptions<T> = {}): UseUndoRedoRes
   }, []);
 
   const redo = useCallback((current: T): T | null => {
+    gestureOpenRef.current = false;
     const s = stacksRef.current;
     if (s.redo.length === 0) return null;
     const restored = s.redo[s.redo.length - 1];
@@ -63,6 +80,7 @@ export function useUndoRedo<T>(opts: UseUndoRedoOptions<T> = {}): UseUndoRedoRes
   }, []);
 
   const reset = useCallback(() => {
+    gestureOpenRef.current = false;
     setStacks({ undo: [], redo: [] });
   }, []);
 
@@ -89,6 +107,8 @@ export function useUndoRedo<T>(opts: UseUndoRedoOptions<T> = {}): UseUndoRedoRes
 
   return {
     push,
+    pushGesture,
+    endGesture,
     undo,
     redo,
     canUndo: stacks.undo.length > 0,
