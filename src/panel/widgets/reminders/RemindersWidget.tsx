@@ -17,7 +17,7 @@ import styles from './RemindersWidget.module.scss';
 
 const MAX_ROWS: Partial<Record<PanelWidgetSize, number>> = { '2x2': 3, '2x4': 6, '4x2': 3, '4x4': 9 };
 const MAX_LIST_ROWS = 5;
-// Cards per row in the grid view: 2x2 is two compact icon-and-count cards by three; the tall strip is one labeled column; the wide sizes are three by two.
+// Cards per row in the grid view; the tall strip is a single column.
 const GRID_COLUMNS: Partial<Record<PanelWidgetSize, number>> = { '2x2': 2, '2x4': 1, '4x2': 3, '4x4': 3 };
 
 /**

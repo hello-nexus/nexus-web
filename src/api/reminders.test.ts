@@ -25,7 +25,6 @@ describe('reminders api client', () => {
     await createReminderList({ name: 'A', color: '#112233', icon: 'list' });
     await updateReminder('i 1', { completed: true, dueDate: null });
     await deleteReminderList('l1');
-    await clearCompletedReminders('l1');
     await clearCompletedReminders();
     await reorderReminders('l1', ['b', 'a']);
     await createReminder({ listId: 'l1', title: 'T' });
@@ -33,7 +32,6 @@ describe('reminders api client', () => {
       ['/api/reminders/lists', { method: 'POST', body: { name: 'A', color: '#112233', icon: 'list' } }],
       ['/api/reminders/items/i%201', { method: 'PUT', body: { completed: true, dueDate: null } }],
       ['/api/reminders/lists/l1', { method: 'DELETE', body: undefined }],
-      ['/api/reminders/items/clear-completed', { method: 'POST', body: { listId: 'l1' } }],
       ['/api/reminders/items/clear-completed', { method: 'POST', body: {} }],
       ['/api/reminders/reorder', { method: 'POST', body: { listId: 'l1', itemIds: ['b', 'a'] } }],
       ['/api/reminders/items', { method: 'POST', body: { listId: 'l1', title: 'T' } }],
@@ -87,6 +85,11 @@ describe('reminders dev mock rules', () => {
     expect((await mk('emoji:👨\u200d👩\u200d👧\u200d👦')).icon).toContain('emoji:');
     await expect(mk('emoji:')).rejects.toMatchObject({ code: 'invalid' });
     await expect(mk('emoji:a b')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk('emoji:\u200d')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk('emoji:\ufe0f\u200d')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk('emoji:a\u200bb')).rejects.toMatchObject({ code: 'invalid' });
+    await expect(mk(`emoji:${'a'.repeat(33)}`)).rejects.toMatchObject({ code: 'invalid' });
+    expect((await mk('emoji:\u2764\ufe0f')).icon).toContain('emoji:');
     await expect(mk('bad icon')).rejects.toMatchObject({ code: 'invalid' });
   });
 

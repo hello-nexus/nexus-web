@@ -14,8 +14,19 @@ let nextId = 1;
 const listeners = new Set<() => void>();
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
-// A Lucide icon name, or an emoji sequence (ZWJ and variation selectors included) after the prefix.
-const ICON = /^([A-Za-z0-9_-]{1,64}|emoji:\S{1,32})$/u;
+// A Lucide icon name, or an emoji glyph: up to 32 UTF-16 units, no control or whitespace, no format character but ZWJ, not only joiners and variation selectors.
+const ICON_NAME = /^[A-Za-z0-9_-]{1,64}$/;
+const EMOJI_PREFIX_LEN = 'emoji:'.length;
+
+function validIcon(icon: string): boolean {
+  if (ICON_NAME.test(icon)) return true;
+  if (!icon.startsWith('emoji:')) return false;
+  const glyph = icon.slice(EMOJI_PREFIX_LEN);
+  if (glyph.length < 1 || glyph.length > 32) return false;
+  if (/[\p{Cc}\s]/u.test(glyph)) return false;
+  if (/(?![\u200D])\p{Cf}/u.test(glyph)) return false;
+  return [...glyph].some(c => c !== '\u200D' && !(c >= '\uFE00' && c <= '\uFE0F'));
+}
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -59,7 +70,7 @@ function checkListFields(f: ReminderListPatch): void {
   if (f.order !== undefined && !(Number.isInteger(f.order) && f.order >= 0 && f.order <= REMINDER_LIMITS.maxOrder)) throw invalid();
   if (f.name !== undefined && (f.name.trim() === '' || f.name.trim().length > REMINDER_LIMITS.listName)) throw invalid();
   if (f.color !== undefined && !COLOR.test(f.color)) throw invalid();
-  if (f.icon !== undefined && !ICON.test(f.icon)) throw invalid();
+  if (f.icon !== undefined && !validIcon(f.icon)) throw invalid();
 }
 
 /** The mock has no socket: the store subscribes here for the same refetch signal a topic frame gives. */
@@ -158,9 +169,9 @@ export function mockDeleteItem(id: string): Record<string, never> {
   return {};
 }
 
-export function mockClearCompleted(listId?: string): { removed: number } {
+export function mockClearCompleted(): { removed: number } {
   ensureAvailable();
-  const keep = items.filter(i => !(i.completed && (listId === undefined || i.listId === listId)));
+  const keep = items.filter(i => !i.completed);
   const removed = items.length - keep.length;
   items = keep;
   changed();

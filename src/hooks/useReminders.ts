@@ -183,7 +183,7 @@ export interface ReminderMutations {
   update: (id: string, patch: ReminderPatch) => Promise<void>;
   setCompleted: (id: string, completed: boolean) => Promise<void>;
   remove: (id: string) => Promise<void>;
-  clearCompleted: (listId?: string) => Promise<void>;
+  clearCompleted: () => Promise<void>;
   /** `shownIds` is the list's open items in their new order; the whole set the service needs is built from the server copy. */
   reorder: (listId: string, shownIds: string[]) => Promise<void>;
 }
@@ -232,9 +232,9 @@ export function useReminderMutations(): ReminderMutations {
     update,
     setCompleted: (id, completed) => update(id, { completed }),
     remove: id => write(s => ({ ...s, items: s.items.filter(i => i.id !== id) }), () => deleteReminder(id)),
-    clearCompleted: listId => write(
-      s => ({ ...s, items: s.items.filter(i => !(i.completed && (listId === undefined || i.listId === listId))) }),
-      () => clearCompletedReminders(listId),
+    clearCompleted: () => write(
+      s => ({ ...s, items: s.items.filter(i => !i.completed) }),
+      () => clearCompletedReminders(),
     ).then(() => undefined),
     reorder: (listId, shownIds) => {
       const mine = server.items.filter(i => i.listId === listId);

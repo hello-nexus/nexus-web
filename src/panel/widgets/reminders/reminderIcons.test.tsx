@@ -33,13 +33,22 @@ describe('list icon resolution', () => {
     expect(resolveListIcon('')).toEqual({ kind: 'lucide', Icon: List });
   });
 
+  it('makes every default and seeded icon selectable in the picker', () => {
+    for (const key of ['list', 'bookmark', 'star', 'heart', 'home', 'cart', 'briefcase', 'gift']) {
+      const value = pickerValueFor(key);
+      expect(value?.kind).toBe('lucide');
+      expect(DECK_ICONS[value!.value]).toBeDefined();
+    }
+  });
+
   it('round-trips a picker choice through the stored key', () => {
     expect(keyFromPicker({ kind: 'lucide', value: 'Rocket' })).toBe('Rocket');
     expect(keyFromPicker({ kind: 'emoji', value: '🛒' })).toBe('emoji:🛒');
     expect(pickerValueFor('emoji:🛒')).toEqual({ kind: 'emoji', value: '🛒' });
     expect(pickerValueFor('Rocket')).toEqual({ kind: 'lucide', value: 'Rocket' });
     expect(pickerValueFor('home')).toEqual({ kind: 'lucide', value: 'Home' });
-    expect(pickerValueFor('cart')).toBeUndefined();
+    expect(pickerValueFor('cart')).toEqual({ kind: 'lucide', value: 'ShoppingCart' });
+    expect(pickerValueFor('Nope')).toBeUndefined();
   });
 
   it('draws a Lucide icon as an svg and an emoji as its glyph text', () => {

@@ -67,7 +67,7 @@ interface GridProps {
   fill?: boolean;
 }
 
-/** The six smart-list cards in a grid of `columns`. */
+/** The smart-list cards in a grid of `columns`. */
 export function ReminderCardGrid({ counts, active, onSelect, columns, layout = 'row', showLabels = true, className, fill = false }: GridProps) {
   const rows = Math.ceil(SMART_LISTS.length / columns);
   const style: CSSProperties = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };

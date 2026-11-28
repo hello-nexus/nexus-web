@@ -92,6 +92,12 @@ describe('IconPicker tabs', () => {
     expect(screen.getByLabelText('Star')).toBeInTheDocument();
   });
 
+  it('falls back to the standard tabs for an empty tab list', () => {
+    render(<IconPicker onChange={() => {}} tabs={[]} />);
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.auto' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.custom' })).toBeInTheDocument();
+  });
+
   it('opens on the Custom tab (with the current image previewed) when the value is an image icon', () => {
     renderPicker({ kind: 'image', value: 'abc' });
     expect(screen.getByText('panel.iconPicker.uploadImage')).toBeInTheDocument();

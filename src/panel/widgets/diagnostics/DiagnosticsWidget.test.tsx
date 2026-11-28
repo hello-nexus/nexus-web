@@ -61,6 +61,16 @@ describe('DiagnosticsWidget', () => {
     expect(onSectionNavigate).toHaveBeenCalledWith('diagnostics', { tab: 'cooling' });
   });
 
+  it('opens a diagnostics tab from the keyboard on a 4x2 tile', () => {
+    const onSectionNavigate = vi.fn();
+    renderWidget('4x2', onSectionNavigate);
+    const tile = screen.getAllByRole('button')[0];
+    fireEvent.keyDown(tile, { key: 'Enter' });
+    fireEvent.keyDown(tile, { key: ' ' });
+    expect(onSectionNavigate).toHaveBeenCalledTimes(2);
+    expect(onSectionNavigate).toHaveBeenCalledWith('diagnostics', { tab: expect.any(String) });
+  });
+
   it('renders plain blocks without a dashboard to navigate to', () => {
     renderWidget('4x2');
     expect(screen.queryAllByRole('button')).toHaveLength(0);

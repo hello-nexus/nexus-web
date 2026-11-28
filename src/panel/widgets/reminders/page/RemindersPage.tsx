@@ -31,7 +31,7 @@ import styles from './RemindersPage.module.scss';
 const SHOW_COMPLETED_KEY = 'nexus.reminders.showCompleted';
 const TODAY: ReminderSelection = { kind: 'smart', id: 'today' };
 
-// The subtab is a smart-list id or a list id; a user list leaves every tab inactive.
+// The subtab carries the selection's id, a smart-list id or a user list id.
 const subtabOf = (s: ReminderSelection): string => s.id;
 function selectionOf(tab: string | null | undefined, lists: readonly ReminderListDto[]): ReminderSelection {
   if (tab && (SMART_LISTS as readonly string[]).includes(tab)) return { kind: 'smart', id: tab as SmartListId };
@@ -201,7 +201,7 @@ export function RemindersPage({ tab, onTabChange }: Props) {
             ) : (
               <>
                 <div className={styles.toolbar}>
-                  <SectionHeader className={styles.title}>{title}</SectionHeader>
+                  <SectionHeader className={styles.title} role="heading" ariaLevel={2}>{title}</SectionHeader>
                   {list && (
                     <IconLabelButton
                       variant="bare"

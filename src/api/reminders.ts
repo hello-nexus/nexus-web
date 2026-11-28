@@ -142,8 +142,8 @@ export async function deleteReminder(id: string): Promise<void> {
   await call<unknown>(`/api/reminders/items/${enc(id)}`, 'DELETE', undefined, m => m.mockDeleteItem(id));
 }
 
-export function clearCompletedReminders(listId?: string): Promise<{ removed: number }> {
-  return call('/api/reminders/items/clear-completed', 'POST', listId ? { listId } : {}, m => m.mockClearCompleted(listId));
+export function clearCompletedReminders(): Promise<{ removed: number }> {
+  return call('/api/reminders/items/clear-completed', 'POST', {}, m => m.mockClearCompleted());
 }
 
 /** `itemIds` is the list's full current item set; the service answers `stale` when it differs. */

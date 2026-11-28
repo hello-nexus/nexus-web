@@ -22,7 +22,9 @@ export function resolveListIcon(key: string): ListIconView {
 }
 
 // The deck picker names icons in PascalCase; these aliases are the same glyphs.
-const ALIAS_DECK_NAMES: Readonly<Record<string, string>> = { star: 'Star', heart: 'Heart', home: 'Home', briefcase: 'Briefcase' };
+const ALIAS_DECK_NAMES: Readonly<Record<string, string>> = {
+  list: 'List', bookmark: 'Bookmark', star: 'Star', heart: 'Heart', home: 'Home', cart: 'ShoppingCart', briefcase: 'Briefcase', gift: 'Gift',
+};
 
 /** The picker's value for a stored key, so the current icon shows selected. */
 export function pickerValueFor(key: string): DeckIcon | undefined {

@@ -8,7 +8,7 @@ import {
   Download, Upload, Link, Bell, Sliders, Cpu, RefreshCw, Disc, Video, Tv, Speaker,
   ArrowUp, ArrowDown, Command, MousePointer, Clipboard, Save, Copy, Eye,
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
-  Activity, CloudSun,
+  Activity, CloudSun, List, ShoppingCart, Bookmark, Gift,
   type LucideIcon,
 } from 'lucide-react';
 import type { DeckAction, DeckIcon, DeckSlot } from './types';
@@ -24,7 +24,7 @@ export const DECK_ICONS: Record<string, LucideIcon> = {
   Download, Upload, Link, Bell, Sliders, Cpu, RefreshCw, Disc, Video, Tv, Speaker,
   ArrowUp, ArrowDown, Command, MousePointer, Clipboard, Save, Copy, Eye,
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
-  Activity, CloudSun,
+  Activity, CloudSun, List, ShoppingCart, Bookmark, Gift,
 };
 
 export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);

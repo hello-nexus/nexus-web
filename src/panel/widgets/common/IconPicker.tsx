@@ -56,7 +56,8 @@ export function tabForValue(value?: DeckIcon): Tab {
 export function IconPicker({ value, onChange, surface, desktopEditor, tabs }: IconPickerProps) {
   const { t } = useTranslation();
   const { push } = useToastSafe();
-  const shownTabs = tabs ? TAB_DEFS.filter(d => tabs.includes(d.key)) : TAB_DEFS;
+  const picked = tabs ? TAB_DEFS.filter(d => tabs.includes(d.key)) : TAB_DEFS;
+  const shownTabs = picked.length > 0 ? picked : TAB_DEFS;
   const [tab, setTab] = useState<Tab>(() => (shownTabs.some(d => d.key === tabForValue(value)) ? tabForValue(value) : shownTabs[0].key));
   const [query, setQuery] = useState('');
   const [uploading, setUploading] = useState(false);
