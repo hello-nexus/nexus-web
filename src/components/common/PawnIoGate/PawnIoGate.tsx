@@ -3,7 +3,7 @@ import { Check, Cpu, PackageOpen, RefreshCw, RotateCcw, ShieldAlert, Wrench } fr
 import { useTranslation } from '../../../lib/i18n';
 import { NexusWordmark } from '../../icons/NexusBrand';
 import { Button } from '../Button/Button';
-import { Card } from '../Card/Card';
+import { Overlay } from '../Overlay/Overlay';
 import { CollapsibleSection } from '../CollapsibleSection/CollapsibleSection';
 import { Notice } from '../Notice/Notice';
 import { CaptionButtons } from '../../../app/CaptionButtons';
@@ -12,6 +12,8 @@ import { isWindowsAppShell } from '../../../app/windowActions';
 import { downloadSupportBundle } from '../../../api/diagnostics';
 import { fetchPawnIoStatus, fixPawnIo, restartPcForPawnIo, type PawnIoFixResult, type PawnIoState, type PawnIoStatus } from '../../../api/pawnio';
 import { canRestartPc, fixOutcome, okStatusFrom, screenFor, type PawnIoPhase } from './gateLogic';
+// The first onboarding page's own shell, brand block and entrance, reused as is so the gate reads as that page.
+import welcome from '../WelcomeScreen/WelcomeScreen.module.scss';
 import styles from './PawnIoGate.module.scss';
 
 const HERO_ICON_SIZE = 30;
@@ -382,14 +384,27 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
   }
 
   return (
-    <div className={styles.page} role="main" aria-label={title}>
+    <Overlay
+      open
+      onClose={() => { /* non-dismissable: the gate only leaves when the driver is running */ }}
+      noEscDismiss
+      noBackdropDismiss
+      autoFocus="container"
+      ariaLabel={title}
+      className={welcome.surface}
+      backdropClassName={welcome.backdrop}
+    >
       <div className={styles.topBar} {...dragRegion}>
         {isWindowsAppShell() && <CaptionButtons />}
       </div>
-      <Card className={styles.card}>
-        <div className={styles.stack}>
-        <div className={styles.brand}><NexusWordmark height={22} /></div>
-        {!failed && <span className={`${styles.hero} ${styles[heroTone]}`} aria-hidden>{heroIcon}</span>}
+      <div className={welcome.hero}>
+        <img src="/nexus-mark-color.png" alt="" width={140} height={140} className={welcome.logo} />
+        <div className={welcome.brandGroup}>
+          <NexusWordmark height={40} />
+        </div>
+      </div>
+      <div className={styles.content}>
+        {!failed && <span className={`${styles.icon} ${styles[heroTone]}`} aria-hidden>{heroIcon}</span>}
         <h1 className={styles.title}>{title}</h1>
         {notice && (
           <Notice tone="warning" role="alert" className={styles.note}>
@@ -412,8 +427,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
             </CollapsibleSection>
           </div>
         )}
-        </div>
-      </Card>
-    </div>
+      </div>
+    </Overlay>
   );
 }

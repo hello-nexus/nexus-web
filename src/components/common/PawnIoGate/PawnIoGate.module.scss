@@ -1,26 +1,10 @@
 @use '../../../styles/text' as *;
 @use '../../../styles/onboarding' as *;
 
-// The app's own canvas, opaque, so nothing of the dashboard can show through.
-.page {
-  position: relative;
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px 32px;
-  background: var(--backdrop-base);
-  color: var(--text);
-
-  :global(html.nexus-shell-native-glass[data-bg='glass']) & {
-    background: transparent;
-  }
-}
-
 // Window drag and caption buttons for the frameless Windows shell, since the
 // dashboard top bar that normally owns them is not mounted.
 .topBar {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -29,27 +13,19 @@
   justify-content: flex-end;
 }
 
-.card {
-  width: min(440px, 100%);
-  padding: 32px;
-  @include onboarding-hero-in;
-}
-
-.stack {
+// Same content column as the onboarding pages.
+.content {
+  width: min($onboarding-content-width, 100%);
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 14px;
+  gap: 1rem;
+  @include onboarding-hero-in;
 }
 
-.brand {
-  display: inline-flex;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-
-.hero {
+.icon {
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -70,7 +46,7 @@
   @include text-body;
   margin: 0;
   color: var(--text-dim);
-  max-width: 24rem;
+  max-width: 34rem;
 }
 
 .note {
@@ -79,8 +55,8 @@
 }
 
 .bigButton {
-  width: 100%;
-  margin-top: 8px;
+  width: min(280px, 100%);
+  margin-top: 0.5rem;
 }
 
 .sub,
@@ -109,7 +85,7 @@
   counter-reset: step;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 1rem;
   width: 100%;
   text-align: left;
 
