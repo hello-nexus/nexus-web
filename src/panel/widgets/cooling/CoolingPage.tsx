@@ -1248,7 +1248,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // A slider drag can end without onCommit (unmount, disable, focus moved), so
   // close any open history gesture when the editing context changes.
-  useEffect(() => { endHistoryGesture(); }, [selectedCurveId, curveEditorInert, curveManaged, activeMode, endHistoryGesture]);
+  useEffect(() => { endHistoryGesture(); }, [effectiveCurveId, curveEditorInert, curveManaged, activeMode, endHistoryGesture]);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
