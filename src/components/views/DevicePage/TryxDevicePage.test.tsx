@@ -49,6 +49,7 @@ const mockGetTryxMedia = vi.fn();
 const mockGetTryxCloudCatalog = vi.fn();
 const mockSetTryxEnabled = vi.fn();
 const mockSetTryxBrightness = vi.fn();
+const mockSetTryxRotation = vi.fn();
 const mockSetTryxOverlay = vi.fn();
 const mockSetTryxSlideshow = vi.fn();
 const mockUploadTryxMedia = vi.fn();
@@ -63,6 +64,9 @@ vi.mock('../../../api/tryx', () => ({
   installTryxCloudMaterial: vi.fn(),
   setTryxEnabled: (...args: any[]) => mockSetTryxEnabled(...args),
   setTryxBrightness: (...args: any[]) => mockSetTryxBrightness(...args),
+  setTryxRotation: (...args: any[]) => mockSetTryxRotation(...args),
+  TRYX_ROTATIONS: [0, 90, 180, 270],
+  normalizeTryxRotation: (v: number | undefined) => ([0, 90, 180, 270].includes(v as number) ? v : 0),
   setTryxPreset: vi.fn(),
   selectTryxMedia: vi.fn(),
   deleteTryxMedia: vi.fn(),
@@ -140,6 +144,7 @@ beforeEach(() => {
   mockGetTryxCloudCatalog.mockResolvedValue([]);
   mockSetTryxEnabled.mockResolvedValue(true);
   mockSetTryxBrightness.mockResolvedValue(true);
+  mockSetTryxRotation.mockResolvedValue(true);
   mockSetTryxOverlay.mockResolvedValue(true);
   mockSetTryxSlideshow.mockResolvedValue(true);
 });
@@ -590,5 +595,42 @@ describe('TryxDevicePage - after an upload', () => {
     await act(async () => { fireEvent.error(video); });
 
     expect(container.querySelector('video')).toBeNull();
+  });
+});
+
+describe('TryxDevicePage - screen rotation', () => {
+  it('posts the chosen rotation and shows it immediately', async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.tryx.rotation' }));
+    fireEvent.click(screen.getByRole('option', { name: 'devices.tryx.rotation90' }));
+    await act(async () => {});
+
+    expect(mockSetTryxRotation).toHaveBeenCalledWith(90);
+    expect(screen.getByRole('button', { name: 'devices.tryx.rotation' })).toHaveTextContent('devices.tryx.rotation90');
+  });
+
+  it('keeps the landscape canvas and an unturned media layer at 0 degrees', async () => {
+    await renderPage();
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
+    const canvas = drag.parentElement as HTMLElement;
+    const media = canvas.firstElementChild as HTMLElement;
+
+    expect(canvas.className).not.toContain('previewCanvasPortrait');
+    expect(media.style.transform).toBe('');
+  });
+
+  it.each([
+    [90, true, 'rotate(-90deg)'],
+    [180, false, 'rotate(180deg)'],
+    [270, true, 'rotate(90deg)'],
+  ])('renders a %i degree screen as the viewer sees it', async (degrees, portrait, turn) => {
+    mockGetTryxStatus.mockResolvedValue({ ...defaultStatus, state: { ...defaultStatus.state, rotation: degrees } });
+    await renderPage();
+    const drag = screen.getByRole('button', { name: 'devices.tryx.overlayDragAria:{"stat":"CPU Package"}' });
+    const canvas = drag.parentElement as HTMLElement;
+    const media = canvas.firstElementChild as HTMLElement;
+
+    expect(canvas.className.includes('previewCanvasPortrait')).toBe(portrait);
+    expect(media.style.transform).toContain(turn);
   });
 });

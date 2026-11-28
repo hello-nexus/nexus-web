@@ -40,6 +40,8 @@ interface IconPickerProps {
   // True when rendered in a desktop editor context; keeps the search input
   // visible even when the target surface has no keyboard.
   desktopEditor?: boolean;
+  // Tabs to offer; omitted shows all four, as the Deck editor does.
+  tabs?: readonly Tab[];
 }
 
 export type Tab = 'auto' | 'icons' | 'emoji' | 'custom';
@@ -51,10 +53,12 @@ export function tabForValue(value?: DeckIcon): Tab {
   return 'auto'; // undefined or app icon → Auto
 }
 
-export function IconPicker({ value, onChange, surface, desktopEditor }: IconPickerProps) {
+export function IconPicker({ value, onChange, surface, desktopEditor, tabs }: IconPickerProps) {
   const { t } = useTranslation();
   const { push } = useToastSafe();
-  const [tab, setTab] = useState<Tab>(() => tabForValue(value));
+  const picked = tabs ? TAB_DEFS.filter(d => tabs.includes(d.key)) : TAB_DEFS;
+  const shownTabs = picked.length > 0 ? picked : TAB_DEFS;
+  const [tab, setTab] = useState<Tab>(() => (shownTabs.some(d => d.key === tabForValue(value)) ? tabForValue(value) : shownTabs[0].key));
   const [query, setQuery] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -200,7 +204,7 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   return (
     <div className={styles.picker}>
       <div className={styles.tabRow} role="tablist" aria-label={t('panel.settings.icon')}>
-        {TAB_DEFS.map(({ key, icon: Icon, labelKey }) => (
+        {shownTabs.map(({ key, icon: Icon, labelKey }) => (
           <IconLabelButton
             key={key}
             active={tab === key}

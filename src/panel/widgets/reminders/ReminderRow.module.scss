@@ -1,0 +1,77 @@
+@use '../../styles/flexGap' as *;
+
+// Sizes are em so each surface (tile, immersive view, page) sets its own font-size.
+.row {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 0.35em 0;
+  color: var(--text);
+  transition: opacity var(--ease-slow) ease;
+  @include hgap(0.55em);
+
+  &.leaving { opacity: 0.45; }
+}
+
+.check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  margin: -0.15em -0.25em;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:disabled { cursor: default; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 50%; }
+}
+
+.ring {
+  box-sizing: border-box;
+  width: 1.2em;
+  height: 1.2em;
+  border: 0.12em solid var(--rem-color);
+  border-radius: 50%;
+  background: transparent;
+  transition: background var(--ease) ease, box-shadow var(--ease) ease;
+}
+
+.checked .ring {
+  background: var(--rem-color);
+  box-shadow: inset 0 0 0 0.2em var(--bg, #000);
+}
+
+.body { flex: 1; min-width: 0; display: flex; flex-direction: column; @include vgap(0.1em); }
+
+.titleLine { display: flex; align-items: baseline; min-width: 0; @include hgap(0.35em); }
+.title {
+  min-width: 0;
+  font-weight: var(--weight-strong);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.done .title, .leaving .title { text-decoration: line-through; color: var(--text-dim); }
+.marks { flex: none; font-weight: var(--weight-display); color: var(--warn); letter-spacing: -0.05em; }
+
+.notes, .meta {
+  font-size: 0.85em;
+  line-height: 1.3;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta { display: flex; @include hgap(0.6em); }
+.overdue { color: var(--bad); }
+.flag { flex: none; display: flex; align-items: center; margin-top: 0.35em; color: var(--warn); }
+
+.editable {
+  cursor: text;
+  border-radius: var(--radius-sm);
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}

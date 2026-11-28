@@ -1,0 +1,17 @@
+.rail {
+  flex: 0 0 320px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  font-size: var(--type-body);
+}
+
+.head {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.lists { display: flex; flex-direction: column; gap: 2px; }
+.cards { margin-bottom: var(--space-xl); }

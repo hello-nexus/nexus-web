@@ -20,6 +20,7 @@ export const REPORTED_VIEWS: ReadonlySet<string> = new Set([
   'store',
   'build',
   'calendar',
+  'reminders',
   'clock',
   'weather',
   'steam',

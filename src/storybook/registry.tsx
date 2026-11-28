@@ -2897,7 +2897,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SensorAlertRuleSettings', category: 'cards',
     filePath: 'src/components/views/DiagnosticsView/SensorAlertRuleSettings.tsx',
-    description: 'The alert settings of one tracked sensor, shown beside the Watchlist list: the sensor picker, an open-ended RangeSlider for the normal range (a knob on its track end means no limit), the raise delay with a one-line legend, the Urgent switch, the desktop notification switch, and Delete or Restore default. The panel opens with the alerts switch for the entry (the list rows carry no switch). Switching alerts off only stops the alerting: every setting stays visible and editable, and the sensor keeps its reading and its line on the chart.',
+    description: 'The alert settings of one tracked sensor, shown beside the Watchlist list: the sensor picker, an open-ended RangeSlider for the normal range (a knob on its track end means no limit), the raise delay with a one-line legend, the Urgent switch, the desktop notification switch, an Open Cooling button for a fan built-in when the page can open Cooling, and Delete or Restore default. The panel opens with the alerts switch for the entry (the list rows carry no switch). Switching alerts off only stops the alerting: every setting stays visible and editable, and the sensor keeps its reading and its line on the chart.',
     notes: 'No live preview - it reads live sensors through useSensorLookup and writes through useSensorAlerts.',
   },
   {

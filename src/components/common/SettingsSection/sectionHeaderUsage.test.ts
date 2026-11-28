@@ -26,6 +26,8 @@ const ALLOWED = new Set([
   'panel/widgets/gallery/page/GalleryPage.tsx',
   'panel/widgets/home-assistant/HomeAssistantDashboard.tsx',
   'panel/widgets/lighting/LightingPage.tsx',
+  'panel/widgets/reminders/page/RemindersPage.tsx',
+  'panel/widgets/reminders/page/RemindersRail.tsx',
   'panel/widgets/smart-lights/SmartLightsPage.tsx',
   'panel/widgets/weather/WeatherDailyList.tsx',
   'panel/widgets/weather/WeatherHourlyStrip.tsx',

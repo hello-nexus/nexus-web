@@ -80,6 +80,8 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   steam: ['Nova', 'Star Voyager', 'Driftline'],
   // A default calendar is the date card: its month line carries the year.
   calendar: [String(new Date().getFullYear())],
+  // The fixture's undated and due-today reminders lead Today; the preview clock is pinned to mid-afternoon.
+  reminders: ['Call the dentist', 'Pick up the parcel'],
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
   // The condition label comes from the fixture's weather code through the

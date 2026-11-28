@@ -20,7 +20,7 @@ const ROOT = join(__dirname);
 // plus the shared chrome.
 const RUNTIME_DIRS = [
   '.', 'chrome', 'overlays',
-  'widgets/calendar', 'widgets/clock', 'widgets/gallery', 'widgets/media', 'widgets/monitoring',
+  'widgets/calendar', 'widgets/clock', 'widgets/gallery', 'widgets/media', 'widgets/monitoring', 'widgets/reminders',
   'widgets/screentime', 'widgets/stocks', 'widgets/twitch', 'widgets/weather', 'widgets/web-view',
 ];
 const RUNTIME_FILES = [

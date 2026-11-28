@@ -80,48 +80,24 @@
   white-space: nowrap;
 }
 
-.block {
-  position: relative;
-  display: flex;
-  align-items: center;
+// Doubled selector: the shared Card sets its own flex layout and padding. Surface, border, radius and hover come from Card.
+.block.block {
   min-width: 0;
   min-height: 0;
+  justify-content: center;
   padding: 0 0.65rem;
-  border: 0;
-  border-radius: var(--radius);
-  background: none;
   color: var(--text);
   font: inherit;
   text-align: left;
   overflow: hidden;
-
-  // Translucent fill as an opacity layer: color-mix alpha is dead on the Q60's
-  // Chromium 83, and there is no rgb-triplet token to build an rgba from.
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: var(--text);
-    opacity: 0.08;
-    pointer-events: none;
-  }
-
-  > * { position: relative; }
-  > :first-child { flex-shrink: 0; margin-right: 0.6rem; }
 }
 
-button.block {
-  cursor: pointer;
+.blockInner {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 
-  &:hover::before { opacity: 0.14; }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
+  > :first-child { flex-shrink: 0; margin-right: 0.6rem; }
 }
 
 .blockText {

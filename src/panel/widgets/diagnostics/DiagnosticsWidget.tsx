@@ -14,6 +14,7 @@ import {
   worstReason,
 } from '../../../components/views/DiagnosticsView/diagnosticsHelpers';
 import { alertLine } from '../../../components/views/DiagnosticsView/sensorAlertHelpers';
+import { Card } from '../../../components/common/Card/Card';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelStatusDot, PanelWidgetEmpty, PanelWidgetShell } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -83,7 +84,7 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
               ? reasonLabel(tile.reasons[0], t)
               : t(statusLabelKey(tile.status));
             const content = (
-              <>
+              <span className={styles.blockInner}>
                 {Icon && <Icon size={20} className={styles.icon} aria-hidden />}
                 <span className={styles.blockText}>
                   <span className={styles.blockTitle}>
@@ -92,21 +93,20 @@ export function DiagnosticsWidget({ widget, onSectionNavigate }: WidgetProps) {
                   </span>
                   <span className={styles.blockDetail}>{detail}</span>
                 </span>
-              </>
+              </span>
             );
             // onSectionNavigate exists only on the desktop dashboard; elsewhere
             // there is no page to open, so the block is not a button.
-            return onSectionNavigate ? (
-              <button
+            return (
+              <Card
                 key={tile.domain}
-                type="button"
+                compact
+                interactive={onSectionNavigate !== undefined}
                 className={styles.block}
-                onClick={() => onSectionNavigate('diagnostics', { tab: tile.domain })}
+                onClick={onSectionNavigate ? () => onSectionNavigate('diagnostics', { tab: tile.domain }) : undefined}
               >
                 {content}
-              </button>
-            ) : (
-              <div key={tile.domain} className={styles.block}>{content}</div>
+              </Card>
             );
           })}
           {worstAlert && (

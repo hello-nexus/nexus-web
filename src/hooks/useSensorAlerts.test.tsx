@@ -5,6 +5,7 @@ import { carryValues, useSensorAlerts } from './useSensorAlerts';
 
 const h = vi.hoisted(() => ({
   frame: null as null | ((data: unknown) => void),
+  cooling: null as null | ((data: unknown) => void),
   fetchSensorAlerts: vi.fn(),
   updateSensorAlert: vi.fn(),
   resetBuiltInSensorAlerts: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock('./useMultiplexSocket', () => ({
   useMultiplex: () => ({ connected: true }),
   useTopicCallback: (topic: string, enabled: boolean, cb: (data: unknown) => void) => {
     if (topic === 'diagnostics/alerts' && enabled) h.frame = cb;
+    if (topic === 'cooling' && enabled) h.cooling = cb;
   },
 }));
 
@@ -108,6 +110,31 @@ describe('useSensorAlerts', () => {
     h.fetchSensorAlerts.mockResolvedValue(ok({ rules: [builtIn, user], states: [state('builtin-cpu', { value: 63 })] }));
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
     expect(result.current.states[0].value).toBe(63);
+  });
+
+  it('refetches the rules once after a burst of cooling pushes, since a fan entry follows Nexus Control', async () => {
+    vi.useFakeTimers();
+    await mount();
+    h.fetchSensorAlerts.mockClear();
+    h.fetchSensorAlerts.mockResolvedValue(ok({ rules: [builtIn, { ...user, enabled: false }], states: [] }));
+
+    act(() => { h.cooling?.({}); h.cooling?.({}); h.cooling?.({}); });
+    expect(h.fetchSensorAlerts).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+
+    expect(h.fetchSensorAlerts).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the enabled the service computed when a fan entry save comes back different from the edit', async () => {
+    const fan = rule('builtin-fan', { builtIn: 'fanSpeed', enabled: false });
+    h.fetchSensorAlerts.mockResolvedValue(ok({ rules: [fan], states: [] }));
+    const { result } = renderHook(() => useSensorAlerts(true, false));
+    await act(async () => {});
+    h.updateSensorAlert.mockResolvedValue(ok({ ...fan, enabled: false }));
+
+    await act(async () => { result.current.save({ ...fan, enabled: true }); });
+
+    expect(result.current.rules[0].enabled).toBe(false);
   });
 
   it('does not poll without liveValues', async () => {

@@ -16,15 +16,21 @@ export function SectionHeader({
   children,
   className,
   style,
+  role,
+  ariaLevel,
 }: {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
+  role?: 'heading';
+  ariaLevel?: number;
 }) {
   return (
     <div
       className={className ? `${styles.sectionHeader} ${className}` : styles.sectionHeader}
       style={style}
+      role={role}
+      aria-level={role === 'heading' ? ariaLevel : undefined}
     >
       {children}
     </div>
