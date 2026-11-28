@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Cpu, PackageOpen, RefreshCw, RotateCcw, ShieldAlert, Wrench } from 'lucide-react';
+import { PackageOpen, RefreshCw, RotateCcw, Wrench } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { NexusWordmark } from '../../icons/NexusBrand';
+import { OnboardingBrand, useNexusVersion } from '../OnboardingBrand/OnboardingBrand';
 import { Button } from '../Button/Button';
 import { Overlay } from '../Overlay/Overlay';
-import { CollapsibleSection } from '../CollapsibleSection/CollapsibleSection';
 import { Notice } from '../Notice/Notice';
 import { CaptionButtons } from '../../../app/CaptionButtons';
 import { useWindowDragRegion } from '../../../app/useWindowDragRegion';
@@ -16,7 +15,6 @@ import { canRestartPc, fixOutcome, okStatusFrom, screenFor, type PawnIoPhase } f
 import welcome from '../WelcomeScreen/WelcomeScreen.module.scss';
 import styles from './PawnIoGate.module.scss';
 
-const HERO_ICON_SIZE = 30;
 const CONTINUE_DELAY_MS = 3000;
 const PREVIEW_WORK_MS = 1500;
 const FIX_POLL_MS = 2000;
@@ -49,9 +47,9 @@ export interface PawnIoGateProps {
 export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = false, preview = false, onStatus, onFixed, onContinue }: PawnIoGateProps) {
   const { t } = useTranslation();
   const dragRegion = useWindowDragRegion();
+  const nexusVersion = useNexusVersion(true);
   const [current, setCurrent] = useState(status);
   const [phase, setPhase] = useState<PawnIoPhase>(initialPhase);
-  const [whyOpen, setWhyOpen] = useState(false);
   const [bundleBusy, setBundleBusy] = useState(false);
   const [bundleFailed, setBundleFailed] = useState(false);
   const [restarting, setRestarting] = useState(false);
@@ -269,21 +267,15 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
     </Button>
   );
 
-  let heroIcon = <Cpu size={HERO_ICON_SIZE} aria-hidden />;
-  let heroTone: 'accent' | 'good' | 'warn' = 'accent';
   let title = '';
   let body: string | null = null;
   let note: string | null = null;
   let content: React.ReactNode = null;
-  let showWhy = true;
   let retry: React.ReactNode = null;
 
   if (done) {
-    heroIcon = <Check size={HERO_ICON_SIZE} aria-hidden />;
-    heroTone = 'good';
     title = t('pawnioGate.done.title');
     body = t(nexusRestarting ? 'pawnioGate.done.body' : 'pawnioGate.done.ready');
-    showWhy = false;
     content = (
       <>
         <Button tone="accent" size="lg" className={styles.bigButton} onClick={onContinue}>
@@ -292,10 +284,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       </>
     );
   } else if (failed) {
-    heroIcon = <Wrench size={HERO_ICON_SIZE} aria-hidden />;
-    heroTone = 'warn';
     title = t('pawnioGate.steps.title');
-    showWhy = false;
     content = (
       <ol className={styles.steps}>
         <li>
@@ -319,7 +308,7 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
     ) : null;
   } else if (screen === 'install') {
     title = t(working ? 'pawnioGate.installing.title' : 'pawnioGate.install.title');
-    body = t(working ? 'pawnioGate.installing.body' : 'pawnioGate.install.body');
+    body = working ? null : t('pawnioGate.install.body');
     if (current.state === 'permissionDeclined' && !working) note = t('pawnioGate.install.permission');
     content = (
       <Button tone="accent" size="lg" className={styles.bigButton}
@@ -328,10 +317,8 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       </Button>
     );
   } else if (screen === 'restart') {
-    heroIcon = <RotateCcw size={HERO_ICON_SIZE} aria-hidden />;
     title = t('pawnioGate.restart.title');
     body = t(restartLater ? 'pawnioGate.restart.laterBody' : 'pawnioGate.restart.body');
-    showWhy = !restartLater;
     content = (
       <>
         {restartButton(true)}
@@ -345,10 +332,8 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       </>
     );
   } else if (screen === 'notRunning') {
-    heroIcon = <Wrench size={HERO_ICON_SIZE} aria-hidden />;
-    heroTone = 'warn';
     title = t(working ? 'pawnioGate.fixing.title' : 'pawnioGate.notRunning.title');
-    body = t(working ? 'pawnioGate.installing.body' : 'pawnioGate.notRunning.body');
+    body = working ? null : t('pawnioGate.notRunning.body');
     content = (
       <Button tone="accent" size="lg" className={styles.bigButton}
         icon={<Wrench size={18} aria-hidden />} loading={working} onClick={runFix}>
@@ -356,8 +341,6 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
       </Button>
     );
   } else {
-    heroIcon = <ShieldAlert size={HERO_ICON_SIZE} aria-hidden />;
-    heroTone = 'warn';
     title = t('pawnioGate.blocked.title');
     body = t('pawnioGate.blocked.body');
     if (phase === 'stillBlocked') note = t('pawnioGate.blocked.still');
@@ -398,13 +381,9 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
         {isWindowsAppShell() && <CaptionButtons />}
       </div>
       <div className={welcome.hero}>
-        <img src="/nexus-mark-color.png" alt="" width={140} height={140} className={welcome.logo} />
-        <div className={welcome.brandGroup}>
-          <NexusWordmark height={40} />
-        </div>
+        <OnboardingBrand version={nexusVersion} />
       </div>
       <div className={styles.content}>
-        {!failed && <span className={`${styles.icon} ${styles[heroTone]}`} aria-hidden>{heroIcon}</span>}
         <h1 className={styles.title}>{title}</h1>
         {notice && (
           <Notice tone="warning" role="alert" className={styles.note}>
@@ -419,13 +398,6 @@ export function PawnIoGate({ status, initialPhase = 'idle', initialRestarting = 
           <Notice tone="critical" role="alert" className={styles.note}>
             {t('settings.diagnostics.supportBundleFailed')}
           </Notice>
-        )}
-        {showWhy && (
-          <div className={styles.why}>
-            <CollapsibleSection title={t('pawnioGate.why.title')} open={whyOpen} onToggle={() => setWhyOpen(o => !o)}>
-              <p className={styles.whyBody}>{t('pawnioGate.why.body')}</p>
-            </CollapsibleSection>
-          </div>
         )}
       </div>
     </Overlay>

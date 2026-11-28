@@ -65,10 +65,6 @@ $group-gap: 0.75rem;
   to { opacity: 1; transform: translateY(0); }
 }
 
-.logo {
-  width: 140px;
-  height: auto;
-}
 
 // Quiet capability-summary row: muted, uniform, no labels - the logo + wordmark
 // stay the focus. Each icon carries its own HoverTooltip explanation.
@@ -97,21 +93,7 @@ $group-gap: 0.75rem;
   color: var(--text-dim);
 }
 
-// Wordmark + version stack tight, directly under the N mark.
-.brandGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
 
-// Version line directly under the NEXUS wordmark; small, white.
-.version {
-  font-size: var(--type-small);
-  font-weight: var(--weight-body);
-  color: var(--text);
-  margin: 0;
-}
 
 .section {
   width: min($onboarding-content-width, 100%);

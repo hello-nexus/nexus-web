@@ -1,0 +1,20 @@
+.logo {
+  width: 140px;
+  height: auto;
+}
+
+// Wordmark + version stack tight, directly under the N mark.
+.brandGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+// Version line directly under the NEXUS wordmark; small, white.
+.version {
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  margin: 0;
+}

@@ -8,13 +8,12 @@ import { OnboardingFooter } from '../OnboardingFooter/OnboardingFooter';
 import { HeartBurst, useHeartBurstTrigger } from '../HeartBurst/HeartBurst';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { PlatformIcon } from '../../icons/PlatformIcons';
-import { NexusWordmark } from '../../icons/NexusBrand';
+import { OnboardingBrand, useNexusVersion } from '../OnboardingBrand/OnboardingBrand';
 import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
 import { postService } from '../../../api/service';
 import { fetchTelemetryConsent } from '../../../api/telemetry';
 import { completeOnboarding } from '../../../api/onboarding';
 import { setAutoStart } from '../../../api/autoStart';
-import { getUpdateStatus } from '../../../api/update';
 import { OnboardingNote } from '../OnboardingNote/OnboardingNote';
 import styles from './WelcomeScreen.module.scss';
 
@@ -54,18 +53,8 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
   const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState('');
   const burstKey = useHeartBurstTrigger(telemetryOn);
-
-  // Same source as the "check for updates" modal (getUpdateStatus -> /update/status).
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    getUpdateStatus().then(s => {
-      if (s && !cancelled) setCurrentVersion(s.currentVersion);
-    });
-    return () => { cancelled = true; };
-  }, [open]);
+  const currentVersion = useNexusVersion(open);
 
   // Seeds from service truth: on for a fresh default-on install, off for an upgrader who declined; false on any fetch failure.
   useEffect(() => {
@@ -123,11 +112,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
       backdropClassName={styles.backdrop}
     >
       <div className={styles.hero}>
-        <img src="/nexus-mark-color.png" alt="" width={140} height={140} className={styles.logo} />
-        <div className={styles.brandGroup}>
-          <NexusWordmark height={40} />
-          {currentVersion && <p className={styles.version}>{currentVersion}</p>}
-        </div>
+        <OnboardingBrand version={currentVersion} />
         <div className={styles.capabilitiesGroup}>
           <div className={styles.capabilities}>
             {CAPABILITIES.map(({ Icon, key }) => (

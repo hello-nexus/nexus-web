@@ -25,18 +25,6 @@
   @include onboarding-hero-in;
 }
 
-.icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-}
-
-.accent { background: var(--accent-soft); color: var(--accent-glow); }
-.good { border: 2px solid var(--good); color: var(--good); }
-.warn { background: var(--warn-soft); color: var(--warn); }
-
 .title {
   @include text-display;
   margin: 0;
@@ -114,19 +102,4 @@
 
 .stepAction {
   margin-top: 8px;
-}
-
-.why {
-  width: 100%;
-  margin-top: 4px;
-  border-top: 1px solid var(--separator);
-  padding-top: 8px;
-  text-align: left;
-}
-
-.whyBody {
-  @include text-caption;
-  margin: 4px 0 0;
-  padding: 0 var(--space-md, 12px) var(--space-sm, 8px);
-  color: var(--text-dim);
 }

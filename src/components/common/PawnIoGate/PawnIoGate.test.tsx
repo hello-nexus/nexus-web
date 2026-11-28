@@ -20,6 +20,10 @@ vi.mock('../../../api/diagnostics', () => ({
   downloadSupportBundle: (...args: unknown[]) => downloadSupportBundle(...args),
 }));
 
+vi.mock('../../../api/update', () => ({
+  getUpdateStatus: () => Promise.resolve({ currentVersion: '9.9.9' }),
+}));
+
 import { PawnIoGate } from './PawnIoGate';
 
 function status(state: PawnIoState): PawnIoStatus {
@@ -40,6 +44,11 @@ beforeEach(() => {
 });
 
 describe('PawnIoGate screens', () => {
+  it('shows the Nexus version under the wordmark, like the first onboarding page', async () => {
+    renderGate('notInstalled');
+    expect(await screen.findByText('9.9.9')).toBeTruthy();
+  });
+
   it.each(['notInstalled', 'installFailed'] as const)('%s offers Install driver', state => {
     renderGate(state);
     expect(screen.getByRole('button', { name: 'pawnioGate.install.button' })).toBeTruthy();
