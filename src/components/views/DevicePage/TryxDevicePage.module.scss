@@ -164,8 +164,17 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   background-color: var(--bg-elevated);
-  background-size: cover;
-  background-position: center;
+}
+
+// A 90/270 screen is portrait for the viewer; half width keeps it from outgrowing the pane.
+.previewCanvasPortrait {
+  width: 50%;
+  aspect-ratio: 0.5;
+  align-self: center;
+}
+
+.previewMedia {
+  pointer-events: none;
 }
 
 .previewVideo {

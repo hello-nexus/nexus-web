@@ -40,15 +40,27 @@ vi.mock('../SettingsView/Account/AccountSignInModal', () => ({
 }));
 
 // What the registry holds once an install's reload lands, separate from `installed` so Install stays offered.
+const registryListeners = new Set<() => void>();
 const listings = new Map<string, { id: string; version: string; iconUrl: string | null; page?: boolean }>();
 
 vi.mock('../../../widgets/marketplaceRegistry', () => ({
   getAllMarketplaceListings: () => installed,
   getMarketplaceListing: (id: string) => listings.get(id),
+  // A load joins what is cached and never notifies; only a reload refetches, as a stale in-flight load would.
   loadMarketplaceApps: () => Promise.resolve(),
-  reloadMarketplaceApps: () => Promise.resolve(true),
-  subscribeMarketplaceRegistry: () => () => {},
+  reloadMarketplaceApps: () => { registryListeners.forEach(fn => fn()); return Promise.resolve(true); },
+  subscribeMarketplaceRegistry: (fn: () => void) => { registryListeners.add(fn); return () => { registryListeners.delete(fn); }; },
   typeForMarketplace: (id: string) => `app:${id}`,
+}));
+
+const removal = vi.hoisted(() => ({ post: vi.fn(), removeEverywhere: vi.fn() }));
+vi.mock('../../../api/service', () => ({
+  resolveHttp: (u: string) => u,
+  postService: (...args: unknown[]) => removal.post(...args),
+}));
+vi.mock('../../../api/storeUsage', () => ({
+  findAppUsage: () => Promise.resolve({ places: [], total: 0 }),
+  removeAppEverywhere: (...args: unknown[]) => removal.removeEverywhere(...args),
 }));
 
 const announceSidebarArrival = vi.fn();
@@ -264,6 +276,85 @@ describe('StorePage app page', () => {
     expect(await screen.findByText('store.installedVersion version=1.0.1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'store.update' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'store.delete' })).not.toBeInTheDocument();
+  });
+});
+
+describe('StorePage app page uninstall', () => {
+  beforeEach(() => {
+    removal.post.mockReset();
+    removal.removeEverywhere.mockReset();
+    removal.post.mockResolvedValue({ id: app.id, installed: false });
+    removal.removeEverywhere.mockResolvedValue(0);
+  });
+
+  it('offers Uninstall only when the app is installed', async () => {
+    const { unmount } = render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'account.purchases.uninstall' })).not.toBeInTheDocument();
+    unmount();
+
+    installed.push({ id: app.id, version: '1.0.2', iconUrl: null });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+    expect(await screen.findByRole('button', { name: 'account.purchases.uninstall' })).toBeInTheDocument();
+  });
+
+  it('uninstalls nothing until confirmed, and Cancel leaves the app installed', async () => {
+    installed.push({ id: app.id, version: '1.0.2', iconUrl: null });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'account.purchases.uninstall' }));
+    expect(await screen.findByText('store.removeTitle name=Aquarium')).toBeInTheDocument();
+    expect(removal.post).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+    await waitFor(() => expect(screen.queryByText('store.removeTitle name=Aquarium')).not.toBeInTheDocument());
+    expect(removal.post).not.toHaveBeenCalled();
+    expect(removal.removeEverywhere).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'store.installed' })).toBeInTheDocument();
+  });
+
+  it('shows Install again after the confirmed uninstall', async () => {
+    installed.push({ id: app.id, version: '1.0.2', iconUrl: null });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'account.purchases.uninstall' }));
+    const dialog = await screen.findByRole('alertdialog');
+    installed.length = 0;
+    fireEvent.click(within(dialog).getByRole('button', { name: 'account.purchases.uninstall' }));
+
+    await waitFor(() => expect(removal.post).toHaveBeenCalledWith('/apps-api/uninstall', { id: app.id }));
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'account.purchases.uninstall' })).not.toBeInTheDocument();
+  });
+});
+
+describe('StorePage app page uninstall failure', () => {
+  const openConfirm = async () => {
+    installed.push({ id: app.id, version: '1.0.2', iconUrl: null });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'account.purchases.uninstall' }));
+    return within(await screen.findByRole('alertdialog'));
+  };
+
+  beforeEach(() => {
+    removal.post.mockReset();
+    removal.removeEverywhere.mockReset();
+    removal.removeEverywhere.mockResolvedValue(0);
+  });
+
+  it.each([
+    ['an error response', () => removal.post.mockResolvedValue({ id: app.id, installed: false, error: 'nope' })],
+    ['a thrown request', () => removal.post.mockRejectedValue(new Error('offline'))],
+    ['no response', () => removal.post.mockResolvedValue(null)],
+  ])('keeps the widgets, the modal and the app on %s, and can retry', async (_name, arrange) => {
+    arrange();
+    const dialog = await openConfirm();
+    fireEvent.click(dialog.getByRole('button', { name: 'account.purchases.uninstall' }));
+
+    expect(await dialog.findByText('store.removeFailed name=Aquarium')).toBeInTheDocument();
+    expect(removal.removeEverywhere).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'store.installed' })).toBeInTheDocument();
+    await waitFor(() => expect(dialog.getByRole('button', { name: 'account.purchases.uninstall' })).toBeEnabled());
   });
 });
 

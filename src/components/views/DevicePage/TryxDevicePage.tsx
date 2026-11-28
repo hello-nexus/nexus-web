@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { Monitor, MonitorOff, Film, Download, Sparkles } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -30,6 +30,10 @@ import {
   installTryxCloudMaterial,
   setTryxEnabled,
   setTryxBrightness,
+  setTryxRotation,
+  normalizeTryxRotation,
+  TRYX_ROTATIONS,
+  type TryxRotation,
   setTryxSleepWhenLocked,
   setTryxPreset,
   selectTryxMedia,
@@ -100,7 +104,34 @@ const DEFAULT_OVERLAY_DOCKED = true;
 
 const STATUS_POLL_MS = 4000;
 const MEDIA_POLL_MS = 8000;
-const UPLOAD_ASPECT = TRYX_MEDIA_WIDTH / TRYX_MEDIA_HEIGHT;
+const LANDSCAPE_ASPECT = TRYX_MEDIA_WIDTH / TRYX_MEDIA_HEIGHT;
+const ROTATION_LABEL_KEYS: Record<TryxRotation, string> = {
+  0: 'devices.tryx.rotation0',
+  90: 'devices.tryx.rotation90',
+  180: 'devices.tryx.rotation180',
+  270: 'devices.tryx.rotation270',
+};
+
+/**
+ * The preview shows the viewer's upright frame. The panel's own media is stored in
+ * panel space, so it is turned back by the rotation to match what the viewer sees;
+ * a 90/270 canvas is portrait, so the pre-turn landscape box is the canvas
+ * transposed (twice its width, half its height).
+ */
+function previewMediaStyle(rotation: TryxRotation, thumbUrl: string | null | undefined): CSSProperties {
+  const base: CSSProperties = { position: 'absolute', backgroundSize: 'cover', backgroundPosition: 'center' };
+  if (thumbUrl) base.backgroundImage = `url(${thumbUrl})`;
+  if (rotation === 0) return { ...base, inset: 0 };
+  if (rotation === 180) return { ...base, inset: 0, transform: 'rotate(180deg)' };
+  return {
+    ...base,
+    top: '50%',
+    left: '50%',
+    width: '200%',
+    height: '50%',
+    transform: `translate(-50%, -50%) rotate(${rotation === 90 ? -90 : 90}deg)`,
+  };
+}
 
 // Fallback thumbnail for a device file we have no local frame for (a clip uploaded
 // via another tool): a muted play glyph so the card reads as a video, not a blank.
@@ -230,6 +261,7 @@ export function TryxDevicePage() {
 
   const aliveRef = useRef(true);
   const brightnessInteractingRef = useRef(false);
+  const [rotationOverride, setRotationOverride] = useState<TryxRotation | null>(null);
   const overlayInitRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -366,6 +398,15 @@ export function TryxDevicePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlayItemsNeedingFix]);
 
+  // Optimistic rotation wins until the poll reports it back.
+  const polledRotation = normalizeTryxRotation(status?.state?.rotation);
+  const rotation = rotationOverride ?? polledRotation;
+  const rotated = rotation === 90 || rotation === 270;
+  // Uploads are cropped in the viewer's upright frame, so a 90/270 screen crops portrait.
+  const uploadAspect = rotated ? 1 / LANDSCAPE_ASPECT : LANDSCAPE_ASPECT;
+  useEffect(() => {
+    if (rotationOverride != null && polledRotation === rotationOverride) setRotationOverride(null);
+  }, [polledRotation, rotationOverride]);
   // Measures the preview canvas's rendered height so scalePanelMetric can
   // convert the panel's fixed-height layout constants into preview px; the
   // canvas is CSS aspect-ratio: 2, so its height tracks the pane's
@@ -376,15 +417,18 @@ export function TryxDevicePage() {
     // Guard the 0 a pre-layout measurement can report; the canvas mounts only
     // after the loading skeleton clears, so re-run on initialLoading too or the
     // observer is set up while the ref is still null and height stays 0.
+    // Panel-space metrics scale by the panel's short axis: the canvas height when
+    // landscape, its width when the canvas is portrait.
     const update = () => {
-      const h = el.getBoundingClientRect().height;
-      if (h > 0) setPreviewHeightPx(h);
+      const rect = el.getBoundingClientRect();
+      const shortAxis = rotated ? rect.width : rect.height;
+      if (shortAxis > 0) setPreviewHeightPx(shortAxis);
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [tab, initialLoading]);
+  }, [tab, initialLoading, rotated]);
 
   // Flushes a pending debounced overlay push immediately instead of
   // discarding it, so navigating away right after an edit still persists it.
@@ -793,6 +837,18 @@ export function TryxDevicePage() {
                     void setTryxBrightness(rounded);
                   }}
                 />
+                <SettingSelect
+                  label={t('devices.tryx.rotation')}
+                  value={String(rotation)}
+                  options={TRYX_ROTATIONS.map(r => ({ value: String(r), label: t(ROTATION_LABEL_KEYS[r]) }))}
+                  onChange={v => {
+                    const next = normalizeTryxRotation(Number(v));
+                    setRotationOverride(next);
+                    void setTryxRotation(next).then(ok => {
+                      if (!ok) setRotationOverride(cur => (cur === next ? null : cur));
+                    });
+                  }}
+                />
                 <SettingToggle
                   label={t('devices.lcd.sleepWhenLocked')}
                   checked={sleepWhenLocked}
@@ -1078,22 +1134,23 @@ export function TryxDevicePage() {
         <div className={styles.previewPane}>
           <div
             ref={previewCanvasRef}
-            className={styles.previewCanvas}
-            style={previewThumbUrl ? { backgroundImage: `url(${previewThumbUrl})` } : undefined}
+            className={`${styles.previewCanvas} ${rotated ? styles.previewCanvasPortrait : ''}`}
           >
-            {previewClip && (
-              <video
-                key={previewClip}
-                className={styles.previewVideo}
-                src={tryxMediaFileUrl(previewClip)}
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-hidden="true"
-                onError={() => setFailedPreviewClip(previewClip)}
-              />
-            )}
+            <div className={styles.previewMedia} style={previewMediaStyle(rotation, previewThumbUrl)}>
+              {previewClip && (
+                <video
+                  key={previewClip}
+                  className={styles.previewVideo}
+                  src={tryxMediaFileUrl(previewClip)}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  aria-hidden="true"
+                  onError={() => setFailedPreviewClip(previewClip)}
+                />
+              )}
+            </div>
             {overlayItems.map((item, i) => {
               if (!item.enabled) return null;
               const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup, monitoringWholeNumbers, { now: clockNow, timeFormat, dateFormat, systemClock12h: status?.systemClock12h });
@@ -1147,7 +1204,7 @@ export function TryxDevicePage() {
         open={klipyOpen}
         busySlug={klipyBusy}
         importError={klipyOpen ? klipyError : null}
-        thumbAspect={UPLOAD_ASPECT}
+        thumbAspect={uploadAspect}
         onPick={gif => { void handleKlipyPick(gif); }}
         onClose={() => { setKlipyOpen(false); setKlipyError(null); }}
       />
@@ -1157,7 +1214,7 @@ export function TryxDevicePage() {
           src={cropState.src}
           kind={cropState.kind}
           fallbackSrc={cropState.fallbackSrc}
-          aspect={UPLOAD_ASPECT}
+          aspect={uploadAspect}
           busy={uploading}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
