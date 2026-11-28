@@ -13,8 +13,10 @@
   justify-content: flex-end;
 }
 
-// Same content column as the onboarding pages.
+// Same content column as the onboarding pages. The top margin adds to the
+// brand block's own bottom margin, doubling the gap above the title.
 .content {
+  margin-top: var(--space-md);
   width: min($onboarding-content-width, 100%);
   flex-shrink: 0;
   display: flex;
